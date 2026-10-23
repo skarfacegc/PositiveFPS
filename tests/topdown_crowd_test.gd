@@ -1,8 +1,8 @@
 extends GdUnitTestSuite
 
 # Top-down crowd rules from round 6: separation, the pursuit cap, the dark drift speed, the drain multiplier, and the
-# rescue grace period with its halo. Runs in the real top-down level. Rescues are made by locked fire (real clicks)
-# where a player would make them. Pure rules (pursuit_assignments) are called directly.
+# rescue grace period with its grace ring. Runs in the real top-down level. Rescues are made by locked fire (real
+# clicks) where a player would make them. Pure rules (pursuit_assignments) are called directly.
 
 
 func _start() -> Dictionary:
@@ -121,7 +121,7 @@ func test_first_person_style_person_has_no_grace() -> void:
 	p.receive_joy(0, Config.JOY_MAX, 0.0)
 	assert_bool(p.is_rescued).is_true()
 	assert_float(p.grace_left).is_equal(0.0)
-	assert_bool(p.halo.visible).is_false()
+	assert_bool(p.grace_ring.visible).is_false()
 
 
 func test_top_down_people_get_the_grace_period_on_spawn() -> void:
@@ -131,7 +131,7 @@ func test_top_down_people_get_the_grace_period_on_spawn() -> void:
 		assert_float(p.grace_seconds).is_equal(Config.TD_RESCUE_GRACE_SECONDS)
 
 
-func test_rescued_person_is_safe_from_a_dark_neighbour_during_grace_then_is_not() -> void:
+func test_rescued_person_deep_in_cover_keeps_joy_next_to_a_dark_neighbour() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -139,38 +139,20 @@ func test_rescued_person_is_safe_from_a_dark_neighbour_during_grace_then_is_not(
 	var target: Person = td.people[0]
 	var dark: Person = td.people[1]
 	TopDownTestUtil.place(target, Vector3(0, 0, -8), 0, 0.0)
-	# Dark, 3 m away: inside the spread radius, so it would drain a rescued person if the grace allowed it.
+	# Dark, 3 m away: inside the spread radius. Round 7: darkness only reaches people at the edges of painted ground.
 	TopDownTestUtil.place(dark, Vector3(3, 0, -8), 0, 1.0)
 
 	await _rescue_by_locked_fire(runner, td, target, 600)
 	assert_bool(target.is_rescued).is_true()
 	assert_float(target.grace_left).is_greater(Config.TD_RESCUE_GRACE_SECONDS - 0.2)
 
-	# Three seconds into the four-second grace: the halo shows and no joy is lost.
+	# Three seconds into the four-second grace: the grace ring shows and no joy is lost.
 	await runner.simulate_frames(180)
-	assert_bool(target.halo.visible).is_true()
+	assert_bool(target.grace_ring.visible).is_true()
 	assert_float(target.joy).is_equal_approx(Config.JOY_MAX, 0.001)
 
-	# Past the grace period: the dark neighbour drains the rescued person, and the halo is gone.
+	# Past the grace period: the rescued person has painted ground all round, so the dark neighbour cannot drain them.
 	await runner.simulate_frames(120)
-	assert_float(target.joy).is_less(Config.JOY_MAX)
-	assert_bool(target.halo.visible).is_false()
-
-
-func test_top_down_drain_is_half_the_first_person_rate() -> void:
-	var s: Dictionary = await _start()
-	var runner: GdUnitSceneRunner = s["runner"]
-	var td: TopDownMain = s["td"]
-	TopDownTestUtil.send_everyone_away(td)
-	var target: Person = td.people[0]
-	var dark: Person = td.people[1]
-	TopDownTestUtil.place(target, Vector3(0, 0, -8), 0, 0.0)
-	TopDownTestUtil.place(dark, Vector3(3, 0, -8), 0, 1.0)
-	target.receive_joy(0, Config.JOY_MAX, 0.0)
-	# Skip the grace period, so only the drain rate is measured.
-	target.grace_left = 0.0
-
-	# One second at the fixed 60 fps. Full rate would take 60 joy; the top-down rate takes half of that.
-	await runner.simulate_frames(60)
-	var lost := Config.JOY_MAX - target.joy
-	assert_float(lost).is_equal_approx(Config.SPREAD_DRAIN_RATE * Config.TD_DRAIN_MULTIPLIER, 0.5)
+	assert_float(target.protection).is_greater(0.9)
+	assert_float(target.joy).is_greater(Config.JOY_MAX - 5.0)
+	assert_bool(target.grace_ring.visible).is_false()

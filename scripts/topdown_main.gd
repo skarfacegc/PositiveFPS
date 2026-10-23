@@ -29,11 +29,15 @@ var people: Array[Person] = []
 var time_left: float = Config.TD_ROUND_SECONDS
 var rescued_count: int = 0
 var running: bool = true
+# The F3 debug overlay: cover and protection labels above each person. Off by default.
+var debug_on: bool = false
 var _rng := RandomNumberGenerator.new()
 # Wander state for each person: a Dictionary of {"target": Vector3, "timer": float}.
 var _wander: Dictionary = {}
 var _highlight_mat: StandardMaterial3D
 var _pulse_time := 0.0
+# Seconds since the cover (see _update_cover) was last worked out. It is refreshed every GROUND_UPDATE_INTERVAL.
+var _cover_timer := 0.0
 
 
 func _ready() -> void:
@@ -44,7 +48,7 @@ func _ready() -> void:
 
 	ground = PaintedGround.new()
 	add_child(ground)
-	ground.setup(Config.TD_PLAZA_SIZE)
+	ground.setup(Config.TD_PLAZA_SIZE, Config.TD_GROUND_SPREAD_SPEED, Config.TD_GROUND_FADE_SPEED)
 
 	player = TopDownPlayer.new()
 	add_child(player)
@@ -64,6 +68,7 @@ func _ready() -> void:
 	hud.set_hint("WASD move  |  Shift run  |  Click a person to lock on  |  G/Q joy burst  |  R restart  |  M menu")
 	hud.set_targeting(player.targeting_mode)
 	player.target_changed.connect(hud.set_target)
+	player.debug_toggled.connect(_toggle_debug)
 	player.targeting_changed.connect(hud.set_targeting)
 	hud.set_target(-1)
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)
@@ -77,7 +82,8 @@ func _process(delta: float) -> void:
 	time_left -= delta
 	hud.set_time(time_left)
 	_update_people(delta)
-	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER)
+	_update_cover(delta)
+	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER, true)
 	for p: Person in people:
 		p.tick(delta)
 	ground.update_paint(people, delta)
@@ -93,6 +99,31 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("menu"):
 		Controls.set_mouse_captured(false)
 		get_tree().change_scene_to_file("res://menu.tscn")
+
+
+# F3: flips the debug overlay. The player reads the key and emits debug_toggled.
+func _toggle_debug() -> void:
+	_set_debug(not debug_on)
+
+
+# Turns the F3 debug overlay on or off: a cover and protection label above each person, and a hint on the HUD.
+func _set_debug(on: bool) -> void:
+	debug_on = on
+	for p: Person in people:
+		p.set_debug_visible(on)
+	hud.set_debug_on(on)
+
+
+# Works out every person's cover and protection from the painted ground around them, every GROUND_UPDATE_INTERVAL.
+# Cover is the average paint weight within TD_COVER_RADIUS; protection is derived from it (see GloomSim).
+func _update_cover(delta: float) -> void:
+	_cover_timer += delta
+	if _cover_timer < Config.GROUND_UPDATE_INTERVAL:
+		return
+	_cover_timer = 0.0
+	for p: Person in people:
+		p.cover = ground.average_weight(p.global_position, Config.TD_COVER_RADIUS)
+		p.protection = GloomSim.protection_for(p.cover)
 
 
 # The camera sits above and behind the player and always looks at them.
@@ -205,6 +236,7 @@ func _spawn_people() -> void:
 		p.position = pos
 		p.ui_scale = Config.TD_UI_SCALE
 		p.grace_seconds = Config.TD_RESCUE_GRACE_SECONDS
+		p.use_cover = true
 		add_child(p)
 		p.rescued.connect(_on_person_rescued)
 		p.relapsed.connect(_on_person_relapsed)

@@ -242,6 +242,9 @@ func test_m_returns_to_menu() -> void:
 	await runner.simulate_frames(5, 16)
 
 	assert_str(get_tree().current_scene.scene_file_path).is_equal(MENU_SCENE)
+	# Leave no menu behind: a menu left on screen takes the mouse clicks that later suites make in their levels.
+	get_tree().current_scene.queue_free()
+	await runner.simulate_frames(2, 16)
 
 
 func test_timer_expiry_shows_end_screen_with_buildings() -> void:

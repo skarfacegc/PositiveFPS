@@ -30,6 +30,13 @@ func _current_scene_path() -> String:
 	return scene.scene_file_path if scene != null else ""
 
 
+# Frees the level a test loaded through the menu. Those levels are not owned by the scene runner, so without this a
+# later suite would start with a level still running and taking its input (see fps_mode_test).
+func _leave_loaded_scene() -> void:
+	get_tree().current_scene.queue_free()
+	await get_tree().process_frame
+
+
 func test_menu_has_two_mode_buttons() -> void:
 	var runner: GdUnitSceneRunner = await _start_menu()
 	var buttons: Array = []
@@ -44,6 +51,7 @@ func test_key_1_loads_first_person() -> void:
 	runner.simulate_key_pressed(KEY_1)
 	await runner.simulate_frames(10)
 	assert_str(_current_scene_path()).is_equal(MAIN)
+	await _leave_loaded_scene()
 
 
 func test_key_2_loads_top_down() -> void:
@@ -51,6 +59,7 @@ func test_key_2_loads_top_down() -> void:
 	runner.simulate_key_pressed(KEY_2)
 	await runner.simulate_frames(10)
 	assert_str(_current_scene_path()).is_equal(TOP_DOWN)
+	await _leave_loaded_scene()
 
 
 func test_clicking_first_button_loads_first_person() -> void:
@@ -63,3 +72,4 @@ func test_clicking_first_button_loads_first_person() -> void:
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 	await runner.simulate_frames(10)
 	assert_str(_current_scene_path()).is_equal(MAIN)
+	await _leave_loaded_scene()

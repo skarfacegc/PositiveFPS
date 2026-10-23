@@ -167,7 +167,7 @@ func test_crowd_wanders_and_paints_for_several_hundred_frames() -> void:
 	assert_bool(td.running).is_true()
 
 
-func test_dark_person_drifts_to_rescued_and_relapse_alerts() -> void:
+func test_dark_person_drifts_to_rescued_but_cannot_drain_them_inside_their_paint() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -185,19 +185,37 @@ func test_dark_person_drifts_to_rescued_and_relapse_alerts() -> void:
 		frames += 1
 	assert_bool(target.is_rescued).is_true()
 
-	# Walk the player out of range, so nothing tops the rescued person back up.
+	# Walk the player out of range, so nothing tops the rescued person back up, and let the paint spread in.
 	td.player.global_position = Vector3(-25, 0, 25)
-	# Round 6: drain is half-rate and paused for the 4 s rescue grace, and the dark person heals while it stays
-	# within the colour zone, so draining from 1000 would take too long. Start the relapse path from 600 instead.
-	# Let the shots already in the air land first (they would top the person back up), then lower the joy.
-	await runner.simulate_frames(120)
+	await runner.simulate_frames(240)
 	target.joy = 600.0
-	# The fully dark person drifts toward the rescued one and drains its joy until it relapses.
-	frames = 0
-	while target.is_rescued and frames < 800:
-		await runner.simulate_frames(10)
-		frames += 10
+	var gap_before: float = dark.global_position.distance_to(target.global_position)
 
+	# Round 7: the rescued person stands in their own painted ground, so the dark person cannot drain them. They
+	# still drift toward the rescued person, but nobody relapses.
+	await runner.simulate_frames(480)
+	assert_bool(target.is_rescued).is_true()
+	assert_float(target.protection).is_greater(0.9)
+	assert_float(target.joy).is_equal_approx(600.0, 0.5)
+	assert_float(dark.global_position.distance_to(target.global_position)).is_less(gap_before)
+	assert_int(td.rescued_count).is_equal(1)
+
+
+func test_a_relapse_lowers_the_count_and_shows_the_alert() -> void:
+	var s: Dictionary = await _start()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	TopDownTestUtil.send_everyone_away(td)
+	var target: Person = td.people[0]
+	TopDownTestUtil.place(target, Vector3(0, 0, -8), 0, 0.0)
+	target.receive_joy(0, Config.JOY_MAX, 0.0)
+	await runner.simulate_frames(2)
+	assert_int(td.rescued_count).is_equal(1)
+
+	# Drain from outside the rules (no grace, no cover): the person drops below the relapse line and turns grey.
+	target.grace_left = 0.0
+	target.drain_joy(Config.JOY_MAX)
+	await runner.simulate_frames(2)
 	assert_bool(target.is_rescued).is_false()
-	assert_str(td.hud.alert_label.text).is_equal("Someone lost their joy!")
 	assert_int(td.rescued_count).is_equal(0)
+	assert_str(td.hud.alert_label.text).is_equal("Someone lost their joy!")

@@ -113,6 +113,22 @@ const TD_ROUND_SECONDS := 150.0
 const RNG_SEED := 42
 # Buildings unlocked on the top-down end screen. Same format as BUILDING_THRESHOLDS.
 const TD_BUILDING_THRESHOLDS := [[15, "Cafe"], [30, "Music Shop"], [45, "Community Garden"], [60, "Plaza Fountain"]]
+# Cover (round 7): each person's cover is the average paint weight of the ground within TD_COVER_RADIUS metres. Their
+# protection is smoothstep(TD_COVER_EDGE, TD_COVER_FULL, cover): 0 at the edge of a painted area, 1 well inside it.
+const TD_COVER_RADIUS := 3.0
+const TD_COVER_EDGE := 0.35
+const TD_COVER_FULL := 0.85
+# Joy contagion: with at least this much cover, an unrescued person's gloom drops by TD_CONTAGION_RATE per second
+# (times their protection). That is about one grey level per ten seconds deep inside. It never adds joy or rescues.
+const TD_CONTAGION_THRESHOLD := 0.6
+const TD_CONTAGION_RATE := 0.034
+# Top-down ground: painting in and fading back are separate speeds (per ground update). Painting is quick, but
+# fading back is slow, so territory lags behind people and lingers after a relapse.
+const TD_GROUND_SPREAD_SPEED := 0.05
+const TD_GROUND_FADE_SPEED := 0.012
+# Debug overlay (F3): height of the cover and protection labels above the ground, in metres.
+const TD_DEBUG_LABEL_HEIGHT := 2.95
+
 # Camera height above the player, in metres.
 const TD_CAMERA_HEIGHT := 24.0
 # How far behind the player the camera sits, in metres. The camera looks down at the player.
@@ -137,9 +153,13 @@ const TD_LOCK_BREAK_RANGE := 14.0
 const TD_AIM_ASSIST_RADIUS := 3.5
 # Shots per second while there is a target in range.
 const TD_SHOTS_PER_SECOND := 5.0
-# Joy added by each shot (before the element multiplier and distance falloff). Round 6: 1.5x the round 5 value (90),
-# so time-to-joy is about 1.5x faster for ordinary people.
-const TD_JOY_PER_SHOT := 135.0
+# Joy added by a Nature shot (before the element multiplier and distance falloff). Other elements scale this by
+# the inverse of their fire-rate multiplier (see TD_ELEMENT_FIRE_RATE_MULT), so every element delivers the same joy
+# per second. Round 7: 170 (was 135).
+const TD_JOY_PER_SHOT := 170.0
+# Fire-rate multiplier per element (music, art, nature). Music fires twice as often as Nature, Art half as often.
+# Joy per shot is divided by this, so the joy per second is the same for each element.
+const TD_ELEMENT_FIRE_RATE_MULT: Array[float] = [2.0, 0.5, 1.0]
 # How long a joy projectile can fly before it fizzles, in seconds.
 const TD_PROJECTILE_LIFETIME := 1.6
 # A projectile hits a person when it passes within this distance of their chest, in metres.
@@ -150,7 +170,8 @@ const TD_LANDING_HEIGHT := 0.05
 const TD_NOTE_SPEED := 15.0
 const TD_NOTE_TURN_RATE := 6.0
 # Paint blobs are lobbed so they land on the target's position after this many seconds, under this gravity.
-const TD_PAINT_FLIGHT_TIME := 0.55
+# Round 7: slower and higher arc (was 0.55 s).
+const TD_PAINT_FLIGHT_TIME := 0.75
 const TD_PAINT_GRAVITY := 18.0
 # On a paint impact, people within this many metres (ground distance) get this fraction of the joy.
 const TD_PAINT_SPLASH_RADIUS := 1.6
@@ -180,8 +201,22 @@ const TD_HIGHLIGHT_PULSE_SPEED := 3.0
 const TD_PROJECTILE_BOB := 0.3
 # How fast flower projectiles spin, in radians per second.
 const TD_FLOWER_SPIN := 8.0
-# Radius of the paint splat left by an Art projectile, in metres.
-const TD_SPLAT_RADIUS := 0.6
+# Flowers float: they bob up and down this many metres, this many radians a second (visual only).
+const TD_FLOWER_BOB := 0.12
+const TD_FLOWER_BOB_SPEED := 4.0
+# A Music hit (or landing) makes an expanding dusty-blue ring on the ground under the target (the "sound ring").
+# It grows from TD_SOUND_RING_START to TD_SOUND_RING_RADIUS metres over TD_SOUND_RING_SECONDS, then fades out.
+const TD_SOUND_RING_COLOR := Color(0.42, 0.58, 0.78, 0.8)
+const TD_SOUND_RING_START := 0.3
+const TD_SOUND_RING_RADIUS := 1.4
+const TD_SOUND_RING_SECONDS := 0.35
+# A Nature hit also bursts a few petals outward from where the flower stopped. Each petal flies TD_PETAL_BURST_RANGE
+# metres out over TD_PETAL_BURST_SECONDS, then fades and frees itself.
+const TD_PETAL_BURST_COUNT := 8
+const TD_PETAL_BURST_RANGE := 1.1
+const TD_PETAL_BURST_SECONDS := 0.6
+# Radius of the paint splat left by an Art projectile, in metres (round 7: bigger, was 0.6).
+const TD_SPLAT_RADIUS := 1.0
 # How solid the paint splat is (1 = solid, 0 = invisible).
 const TD_SPLAT_ALPHA := 0.6
 # Seconds for a paint splat to fade away.
@@ -206,14 +241,27 @@ const TD_MAX_PURSUERS_PER_TARGET := 2
 const TD_SEPARATION_RADIUS := 2.2
 # How strongly the separation push is added to a person's movement direction (before it is normalised).
 const TD_SEPARATION_STRENGTH := 1.2
-# Top-down joy drain is scaled by this. Dark people drain rescued joy at half the first-person rate.
-const TD_DRAIN_MULTIPLIER := 0.5
+# Top-down joy drain is scaled by this. Dark people drain rescued joy at 0.4 of the first-person rate (round 7).
+# It is also scaled by (1 - protection) of the rescued person (see GloomSim), so cover makes it smaller.
+const TD_DRAIN_MULTIPLIER := 0.4
 # After a rescue, the person cannot be drained by nearby darkness for this many seconds (a warm halo shows it).
 const TD_RESCUE_GRACE_SECONDS := 4.0
-# Colour of the grace halo around a rescued person. Its alpha fades as the grace period runs out.
-const GRACE_HALO_COLOR := Color(1.0, 0.9, 0.6, 0.25)
+# The grace cue: a warm ring on the ground under a rescued person, pulsing in size, plus a soft glow on the body.
+# Both fade out over the last GRACE_FADE_SECONDS of the grace period.
+const GRACE_RING_COLOR := Color(1.0, 0.85, 0.45, 0.8)
+const GRACE_RING_RADIUS := 0.9  # Metres.
+# The ring pulses between 0.9 and 1.15 times its size (middle 1.025, swing 0.125), this many times a second.
+const GRACE_RING_SCALE_MID := 1.025
+const GRACE_RING_PULSE_AMPLITUDE := 0.125
+const GRACE_RING_PULSE_HZ := 2.5
+const GRACE_GLOW_COLOR := Color(1.0, 0.85, 0.45)
+const GRACE_GLOW_ENERGY := 0.6  # Emission strength of the body glow at full strength.
+const GRACE_FADE_SECONDS := 1.0  # The ring and glow fade out over this much of the grace period, at its end.
 # Top-down projectiles (notes, paint, flowers) are drawn this many times bigger, so the element is easier to tell apart.
 const TD_PROJECTILE_VISUAL_SCALE := 1.5
+# Extra size per element on top of TD_PROJECTILE_VISUAL_SCALE (music, art, nature): notes are small and quick,
+# paint blobs are big and slow.
+const TD_ELEMENT_VISUAL_SCALE: Array[float] = [0.8, 2.0, 1.0]
 # Trails: small pieces left in the level behind each projectile. They fade and free themselves.
 # Most trail pieces one projectile can leave behind (keeps many shots cheap).
 const TD_TRAIL_MAX_PIECES := 12
@@ -221,12 +269,16 @@ const TD_TRAIL_MAX_PIECES := 12
 const TD_TRAIL_SECONDS := 0.35
 # ...and a new dot is left every this many seconds.
 const TD_TRAIL_INTERVAL := 0.04
-const TD_TRAIL_RADIUS := 0.07
+const TD_TRAIL_RADIUS := 0.09
+# Notes wave from side to side this many metres (the trail and the note together), this many radians a second.
+# Round 7: a more pronounced ribbon (was 0.3 m scaled by the visual size).
+const TD_NOTE_RIBBON_WAVE := 0.6
+const TD_NOTE_WAVE_SPEED := 16.0
 const TD_TRAIL_COLOR := Color(0.42, 0.58, 0.78)
 # Art paint trail: warm rose or terracotta drips fall from the blob (a new drip every TD_DRIP_INTERVAL seconds).
 const TD_DRIP_COLOR := Color(0.8, 0.42, 0.34)
 const TD_DRIP_INTERVAL := 0.05
-const TD_DRIP_RADIUS := 0.06
+const TD_DRIP_RADIUS := 0.09  # Heavier drips in round 7 (was 0.06).
 # A drip takes this long to fall to the ground, where it leaves a small splat dot.
 const TD_DRIP_FALL_SECONDS := 0.3
 const TD_SPLAT_DOT_RADIUS := 0.07

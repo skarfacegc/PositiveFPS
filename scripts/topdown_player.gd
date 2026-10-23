@@ -9,6 +9,8 @@ extends CharacterBody3D
 signal target_changed(affinity: int)
 # Emitted when F2 cycles the targeting mode (the argument is the new mode).
 signal targeting_changed(mode: int)
+# Emitted when F3 is pressed. The level toggles its debug overlay.
+signal debug_toggled
 
 var targeting_mode: int = Config.TD_TARGETING_MODE
 # The person being shot at, or null. Kept between frames in lock-on and hover modes.
@@ -93,6 +95,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_click_lock()
 	elif event.is_action_pressed("burst") and burst_cooldown <= 0.0:
 		_burst()
+	elif event.is_action_pressed("toggle_debug"):
+		debug_toggled.emit()
 
 
 func _physics_process(delta: float) -> void:
@@ -181,7 +185,8 @@ func _try_fire() -> void:
 		return
 	if not _in_auto_range(target):
 		return
-	_fire_cooldown = 1.0 / Config.TD_SHOTS_PER_SECOND
+	# Round 7: the fire rate depends on the target's element (music fast, art slow). Joy per second is the same.
+	_fire_cooldown = 1.0 / (Config.TD_SHOTS_PER_SECOND * Config.TD_ELEMENT_FIRE_RATE_MULT[target.affinity])
 	var start := global_position + Vector3(0, 1.2, 0)
 	var pr := JoyProjectile.new()
 	pr.element = target.affinity

@@ -19,11 +19,21 @@ var body: MeshInstance3D
 var wisp: CPUParticles3D
 # Seconds after a rescue during which nearby darkness cannot drain this person. 0 (first person) means no grace.
 var grace_seconds: float = 0.0
-# Seconds of grace left. The warm halo is shown while this is above zero.
+# Seconds of grace left. The grace cue (ring and glow) is shown while this is above zero.
 var grace_left: float = 0.0
-# The warm halo shown during the grace period (see _update_halo).
-var halo: MeshInstance3D
-var _halo_mat: StandardMaterial3D
+# The warm ring on the ground shown during the grace period (see _update_grace_cue).
+var grace_ring: MeshInstance3D
+# Cover (0..1): the average paint weight of the ground around this person. Set by topdown_main.gd.
+var cover: float = 0.0
+# Protection (0..1) from the cover: 0 at a painted edge, 1 deep inside. Darkness and joy fade scale by it.
+var protection: float = 0.0
+# True in top-down mode: the partial-joy fade is scaled by protection. First person leaves it off.
+var use_cover: bool = false
+# Cover and protection labels, built the first time the F3 debug overlay is turned on (see set_debug_visible).
+var debug_label: Label3D
+var _grace_mat: StandardMaterial3D
+# Seconds since the person was made (drives the grace ring's pulse).
+var _grace_time: float = 0.0
 # Seconds since this person was last hit by a beam.
 var _since_hit: float = 99.0
 # Seconds left to show the sad face after a relapse.
@@ -99,20 +109,21 @@ func _ready() -> void:
 	wisp.emitting = false
 	add_child(wisp)
 
-	# The warm halo for the grace period: a faint transparent sphere around the body, hidden unless in grace.
-	halo = MeshInstance3D.new()
-	var halo_mesh := SphereMesh.new()
-	halo_mesh.radius = 0.9
-	halo_mesh.height = 1.8
-	halo.mesh = halo_mesh
-	halo.position = Vector3(0, 0.9, 0)
-	_halo_mat = StandardMaterial3D.new()
-	_halo_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_halo_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_halo_mat.albedo_color = Config.GRACE_HALO_COLOR
-	halo.material_override = _halo_mat
-	halo.visible = false
-	add_child(halo)
+	# The grace ring: a bright warm disc on the ground under the person, hidden unless in grace.
+	grace_ring = MeshInstance3D.new()
+	var ring_mesh := CylinderMesh.new()
+	ring_mesh.top_radius = Config.GRACE_RING_RADIUS
+	ring_mesh.bottom_radius = Config.GRACE_RING_RADIUS
+	ring_mesh.height = 0.03
+	grace_ring.mesh = ring_mesh
+	grace_ring.position = Vector3(0, 0.04, 0)
+	_grace_mat = StandardMaterial3D.new()
+	_grace_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_grace_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_grace_mat.albedo_color = Config.GRACE_RING_COLOR
+	grace_ring.material_override = _grace_mat
+	grace_ring.visible = false
+	add_child(grace_ring)
 
 	_fx_rng.seed = Config.RNG_SEED
 	_update_visuals()
@@ -149,21 +160,25 @@ func receive_joy(element: int, amount: float, distance: float) -> void:
 		_update_visuals()
 
 
-# Called every frame by main.gd: handles joy fading, level changes and visuals.
+# Called every frame by topdown_main.gd or main.gd: handles joy fading, level changes and visuals.
 func tick(delta: float) -> void:
 	_since_hit += delta
+	_grace_time += delta
 	if _sad_timer > 0.0:
 		_sad_timer -= delta
 	if grace_left > 0.0:
 		grace_left = maxf(0.0, grace_left - delta)
 	if not is_rescued:
 		if _since_hit > Config.JOY_FADE_DELAY:
-			joy = maxf(0.0, joy - Config.JOY_FADE_RATE * delta)
+			# With cover (top-down), partial joy does not fade deep inside painted ground.
+			var exposure := (1.0 - protection) if use_cover else 1.0
+			joy = maxf(0.0, joy - Config.JOY_FADE_RATE * delta * exposure)
 		if joy >= joy_needed():
 			_rescue()
 		else:
 			_check_level()
 	_update_visuals()
+	_update_debug_label()
 
 
 # Removes joy from a rescued person (used by nearby darkness). Relapses them if they drop too low.
@@ -257,7 +272,7 @@ func _puff(color: Color, count: int) -> void:
 func _update_visuals() -> void:
 	if body_mat == null:
 		return
-	_update_halo()
+	_update_grace_cue()
 	var need := joy_needed()
 	var frac := clampf(joy / need, 0.0, 1.0)
 	var elem_col: Color = Config.ELEMENT_COLORS[affinity]
@@ -296,13 +311,45 @@ func _update_visuals() -> void:
 		wisp.emitting = level == 2
 
 
-# Shows the grace halo while the grace period runs, fading out as it runs down.
-func _update_halo() -> void:
-	halo.visible = grace_left > 0.0
-	if halo.visible:
-		var fade := clampf(grace_left / grace_seconds, 0.0, 1.0)
-		var col := Config.GRACE_HALO_COLOR
-		_halo_mat.albedo_color = Color(col.r, col.g, col.b, col.a * fade)
+# The grace cue: while the grace period runs, a warm ring on the ground pulses in size and the body glows softly.
+# Both fade out over the last GRACE_FADE_SECONDS of the grace period.
+func _update_grace_cue() -> void:
+	grace_ring.visible = grace_left > 0.0
+	if not grace_ring.visible:
+		body_mat.emission_enabled = false
+		return
+	var fade := clampf(grace_left / Config.GRACE_FADE_SECONDS, 0.0, 1.0)
+	var wave := sin(_grace_time * TAU * Config.GRACE_RING_PULSE_HZ)
+	var size := Config.GRACE_RING_SCALE_MID + Config.GRACE_RING_PULSE_AMPLITUDE * wave
+	grace_ring.scale = Vector3(size, 1.0, size)
+	var col := Config.GRACE_RING_COLOR
+	_grace_mat.albedo_color = Color(col.r, col.g, col.b, col.a * fade)
+	body_mat.emission_enabled = true
+	body_mat.emission = Config.GRACE_GLOW_COLOR
+	body_mat.emission_energy_multiplier = Config.GRACE_GLOW_ENERGY * fade
+
+
+# Shows or hides the cover and protection labels above this person (the F3 debug overlay).
+func set_debug_visible(on: bool) -> void:
+	if debug_label == null and on:
+		debug_label = Label3D.new()
+		debug_label.position = Vector3(0, Config.TD_DEBUG_LABEL_HEIGHT, 0)
+		debug_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		debug_label.font_size = 40
+		debug_label.pixel_size = 0.005 * ui_scale
+		debug_label.no_depth_test = true
+		debug_label.outline_size = 10
+		add_child(debug_label)
+	if debug_label != null:
+		debug_label.visible = on
+	_update_debug_label()
+
+
+# Writes the cover and protection percentages into the debug label (only while it is visible).
+func _update_debug_label() -> void:
+	if debug_label == null or not debug_label.visible:
+		return
+	debug_label.text = "c %d%%  p %d%%" % [roundi(cover * 100.0), roundi(protection * 100.0)]
 
 
 # Spawns a floating joy number above the person. Bigger, brighter and bouncier for better matches.

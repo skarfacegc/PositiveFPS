@@ -4,9 +4,11 @@ extends Node3D
 # A joy projectile for top-down mode. It has no physics body: each physics frame it steers, moves, and checks
 # for a wall (a ray from where it was to where it is now, ignoring people and the player), for a person whose chest
 # is in reach, and for the floor. What happens on impact depends on the element:
-#   Music: a note that homes in on its target and hits; it just fizzles on the floor.
-#   Art: a paint blob, lobbed so it lands on the target's spot; it splashes people nearby.
-#   Nature: a flower that drifts gently toward its target; where it lands it blooms (see bloom.gd).
+#   Music: a small, quick note that homes in on its target and hits; where it stops it makes a dusty-blue ring pulse
+#          on the ground.
+#   Art: a big paint blob, lobbed so it lands on the target's spot; it splashes people nearby and leaves a splat.
+#   Nature: a flower that drifts gently toward its target; where it lands it blooms (see bloom.gd) and bursts petals.
+# Each element has its own fire rate and joy per shot (Config.TD_ELEMENT_FIRE_RATE_MULT), set by the player.
 # Set element, velocity, shooter_pos, target, people and ignore_rids before adding it to the scene.
 
 const BLOB_SCALE := Vector3(1.2, 0.8, 1.2)
@@ -14,6 +16,9 @@ const FLOWER_CENTRE_COLOR := Color(1.0, 0.9, 0.3)
 const FIZZLE_COLOR := Color(0.6, 0.6, 0.6)
 # Every trail piece is in this group (and tagged with its element), so tests and the level can find them.
 const TRAIL_GROUP := "joy_trail"
+# Every impact effect left in the level (sound ring, splat, petal burst) is in this group, and tagged with its kind
+# in the "impact_kind" meta ("ring", "splat" or "petals"), so tests and the level can find them.
+const IMPACT_GROUP := "joy_impact"
 
 var element: int = Config.Element.MUSIC
 # How many trail pieces this projectile has left behind so far. It stops at Config.TD_TRAIL_MAX_PIECES.
@@ -54,7 +59,7 @@ static func launch_velocity(element_kind: int, from: Vector3, to: Vector3) -> Ve
 func _ready() -> void:
 	# Bigger than before, so the three elements are easier to tell apart. Hit checks use world positions, so
 	# they are unchanged.
-	scale = Vector3.ONE * Config.TD_PROJECTILE_VISUAL_SCALE
+	scale = Vector3.ONE * Config.TD_PROJECTILE_VISUAL_SCALE * Config.TD_ELEMENT_VISUAL_SCALE[element]
 	_body = Node3D.new()
 	add_child(_body)
 	if element == Config.Element.MUSIC:
@@ -93,12 +98,13 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
-	# Visual only: the note bobs side to side, the paint blob wobbles, the flower spins.
+	# Visual only: the note bobs side to side, the paint blob wobbles, the flower bobs and spins.
 	if element == Config.Element.MUSIC:
-		_body.position.x = sin(_age * 12.0) * Config.TD_PROJECTILE_BOB
+		_body.position.x = sin(_age * Config.TD_NOTE_WAVE_SPEED) * Config.TD_PROJECTILE_BOB
 	elif element == Config.Element.ART and _blob != null:
 		_blob.scale = BLOB_SCALE * (1.0 + 0.12 * sin(_age * 14.0))
 	elif element == Config.Element.NATURE:
+		_body.position.y = sin(_age * Config.TD_FLOWER_BOB_SPEED) * Config.TD_FLOWER_BOB
 		rotation.y += Config.TD_FLOWER_SPIN * delta
 
 
@@ -163,43 +169,54 @@ func _person_in_reach() -> Person:
 	return null
 
 
+# Joy for one shot of this element. Notes hit half as hard as Nature, paint twice as hard (the fire rate differs).
+func _shot_joy() -> float:
+	return Config.TD_JOY_PER_SHOT / Config.TD_ELEMENT_FIRE_RATE_MULT[element]
+
+
 # A direct hit: the person gets the joy, then the element's own impact happens where the projectile is.
 func _impact(direct: Person) -> void:
-	direct.receive_joy(element, Config.TD_JOY_PER_SHOT, _shooter_distance(direct))
+	direct.receive_joy(element, _shot_joy(), _shooter_distance(direct))
 	_element_impact(global_position, direct)
 
 
-# Landing without a hit. Notes just fizzle; paint and flowers do their impact on the ground.
+# Landing without a hit. Notes, paint and flowers all do their impact on the ground.
 func _land() -> void:
 	var ground := Vector3(global_position.x, 0.0, global_position.z)
-	if element == Config.Element.MUSIC:
-		_fizzle(ground)
-	else:
-		_element_impact(ground, null)
+	_element_impact(ground, null)
 
 
-# What each element does where it stops: paint splashes (except on a directly hit person), flowers bloom.
+# What each element does where it stops: music rings the ground, paint splashes (except on a directly hit person),
+# flowers bloom and burst petals.
 func _element_impact(at: Vector3, direct: Person) -> void:
-	if element == Config.Element.ART:
+	if element == Config.Element.MUSIC:
+		_spawn_sound_ring(at)
+	elif element == Config.Element.ART:
 		_splash(at, direct)
 		_spawn_splat(at)
-		_puff(Config.ELEMENT_COLORS[element], at)
 	elif element == Config.Element.NATURE:
 		_spawn_bloom(at)
-		_puff(Config.ELEMENT_COLORS[element], at)
-	else:
-		_puff(Config.ELEMENT_COLORS[element], at)
+		_spawn_petal_burst(at)
+	_puff(Config.ELEMENT_COLORS[element], at)
 	_free_self()
 
 
 # Everyone near `at` (ground distance) except a directly hit person gets a share of the joy.
 func _splash(at: Vector3, direct: Person) -> void:
-	var joy := Config.TD_JOY_PER_SHOT * Config.TD_PAINT_SPLASH_FRACTION
+	var joy := _shot_joy() * Config.TD_PAINT_SPLASH_FRACTION
 	for p: Person in people:
 		if not is_instance_valid(p) or p == direct:
 			continue
 		if GloomSim.flat_dist(at, p.global_position) <= Config.TD_PAINT_SPLASH_RADIUS:
 			p.receive_joy(element, joy, _shooter_distance(p))
+
+
+# Adds an impact effect to the level at `at`, tags it (group and kind), so it outlives this projectile.
+func _add_impact_node(node: Node3D, at: Vector3, kind: String) -> void:
+	node.add_to_group(IMPACT_GROUP)
+	node.set_meta("impact_kind", kind)
+	get_parent().add_child(node)
+	node.global_position = at
 
 
 # A flat, fading paint splat on the ground. It is added to the level so it outlives this projectile.
@@ -215,12 +232,58 @@ func _spawn_splat(at: Vector3) -> void:
 	var mat := _make_mat(col)
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	splat.material_override = mat
-	get_parent().add_child(splat)
-	splat.global_position = Vector3(at.x, 0.02, at.z)
+	_add_impact_node(splat, Vector3(at.x, 0.02, at.z), "splat")
 
 	var t := splat.create_tween()
 	t.tween_property(mat, "albedo_color:a", 0.0, Config.TD_SPLAT_FADE_TIME)
 	t.tween_callback(splat.queue_free)
+
+
+# Music impact: a dusty-blue ring on the ground that grows and fades out (the "sound ring"). Added to the level.
+func _spawn_sound_ring(at: Vector3) -> void:
+	var ring := MeshInstance3D.new()
+	var disc := CylinderMesh.new()
+	disc.top_radius = 1.0
+	disc.bottom_radius = 1.0
+	disc.height = 0.02
+	ring.mesh = disc
+	var mat := _make_mat(Config.TD_SOUND_RING_COLOR)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring.material_override = mat
+	ring.scale = Vector3(Config.TD_SOUND_RING_START, 1.0, Config.TD_SOUND_RING_START)
+	_add_impact_node(ring, Vector3(at.x, 0.03, at.z), "ring")
+
+	var grown := Vector3(Config.TD_SOUND_RING_RADIUS, 1.0, Config.TD_SOUND_RING_RADIUS)
+	var t := ring.create_tween()
+	t.set_parallel(true)
+	t.tween_property(ring, "scale", grown, Config.TD_SOUND_RING_SECONDS)
+	t.tween_property(mat, "albedo_color:a", 0.0, Config.TD_SOUND_RING_SECONDS)
+	t.chain().tween_callback(ring.queue_free)
+
+
+# Nature impact: a quick burst of petals flying outward from the spot and falling to the ground, then fading.
+func _spawn_petal_burst(at: Vector3) -> void:
+	var colours: Array[Color] = Config.TD_PETAL_COLORS
+	for i: int in range(Config.TD_PETAL_BURST_COUNT):
+		var petal := MeshInstance3D.new()
+		var quad := QuadMesh.new()
+		quad.size = Config.TD_PETAL_SIZE
+		petal.mesh = quad
+		var mat := _make_mat(colours[i % colours.size()])
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		petal.material_override = mat
+		petal.rotation.x = -PI / 2.0
+		var a := TAU * i / float(Config.TD_PETAL_BURST_COUNT)
+		var out := Vector3(cos(a), 0.0, sin(a)) * Config.TD_PETAL_BURST_RANGE
+		_add_impact_node(petal, Vector3(at.x, 0.4, at.z), "petals")
+
+		var end := Vector3(at.x + out.x, 0.03, at.z + out.z)
+		var t := petal.create_tween()
+		t.set_parallel(true)
+		t.tween_property(petal, "global_position", end, Config.TD_PETAL_BURST_SECONDS)
+		t.tween_property(mat, "albedo_color:a", 0.0, Config.TD_PETAL_BURST_SECONDS)
+		t.chain().tween_callback(petal.queue_free)
 
 
 # A flower patch where the flower stopped. It is added to the level so it outlives this projectile.
@@ -318,7 +381,7 @@ func _spawn_note_dot() -> void:
 	var mat := _make_mat(Config.TD_TRAIL_COLOR)
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	dot.material_override = mat
-	var wobble := Vector3(sin(_age * 12.0) * Config.TD_PROJECTILE_BOB * Config.TD_PROJECTILE_VISUAL_SCALE, 0.0, 0.0)
+	var wobble := Vector3(sin(_age * Config.TD_NOTE_WAVE_SPEED) * Config.TD_NOTE_RIBBON_WAVE, 0.0, 0.0)
 	_add_trail_node(dot, global_position + wobble)
 	_fade_and_free(dot, mat, Config.TD_TRAIL_SECONDS)
 

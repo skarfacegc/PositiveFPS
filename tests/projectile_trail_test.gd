@@ -122,4 +122,6 @@ func test_projectiles_are_drawn_bigger_in_top_down() -> void:
 	td.add_child(note)
 	note.global_position = Vector3(0, 5, 0)
 	await runner.simulate_frames(1)
-	assert_float(note.scale.x).is_equal_approx(Config.TD_PROJECTILE_VISUAL_SCALE, 0.001)
+	# Music is the smallest element (round 7): the base visual scale times the music size.
+	var music_size: float = Config.TD_ELEMENT_VISUAL_SCALE[Config.Element.MUSIC]
+	assert_float(note.scale.x).is_equal_approx(Config.TD_PROJECTILE_VISUAL_SCALE * music_size, 0.001)
