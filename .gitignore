@@ -2,3 +2,8 @@
 *.import
 export_presets.cfg
 *.tmp
+reports/
+coverage/
+.coverage_build/
+test_results.json
+coverage_hits.json

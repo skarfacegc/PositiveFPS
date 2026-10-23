@@ -56,3 +56,21 @@ Elements form a soft cycle:
 
 Using the element that matches a person's marker gives double joy (2x).
 Using an element that is strong against them gives 1.5x. Anything else gives 1x.
+
+## Tests & coverage
+
+The tests use [gdUnit4](https://github.com/godot-gdunit-labs/gdUnit4) (in `addons/gdUnit4`, enabled in
+`project.godot`). The suites live in `tests/`.
+
+- Run the tests: `python tools/run_tests.py`. It runs headless against this project and writes HTML and
+  JUnit reports to `reports/`. Exit code 1 means a test failed.
+- Tests and coverage: `python tools/coverage.py`. It copies the project to `.coverage_build/`, instruments
+  every function in `scripts/`, runs the tests there, and writes `coverage/index.html` (plus `summary.txt`
+  and `coverage.json`).
+- The Godot executable comes from the `GODOT` environment variable, or the default path in `tools/run_tests.py`.
+
+Rule for new features: add tests that drive real inputs (key presses, mouse buttons and motion, actions)
+through `scene_runner(...)`, the same way a player would. Pure rules can be tested directly.
+
+Test runs set `POSITIVEFPS_TEST=1` (or run headless). In that mode the game never captures the real mouse, so a
+test run cannot take over your mouse; the window title is also changed to say it is an automated test.
