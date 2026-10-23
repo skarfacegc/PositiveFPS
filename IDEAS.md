@@ -64,3 +64,11 @@ Playtest 2 feedback: some tension now; time-to-joy a bit too long; lower-tier nu
 - **Painted ground:** the floor turns colourful around rescued people and fades back to grey when they relapse (replaces the circles).
 - **Relapse warning + alert:** rescued people flicker, wobble and show "!" as they lose joy; a relapse has a dark burst and an on-screen alert.
 - **Later:** richer, less plain visual style (current look is placeholder).
+
+## POC round 4 (after third playtest)
+Playtest 3 feedback: first-person aiming makes it feel like an "element selector challenge"; maybe top-down would suit it better (Deep Rock Galactic: Survivor / Vampire Survivors style), where aiming is mostly automatic and the game is about movement and element choice. Beams feel sterile; projectiles (notes, paint, flowers) would feel better (visual only for now; hits are still instant). Mix of loadout and element switching, but don't go deep on loadout yet; get the core loop healthier first.
+- **Top-down mode** added alongside first person (menu to pick), to compare directly.
+- **Auto-aim + auto-fire:** targets the person nearest your mouse (or nearest you); you choose position and element.
+- **Joy burst (G/Q):** cooldown ability that gives everyone nearby a best-match hit. A second verb; first step toward a loadout.
+- **Bigger moving crowd:** 60 people in a larger plaza; people wander, dark people drift toward colourful areas.
+- **Projectile visuals:** music notes, paint blobs (leave splats), flowers.
