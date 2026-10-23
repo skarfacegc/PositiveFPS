@@ -42,9 +42,23 @@ static func setup() -> void:
 	_add_action("element_prev", [_mouse(MOUSE_BUTTON_WHEEL_UP)])
 	# Joy burst: G is the grenade-style key by convention, Q is a second option.
 	_add_action("burst", [_key(KEY_G), _key(KEY_Q)])
+	# Top-down: cycles the targeting mode (lock-on, hover, auto). A debug key for now.
+	_add_action("cycle_targeting", [_key(KEY_F2)])
 	_add_action("restart", [_key(KEY_R)])
 	_add_action("release_mouse", [_key(KEY_ESCAPE)])
 	_add_action("menu", [_key(KEY_M)])
+
+
+# Gamepad-ready: no joypad events are bound yet (no device to test with). All gameplay code reads these
+# actions, never raw keys, so a future gamepad mapping only needs joypad events added to the actions above:
+#   move_forward, move_back, move_left, move_right  -> left stick
+#   run                                             -> left stick click
+#   jump                                            -> bottom face button
+#   fire (top-down: lock on to a person)            -> right trigger
+#   burst                                           -> top face button
+#   cycle_targeting                                 -> left shoulder button
+#   restart, menu                                   -> start or back
+# Top-down aiming uses the mouse position on the floor, so a gamepad would also need a right-stick aim point.
 
 
 static func _add_action(action: String, events: Array) -> void:

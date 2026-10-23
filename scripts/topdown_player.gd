@@ -1,12 +1,18 @@
 class_name TopDownPlayer
 extends CharacterBody3D
 
-# The player in top-down mode. WASD moves in world space, the mouse picks the aim point on the floor,
-# and joy fires automatically at a nearby person. Hits are instant; the projectiles are only visual.
+# The player in top-down mode. WASD moves in world space and the mouse picks an aim point on the floor.
+# The player picks a target (how depends on the targeting mode, see Config.TargetingMode) and fires physical
+# joy projectiles at it. Every shot uses the target's own element, so there is no element switching here.
 
-signal element_changed(element: int)
+# Emitted when the target changes. The argument is the target's affinity, or -1 when there is no target.
+signal target_changed(affinity: int)
+# Emitted when F2 cycles the targeting mode (the argument is the new mode).
+signal targeting_changed(mode: int)
 
-var current_element: int = Config.Element.MUSIC
+var targeting_mode: int = Config.TD_TARGETING_MODE
+# The person being shot at, or null. Kept between frames in lock-on and hover modes.
+var target: Person = null
 var active: bool = true
 # Set by topdown_main.gd after both the player and the people exist.
 var people: Array[Person] = []
@@ -55,7 +61,7 @@ func _ready() -> void:
 	nose.material_override = nose_mat
 	add_child(nose)
 
-	# Element ring under the feet, in the current element's colour.
+	# Element ring under the feet: the target's element colour, or cream with no target.
 	var ring := MeshInstance3D.new()
 	var ring_mesh := CylinderMesh.new()
 	ring_mesh.top_radius = 0.9
@@ -65,7 +71,7 @@ func _ready() -> void:
 	ring.position = Vector3(0, 0.03, 0)
 	_ring_mat = StandardMaterial3D.new()
 	_ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_ring_mat.albedo_color = Config.ELEMENT_COLORS[current_element]
+	_ring_mat.albedo_color = Config.TD_NO_TARGET_COLOR
 	ring.material_override = _ring_mat
 	add_child(ring)
 
@@ -81,25 +87,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not active:
 		return
 
-	if event.is_action_pressed("element_1"):
-		_set_element(0)
-	elif event.is_action_pressed("element_2"):
-		_set_element(1)
-	elif event.is_action_pressed("element_3"):
-		_set_element(2)
-	elif event.is_action_pressed("element_next"):
-		_set_element((current_element + 1) % 3)
-	elif event.is_action_pressed("element_prev"):
-		_set_element((current_element + 2) % 3)
+	if event.is_action_pressed("cycle_targeting"):
+		_cycle_targeting()
+	elif event.is_action_pressed("fire") and targeting_mode == Config.TargetingMode.LOCK_ON:
+		_click_lock()
 	elif event.is_action_pressed("burst") and burst_cooldown <= 0.0:
 		_burst()
-
-
-func _set_element(e: int) -> void:
-	if e != current_element:
-		current_element = e
-		_ring_mat.albedo_color = Config.ELEMENT_COLORS[e]
-		element_changed.emit(e)
 
 
 func _physics_process(delta: float) -> void:
@@ -125,7 +118,9 @@ func _physics_process(delta: float) -> void:
 
 	_face_aim()
 	_fire_cooldown -= delta
-	_auto_fire()
+	_update_target()
+	_refresh_ring()
+	_try_fire()
 
 
 # Projects the mouse onto the floor (y = 0) to find the aim point.
@@ -151,48 +146,122 @@ func _face_aim() -> void:
 	rotation.y = atan2(-to.x, -to.z)
 
 
-# Fires at the chosen target when the cooldown is ready. The joy is applied at once.
-func _auto_fire() -> void:
-	if _fire_cooldown > 0.0:
+# F2: move to the next targeting mode. The current target is dropped so every mode starts clean.
+func _cycle_targeting() -> void:
+	targeting_mode = (targeting_mode + 1) % Config.TD_TARGETING_NAMES.size()
+	_set_target(null)
+	targeting_changed.emit(targeting_mode)
+
+
+# Lock-on click: lock the valid person nearest the mouse ground point. Clicking empty ground clears the lock.
+func _click_lock() -> void:
+	_update_aim()
+	if not _has_aim:
 		return
-	var target: Person = _pick_target()
-	if target == null:
+	_set_target(_nearest_valid(_aim_point, Config.TD_CLICK_RADIUS))
+
+
+# Keeps the target in step with the mode, and drops it when it is no longer valid.
+func _update_target() -> void:
+	if not is_instance_valid(target):
+		_set_target(null)
+	if targeting_mode == Config.TargetingMode.AUTO:
+		_set_target(_most_urgent())
+		return
+	if target != null and not _can_keep(target):
+		_set_target(null)
+	if targeting_mode == Config.TargetingMode.HOVER_STICKY and target == null and _has_aim:
+		_set_target(_nearest_valid(_aim_point, Config.TD_AIM_ASSIST_RADIUS))
+
+
+# Fires one shot at the target when the cooldown is ready and the target is in range. Notes, paint and flowers
+# are all fired the same way; the element is the target's affinity, so every shot is a best match.
+func _try_fire() -> void:
+	if target == null or _fire_cooldown > 0.0:
+		return
+	if not _in_auto_range(target):
 		return
 	_fire_cooldown = 1.0 / Config.TD_SHOTS_PER_SECOND
-	var dist := _flat_dist(global_position, target.global_position)
-	target.receive_joy(current_element, Config.TD_JOY_PER_SHOT, dist)
-
-	var pr: JoyProjectile = JoyProjectile.new()
-	pr.element = current_element
-	pr.start = global_position + Vector3(0, 1.2, 0)
-	pr.end_pos = target.chest_position()
+	var start := global_position + Vector3(0, 1.2, 0)
+	var pr := JoyProjectile.new()
+	pr.element = target.affinity
+	pr.target = target
+	pr.people = people
+	pr.shooter_pos = global_position
+	pr.ignore_rids = [get_rid()]
+	pr.velocity = JoyProjectile.launch_velocity(pr.element, start, target.chest_position())
 	get_parent().add_child(pr)
+	pr.global_position = start
 
 
-# Picks a target among people who can still gain joy (unrescued, or rescued but about to relapse) and are in range.
-# Prefers the one closest to the aim point if they are close enough to it; otherwise the nearest one to the player.
-func _pick_target() -> Person:
-	var best_aim: Person = null
-	var best_aim_d := INF
-	var best_near: Person = null
-	var best_near_d := INF
+# Sets the ring under the player to the target's element colour, or cream with no target.
+func _refresh_ring() -> void:
+	if target == null:
+		_ring_mat.albedo_color = Config.TD_NO_TARGET_COLOR
+	else:
+		_ring_mat.albedo_color = Config.ELEMENT_COLORS[target.affinity]
+
+
+func _set_target(p: Person) -> void:
+	if p == target:
+		return
+	target = p
+	target_changed.emit(-1 if p == null else p.affinity)
+
+
+# True when a person can still gain joy: unrescued, or rescued but losing joy (about to relapse).
+func _is_eligible(p: Person) -> bool:
+	return not p.is_rescued or p.is_warning()
+
+
+# A valid target: eligible and within auto range of the player.
+func _is_valid_target(p: Person) -> bool:
+	return _is_eligible(p) and _in_auto_range(p)
+
+
+func _in_auto_range(p: Person) -> bool:
+	return _flat_dist(global_position, p.global_position) <= Config.TD_AUTO_RANGE
+
+
+# A held target stays while it is eligible and inside the lock break range.
+func _can_keep(p: Person) -> bool:
+	return _is_eligible(p) and _flat_dist(global_position, p.global_position) <= Config.TD_LOCK_BREAK_RANGE
+
+
+# The valid person nearest `point` within `radius` metres of it, or null.
+func _nearest_valid(point: Vector3, radius: float) -> Person:
+	var best: Person = null
+	var best_d := INF
 	for p: Person in people:
-		if p.is_rescued and not p.is_warning():
+		if not is_instance_valid(p) or not _is_valid_target(p):
 			continue
-		var d_player := _flat_dist(global_position, p.global_position)
-		if d_player > Config.TD_AUTO_RANGE:
+		var d := _flat_dist(point, p.global_position)
+		if d <= radius and d < best_d:
+			best_d = d
+			best = p
+	return best
+
+
+# AUTO: rescued-and-warning people first, then the darkest, then the nearest.
+func _most_urgent() -> Person:
+	var best: Person = null
+	for p: Person in people:
+		if not is_instance_valid(p) or not _is_valid_target(p):
 			continue
-		if d_player < best_near_d:
-			best_near_d = d_player
-			best_near = p
-		if _has_aim:
-			var d_aim := _flat_dist(_aim_point, p.global_position)
-			if d_aim < best_aim_d:
-				best_aim_d = d_aim
-				best_aim = p
-	if best_aim != null and best_aim_d <= Config.TD_AIM_ASSIST_RADIUS:
-		return best_aim
-	return best_near
+		if best == null or _more_urgent(p, best):
+			best = p
+	return best
+
+
+# True if `a` should be shot at before `b` (see _most_urgent).
+func _more_urgent(a: Person, b: Person) -> bool:
+	if a.is_rescued != b.is_rescued:
+		return a.is_rescued
+	var level_a := Config.gloom_level(a.gloom)
+	var level_b := Config.gloom_level(b.gloom)
+	if level_a != level_b:
+		return level_a > level_b
+	return _flat_dist(global_position, a.global_position) < _flat_dist(global_position, b.global_position)
 
 
 # Joy burst: everyone close by gets a best-match hit, then a ring expands from the player's feet.

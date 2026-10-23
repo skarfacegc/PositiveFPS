@@ -5,6 +5,8 @@ extends RefCounted
 
 # The three elements. Each person has an affinity for one of them, and the player picks one to shoot with.
 enum Element { MUSIC, ART, NATURE }
+# Top-down targeting modes (see TD_TARGETING_MODE below).
+enum TargetingMode { LOCK_ON, HOVER_STICKY, AUTO }
 
 # Display names, in the same order as the Element enum.
 const ELEMENT_NAMES: Array[String] = ["Music", "Art", "Nature"]
@@ -119,21 +121,61 @@ const TD_CAMERA_BACK := 12.0
 const TD_MOVE_SPEED := 6.0
 # Speed while holding Shift, in metres per second.
 const TD_RUN_SPEED := 9.5
-# Auto-fire reaches people this close, in metres.
+# A person can only be targeted (and shot at) while this close to the player, in metres.
 const TD_AUTO_RANGE := 11.0
-# If a person is this close to the mouse aim point, auto-fire picks them over the nearest person.
+# How the player picks a target. LOCK_ON: click a person to lock on. HOVER_STICKY: the person under the mouse
+# is picked when there is no target, and then stays the target. AUTO: the most urgent person in range.
+# The mode at the start of a top-down round. F2 cycles through the modes at runtime.
+const TD_TARGETING_MODE := TargetingMode.LOCK_ON
+# Short names for each TargetingMode, in the same order (shown on the HUD).
+const TD_TARGETING_NAMES: Array[String] = ["Lock-on", "Hover", "Auto"]
+# Lock-on: a click picks the valid person nearest the mouse ground point, if within this many metres.
+const TD_CLICK_RADIUS := 1.6
+# A lock (or a hover target) is dropped when the target is further than this from the player, in metres.
+const TD_LOCK_BREAK_RANGE := 14.0
+# Hover: with no target, the valid person nearest the mouse point within this many metres becomes the target.
 const TD_AIM_ASSIST_RADIUS := 3.5
-# Auto-fire shots per second.
+# Shots per second while there is a target in range.
 const TD_SHOTS_PER_SECOND := 5.0
-# Joy added by each auto-fire shot (before the element multiplier and distance falloff).
-const TD_JOY_PER_SHOT := 45.0
-# Speed of the visual joy projectiles, in metres per second. Hits are instant; this only changes how they look.
-const TD_PROJECTILE_SPEED := 16.0
-# The shortest a projectile's flight can take, in seconds.
-const TD_PROJECTILE_MIN_TIME := 0.08
-# How high projectiles arc over their flight, in metres.
-const TD_PROJECTILE_ARC := 0.8
-# How far music notes wobble from side to side, in metres.
+# Joy added by each shot (before the element multiplier and distance falloff). Twice the old 45, so rescues are faster.
+const TD_JOY_PER_SHOT := 90.0
+# How long a joy projectile can fly before it fizzles, in seconds.
+const TD_PROJECTILE_LIFETIME := 1.6
+# A projectile hits a person when it passes within this distance of their chest, in metres.
+const TD_PROJECTILE_HIT_RADIUS := 0.7
+# A projectile at or below this height has landed, in metres.
+const TD_LANDING_HEIGHT := 0.05
+# Music notes fly at this speed (metres per second) and turn toward their target at this rate (radians per second).
+const TD_NOTE_SPEED := 15.0
+const TD_NOTE_TURN_RATE := 6.0
+# Paint blobs are lobbed so they land on the target's position after this many seconds, under this gravity.
+const TD_PAINT_FLIGHT_TIME := 0.55
+const TD_PAINT_GRAVITY := 18.0
+# On a paint impact, people within this many metres (ground distance) get this fraction of the joy.
+const TD_PAINT_SPLASH_RADIUS := 1.6
+const TD_PAINT_SPLASH_FRACTION := 0.5
+# Flowers fly slower and turn more gently than notes (same units as above).
+const TD_FLOWER_SPEED := 9.0
+const TD_FLOWER_TURN_RATE := 2.0
+# A flower that lands (or hits someone) leaves a bloom: it lasts this many seconds...
+const TD_BLOOM_SECONDS := 2.5
+# ...covers people within this radius of its centre, in metres...
+const TD_BLOOM_RADIUS := 1.3
+# ...gives them this much joy per second (element Nature, no distance falloff)...
+const TD_BLOOM_JOY_PER_SEC := 120.0
+# ...in pulses this long apart (joy is applied in pulses so each pulse shows one floating number)...
+const TD_BLOOM_PULSE_SECONDS := 0.25
+# ...and fades out over this many seconds at the end.
+const TD_BLOOM_FADE_SECONDS := 0.4
+# Colour of the element ring under the player when there is no target.
+const TD_NO_TARGET_COLOR := Color(0.92, 0.9, 0.82)
+# The target highlight: a ring at the target's feet, its radius, colour, and how far it pulses (scale change).
+const TD_HIGHLIGHT_RADIUS := 0.75
+const TD_HIGHLIGHT_COLOR := Color(1.0, 0.85, 0.5, 0.85)
+const TD_HIGHLIGHT_PULSE := 0.05
+# Pulse speed in radians per second (a slow pulse).
+const TD_HIGHLIGHT_PULSE_SPEED := 3.0
+# How far music notes wobble from side to side, in metres. Visual only: it does not change where they fly.
 const TD_PROJECTILE_BOB := 0.3
 # How fast flower projectiles spin, in radians per second.
 const TD_FLOWER_SPIN := 8.0

@@ -23,6 +23,8 @@ var ground: PaintedGround
 var player: TopDownPlayer
 var camera: Camera3D
 var hud: Hud
+# The ring under the target's feet (see _update_highlight). Public so tests can check it.
+var highlight: MeshInstance3D
 var people: Array[Person] = []
 var time_left: float = Config.TD_ROUND_SECONDS
 var rescued_count: int = 0
@@ -30,6 +32,8 @@ var running: bool = true
 var _rng := RandomNumberGenerator.new()
 # Wander state for each person: a Dictionary of {"target": Vector3, "timer": float}.
 var _wander: Dictionary = {}
+var _highlight_mat: StandardMaterial3D
+var _pulse_time := 0.0
 
 
 func _ready() -> void:
@@ -52,19 +56,22 @@ func _ready() -> void:
 
 	_spawn_people()
 	player.people = people
+	_build_highlight()
 
 	hud = Hud.new()
 	add_child(hud)
 	hud.set_crosshair_visible(false)
-	var hint := "WASD move  |  Shift run  |  1/2/3 or wheel: element  |  "
-	hud.set_hint(hint + "G/Q joy burst  |  aim with mouse  |  R restart  |  M menu")
-	player.element_changed.connect(hud.set_element)
-	hud.set_element(player.current_element)
+	hud.set_hint("WASD move  |  Shift run  |  Click a person to lock on  |  G/Q joy burst  |  R restart  |  M menu")
+	hud.set_targeting(player.targeting_mode)
+	player.target_changed.connect(hud.set_target)
+	player.targeting_changed.connect(hud.set_targeting)
+	hud.set_target(-1)
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)
 
 
 func _process(delta: float) -> void:
 	_update_camera()
+	_update_highlight(delta)
 	if not running:
 		return
 	time_left -= delta
@@ -93,6 +100,36 @@ func _update_camera() -> void:
 	var target: Vector3 = player.global_position
 	camera.global_position = target + Vector3(0, Config.TD_CAMERA_HEIGHT, Config.TD_CAMERA_BACK)
 	camera.look_at(target, Vector3.UP)
+
+
+# Builds the target highlight: a flat warm ring that is shown under the target, hidden when there is none.
+func _build_highlight() -> void:
+	highlight = MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = Config.TD_HIGHLIGHT_RADIUS
+	mesh.bottom_radius = Config.TD_HIGHLIGHT_RADIUS
+	mesh.height = 0.02
+	highlight.mesh = mesh
+	_highlight_mat = StandardMaterial3D.new()
+	_highlight_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_highlight_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_highlight_mat.albedo_color = Config.TD_HIGHLIGHT_COLOR
+	highlight.material_override = _highlight_mat
+	highlight.visible = false
+	add_child(highlight)
+
+
+# Moves the highlight to the target's feet and pulses it slowly. Hidden while there is no valid target.
+func _update_highlight(delta: float) -> void:
+	_pulse_time += delta
+	if not is_instance_valid(player.target):
+		highlight.visible = false
+		return
+	var t: Person = player.target
+	highlight.visible = true
+	highlight.global_position = Vector3(t.global_position.x, 0.03, t.global_position.z)
+	var s := 1.0 + Config.TD_HIGHLIGHT_PULSE * sin(_pulse_time * Config.TD_HIGHLIGHT_PULSE_SPEED)
+	highlight.scale = Vector3(s, 1.0, s)
 
 
 func _setup_environment() -> void:

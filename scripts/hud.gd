@@ -7,6 +7,7 @@ var element_label: Label
 var burst_label: Label
 var hint_label: Label
 var rescued_label: Label
+var targeting_label: Label
 var alert_label: Label
 var end_panel: ColorRect
 var end_label: Label
@@ -58,6 +59,18 @@ func _ready() -> void:
 	hint_label.position = Vector2(20, 690)
 	add_child(hint_label)
 
+	# Targeting mode, top right. Only shown in top-down mode (see set_targeting).
+	targeting_label = Label.new()
+	targeting_label.add_theme_font_size_override("font_size", 20)
+	targeting_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	targeting_label.offset_left = -360
+	targeting_label.offset_right = -20
+	targeting_label.offset_top = 20
+	targeting_label.offset_bottom = 50
+	targeting_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	targeting_label.visible = false
+	add_child(targeting_label)
+
 	# Rescued counter, top left.
 	rescued_label = Label.new()
 	rescued_label.text = "Rescued: 0 / 20"
@@ -98,10 +111,26 @@ func set_time(t: float) -> void:
 	timer_label.text = "%d:%02d" % [secs / 60, secs % 60]
 
 
-# Shows the element the player is holding, in that element's colour.
+# Shows the element the player is holding, in that element's colour (first person).
 func set_element(e: int) -> void:
 	element_label.text = "Element: " + Config.ELEMENT_NAMES[e]
 	element_label.add_theme_color_override("font_color", Config.ELEMENT_COLORS[e])
+
+
+# Top-down: shows the target's element in its colour, or "No target" in cream. Pass -1 for no target.
+func set_target(affinity: int) -> void:
+	if affinity < 0:
+		element_label.text = "No target"
+		element_label.add_theme_color_override("font_color", Config.TD_NO_TARGET_COLOR)
+	else:
+		element_label.text = "Target: " + Config.ELEMENT_NAMES[affinity]
+		element_label.add_theme_color_override("font_color", Config.ELEMENT_COLORS[affinity])
+
+
+# Top-down: shows the targeting mode (see Config.TargetingMode) in the top right.
+func set_targeting(mode: int) -> void:
+	targeting_label.visible = true
+	targeting_label.text = "Targeting: " + Config.TD_TARGETING_NAMES[mode] + "  [F2]"
 
 
 func set_rescued(n: int, total: int) -> void:
