@@ -44,7 +44,7 @@ Goal: find out whether reading cues, picking the right element and helping as ma
 - **Threats:** Settled for now: no enemies, the clock is the pressure. Open: is the clock visible and fixed, or can you extend it (e.g. each rescue adds a little time)? Is there any environmental hazard at all, or purely time?
 - **Player health:** Does the player have their own mood/energy that drains, and get topped up by rescued people?
 - **Building → unlock mapping:** e.g. music shop → guitar upgrades, garden centre → flower variants, café → healing item.
-- **Visual progression:** Town goes from desaturated to full colour as it's rebuilt.
+- **Visual progression / style:** Town goes from desaturated to full colour as it's rebuilt. Current POC look is placeholder; want a richer, less plain style later.
 - **Tone:** Keep it light and warm. Joy is something shared with people, not a cure applied to them.
 
 ## POC round 2 (after first playtest)
@@ -55,3 +55,12 @@ Playtest 1 feedback: movement and cues good; rescues too fast; not enough push-b
 - **Gloom levels:** people start at different shades of grey and get darker over time, faster the further they are from a colour zone (rescued people create colour zones). Darker people need more joy.
 - **Darkness spreads:** very dark people darken those nearby and drain joy from rescued people. Rescued people can relapse and need re-joying. Final count = people still happy when the timer ends.
 - **Floating joy numbers:** Borderlands-style numbers; better matches look bigger, brighter, outlined and bouncy; weak matches look small, grey and droopy.
+
+## POC round 3 (after second playtest)
+Playtest 2 feedback: some tension now; time-to-joy a bit too long; lower-tier numbers not visible enough; colour zones not understood; darkening too subtle (it was continuous); relapses noticed only after the fact, with no warning.
+- **Rescues ~25% faster.**
+- **Lower-tier numbers more visible** (bigger, outlined); top tier unchanged.
+- **Three stepped grey levels** (light / grey / dark) with a visible moment on each step; only dark people spread darkness, and they give off dark wisps.
+- **Painted ground:** the floor turns colourful around rescued people and fades back to grey when they relapse (replaces the circles).
+- **Relapse warning + alert:** rescued people flicker, wobble and show "!" as they lose joy; a relapse has a dark burst and an on-screen alert.
+- **Later:** richer, less plain visual style (current look is placeholder).
