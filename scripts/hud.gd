@@ -5,8 +5,10 @@ var timer_label: Label
 var element_label: Label
 var hint_label: Label
 var rescued_label: Label
+var alert_label: Label
 var end_panel: ColorRect
 var end_label: Label
+var _alert_tween: Tween
 
 
 func _ready() -> void:
@@ -54,6 +56,18 @@ func _ready() -> void:
 	rescued_label.position = Vector2(20, 20)
 	add_child(rescued_label)
 
+	# Relapse alert: a short orange message near the top that fades out (see show_alert).
+	alert_label = Label.new()
+	alert_label.position = Vector2(0, 200)
+	alert_label.size = Vector2(1280, 60)
+	alert_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	alert_label.add_theme_font_size_override("font_size", 34)
+	alert_label.add_theme_color_override("font_color", Color(1, 0.6, 0.1))
+	alert_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	alert_label.add_theme_constant_override("outline_size", 8)
+	alert_label.modulate = Color(1, 1, 1, 0)
+	add_child(alert_label)
+
 	# End screen: a dark panel covering the whole screen, hidden until the round ends.
 	end_panel = ColorRect.new()
 	end_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -83,6 +97,17 @@ func set_element(e: int) -> void:
 
 func set_rescued(n: int, total: int) -> void:
 	rescued_label.text = "Rescued: %d / %d" % [n, total]
+
+
+# Shows a short alert that waits 0.8s, then fades out over 2s. Calling again restarts it.
+func show_alert(text: String) -> void:
+	alert_label.text = text
+	alert_label.modulate = Color(1, 1, 1, 1)
+	if _alert_tween != null and _alert_tween.is_valid():
+		_alert_tween.kill()
+	_alert_tween = create_tween()
+	_alert_tween.tween_interval(0.8)
+	_alert_tween.tween_property(alert_label, "modulate:a", 0.0, 2.0)
 
 
 # Shows the end screen with the buildings that were unlocked.
