@@ -187,6 +187,11 @@ func test_dark_person_drifts_to_rescued_and_relapse_alerts() -> void:
 
 	# Walk the player out of range, so nothing tops the rescued person back up.
 	td.player.global_position = Vector3(-25, 0, 25)
+	# Round 6: drain is half-rate and paused for the 4 s rescue grace, and the dark person heals while it stays
+	# within the colour zone, so draining from 1000 would take too long. Start the relapse path from 600 instead.
+	# Let the shots already in the air land first (they would top the person back up), then lower the joy.
+	await runner.simulate_frames(120)
+	target.joy = 600.0
 	# The fully dark person drifts toward the rescued one and drains its joy until it relapses.
 	frames = 0
 	while target.is_rescued and frames < 800:

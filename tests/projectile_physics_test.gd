@@ -159,7 +159,7 @@ func test_projectile_can_miss_and_frees_after_its_lifetime() -> void:
 	assert_int(TopDownTestUtil.projectiles(td).size()).is_equal(0)
 
 
-func test_locked_shots_rescue_a_light_grey_person_at_close_range_in_about_half_the_old_time() -> void:
+func test_locked_shots_rescue_a_light_grey_person_at_close_range_within_a_second() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -175,7 +175,7 @@ func test_locked_shots_rescue_a_light_grey_person_at_close_range_in_about_half_t
 		await runner.simulate_frames(1)
 		frames += 1
 
-	# A match at close range is 2 x 90 = 180 joy per hit, so 6 hits (about 1.2 s of shots) rescue a light person.
-	# The old 45-joy shots needed 12 hits, about 2.4 s.
+	# Round 6: a match at close range is 2 x 135 = 270 joy per hit, so 4 hits rescue a light person. Measured: 47
+	# frames (about 0.8 s, 1.5x faster than the round 5 count of 72 frames with 90 joy per shot). Bound: 60 frames.
 	assert_bool(target.is_rescued).is_true()
-	assert_int(frames).is_less(100)
+	assert_int(frames).is_less(60)

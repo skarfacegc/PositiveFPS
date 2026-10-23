@@ -31,6 +31,26 @@ func test_dark_person_drains_rescued_joy() -> void:
 	assert_float(rescued.joy).is_less(before)
 
 
+func test_drain_multiplier_scales_the_drain_from_darkness() -> void:
+	# Same setup twice, one second each: the top-down multiplier (0.5) drains half as much as the default (1.0).
+	var full_rescued: Person = _make_person(0, Vector3(0, 0, 0), 0.0, true)
+	var full_dark: Person = _make_person(1, Vector3(2, 0, 0), 1.0)
+	var full_before: float = full_rescued.joy
+	for i: int in range(60):
+		GloomSim.update([full_rescued, full_dark], 1.0 / 60.0)
+	var full_lost := full_before - full_rescued.joy
+
+	var half_rescued: Person = _make_person(0, Vector3(0, 0, 0), 0.0, true)
+	var half_dark: Person = _make_person(1, Vector3(2, 0, 0), 1.0)
+	var half_before: float = half_rescued.joy
+	for i: int in range(60):
+		GloomSim.update([half_rescued, half_dark], 1.0 / 60.0, Config.TD_DRAIN_MULTIPLIER)
+	var half_lost := half_before - half_rescued.joy
+
+	assert_float(full_lost).is_greater(0.0)
+	assert_float(half_lost).is_equal_approx(full_lost * Config.TD_DRAIN_MULTIPLIER, 0.01)
+
+
 func test_zone_heals_nearby_gloom() -> void:
 	var rescued: Person = _make_person(0, Vector3(0, 0, 0), 0.0, true)
 	var near: Person = _make_person(1, Vector3(3, 0, 0), 0.5)

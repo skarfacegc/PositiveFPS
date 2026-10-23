@@ -77,7 +77,7 @@ func _process(delta: float) -> void:
 	time_left -= delta
 	hud.set_time(time_left)
 	_update_people(delta)
-	GloomSim.update(people, delta)
+	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER)
 	for p: Person in people:
 		p.tick(delta)
 	ground.update_paint(people, delta)
@@ -204,6 +204,7 @@ func _spawn_people() -> void:
 		p.gloom = _rng.randf_range(Config.GLOOM_START_MIN, Config.GLOOM_START_MAX)
 		p.position = pos
 		p.ui_scale = Config.TD_UI_SCALE
+		p.grace_seconds = Config.TD_RESCUE_GRACE_SECONDS
 		add_child(p)
 		p.rescued.connect(_on_person_rescued)
 		p.relapsed.connect(_on_person_relapsed)
@@ -242,40 +243,70 @@ func _near_block(p: Vector3, margin: float) -> bool:
 	return false
 
 
-# Moves every person for this frame. Dark people drift toward rescued people; everyone else wanders.
+# Moves every unrescued person for this frame. Dark people drift toward the rescued person they are assigned to
+# (see pursuit_assignments); everyone else wanders. Everyone also steers away from close neighbours (_separation).
 func _update_people(delta: float) -> void:
-	var rescued_list: Array[Person] = []
+	var pursuit: Dictionary = pursuit_assignments(people)
 	for p: Person in people:
 		if p.is_rescued:
+			continue
+		if pursuit.has(p):
+			var target_p: Person = pursuit[p]
+			var to: Vector3 = target_p.global_position - p.global_position
+			to.y = 0.0
+			var desired := Vector3.ZERO
+			if to.length() > Config.TD_DARK_STOP_DISTANCE:
+				desired = to.normalized()
+			_steer(p, desired, Config.TD_DARK_DRIFT_SPEED, delta)
+		else:
+			_steer(p, _wander_dir(p, delta), Config.TD_WANDER_SPEED, delta)
+
+
+# True for an unrescued person at the dark level: the people who spread darkness and drift toward rescued people.
+func _is_dark(p: Person) -> bool:
+	return not p.is_rescued and Config.gloom_level(p.gloom) >= Config.SPREAD_LEVEL
+
+
+# Works out which rescued person each dark person drifts toward. Each rescued person takes at most
+# TD_MAX_PURSUERS_PER_TARGET dark people, and a dark person takes the nearest rescued person with a free slot.
+# People are handled in array order, so the result is the same on every run. Returns a Dictionary of
+# dark Person -> rescued Person. A dark person with no free slot is not in it, and wanders instead.
+func pursuit_assignments(list: Array[Person]) -> Dictionary:
+	var rescued_list: Array[Person] = []
+	for p: Person in list:
+		if p.is_rescued:
 			rescued_list.append(p)
+	var slots: Dictionary = {}
+	var out: Dictionary = {}
+	for p: Person in list:
+		if not _is_dark(p):
+			continue
+		var best := _nearest_with_slot(p.global_position, rescued_list, slots)
+		if best != null:
+			out[p] = best
+			var used: int = slots.get(best, 0)
+			slots[best] = used + 1
+	return out
 
-	for p: Person in people:
-		var dark: bool = not p.is_rescued and Config.gloom_level(p.gloom) >= Config.SPREAD_LEVEL
-		if dark:
-			var target_p: Person = _nearest_person(p.global_position, rescued_list)
-			if target_p != null:
-				var to: Vector3 = target_p.global_position - p.global_position
-				to.y = 0.0
-				if to.length() > Config.TD_DARK_STOP_DISTANCE:
-					_step(p, to.normalized(), Config.TD_DARK_DRIFT_SPEED, delta)
-				continue
-		_wander_step(p, delta)
 
-
-# Returns the nearest person in `list` to `pos`, or null if the list is empty.
-func _nearest_person(pos: Vector3, list: Array[Person]) -> Person:
+# The rescued person nearest `pos` that still has a free pursuer slot (see pursuit_assignments), or null.
+func _nearest_with_slot(pos: Vector3, rescued_list: Array[Person], slots: Dictionary) -> Person:
 	var best: Person = null
 	var best_d := INF
-	for q: Person in list:
-		var d := _flat_dist(pos, q.global_position)
+	for r: Person in rescued_list:
+		var used: int = slots.get(r, 0)
+		if used >= Config.TD_MAX_PURSUERS_PER_TARGET:
+			continue
+		var d := _flat_dist(pos, r.global_position)
 		if d < best_d:
 			best_d = d
-			best = q
+			best = r
 	return best
 
 
-# Walks a person toward a wander target. When they arrive, or their time is up, they pick a new one.
-func _wander_step(p: Person, delta: float) -> void:
+# Returns the flat direction a wandering person walks in this frame, or zero if they are standing still.
+# They pick a new spot when they arrive or their time is up.
+func _wander_dir(p: Person, delta: float) -> Vector3:
 	if not _wander.has(p):
 		_wander[p] = {"target": p.global_position, "timer": 0.0}
 	var st: Dictionary = _wander[p]
@@ -289,7 +320,40 @@ func _wander_step(p: Person, delta: float) -> void:
 		to = st["target"] - here
 		to.y = 0.0
 	if to.length() > 0.01:
-		_step(p, to.normalized(), Config.TD_WANDER_SPEED, delta)
+		return to.normalized()
+	return Vector3.ZERO
+
+
+# Moves a person along `desired` (a flat direction, or zero to stand still) plus the push away from neighbours.
+# The push is added before normalising, so the step is always speed * delta long and the speed cap holds.
+func _steer(p: Person, desired: Vector3, speed: float, delta: float) -> void:
+	var want := desired + _separation(p) * Config.TD_SEPARATION_STRENGTH
+	want.y = 0.0
+	if want.length() < 0.001:
+		return
+	_step(p, want.normalized(), speed, delta)
+
+
+# The push away from each person within TD_SEPARATION_RADIUS: one unit of push per neighbour, away from it. A constant
+# push (not a falloff) is stronger than a wander step, so people settle at about the radius apart instead of drifting
+# back together. Two people standing exactly on the same spot are split by array order: the earlier one is pushed
+# right, the later one left.
+func _separation(p: Person) -> Vector3:
+	var push := Vector3.ZERO
+	var my_index := people.find(p)
+	for i: int in range(people.size()):
+		var q: Person = people[i]
+		if q == p:
+			continue
+		var diff: Vector3 = p.global_position - q.global_position
+		diff.y = 0.0
+		var d := diff.length()
+		if d >= Config.TD_SEPARATION_RADIUS:
+			continue
+		if d < 0.001:
+			diff = Vector3.RIGHT if my_index < i else Vector3.LEFT
+		push += diff.normalized()
+	return push
 
 
 # Picks a random spot within TD_WANDER_RANGE of `from`, inside the plaza and clear of blocks.

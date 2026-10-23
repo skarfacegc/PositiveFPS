@@ -17,6 +17,13 @@ var body_mat: StandardMaterial3D
 var label: Label3D
 var body: MeshInstance3D
 var wisp: CPUParticles3D
+# Seconds after a rescue during which nearby darkness cannot drain this person. 0 (first person) means no grace.
+var grace_seconds: float = 0.0
+# Seconds of grace left. The warm halo is shown while this is above zero.
+var grace_left: float = 0.0
+# The warm halo shown during the grace period (see _update_halo).
+var halo: MeshInstance3D
+var _halo_mat: StandardMaterial3D
 # Seconds since this person was last hit by a beam.
 var _since_hit: float = 99.0
 # Seconds left to show the sad face after a relapse.
@@ -92,6 +99,21 @@ func _ready() -> void:
 	wisp.emitting = false
 	add_child(wisp)
 
+	# The warm halo for the grace period: a faint transparent sphere around the body, hidden unless in grace.
+	halo = MeshInstance3D.new()
+	var halo_mesh := SphereMesh.new()
+	halo_mesh.radius = 0.9
+	halo_mesh.height = 1.8
+	halo.mesh = halo_mesh
+	halo.position = Vector3(0, 0.9, 0)
+	_halo_mat = StandardMaterial3D.new()
+	_halo_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_halo_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_halo_mat.albedo_color = Config.GRACE_HALO_COLOR
+	halo.material_override = _halo_mat
+	halo.visible = false
+	add_child(halo)
+
 	_fx_rng.seed = Config.RNG_SEED
 	_update_visuals()
 
@@ -132,6 +154,8 @@ func tick(delta: float) -> void:
 	_since_hit += delta
 	if _sad_timer > 0.0:
 		_sad_timer -= delta
+	if grace_left > 0.0:
+		grace_left = maxf(0.0, grace_left - delta)
 	if not is_rescued:
 		if _since_hit > Config.JOY_FADE_DELAY:
 			joy = maxf(0.0, joy - Config.JOY_FADE_RATE * delta)
@@ -144,7 +168,7 @@ func tick(delta: float) -> void:
 
 # Removes joy from a rescued person (used by nearby darkness). Relapses them if they drop too low.
 func drain_joy(amount: float) -> void:
-	if not is_rescued:
+	if not is_rescued or grace_left > 0.0:
 		return
 	joy -= amount
 	if joy < joy_needed() * Config.RELAPSE_FRACTION:
@@ -157,6 +181,7 @@ func _rescue() -> void:
 	is_rescued = true
 	gloom = 0.0
 	level = 0
+	grace_left = grace_seconds
 	joy = minf(joy, Config.JOY_MAX)
 	_update_visuals()
 
@@ -232,6 +257,7 @@ func _puff(color: Color, count: int) -> void:
 func _update_visuals() -> void:
 	if body_mat == null:
 		return
+	_update_halo()
 	var need := joy_needed()
 	var frac := clampf(joy / need, 0.0, 1.0)
 	var elem_col: Color = Config.ELEMENT_COLORS[affinity]
@@ -268,6 +294,15 @@ func _update_visuals() -> void:
 			label.text = "" if joy <= 0.0 else str(int(frac * 100)) + "%"
 			label.modulate = Color.WHITE
 		wisp.emitting = level == 2
+
+
+# Shows the grace halo while the grace period runs, fading out as it runs down.
+func _update_halo() -> void:
+	halo.visible = grace_left > 0.0
+	if halo.visible:
+		var fade := clampf(grace_left / grace_seconds, 0.0, 1.0)
+		var col := Config.GRACE_HALO_COLOR
+		_halo_mat.albedo_color = Color(col.r, col.g, col.b, col.a * fade)
 
 
 # Spawns a floating joy number above the person. Bigger, brighter and bouncier for better matches.

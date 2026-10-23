@@ -12,8 +12,12 @@ extends Node3D
 const BLOB_SCALE := Vector3(1.2, 0.8, 1.2)
 const FLOWER_CENTRE_COLOR := Color(1.0, 0.9, 0.3)
 const FIZZLE_COLOR := Color(0.6, 0.6, 0.6)
+# Every trail piece is in this group (and tagged with its element), so tests and the level can find them.
+const TRAIL_GROUP := "joy_trail"
 
 var element: int = Config.Element.MUSIC
+# How many trail pieces this projectile has left behind so far. It stops at Config.TD_TRAIL_MAX_PIECES.
+var trail_pieces: int = 0
 # Current flight velocity, in metres per second. Set by the player (see launch_velocity).
 var velocity := Vector3.ZERO
 # Where the player stood when they fired. Joy falls off with distance from here.
@@ -31,6 +35,8 @@ var _age := 0.0
 var _done := false
 var _body: Node3D
 var _blob: MeshInstance3D
+# Seconds until the next trail piece is left behind (see _update_trail).
+var _trail_timer := 0.0
 
 
 # Returns the launch velocity that carries a projectile of `element` from `from` to `to`.
@@ -46,6 +52,9 @@ static func launch_velocity(element_kind: int, from: Vector3, to: Vector3) -> Ve
 
 
 func _ready() -> void:
+	# Bigger than before, so the three elements are easier to tell apart. Hit checks use world positions, so
+	# they are unchanged.
+	scale = Vector3.ONE * Config.TD_PROJECTILE_VISUAL_SCALE
 	_body = Node3D.new()
 	add_child(_body)
 	if element == Config.Element.MUSIC:
@@ -70,6 +79,7 @@ func _physics_process(delta: float) -> void:
 		_fizzle(wall_pos)
 		return
 	global_position = next
+	_update_trail(delta)
 
 	var direct: Person = _person_in_reach()
 	if direct != null:
@@ -256,6 +266,114 @@ func _puff(color: Color, at: Vector3) -> void:
 	puff.global_position = at
 	puff.emitting = true
 	get_tree().create_timer(1.0).timeout.connect(puff.queue_free)
+
+
+# Leaves a trail piece every so often while in flight, up to Config.TD_TRAIL_MAX_PIECES per projectile.
+func _update_trail(delta: float) -> void:
+	if trail_pieces >= Config.TD_TRAIL_MAX_PIECES:
+		return
+	_trail_timer -= delta
+	if _trail_timer > 0.0:
+		return
+	_trail_timer = _trail_interval()
+	trail_pieces += 1
+	if element == Config.Element.MUSIC:
+		_spawn_note_dot()
+	elif element == Config.Element.ART:
+		_spawn_drip()
+	else:
+		_spawn_petal()
+
+
+func _trail_interval() -> float:
+	if element == Config.Element.MUSIC:
+		return Config.TD_TRAIL_INTERVAL
+	if element == Config.Element.ART:
+		return Config.TD_DRIP_INTERVAL
+	return Config.TD_PETAL_INTERVAL
+
+
+# Adds a trail piece to the level at `at` (not to this projectile), so it outlives the projectile.
+func _add_trail_node(node: Node3D, at: Vector3) -> void:
+	node.add_to_group(TRAIL_GROUP)
+	node.set_meta("trail_element", element)
+	get_parent().add_child(node)
+	node.global_position = at
+
+
+# Fades a trail piece to nothing over `seconds`, then frees it.
+func _fade_and_free(node: Node3D, mat: StandardMaterial3D, seconds: float) -> void:
+	var t := node.create_tween()
+	t.tween_property(mat, "albedo_color:a", 0.0, seconds)
+	t.tween_callback(node.queue_free)
+
+
+# Music trail: a dusty-blue dot. The sideways wobble matches the note's own, so the dots form a wavy ribbon.
+func _spawn_note_dot() -> void:
+	var dot := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = Config.TD_TRAIL_RADIUS
+	sphere.height = Config.TD_TRAIL_RADIUS * 2.0
+	dot.mesh = sphere
+	var mat := _make_mat(Config.TD_TRAIL_COLOR)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	dot.material_override = mat
+	var wobble := Vector3(sin(_age * 12.0) * Config.TD_PROJECTILE_BOB * Config.TD_PROJECTILE_VISUAL_SCALE, 0.0, 0.0)
+	_add_trail_node(dot, global_position + wobble)
+	_fade_and_free(dot, mat, Config.TD_TRAIL_SECONDS)
+
+
+# Art trail: a rose or terracotta drip that falls from the blob to the ground, then leaves a small splat dot.
+func _spawn_drip() -> void:
+	var drip := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = Config.TD_DRIP_RADIUS
+	sphere.height = Config.TD_DRIP_RADIUS * 2.0
+	drip.mesh = sphere
+	drip.material_override = _make_mat(Config.TD_DRIP_COLOR)
+	_add_trail_node(drip, global_position)
+	var t := drip.create_tween()
+	t.tween_property(drip, "global_position:y", Config.TD_LANDING_HEIGHT, Config.TD_DRIP_FALL_SECONDS)
+	t.tween_callback(_drip_landed.bind(drip))
+
+
+# A drip has reached the ground: its splat dot takes its place, and the drip is freed.
+func _drip_landed(drip: MeshInstance3D) -> void:
+	var dot := MeshInstance3D.new()
+	var disc := CylinderMesh.new()
+	disc.top_radius = Config.TD_SPLAT_DOT_RADIUS
+	disc.bottom_radius = Config.TD_SPLAT_DOT_RADIUS
+	disc.height = 0.01
+	dot.mesh = disc
+	var mat := _make_mat(Config.TD_DRIP_COLOR)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	dot.material_override = mat
+	_add_trail_node(dot, Vector3(drip.global_position.x, 0.01, drip.global_position.z))
+	_fade_and_free(dot, mat, Config.TD_SPLAT_DOT_FADE_SECONDS)
+	drip.queue_free()
+
+
+# Nature trail: a small sage or pink petal that drifts down while turning, then fades.
+func _spawn_petal() -> void:
+	var petal := MeshInstance3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Config.TD_PETAL_SIZE
+	petal.mesh = quad
+	var colours: Array[Color] = Config.TD_PETAL_COLORS
+	var mat := _make_mat(colours[trail_pieces % colours.size()])
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	petal.material_override = mat
+	# Lies flat, so it reads as a petal from the top-down camera.
+	petal.rotation.x = -PI / 2.0
+	_add_trail_node(petal, global_position)
+	var fall_to := maxf(Config.TD_LANDING_HEIGHT, petal.global_position.y - Config.TD_PETAL_FALL)
+	var t := petal.create_tween()
+	t.set_parallel(true)
+	t.tween_property(petal, "global_position:y", fall_to, Config.TD_PETAL_FADE_SECONDS)
+	t.tween_property(petal, "rotation:y", petal.rotation.y + TAU, Config.TD_PETAL_FADE_SECONDS)
+	t.tween_property(mat, "albedo_color:a", 0.0, Config.TD_PETAL_FADE_SECONDS)
+	t.chain().tween_callback(petal.queue_free)
 
 
 # Music note: a squashed sphere head with a stem on the upper right.

@@ -6,7 +6,9 @@ extends RefCounted
 # and dark people spread darkness to neighbours (and drain joy from rescued ones).
 
 
-static func update(people: Array, delta: float) -> void:
+# `drain_multiplier` scales how fast dark people drain rescued joy. First person leaves it at 1.0; top-down passes
+# Config.TD_DRAIN_MULTIPLIER.
+static func update(people: Array, delta: float, drain_multiplier: float = 1.0) -> void:
 	var zones: Array = []
 	for p: Person in people:
 		if p.is_rescued:
@@ -33,7 +35,7 @@ static func update(people: Array, delta: float) -> void:
 			if flat_dist(p.global_position, q.global_position) > Config.SPREAD_RADIUS:
 				continue
 			if q.is_rescued:
-				q.drain_joy(Config.SPREAD_DRAIN_RATE * delta)
+				q.drain_joy(Config.SPREAD_DRAIN_RATE * delta * drain_multiplier)
 			else:
 				q.gloom = clampf(q.gloom + Config.SPREAD_GLOOM_RATE * delta, 0.0, 1.0)
 

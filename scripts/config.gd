@@ -137,8 +137,9 @@ const TD_LOCK_BREAK_RANGE := 14.0
 const TD_AIM_ASSIST_RADIUS := 3.5
 # Shots per second while there is a target in range.
 const TD_SHOTS_PER_SECOND := 5.0
-# Joy added by each shot (before the element multiplier and distance falloff). Twice the old 45, so rescues are faster.
-const TD_JOY_PER_SHOT := 90.0
+# Joy added by each shot (before the element multiplier and distance falloff). Round 6: 1.5x the round 5 value (90),
+# so time-to-joy is about 1.5x faster for ordinary people.
+const TD_JOY_PER_SHOT := 135.0
 # How long a joy projectile can fly before it fizzles, in seconds.
 const TD_PROJECTILE_LIFETIME := 1.6
 # A projectile hits a person when it passes within this distance of their chest, in metres.
@@ -194,10 +195,50 @@ const TD_WANDER_REACH := 0.5
 # Wandering people pick a new spot after a random time between these two values, in seconds.
 const TD_WANDER_TIME_MIN := 3.0
 const TD_WANDER_TIME_MAX := 6.0
-# Dark people drift toward the nearest rescued person at this speed, in metres per second.
-const TD_DARK_DRIFT_SPEED := 1.3
-# Dark people stop drifting when this close to a rescued person, in metres.
-const TD_DARK_STOP_DISTANCE := 2.0
+# Dark people drift toward a rescued person at this speed, in metres per second (round 6: slowed from 1.3).
+const TD_DARK_DRIFT_SPEED := 0.8
+# Dark people stop drifting when this close to their rescued person, in metres.
+const TD_DARK_STOP_DISTANCE := 2.5
+# At most this many dark people may drift toward the same rescued person. Others pick the next-nearest rescued
+# person with a free slot, or wander. This stops the crowd piling up on one person.
+const TD_MAX_PURSUERS_PER_TARGET := 2
+# Everyone steers away from people within this distance (metres). Dark and wandering people both do it.
+const TD_SEPARATION_RADIUS := 2.2
+# How strongly the separation push is added to a person's movement direction (before it is normalised).
+const TD_SEPARATION_STRENGTH := 1.2
+# Top-down joy drain is scaled by this. Dark people drain rescued joy at half the first-person rate.
+const TD_DRAIN_MULTIPLIER := 0.5
+# After a rescue, the person cannot be drained by nearby darkness for this many seconds (a warm halo shows it).
+const TD_RESCUE_GRACE_SECONDS := 4.0
+# Colour of the grace halo around a rescued person. Its alpha fades as the grace period runs out.
+const GRACE_HALO_COLOR := Color(1.0, 0.9, 0.6, 0.25)
+# Top-down projectiles (notes, paint, flowers) are drawn this many times bigger, so the element is easier to tell apart.
+const TD_PROJECTILE_VISUAL_SCALE := 1.5
+# Trails: small pieces left in the level behind each projectile. They fade and free themselves.
+# Most trail pieces one projectile can leave behind (keeps many shots cheap).
+const TD_TRAIL_MAX_PIECES := 12
+# Music note trail: a wavy ribbon of small dusty-blue dots. Each dot lives this many seconds...
+const TD_TRAIL_SECONDS := 0.35
+# ...and a new dot is left every this many seconds.
+const TD_TRAIL_INTERVAL := 0.04
+const TD_TRAIL_RADIUS := 0.07
+const TD_TRAIL_COLOR := Color(0.42, 0.58, 0.78)
+# Art paint trail: warm rose or terracotta drips fall from the blob (a new drip every TD_DRIP_INTERVAL seconds).
+const TD_DRIP_COLOR := Color(0.8, 0.42, 0.34)
+const TD_DRIP_INTERVAL := 0.05
+const TD_DRIP_RADIUS := 0.06
+# A drip takes this long to fall to the ground, where it leaves a small splat dot.
+const TD_DRIP_FALL_SECONDS := 0.3
+const TD_SPLAT_DOT_RADIUS := 0.07
+# How long a splat dot takes to fade away, in seconds.
+const TD_SPLAT_DOT_FADE_SECONDS := 1.5
+# Nature flower trail: small petals shed every TD_PETAL_INTERVAL seconds. They alternate sage and pink.
+const TD_PETAL_COLORS: Array[Color] = [Color(0.62, 0.74, 0.58), Color(0.92, 0.66, 0.74)]
+const TD_PETAL_INTERVAL := 0.06
+# Petals drift down by this many metres over their life (TD_PETAL_FADE_SECONDS) while turning.
+const TD_PETAL_FALL := 0.5
+const TD_PETAL_FADE_SECONDS := 0.8
+const TD_PETAL_SIZE := Vector2(0.16, 0.12)
 # People stay this far inside the plaza walls, in metres.
 const TD_EDGE_MARGIN := 2.0
 # People are placed at least this far from the plaza edge, in metres.
