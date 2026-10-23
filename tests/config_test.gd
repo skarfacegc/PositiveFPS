@@ -4,7 +4,7 @@ extends GdUnitTestSuite
 
 
 func test_multiplier_matches_soft_cycle() -> void:
-	for a in range(3):
+	for a: int in range(3):
 		assert_float(Config.multiplier(a, a)).is_equal_approx(2.0, 0.0001)
 	# Music beats Art, Art beats Nature, Nature beats Music.
 	assert_float(Config.multiplier(0, 1)).is_equal_approx(1.5, 0.0001)

@@ -3,7 +3,7 @@ extends RefCounted
 
 # The player's intent for mouse capture. In automated tests the real OS mouse mode is never changed,
 # so tests check this instead (see is_mouse_captured).
-static var mouse_captured := false
+static var mouse_captured: bool = false
 
 
 # Captures or frees the mouse. In automated tests only the intent is recorded.
@@ -51,7 +51,7 @@ static func _add_action(action: String, events: Array) -> void:
 	if InputMap.has_action(action):
 		return
 	InputMap.add_action(action)
-	for ev in events:
+	for ev: InputEvent in events:
 		InputMap.action_add_event(action, ev)
 
 

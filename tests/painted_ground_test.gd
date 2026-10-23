@@ -3,16 +3,13 @@ extends GdUnitTestSuite
 # Painted ground. MultiMesh colour readback returns zeros under the headless renderer, so these tests
 # assert on PaintedGround's CPU-side colour array (_colors), which is the same data sent to the MultiMesh.
 
-const PersonScript = preload("res://scripts/person.gd")
-const PaintedGround = preload("res://scripts/painted_ground.gd")
-
 
 func test_rescued_person_paints_nearby_tiles_and_leaves_far_corner_grey() -> void:
-	var ground = auto_free(PaintedGround.new())
+	var ground: PaintedGround = auto_free(PaintedGround.new())
 	add_child(ground)
 	ground.setup(10)
 
-	var p = auto_free(PersonScript.new())
+	var p: Person = auto_free(Person.new())
 	p.affinity = 0
 	add_child(p)
 	p.global_position = Vector3.ZERO
@@ -20,7 +17,7 @@ func test_rescued_person_paints_nearby_tiles_and_leaves_far_corner_grey() -> voi
 	assert_bool(p.is_rescued).is_true()
 
 	var people := [p]
-	for i in range(80):
+	for i: int in range(80):
 		ground.update_paint(people, 0.11)
 
 	# Tile (ix=4, iz=4) is centred at (-0.5, 0, -0.5): next to the origin, full strength.

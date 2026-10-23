@@ -1,17 +1,12 @@
+class_name TopDownMain
 extends Node3D
 
 # Top-down mode: a bigger plaza seen from above. Aiming is mostly automatic;
 # you choose where to stand and which element to use.
 
-const PlayerScript = preload("res://scripts/topdown_player.gd")
-const PersonScript = preload("res://scripts/person.gd")
-const HudScript = preload("res://scripts/hud.gd")
-const PaintedGround = preload("res://scripts/painted_ground.gd")
-const GloomSim = preload("res://scripts/gloom_sim.gd")
-
 # Obstacle blocks are 4 x 2 x 4. Their centres are fixed, within +-25, and the middle stays clear.
 const BLOCK_SIZE := Vector3(4, 2, 4)
-const BLOCK_POSITIONS := [
+const BLOCK_POSITIONS: Array[Vector3] = [
 	Vector3(-20, 1, -18),
 	Vector3(-6, 1, -22),
 	Vector3(12, 1, -20),
@@ -24,14 +19,14 @@ const BLOCK_POSITIONS := [
 	Vector3(-6, 1, 24),
 ]
 
-var ground
-var player
+var ground: PaintedGround
+var player: TopDownPlayer
 var camera: Camera3D
-var hud
-var people: Array = []
-var time_left := Config.TD_ROUND_SECONDS
-var rescued_count := 0
-var running := true
+var hud: Hud
+var people: Array[Person] = []
+var time_left: float = Config.TD_ROUND_SECONDS
+var rescued_count: int = 0
+var running: bool = true
 var _rng := RandomNumberGenerator.new()
 # Wander state for each person: a Dictionary of {"target": Vector3, "timer": float}.
 var _wander: Dictionary = {}
@@ -47,7 +42,7 @@ func _ready() -> void:
 	add_child(ground)
 	ground.setup(Config.TD_PLAZA_SIZE)
 
-	player = PlayerScript.new()
+	player = TopDownPlayer.new()
 	add_child(player)
 
 	camera = Camera3D.new()
@@ -58,7 +53,7 @@ func _ready() -> void:
 	_spawn_people()
 	player.people = people
 
-	hud = HudScript.new()
+	hud = Hud.new()
 	add_child(hud)
 	hud.set_crosshair_visible(false)
 	var hint := "WASD move  |  Shift run  |  1/2/3 or wheel: element  |  "
@@ -76,7 +71,7 @@ func _process(delta: float) -> void:
 	hud.set_time(time_left)
 	_update_people(delta)
 	GloomSim.update(people, delta)
-	for p in people:
+	for p: Person in people:
 		p.tick(delta)
 	ground.update_paint(people, delta)
 	hud.set_burst(player.burst_cooldown)
@@ -133,7 +128,7 @@ func _build_level() -> void:
 	add_child(_make_box(Vector3(1, 3, side + 2), Vector3(wall_at, 1.5, 0), wall_color))
 
 	# Obstacle blocks.
-	for pos in BLOCK_POSITIONS:
+	for pos: Vector3 in BLOCK_POSITIONS:
 		add_child(_make_box(BLOCK_SIZE, pos, Color(0.6, 0.6, 0.62)))
 
 
@@ -162,12 +157,12 @@ func _make_box(size: Vector3, pos: Vector3, color: Color) -> StaticBody3D:
 
 func _spawn_people() -> void:
 	_rng.seed = Config.TD_SEED
-	var placed: Array = []
-	for i in range(Config.TD_PEOPLE_COUNT):
+	var placed: Array[Vector3] = []
+	for i: int in range(Config.TD_PEOPLE_COUNT):
 		var pos := _find_spot(placed)
 		placed.append(pos)
 
-		var p = PersonScript.new()
+		var p: Person = Person.new()
 		p.affinity = i % 3
 		p.gloom = _rng.randf_range(Config.GLOOM_START_MIN, Config.GLOOM_START_MAX)
 		p.position = pos
@@ -180,22 +175,22 @@ func _spawn_people() -> void:
 
 # Tries up to 200 random spots inside the plaza and returns the first that is clear of the
 # centre, the blocks and the other people. If none is found, returns the last try.
-func _find_spot(placed: Array) -> Vector3:
+func _find_spot(placed: Array[Vector3]) -> Vector3:
 	var limit := Config.TD_PLAZA_SIZE / 2.0 - Config.TD_SPAWN_EDGE
 	var candidate := Vector3.ZERO
-	for attempt in range(200):
+	for attempt: int in range(200):
 		candidate = Vector3(_rng.randf_range(-limit, limit), 0.0, _rng.randf_range(-limit, limit))
 		if _spot_ok(candidate, placed):
 			return candidate
 	return candidate
 
 
-func _spot_ok(p: Vector3, placed: Array) -> bool:
+func _spot_ok(p: Vector3, placed: Array[Vector3]) -> bool:
 	if _flat_dist(p, Vector3.ZERO) < Config.TD_SPAWN_CENTRE_CLEAR:
 		return false
 	if _near_block(p, Config.TD_BLOCK_CLEARANCE):
 		return false
-	for other in placed:
+	for other: Vector3 in placed:
 		if _flat_dist(p, other) < Config.TD_SPAWN_SPACING:
 			return false
 	return true
@@ -204,7 +199,7 @@ func _spot_ok(p: Vector3, placed: Array) -> bool:
 # True if `p` is inside any block's footprint, grown by `margin` metres.
 func _near_block(p: Vector3, margin: float) -> bool:
 	var reach := BLOCK_SIZE.x * 0.5 + margin
-	for block in BLOCK_POSITIONS:
+	for block: Vector3 in BLOCK_POSITIONS:
 		if absf(p.x - block.x) < reach and absf(p.z - block.z) < reach:
 			return true
 	return false
@@ -212,15 +207,15 @@ func _near_block(p: Vector3, margin: float) -> bool:
 
 # Moves every person for this frame. Dark people drift toward rescued people; everyone else wanders.
 func _update_people(delta: float) -> void:
-	var rescued_list: Array = []
-	for p in people:
+	var rescued_list: Array[Person] = []
+	for p: Person in people:
 		if p.is_rescued:
 			rescued_list.append(p)
 
-	for p in people:
+	for p: Person in people:
 		var dark: bool = not p.is_rescued and Config.gloom_level(p.gloom) >= Config.SPREAD_LEVEL
 		if dark:
-			var target_p = _nearest_person(p.global_position, rescued_list)
+			var target_p: Person = _nearest_person(p.global_position, rescued_list)
 			if target_p != null:
 				var to: Vector3 = target_p.global_position - p.global_position
 				to.y = 0.0
@@ -231,10 +226,10 @@ func _update_people(delta: float) -> void:
 
 
 # Returns the nearest person in `list` to `pos`, or null if the list is empty.
-func _nearest_person(pos: Vector3, list: Array):
-	var best = null
+func _nearest_person(pos: Vector3, list: Array[Person]) -> Person:
+	var best: Person = null
 	var best_d := INF
-	for q in list:
+	for q: Person in list:
 		var d := _flat_dist(pos, q.global_position)
 		if d < best_d:
 			best_d = d
@@ -243,7 +238,7 @@ func _nearest_person(pos: Vector3, list: Array):
 
 
 # Walks a person toward a wander target. When they arrive, or their time is up, they pick a new one.
-func _wander_step(p, delta: float) -> void:
+func _wander_step(p: Person, delta: float) -> void:
 	if not _wander.has(p):
 		_wander[p] = {"target": p.global_position, "timer": 0.0}
 	var st: Dictionary = _wander[p]
@@ -263,7 +258,7 @@ func _wander_step(p, delta: float) -> void:
 # Picks a random spot within TD_WANDER_RANGE of `from`, inside the plaza and clear of blocks.
 func _new_wander_target(from: Vector3) -> Vector3:
 	var limit := Config.TD_PLAZA_SIZE / 2.0 - Config.TD_EDGE_MARGIN
-	for attempt in range(10):
+	for attempt: int in range(10):
 		var angle := _rng.randf() * TAU
 		var dist := _rng.randf() * Config.TD_WANDER_RANGE
 		var c := from + Vector3(cos(angle) * dist, 0.0, sin(angle) * dist)
@@ -275,7 +270,7 @@ func _new_wander_target(from: Vector3) -> Vector3:
 
 
 # Moves a person along a flat direction, keeping them inside the plaza and out of blocks, and turns them to face it.
-func _step(p, dir: Vector3, speed: float, delta: float) -> void:
+func _step(p: Person, dir: Vector3, speed: float, delta: float) -> void:
 	var move := dir * speed * delta
 	move.y = 0.0
 	var next_pos: Vector3 = p.position + move

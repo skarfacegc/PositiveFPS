@@ -1,10 +1,5 @@
+class_name Main
 extends Node3D
-
-const PlayerScript = preload("res://scripts/player.gd")
-const PersonScript = preload("res://scripts/person.gd")
-const HudScript = preload("res://scripts/hud.gd")
-const PaintedGround = preload("res://scripts/painted_ground.gd")
-const GloomSim = preload("res://scripts/gloom_sim.gd")
 
 # Seed for the random number generator, so people appear in the same places every run.
 const PEOPLE_SEED := 42
@@ -13,7 +8,7 @@ const PEOPLE_SEED := 42
 const TILE_COUNT := 40
 
 # Centres of the six building blocks. Each one is 4 x 3 x 4 in size.
-const BLOCK_POSITIONS := [
+const BLOCK_POSITIONS: Array[Vector3] = [
 	Vector3(-10, 1.5, -8),
 	Vector3(9, 1.5, -10),
 	Vector3(-12, 1.5, 9),
@@ -22,13 +17,13 @@ const BLOCK_POSITIONS := [
 	Vector3(0, 1.5, 12),
 ]
 
-var player
-var hud
-var ground
-var people: Array = []
-var time_left := Config.ROUND_SECONDS
-var rescued_count := 0
-var running := true
+var player: Player
+var hud: Hud
+var ground: PaintedGround
+var people: Array[Person] = []
+var time_left: float = Config.ROUND_SECONDS
+var rescued_count: int = 0
+var running: bool = true
 
 
 func _ready() -> void:
@@ -39,13 +34,13 @@ func _ready() -> void:
 	add_child(ground)
 	ground.setup(TILE_COUNT)
 
-	player = PlayerScript.new()
+	player = Player.new()
 	player.position = Vector3(0, 1, 0)
 	add_child(player)
 
 	_spawn_people()
 
-	hud = HudScript.new()
+	hud = Hud.new()
 	add_child(hud)
 	hud.set_hint(
 		"1 Music  2 Art  3 Nature  |  Shift run  |  Get close for more joy  |  Esc free mouse  |  R restart  |  M menu"
@@ -63,7 +58,7 @@ func _process(delta: float) -> void:
 	time_left -= delta
 	hud.set_time(time_left)
 	GloomSim.update(people, delta)
-	for p in people:
+	for p: Person in people:
 		p.tick(delta)
 	ground.update_paint(people, delta)
 	if time_left <= 0.0:
@@ -109,7 +104,7 @@ func _build_level() -> void:
 	add_child(_make_box(Vector3(1, 3, 40), Vector3(20.5, 1.5, 0), wall_color))
 
 	# Building blocks scattered around the plaza.
-	for pos in BLOCK_POSITIONS:
+	for pos: Vector3 in BLOCK_POSITIONS:
 		add_child(_make_box(Vector3(4, 3, 4), pos, Color(0.6, 0.6, 0.62)))
 
 
@@ -139,12 +134,12 @@ func _make_box(size: Vector3, pos: Vector3, color: Color) -> StaticBody3D:
 func _spawn_people() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = PEOPLE_SEED
-	var placed: Array = []
-	for i in range(Config.PEOPLE_COUNT):
+	var placed: Array[Vector3] = []
+	for i: int in range(Config.PEOPLE_COUNT):
 		var pos := _find_spot(rng, placed)
 		placed.append(pos)
 
-		var p = PersonScript.new()
+		var p: Person = Person.new()
 		p.affinity = i % 3
 		p.gloom = rng.randf_range(Config.GLOOM_START_MIN, Config.GLOOM_START_MAX)
 		p.position = pos
@@ -156,22 +151,22 @@ func _spawn_people() -> void:
 
 # Tries up to 200 random spots and returns the first one that is far enough from
 # the start, the blocks and the other people. If none is found, returns the last try.
-func _find_spot(rng: RandomNumberGenerator, placed: Array) -> Vector3:
+func _find_spot(rng: RandomNumberGenerator, placed: Array[Vector3]) -> Vector3:
 	var candidate := Vector3.ZERO
-	for attempt in range(200):
+	for attempt: int in range(200):
 		candidate = Vector3(rng.randf_range(-17.0, 17.0), 0.0, rng.randf_range(-17.0, 17.0))
 		if _spot_ok(candidate, placed):
 			return candidate
 	return candidate
 
 
-func _spot_ok(p: Vector3, placed: Array) -> bool:
+func _spot_ok(p: Vector3, placed: Array[Vector3]) -> bool:
 	if _flat_dist(p, Vector3.ZERO) < 3.5:
 		return false
-	for block in BLOCK_POSITIONS:
+	for block: Vector3 in BLOCK_POSITIONS:
 		if _flat_dist(p, block) < 3.5:
 			return false
-	for other in placed:
+	for other: Vector3 in placed:
 		if _flat_dist(p, other) < 2.5:
 			return false
 	return true

@@ -1,12 +1,13 @@
+class_name PaintedGround
 extends MultiMeshInstance3D
 
 # Painted ground: a square grid of flat tiles (1 m each) just above the floor, one colour per tile.
 # Tiles near rescued people take on that person's element colour, with soft edges.
 
-var _size := 0
-var _colors: Array = []
-var _targets: Array = []
-var _weights: Array = []
+var _size: int = 0
+var _colors: Array[Color] = []
+var _targets: Array[Color] = []
+var _weights: Array[float] = []
 var _timer := 0.0
 
 
@@ -24,8 +25,8 @@ func setup(size: int) -> void:
 
 	var half := size / 2.0
 	var i := 0
-	for ix in range(size):
-		for iz in range(size):
+	for ix: int in range(size):
+		for iz: int in range(size):
 			var c := Vector3(-half + 0.5 + ix, 0.01, -half + 0.5 + iz)
 			mm.set_instance_transform(i, Transform3D(Basis(), c))
 			mm.set_instance_color(i, Config.GROUND_GREY)
@@ -54,23 +55,23 @@ func update_paint(people: Array, delta: float) -> void:
 # are checked, so this stays fast on big maps. A tile keeps the most painted (nearest) person.
 func _paint(people: Array) -> void:
 	var count := _size * _size
-	for i in range(count):
+	for i: int in range(count):
 		_targets[i] = Config.GROUND_GREY
 		_weights[i] = 0.0
 
 	var half := _size / 2.0
 	var r := Config.ZONE_RADIUS
-	for p in people:
+	for p: Person in people:
 		if not p.is_rescued:
 			continue
 		var pos: Vector3 = p.global_position
 		var paint_col: Color = Config.ELEMENT_COLORS[p.affinity]
-		var x_min := clampi(int(floor(pos.x + half - r)) - 1, 0, _size - 1)
-		var x_max := clampi(int(floor(pos.x + half + r)) + 1, 0, _size - 1)
-		var z_min := clampi(int(floor(pos.z + half - r)) - 1, 0, _size - 1)
-		var z_max := clampi(int(floor(pos.z + half + r)) + 1, 0, _size - 1)
-		for ix in range(x_min, x_max + 1):
-			for iz in range(z_min, z_max + 1):
+		var x_min := clampi(floori(pos.x + half - r) - 1, 0, _size - 1)
+		var x_max := clampi(floori(pos.x + half + r) + 1, 0, _size - 1)
+		var z_min := clampi(floori(pos.z + half - r) - 1, 0, _size - 1)
+		var z_max := clampi(floori(pos.z + half + r) + 1, 0, _size - 1)
+		for ix: int in range(x_min, x_max + 1):
+			for iz: int in range(z_min, z_max + 1):
 				var c := Vector3(-half + 0.5 + ix, 0.0, -half + 0.5 + iz)
 				var d := Vector2(c.x - pos.x, c.z - pos.z).length()
 				if d > r:
@@ -82,7 +83,7 @@ func _paint(people: Array) -> void:
 					_targets[idx] = Config.GROUND_GREY.lerp(paint_col, k)
 
 	var mm := multimesh
-	for i in range(count):
+	for i: int in range(count):
 		var current: Color = _colors[i]
 		var next: Color = current.lerp(_targets[i], Config.GROUND_PAINT_SPEED)
 		_colors[i] = next

@@ -1,12 +1,13 @@
+class_name Player
 extends CharacterBody3D
 
 signal element_changed(element: int)
 
 var current_element: int = Config.Element.MUSIC
-var active := true
+var active: bool = true
 var camera: Camera3D
 var beam: MeshInstance3D
-var _cooldown := 0.0
+var _cooldown: float = 0.0
 var _beam_mesh: BoxMesh
 var _beam_mat: StandardMaterial3D
 
@@ -45,8 +46,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventMouseMotion and Controls.is_mouse_captured():
-		rotate_y(-event.relative.x * Config.MOUSE_SENSITIVITY)
-		camera.rotate_x(-event.relative.y * Config.MOUSE_SENSITIVITY)
+		var motion := event as InputEventMouseMotion
+		rotate_y(-motion.relative.x * Config.MOUSE_SENSITIVITY)
+		camera.rotate_x(-motion.relative.y * Config.MOUSE_SENSITIVITY)
 		camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-85), deg_to_rad(85))
 		return
 
@@ -66,8 +68,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	# Clicking the game window again while the mouse is free captures it.
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if not Controls.is_mouse_captured():
+	if event is InputEventMouseButton:
+		var button := event as InputEventMouseButton
+		if button.pressed and button.button_index == MOUSE_BUTTON_LEFT and not Controls.is_mouse_captured():
 			Controls.set_mouse_captured(true)
 
 
@@ -110,17 +113,20 @@ func _fire() -> void:
 	var space := get_world_3d().direct_space_state
 	var q := PhysicsRayQueryParameters3D.create(from, to)
 	q.exclude = [self.get_rid()]
-	var hit := space.intersect_ray(q)
+	var hit: Dictionary = space.intersect_ray(q)
 
 	var length: float = Config.BEAM_RANGE
 	if not hit.is_empty():
-		length = from.distance_to(hit.position)
-		if hit.collider.has_method("receive_joy"):
-			hit.collider.receive_joy(current_element, Config.JOY_PER_SHOT, length)
+		var hit_point: Vector3 = hit["position"]
+		length = from.distance_to(hit_point)
+		var collider: Variant = hit["collider"]
+		if collider is Person:
+			var target: Person = collider
+			target.receive_joy(current_element, Config.JOY_PER_SHOT, length)
 
 	# Show the beam briefly, in the element's colour.
 	_beam_mesh.size = Vector3(0.04, 0.04, length)
 	beam.position = Vector3(0.15, -0.15, -length / 2.0)
 	_beam_mat.albedo_color = Config.ELEMENT_COLORS[current_element]
 	beam.visible = true
-	get_tree().create_timer(0.05).timeout.connect(func(): beam.visible = false)
+	get_tree().create_timer(0.05).timeout.connect(func() -> void: beam.visible = false)

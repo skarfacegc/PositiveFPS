@@ -1,3 +1,4 @@
+class_name JoyProjectile
 extends Node3D
 
 # A visual-only joy projectile for top-down mode. It flies from the player to a person in an arc, then pops.
@@ -98,7 +99,7 @@ func _build_flower() -> void:
 	add_child(centre)
 
 	var petal_mat := _make_mat(Config.ELEMENT_COLORS[element])
-	for i in range(5):
+	for i: int in range(5):
 		var a := TAU * i / 5.0
 		var petal := MeshInstance3D.new()
 		var petal_mesh := SphereMesh.new()

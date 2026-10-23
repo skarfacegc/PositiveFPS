@@ -7,11 +7,11 @@ extends RefCounted
 enum Element { MUSIC, ART, NATURE }
 
 # Display names, in the same order as the Element enum.
-const ELEMENT_NAMES := ["Music", "Art", "Nature"]
+const ELEMENT_NAMES: Array[String] = ["Music", "Art", "Nature"]
 
 # Colours for each element, in the same order as the Element enum.
 # They are used for the person's floating marker, the beam, the HUD text and the painted ground.
-const ELEMENT_COLORS := [Color(0.25, 0.5, 1.0), Color(1.0, 0.4, 0.7), Color(0.3, 0.85, 0.35)]
+const ELEMENT_COLORS: Array[Color] = [Color(0.25, 0.5, 1.0), Color(1.0, 0.4, 0.7), Color(0.3, 0.85, 0.35)]
 
 # Grey used for level geometry (the floor, walls and blocks use their own greys in main.gd).
 const GREY := Color(0.55, 0.55, 0.55)
@@ -69,11 +69,11 @@ const SPREAD_GLOOM_RATE := 0.03  # Gloom per second given to nearby unrescued pe
 const SPREAD_DRAIN_RATE := 60.0  # Joy per second drained from nearby rescued people by a dark person.
 
 # The three visible grey levels. Gloom below the first step is light, below the second is grey, else dark.
-const GLOOM_LEVEL_STEPS := [0.34, 0.67]
+const GLOOM_LEVEL_STEPS: Array[float] = [0.34, 0.67]
 # Body colour for each level (0 light, 1 grey, 2 dark).
-const LEVEL_COLORS := [Color(0.82, 0.82, 0.82), Color(0.5, 0.5, 0.52), Color(0.16, 0.16, 0.18)]
+const LEVEL_COLORS: Array[Color] = [Color(0.82, 0.82, 0.82), Color(0.5, 0.5, 0.52), Color(0.16, 0.16, 0.18)]
 # Joy needed at each level, as a multiple of JOY_MAX. Darker people need more joy.
-const LEVEL_JOY_MULT := [1.0, 1.5, 2.0]
+const LEVEL_JOY_MULT: Array[float] = [1.0, 1.5, 2.0]
 # Only people at this level or darker spread darkness (2 = only dark people).
 const SPREAD_LEVEL := 2
 
@@ -213,7 +213,7 @@ static func gloom_level(g: float) -> int:
 # Pass a different thresholds array (same format) to use another mode's list.
 static func buildings_for(count: int, thresholds: Array = BUILDING_THRESHOLDS) -> Array:
 	var result: Array = []
-	for entry in thresholds:
+	for entry: Array in thresholds:
 		if entry[0] <= count:
 			result.append(entry[1])
 	return result

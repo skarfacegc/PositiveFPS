@@ -1,25 +1,26 @@
+class_name Person
 extends StaticBody3D
 
 signal rescued
 signal relapsed
 
 var affinity: int = 0
-var joy := 0.0
-var is_rescued := false
+var joy: float = 0.0
+var is_rescued: bool = false
 # Scales the joy label and floating numbers. Top-down mode sets this higher, because the camera is far away.
-var ui_scale := 1.0
+var ui_scale: float = 1.0
 # Hidden darkness value, 0.0 (light) to 1.0 (nearly black). Main.gd changes this each frame.
-var gloom := 0.0
+var gloom: float = 0.0
 # The visible grey level (0 light, 1 grey, 2 dark). When it changes, a short moment plays.
-var level := 0
+var level: int = 0
 var body_mat: StandardMaterial3D
 var label: Label3D
 var body: MeshInstance3D
 var wisp: CPUParticles3D
 # Seconds since this person was last hit by a beam.
-var _since_hit := 99.0
+var _since_hit: float = 99.0
 # Seconds left to show the sad face after a relapse.
-var _sad_timer := 0.0
+var _sad_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -281,7 +282,7 @@ func _spawn_number(value: float, mult: float) -> void:
 	parent.add_child(lbl)
 	lbl.global_position = start
 	var base_y := lbl.position.y
-	var shown := int(round(value))
+	var shown := roundi(value)
 
 	if mult >= Config.MATCH_MULT:
 		# Matched element: big, bright, gold outline, scale punch, bigger rise.

@@ -1,3 +1,4 @@
+class_name TopDownPlayer
 extends CharacterBody3D
 
 # The player in top-down mode. WASD moves in world space, the mouse picks the aim point on the floor,
@@ -5,15 +6,13 @@ extends CharacterBody3D
 
 signal element_changed(element: int)
 
-const JoyProjectileScript = preload("res://scripts/joy_projectile.gd")
-
 var current_element: int = Config.Element.MUSIC
-var active := true
+var active: bool = true
 # Set by topdown_main.gd after both the player and the people exist.
-var people: Array = []
+var people: Array[Person] = []
 var camera: Camera3D
 # Seconds left before the joy burst can be used again. topdown_main.gd shows this on the HUD.
-var burst_cooldown := 0.0
+var burst_cooldown: float = 0.0
 
 var _fire_cooldown := 0.0
 var _aim_point := Vector3.ZERO
@@ -73,7 +72,8 @@ func _ready() -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
-		_mouse_pos = event.position
+		var motion := event as InputEventMouseMotion
+		_mouse_pos = motion.position
 		_mouse_seen = true
 
 
@@ -135,7 +135,7 @@ func _update_aim() -> void:
 	var m: Vector2 = _mouse_pos if _mouse_seen else get_viewport().get_mouse_position()
 	var from := camera.project_ray_origin(m)
 	var dir := camera.project_ray_normal(m)
-	var hit = Plane(Vector3.UP, 0.0).intersects_ray(from, dir)
+	var hit: Variant = Plane(Vector3.UP, 0.0).intersects_ray(from, dir)
 	_has_aim = hit != null
 	if _has_aim:
 		_aim_point = hit
@@ -155,14 +155,14 @@ func _face_aim() -> void:
 func _auto_fire() -> void:
 	if _fire_cooldown > 0.0:
 		return
-	var target = _pick_target()
+	var target: Person = _pick_target()
 	if target == null:
 		return
 	_fire_cooldown = 1.0 / Config.TD_SHOTS_PER_SECOND
 	var dist := _flat_dist(global_position, target.global_position)
 	target.receive_joy(current_element, Config.TD_JOY_PER_SHOT, dist)
 
-	var pr = JoyProjectileScript.new()
+	var pr: JoyProjectile = JoyProjectile.new()
 	pr.element = current_element
 	pr.start = global_position + Vector3(0, 1.2, 0)
 	pr.end_pos = target.chest_position()
@@ -171,12 +171,12 @@ func _auto_fire() -> void:
 
 # Picks a target among people who can still gain joy (unrescued, or rescued but about to relapse) and are in range.
 # Prefers the one closest to the aim point if they are close enough to it; otherwise the nearest one to the player.
-func _pick_target():
-	var best_aim = null
+func _pick_target() -> Person:
+	var best_aim: Person = null
 	var best_aim_d := INF
-	var best_near = null
+	var best_near: Person = null
 	var best_near_d := INF
-	for p in people:
+	for p: Person in people:
 		if p.is_rescued and not p.is_warning():
 			continue
 		var d_player := _flat_dist(global_position, p.global_position)
@@ -198,7 +198,7 @@ func _pick_target():
 # Joy burst: everyone close by gets a best-match hit, then a ring expands from the player's feet.
 func _burst() -> void:
 	burst_cooldown = Config.TD_BURST_COOLDOWN
-	for p in people:
+	for p: Person in people:
 		if _flat_dist(global_position, p.global_position) <= Config.TD_BURST_RADIUS:
 			p.receive_joy(p.affinity, Config.TD_BURST_JOY, 0.0)
 	_spawn_burst_ring()

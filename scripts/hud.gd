@@ -1,3 +1,4 @@
+class_name Hud
 extends CanvasLayer
 
 var crosshair: Label
@@ -145,7 +146,7 @@ func show_end(buildings: Array, title: String) -> void:
 	if buildings.is_empty():
 		text += "None yet — try again!"
 	else:
-		for b in buildings:
+		for b: String in buildings:
 			text += str(b) + "\n"
 	text += "\n\nPress R to play again"
 	end_label.text = text

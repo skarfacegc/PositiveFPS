@@ -4,22 +4,21 @@ extends GdUnitTestSuite
 # Auto-fire, projectiles and the burst are checked through their results (joy, cooldowns, nodes).
 
 const TD := "res://topdown.tscn"
-const JoyProjectileScript = preload("res://scripts/joy_projectile.gd")
 
 
 func _start_td() -> Dictionary:
-	var runner := scene_runner(TD)
+	var runner: GdUnitSceneRunner = scene_runner(TD)
 	await runner.simulate_frames(60, 16)
 	return {"runner": runner, "td": runner.scene()}
 
 
 # Moves every person far from the action except the target (index 0) and the near one (index 1).
 # Places the near person 3 m east of the player and the target 8 m north (-Z). Both are Music.
-func _stage(td) -> Array:
-	for p in td.people:
+func _stage(td: TopDownMain) -> Array:
+	for p: Person in td.people:
 		p.global_position = Vector3(30, 0, -30)
-	var target = td.people[0]
-	var near = td.people[1]
+	var target: Person = td.people[0]
+	var near: Person = td.people[1]
 	td.player.global_position = Vector3.ZERO
 	target.affinity = 0
 	target.gloom = 0.0
@@ -33,22 +32,23 @@ func _stage(td) -> Array:
 
 
 # The screen position where the mouse must be for the aim to land on `world_pos` on the floor.
-func _screen_of(td, world_pos: Vector3) -> Vector2:
+func _screen_of(td: TopDownMain, world_pos: Vector3) -> Vector2:
 	return td.camera.unproject_position(world_pos)
 
 
-func _projectile_count(td) -> int:
+func _projectile_count(td: TopDownMain) -> int:
 	var n := 0
-	for child in td.get_children():
-		if child.get_script() == JoyProjectileScript:
+	for child: Node in td.get_children():
+		if child.get_script() == JoyProjectile:
 			n += 1
 	return n
 
 
 func test_wasd_moves_in_world_space() -> void:
-	var s := await _start_td()
-	var runner = s["runner"]
-	var player = s["td"].player
+	var s: Dictionary = await _start_td()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	var player: TopDownPlayer = td.player
 	var start: Vector3 = player.global_position
 
 	runner.simulate_key_press(KEY_W)
@@ -64,12 +64,12 @@ func test_wasd_moves_in_world_space() -> void:
 
 
 func test_mouse_over_person_makes_auto_fire_target_that_person() -> void:
-	var s := await _start_td()
-	var runner = s["runner"]
-	var td = s["td"]
-	var staged := _stage(td)
-	var target = staged[0]
-	var near = staged[1]
+	var s: Dictionary = await _start_td()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	var staged: Array = _stage(td)
+	var target: Person = staged[0]
+	var near: Person = staged[1]
 	# Aim before any frame runs, or auto-fire would pick a default aim point first.
 	runner.simulate_mouse_move(_screen_of(td, target.chest_position()))
 	await runner.simulate_frames(30, 16)
@@ -80,12 +80,12 @@ func test_mouse_over_person_makes_auto_fire_target_that_person() -> void:
 
 
 func test_without_mouse_target_nearest_person_is_targeted() -> void:
-	var s := await _start_td()
-	var runner = s["runner"]
-	var td = s["td"]
-	var staged := _stage(td)
-	var target = staged[0]
-	var near = staged[1]
+	var s: Dictionary = await _start_td()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	var staged: Array = _stage(td)
+	var target: Person = staged[0]
+	var near: Person = staged[1]
 	# Aim far from everyone (no one within the aim-assist radius), so the nearest person is chosen.
 	runner.simulate_mouse_move(_screen_of(td, Vector3(-20, 0, 20)))
 	await runner.simulate_frames(30, 16)
@@ -95,22 +95,23 @@ func test_without_mouse_target_nearest_person_is_targeted() -> void:
 
 
 func test_projectiles_spawn_and_free_themselves() -> void:
-	var s := await _start_td()
-	var runner = s["runner"]
-	var td = s["td"]
-	var staged := _stage(td)
-	runner.simulate_mouse_move(_screen_of(td, staged[0].chest_position()))
+	var s: Dictionary = await _start_td()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	var staged: Array = _stage(td)
+	var target: Person = staged[0]
+	runner.simulate_mouse_move(_screen_of(td, target.chest_position()))
 
-	var tracked = null
-	for i in range(30):
+	var tracked: Node = null
+	for i: int in range(30):
 		await runner.simulate_frames(1, 16)
-		for child in td.get_children():
-			if tracked == null and child.get_script() == JoyProjectileScript:
+		for child: Node in td.get_children():
+			if tracked == null and child.get_script() == JoyProjectile:
 				tracked = child
 	assert_object(tracked).is_not_null()
 
 	# A projectile lasts a fraction of a second; wait for this one to be freed.
-	for i in range(120):
+	for i: int in range(120):
 		if not is_instance_valid(tracked) or not tracked.is_inside_tree():
 			break
 		await runner.simulate_frames(1, 16)
@@ -118,10 +119,10 @@ func test_projectiles_spawn_and_free_themselves() -> void:
 
 
 func test_g_and_q_burst_only_when_ready() -> void:
-	var s := await _start_td()
-	var runner = s["runner"]
-	var td = s["td"]
-	var player = td.player
+	var s: Dictionary = await _start_td()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	var player: TopDownPlayer = td.player
 
 	runner.simulate_key_pressed(KEY_G)
 	await runner.simulate_frames(2, 16)
@@ -143,10 +144,10 @@ func test_g_and_q_burst_only_when_ready() -> void:
 
 
 func test_element_keys_and_wheel_change_ring_colour() -> void:
-	var s := await _start_td()
-	var runner = s["runner"]
-	var td = s["td"]
-	var player = td.player
+	var s: Dictionary = await _start_td()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	var player: TopDownPlayer = td.player
 
 	runner.simulate_key_pressed(KEY_2)
 	await runner.simulate_frames(2, 16)
@@ -163,9 +164,9 @@ func test_element_keys_and_wheel_change_ring_colour() -> void:
 
 
 func test_timer_expiry_shows_end_screen_with_buildings() -> void:
-	var s := await _start_td()
-	var runner = s["runner"]
-	var td = s["td"]
+	var s: Dictionary = await _start_td()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
 	td.rescued_count = 15
 	td.hud.set_rescued(15, Config.TD_PEOPLE_COUNT)
 	td.time_left = 0.05
@@ -178,13 +179,13 @@ func test_timer_expiry_shows_end_screen_with_buildings() -> void:
 
 
 func test_rescuing_everyone_by_auto_fire_shows_happy_end_screen() -> void:
-	var s := await _start_td()
-	var runner = s["runner"]
-	var td = s["td"]
-	var staged := _stage(td)
-	var target = staged[0]
+	var s: Dictionary = await _start_td()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	var staged: Array = _stage(td)
+	var target: Person = staged[0]
 	# Remove everyone else and pretend the rest are already happy; auto-fire rescues the last one.
-	for p in td.people.duplicate():
+	for p: Person in td.people.duplicate():
 		if p != target:
 			td.people.erase(p)
 			p.queue_free()
@@ -203,9 +204,9 @@ func test_rescuing_everyone_by_auto_fire_shows_happy_end_screen() -> void:
 
 
 func test_crowd_wanders_and_paints_for_several_hundred_frames() -> void:
-	var s := await _start_td()
-	var runner = s["runner"]
-	var td = s["td"]
+	var s: Dictionary = await _start_td()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
 	var before: Vector3 = td.people[5].global_position
 	await runner.simulate_frames(300, 16)
 	assert_int(td.people.size()).is_equal(Config.TD_PEOPLE_COUNT)
@@ -214,12 +215,12 @@ func test_crowd_wanders_and_paints_for_several_hundred_frames() -> void:
 
 
 func test_dark_person_drifts_to_rescued_and_relapse_alerts() -> void:
-	var s := await _start_td()
-	var runner = s["runner"]
-	var td = s["td"]
-	var staged := _stage(td)
-	var target = staged[0]
-	var dark = staged[1]
+	var s: Dictionary = await _start_td()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	var staged: Array = _stage(td)
+	var target: Person = staged[0]
+	var dark: Person = staged[1]
 	# Rescue the target with real aim first.
 	runner.simulate_mouse_move(_screen_of(td, target.chest_position()))
 	var frames := 0

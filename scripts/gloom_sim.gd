@@ -1,3 +1,4 @@
+class_name GloomSim
 extends RefCounted
 
 # Shared gloom rules, used by both first-person and top-down mode.
@@ -7,11 +8,11 @@ extends RefCounted
 
 static func update(people: Array, delta: float) -> void:
 	var zones: Array = []
-	for p in people:
+	for p: Person in people:
 		if p.is_rescued:
 			zones.append(p.global_position)
 
-	for p in people:
+	for p: Person in people:
 		if p.is_rescued:
 			continue
 		var nearest := Config.NO_ZONE_DISTANCE
@@ -23,10 +24,10 @@ static func update(people: Array, delta: float) -> void:
 			p.gloom += (Config.GLOOM_GROWTH + Config.GLOOM_GROWTH_PER_METER * nearest) * delta
 		p.gloom = clampf(p.gloom, 0.0, 1.0)
 
-	for p in people:
+	for p: Person in people:
 		if p.is_rescued or Config.gloom_level(p.gloom) < Config.SPREAD_LEVEL:
 			continue
-		for q in people:
+		for q: Person in people:
 			if q == p:
 				continue
 			if flat_dist(p.global_position, q.global_position) > Config.SPREAD_RADIUS:
@@ -45,6 +46,6 @@ static func flat_dist(a: Vector3, b: Vector3) -> float:
 # Smallest flat distance from `pos` to any point in `points`.
 static func nearest_distance(pos: Vector3, points: Array) -> float:
 	var best := INF
-	for other in points:
+	for other: Vector3 in points:
 		best = minf(best, flat_dist(pos, other))
 	return best

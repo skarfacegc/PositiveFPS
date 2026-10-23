@@ -10,16 +10,16 @@ const PITCH_LIMIT := 1.4835298642  # 85 degrees in radians
 
 # Settles the player onto the floor and returns the scene.
 func _start_fps() -> Dictionary:
-	var runner := scene_runner(MAIN_SCENE)
+	var runner: GdUnitSceneRunner = scene_runner(MAIN_SCENE)
 	await runner.simulate_frames(60, 16)
 	return {"runner": runner, "main": runner.scene()}
 
 
 # Moves all people out of the way except `keep`, puts `keep` 6 m straight ahead of the player and
 # looks down at its chest with real mouse motion. Returns the kept person.
-func _stage_target(runner, main, affinity: int) -> Node:
-	var keep = main.people[0]
-	for p in main.people:
+func _stage_target(runner: GdUnitSceneRunner, main: Main, affinity: int) -> Person:
+	var keep: Person = main.people[0]
+	for p: Person in main.people:
 		if p != keep:
 			p.global_position = Vector3(15, 0, 15)
 	keep.affinity = affinity
@@ -33,7 +33,7 @@ func _stage_target(runner, main, affinity: int) -> Node:
 
 
 # Holds the fire button until the target is rescued. Returns the number of frames it took, or -1.
-func _hold_fire_until_rescued(runner, target, cap: int) -> int:
+func _hold_fire_until_rescued(runner: GdUnitSceneRunner, target: Person, cap: int) -> int:
 	runner.simulate_mouse_button_press(MOUSE_BUTTON_LEFT)
 	var frames := 0
 	while not target.is_rescued and frames < cap:
@@ -45,9 +45,10 @@ func _hold_fire_until_rescued(runner, target, cap: int) -> int:
 
 
 func test_w_moves_player_forward() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
-	var player = s["main"].player
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var main: Main = s["main"]
+	var player: Player = main.player
 	var start: Vector3 = player.global_position
 	var forward: Vector3 = -player.global_transform.basis.z
 
@@ -61,9 +62,10 @@ func test_w_moves_player_forward() -> void:
 
 
 func test_shift_w_runs_further_than_w() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
-	var player = s["main"].player
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var main: Main = s["main"]
+	var player: Player = main.player
 
 	var start: Vector3 = player.global_position
 	runner.simulate_key_press(KEY_W)
@@ -86,14 +88,15 @@ func test_shift_w_runs_further_than_w() -> void:
 
 
 func test_space_jumps() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
-	var player = s["main"].player
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var main: Main = s["main"]
+	var player: Player = main.player
 	var ground_y: float = player.global_position.y
 
 	runner.simulate_key_press(KEY_SPACE)
 	var highest := ground_y
-	for i in range(20):
+	for i: int in range(20):
 		await runner.simulate_frames(1, 16)
 		highest = maxf(highest, player.global_position.y)
 	runner.simulate_key_release(KEY_SPACE)
@@ -102,10 +105,11 @@ func test_space_jumps() -> void:
 
 
 func test_mouse_motion_turns_view_and_clamps_pitch() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
-	var player = s["main"].player
-	var camera = player.camera
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var main: Main = s["main"]
+	var player: Player = main.player
+	var camera: Camera3D = player.camera
 	var yaw_before: float = player.rotation.y
 
 	# Sideways motion turns the body (yaw).
@@ -123,10 +127,10 @@ func test_mouse_motion_turns_view_and_clamps_pitch() -> void:
 
 
 func test_number_keys_and_wheel_change_element() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
-	var main = s["main"]
-	var player = main.player
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var main: Main = s["main"]
+	var player: Player = main.player
 
 	runner.simulate_key_pressed(KEY_2)
 	await runner.simulate_frames(2, 16)
@@ -152,8 +156,8 @@ func test_number_keys_and_wheel_change_element() -> void:
 
 
 func test_escape_frees_mouse_and_click_recaptures() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
 
 	assert_bool(Controls.is_mouse_captured()).is_true()
 	runner.simulate_key_pressed(KEY_ESCAPE)
@@ -166,13 +170,13 @@ func test_escape_frees_mouse_and_click_recaptures() -> void:
 
 
 func test_holding_fire_rescues_person_and_updates_hud() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
-	var main = s["main"]
-	var target = await _stage_target(runner, main, 0)
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var main: Main = s["main"]
+	var target: Person = await _stage_target(runner, main, 0)
 	assert_int(main.rescued_count).is_equal(0)
 
-	var frames := await _hold_fire_until_rescued(runner, target, 600)
+	var frames: int = await _hold_fire_until_rescued(runner, target, 600)
 
 	assert_int(frames).is_greater(0)
 	assert_int(main.rescued_count).is_equal(1)
@@ -181,13 +185,13 @@ func test_holding_fire_rescues_person_and_updates_hud() -> void:
 
 func test_matched_element_rescues_in_fewer_frames_than_weak() -> void:
 	# Target affinity is Music (0). Music is a match, Art is weak against Music.
-	var s := await _start_fps()
-	var runner = s["runner"]
-	var main = s["main"]
-	var target = await _stage_target(runner, main, 0)
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var main: Main = s["main"]
+	var target: Person = await _stage_target(runner, main, 0)
 	runner.simulate_key_pressed(KEY_1)
 	await runner.simulate_frames(2, 16)
-	var matched_frames := await _hold_fire_until_rescued(runner, target, 900)
+	var matched_frames: int = await _hold_fire_until_rescued(runner, target, 900)
 	assert_int(matched_frames).is_greater(0)
 
 	# Fresh scene for the weak element.
@@ -199,17 +203,17 @@ func test_matched_element_rescues_in_fewer_frames_than_weak() -> void:
 	target = await _stage_target(runner, main, 0)
 	runner.simulate_key_pressed(KEY_2)
 	await runner.simulate_frames(2, 16)
-	var weak_frames := await _hold_fire_until_rescued(runner, target, 900)
+	var weak_frames: int = await _hold_fire_until_rescued(runner, target, 900)
 	assert_int(weak_frames).is_greater(0)
 
 	assert_int(weak_frames).is_greater(matched_frames)
 
 
 func test_r_restarts_the_scene() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
-	var old_main = s["main"]
-	var target = await _stage_target(runner, old_main, 0)
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var old_main: Main = s["main"]
+	var target: Person = await _stage_target(runner, old_main, 0)
 	await _hold_fire_until_rescued(runner, target, 600)
 	assert_int(old_main.rescued_count).is_equal(1)
 
@@ -223,7 +227,7 @@ func test_r_restarts_the_scene() -> void:
 	Input.parse_input_event(key)
 	await runner.simulate_frames(5, 16)
 
-	var new_main = get_tree().current_scene
+	var new_main: Main = get_tree().current_scene as Main
 	assert_bool(is_instance_valid(old_main)).is_false()
 	assert_bool(new_main == null).is_false()
 	assert_int(new_main.rescued_count).is_equal(0)
@@ -231,8 +235,8 @@ func test_r_restarts_the_scene() -> void:
 
 
 func test_m_returns_to_menu() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
 
 	runner.simulate_key_pressed(KEY_M)
 	await runner.simulate_frames(5, 16)
@@ -241,9 +245,9 @@ func test_m_returns_to_menu() -> void:
 
 
 func test_timer_expiry_shows_end_screen_with_buildings() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
-	var main = s["main"]
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var main: Main = s["main"]
 	# Ten rescued people unlocks Cafe and Music Shop.
 	main.rescued_count = 10
 	main.hud.set_rescued(10, Config.PEOPLE_COUNT)
@@ -260,13 +264,13 @@ func test_timer_expiry_shows_end_screen_with_buildings() -> void:
 
 
 func test_rescuing_everyone_shows_happy_end_screen() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
-	var main = s["main"]
-	var target = await _stage_target(runner, main, 0)
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var main: Main = s["main"]
+	var target: Person = await _stage_target(runner, main, 0)
 
 	# Stage the last rescue: remove every other person and pretend the other 19 are already happy.
-	for p in main.people.duplicate():
+	for p: Person in main.people.duplicate():
 		if p != target:
 			main.people.erase(p)
 			p.queue_free()
@@ -282,15 +286,15 @@ func test_rescuing_everyone_shows_happy_end_screen() -> void:
 
 
 func test_dark_neighbour_causes_relapse_and_alert() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
-	var main = s["main"]
-	var target = await _stage_target(runner, main, 0)
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var main: Main = s["main"]
+	var target: Person = await _stage_target(runner, main, 0)
 	await _hold_fire_until_rescued(runner, target, 600)
 	assert_bool(target.is_rescued).is_true()
 
 	# A fully dark person 1.5 m from the rescued one drains its joy over time.
-	var dark = main.people[1]
+	var dark: Person = main.people[1]
 	dark.global_position = Vector3(1.5, 0, -6)
 	dark.gloom = 1.0
 
@@ -306,9 +310,10 @@ func test_dark_neighbour_causes_relapse_and_alert() -> void:
 
 
 func test_automated_run_never_captures_real_mouse() -> void:
-	var s := await _start_fps()
-	var runner = s["runner"]
-	var target = await _stage_target(runner, s["main"], 0)
+	var s: Dictionary = await _start_fps()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var main: Main = s["main"]
+	var target: Person = await _stage_target(runner, main, 0)
 	await _hold_fire_until_rescued(runner, target, 600)
 	assert_bool(Config.is_automated_test()).is_true()
 	assert_bool(Input.mouse_mode == Input.MOUSE_MODE_CAPTURED).is_false()
