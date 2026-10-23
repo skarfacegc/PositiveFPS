@@ -20,6 +20,7 @@ static func is_mouse_captured() -> bool:
 		return mouse_captured
 	return Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 
+
 # Registers every input action the game uses. Each action is only added if it does not exist yet,
 # so it is safe to call from the menu, first-person mode and top-down mode.
 

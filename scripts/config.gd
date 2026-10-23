@@ -47,26 +47,26 @@ const JUMP_VELOCITY := 4.5
 const MOUSE_SENSITIVITY := 0.0025
 
 # Damage multipliers for the element matchups (see multiplier() below).
-const MATCH_MULT := 2.0   # Same element as the person's affinity.
+const MATCH_MULT := 2.0  # Same element as the person's affinity.
 const STRONG_MULT := 1.5  # The element beats the person's affinity.
-const WEAK_MULT := 1.0    # The element loses to the person's affinity.
+const WEAK_MULT := 1.0  # The element loses to the person's affinity.
 
 # Distance falloff: beam joy is strongest close up and weakens with distance (see falloff() below).
-const FALLOFF_NEAR := 4.0    # Metres. Full strength at or closer than this.
-const FALLOFF_FAR := 22.0    # Metres. Weakest strength at or beyond this.
-const FALLOFF_MIN := 0.25    # Strength at or beyond FALLOFF_FAR (25%).
+const FALLOFF_NEAR := 4.0  # Metres. Full strength at or closer than this.
+const FALLOFF_FAR := 22.0  # Metres. Weakest strength at or beyond this.
+const FALLOFF_MIN := 0.25  # Strength at or beyond FALLOFF_FAR (25%).
 
 # Gloom: a hidden 0.0 (light) to 1.0 (nearly black) value. It is shown as three stepped levels.
-const GLOOM_START_MIN := 0.0            # Random starting gloom for each person, lowest...
-const GLOOM_START_MAX := 0.5            # ...and highest.
-const GLOOM_GROWTH := 0.006             # Gloom gained per second by an unrescued person, base rate.
+const GLOOM_START_MIN := 0.0  # Random starting gloom for each person, lowest...
+const GLOOM_START_MAX := 0.5  # ...and highest.
+const GLOOM_GROWTH := 0.006  # Gloom gained per second by an unrescued person, base rate.
 const GLOOM_GROWTH_PER_METER := 0.0008  # Extra gloom per second for each metre from the nearest colour zone.
-const NO_ZONE_DISTANCE := 20.0          # Distance used for gloom growth when nobody has been rescued yet (no colour zones).
-const ZONE_RADIUS := 6.0                # Each rescued person creates a colour zone of this radius (metres).
-const ZONE_HEAL := 0.02                 # Gloom lost per second by unrescued people inside a colour zone.
-const SPREAD_RADIUS := 6.0              # How far darkness spreads from a dark person (metres).
-const SPREAD_GLOOM_RATE := 0.03         # Gloom per second given to nearby unrescued people by a dark person.
-const SPREAD_DRAIN_RATE := 60.0         # Joy per second drained from nearby rescued people by a dark person.
+const NO_ZONE_DISTANCE := 20.0  # Gloom growth distance when nobody is rescued yet (no colour zones).
+const ZONE_RADIUS := 6.0  # Each rescued person creates a colour zone of this radius (metres).
+const ZONE_HEAL := 0.02  # Gloom lost per second by unrescued people inside a colour zone.
+const SPREAD_RADIUS := 6.0  # How far darkness spreads from a dark person (metres).
+const SPREAD_GLOOM_RATE := 0.03  # Gloom per second given to nearby unrescued people by a dark person.
+const SPREAD_DRAIN_RATE := 60.0  # Joy per second drained from nearby rescued people by a dark person.
 
 # The three visible grey levels. Gloom below the first step is light, below the second is grey, else dark.
 const GLOOM_LEVEL_STEPS := [0.34, 0.67]
@@ -78,8 +78,8 @@ const LEVEL_JOY_MULT := [1.0, 1.5, 2.0]
 const SPREAD_LEVEL := 2
 
 # Joy fading: partly-helped people drain back toward grey if nobody keeps hitting them.
-const JOY_FADE_DELAY := 1.5             # Seconds without a hit before an unrescued person's joy starts to fade.
-const JOY_FADE_RATE := 120.0            # Joy lost per second while fading.
+const JOY_FADE_DELAY := 1.5  # Seconds without a hit before an unrescued person's joy starts to fade.
+const JOY_FADE_RATE := 120.0  # Joy lost per second while fading.
 
 # Relapse: a rescued person whose joy falls below this fraction of their joy needed turns grey again.
 const RELAPSE_FRACTION := 0.5
@@ -88,9 +88,9 @@ const WARN_FRACTION := 0.85
 
 # Painted ground: tiles around rescued people take on their element colour.
 const GROUND_GREY := Color(0.5, 0.5, 0.5)  # Unpainted ground colour.
-const GROUND_PAINT_STRENGTH := 0.75        # How strongly the paint colour shows right next to a rescued person (0-1).
-const GROUND_PAINT_SPEED := 0.15           # How fast each tile moves toward its target colour per update (0-1).
-const GROUND_UPDATE_INTERVAL := 0.1        # Seconds between ground colour updates.
+const GROUND_PAINT_STRENGTH := 0.75  # How strongly the paint colour shows right next to a rescued person (0-1).
+const GROUND_PAINT_SPEED := 0.15  # How fast each tile moves toward its target colour per update (0-1).
+const GROUND_UPDATE_INTERVAL := 0.1  # Seconds between ground colour updates.
 
 # Show the Borderlands-style floating joy numbers when a beam hits someone.
 const NUMBERS_ENABLED := true

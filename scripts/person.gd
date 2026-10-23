@@ -12,14 +12,14 @@ var ui_scale := 1.0
 var gloom := 0.0
 # The visible grey level (0 light, 1 grey, 2 dark). When it changes, a short moment plays.
 var level := 0
-# Seconds since this person was last hit by a beam.
-var _since_hit := 99.0
-# Seconds left to show the sad face after a relapse.
-var _sad_timer := 0.0
 var body_mat: StandardMaterial3D
 var label: Label3D
 var body: MeshInstance3D
 var wisp: CPUParticles3D
+# Seconds since this person was last hit by a beam.
+var _since_hit := 99.0
+# Seconds left to show the sad face after a relapse.
+var _sad_timer := 0.0
 
 
 func _ready() -> void:
@@ -293,10 +293,16 @@ func _spawn_number(value: float, mult: float) -> void:
 		lbl.scale = Vector3(0.4, 0.4, 0.4)
 		var t := lbl.create_tween()
 		t.set_parallel(true)
-		t.tween_property(lbl, "scale", Vector3(1.3, 1.3, 1.3), 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		t.tween_property(lbl, "scale", Vector3.ONE, 0.1).set_delay(0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		t.tween_property(lbl, "scale", Vector3(1.3, 1.3, 1.3), 0.08).set_trans(Tween.TRANS_BACK).set_ease(
+			Tween.EASE_OUT
+		)
+		t.tween_property(lbl, "scale", Vector3.ONE, 0.1).set_delay(0.08).set_trans(Tween.TRANS_BACK).set_ease(
+			Tween.EASE_OUT
+		)
 		t.tween_property(lbl, "position:y", base_y + 0.6, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		t.tween_property(lbl, "position:y", base_y - 1.6, 0.45).set_delay(0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		t.tween_property(lbl, "position:y", base_y - 1.6, 0.45).set_delay(0.45).set_trans(Tween.TRANS_QUAD).set_ease(
+			Tween.EASE_OUT
+		)
 		t.tween_property(lbl, "modulate:a", 0.0, 0.3).set_delay(0.6)
 		t.tween_callback(lbl.queue_free).set_delay(0.9)
 	elif mult >= Config.STRONG_MULT:
@@ -309,7 +315,9 @@ func _spawn_number(value: float, mult: float) -> void:
 		var t := lbl.create_tween()
 		t.set_parallel(true)
 		t.tween_property(lbl, "position:y", base_y + 0.4, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		t.tween_property(lbl, "position:y", base_y - 1.4, 0.4).set_delay(0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		t.tween_property(lbl, "position:y", base_y - 1.4, 0.4).set_delay(0.4).set_trans(Tween.TRANS_QUAD).set_ease(
+			Tween.EASE_OUT
+		)
 		t.tween_property(lbl, "modulate:a", 0.0, 0.3).set_delay(0.5)
 		t.tween_callback(lbl.queue_free).set_delay(0.8)
 	else:

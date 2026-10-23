@@ -47,7 +47,9 @@ func _ready() -> void:
 
 	hud = HudScript.new()
 	add_child(hud)
-	hud.set_hint("1 Music  2 Art  3 Nature  |  Shift run  |  Get close for more joy  |  Esc free mouse  |  R restart  |  M menu")
+	hud.set_hint(
+		"1 Music  2 Art  3 Nature  |  Shift run  |  Get close for more joy  |  Esc free mouse  |  R restart  |  M menu"
+	)
 	player.element_changed.connect(hud.set_element)
 	hud.set_element(player.current_element)
 	hud.set_rescued(rescued_count, Config.PEOPLE_COUNT)

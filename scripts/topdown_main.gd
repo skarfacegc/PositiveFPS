@@ -1,6 +1,7 @@
 extends Node3D
 
-# Top-down mode: a bigger plaza seen from above. Aiming is mostly automatic; you choose where to stand and which element to use.
+# Top-down mode: a bigger plaza seen from above. Aiming is mostly automatic;
+# you choose where to stand and which element to use.
 
 const PlayerScript = preload("res://scripts/topdown_player.gd")
 const PersonScript = preload("res://scripts/person.gd")
@@ -60,7 +61,8 @@ func _ready() -> void:
 	hud = HudScript.new()
 	add_child(hud)
 	hud.set_crosshair_visible(false)
-	hud.set_hint("WASD move  |  Shift run  |  1/2/3 or wheel: element  |  G/Q joy burst  |  aim with mouse  |  R restart  |  M menu")
+	var hint := "WASD move  |  Shift run  |  1/2/3 or wheel: element  |  "
+	hud.set_hint(hint + "G/Q joy burst  |  aim with mouse  |  R restart  |  M menu")
 	player.element_changed.connect(hud.set_element)
 	hud.set_element(player.current_element)
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)

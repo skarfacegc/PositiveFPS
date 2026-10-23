@@ -4,9 +4,9 @@ signal element_changed(element: int)
 
 var current_element: int = Config.Element.MUSIC
 var active := true
-var _cooldown := 0.0
 var camera: Camera3D
 var beam: MeshInstance3D
+var _cooldown := 0.0
 var _beam_mesh: BoxMesh
 var _beam_mat: StandardMaterial3D
 
