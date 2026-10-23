@@ -126,3 +126,33 @@ modes not compared yet; enemy tiers and bosses deferred to a later dedicated rou
 - **Not changed:** the three targeting modes (still to be compared in a playtest), the first-person rules.
 - **Next:** round 7 is a Godot style test built from the style pillars above (pixel-diorama rendering, earthy joy
   palette, the cold-to-warm transformation).
+
+## POC round 7 (after sixth playtest)
+Playtest 6 feedback: push-back still too strong; joy should be contagious (enough to lighten people to light grey and
+stop their degradation when they stand inside enough cover); cover should protect more in the middle and less at the
+edges; darkness should only creep in at the edges; ground transitions should be slower than people; time-to-joy still a
+bit slow; projectile types still not distinct enough; the grace halo was not noticed; targeting modes not tried yet
+(lock-on stays the default).
+- **Graded cover:** each person's cover is the average paint weight of the ground within 3 m. Protection is 0 at the
+  edge of painted ground (cover 0.35) and 1 well inside (cover 0.85). Paint is now a weight from 0 to 1 per tile.
+- **Joy contagion:** with cover of 0.6 or more, grey people lose gloom at 0.034 per second times their protection, so
+  they lighten to light grey in about 10 s per level. Contagion never adds joy or rescues anyone.
+- **Edge-only darkness:** dark spreading and drain on rescued people are scaled by (1 - protection). Gloom growth is
+  scaled the same way. The old zone heal is not used in top-down. Partial joy does not fade deep inside painted ground.
+- **Slower ground (top-down):** paint spreads in at 0.05 per update and fades back at 0.012, so territory takes a few
+  seconds to paint in and lingers after a relapse.
+- **Less push-back and faster rescues:** drain multiplier 0.5 to 0.4. Joy per shot 135 to 170 (Nature).
+- **Distinct projectiles:** fire rate per element (music 2x, nature 1x, art 0.5x) with joy per shot scaled inversely,
+  so each element gives the same joy per second. Music is smaller and quicker, with a wavy ribbon trail and a dusty-blue
+  ring pulse on landing. Art is a bigger, slower, higher blob with heavier drips and a bigger splat. Nature flowers bob
+  and burst petals on impact.
+- **Visible grace cue:** a warm pulsing ring on the ground under a rescued person, plus a soft glow on the body. Both
+  fade over the last second of grace.
+- **F3 debug overlay** (top-down): cover and protection above each person, and a hint on the HUD. Off by default.
+- **Next:** round 8 is the style pass that brings `design/style_test` into the game (pixel-diorama rendering, earthy joy
+  palette, the cold-to-warm transformation).
+- **Open question (found while building round 7):** a rescued person stands in the middle of the paint they made, so
+  their protection reaches 1 about four seconds after the rescue (the same time as the grace period). In the live game
+  darkness then almost never drains a rescued person, so relapses by drain are close to gone in top-down. Options to
+  decide next round: measure cover without the person's own paint, paint a ring rather than a disc, or accept durable
+  territory and let relapses come only from edges that players leave open.

@@ -45,11 +45,19 @@ Top-down:
   - **Auto**: no clicks. The most urgent person in range is shot at: someone about to relapse first, then the darkest.
 - No element switching in top-down: every shot uses the **target's** element, so it is always a best match. The ring
   under you shows the target's element colour (cream with no target).
-- Shots are real projectiles and take a moment to arrive. Music notes home in on their target and leave a wavy blue
-  trail. Paint is lobbed, drips rose and terracotta on the way, and splashes people nearby. Flowers drift in, shed
-  sage and pink petals, and where they land they bloom and give joy to anyone standing in them.
-- A rescued person has a 4-second grace period: a warm halo shows it, and nearby darkness cannot drain them until it
-  ends.
+- Shots are real projectiles and take a moment to arrive. Each element has its own rhythm, and all three give the same
+  joy per second. **Music** is small, quick notes (twice as many shots): they home in on the target, leave a wavy
+  dusty-blue ribbon, and ring the ground where they land. **Art** is a big, slow paint blob (half as many shots): it
+  lobs in a high arc, drips rose and terracotta on the way, and leaves a large splat and a splash on nearby people.
+  **Nature** is a floating flower at a steady pace: it sheds sage and pink petals, blooms where it lands, and bursts
+  petals.
+- A rescued person has a 4-second grace period: a warm ring pulses on the ground under them and they glow, until it
+  ends. Nearby darkness cannot drain them during it.
+- **Cover:** painted ground protects people standing in it. Deep inside a painted area, darkness cannot reach people and
+  grey people slowly lighten (joy contagion, which never rescues anyone on its own). Darkness still creeps in at the
+  edges of painted ground. Paint takes a few seconds to spread in and lingers for a long time after someone relapses.
+- **F3** toggles a debug overlay: above each person, `c` is their cover (the paint around them) and `p` their
+  protection from it. Off by default.
 - **G** or **Q** joy burst (short cooldown; boosts everyone nearby)
 - **R** restart, **M** back to menu
 
