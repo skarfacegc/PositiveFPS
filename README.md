@@ -36,12 +36,13 @@ First person:
 Top-down:
 
 - **WASD** move, **Shift** run
-- **Left click** a person to lock on. A warm ring under their feet marks the target, and your shots fly at them while
-  you hold the lock. Click empty ground to let go. The lock drops when they are rescued or you walk more than 14 m away.
+- The camera sits close above and behind you, so about two lock-on ranges fit on screen.
 - **F2** cycles the targeting mode (shown top right):
-  - **Lock-on** (default): click to lock, as above.
-  - **Hover**: with no target, the person under the mouse becomes the target and stays one until they are rescued
-    or out of reach, even if you move the mouse.
+  - **Hover** (default): with no target, the person under the mouse becomes the target and stays one until they are
+    rescued or out of reach, even if you move the mouse. Your shots fly at them.
+  - **Lock-on**: **left click** a person to lock on. A warm ring under their feet marks the target, and your shots
+    fly at them while you hold the lock. Click empty ground to let go. The lock drops when they are rescued or you
+    walk more than 14 m away.
   - **Auto**: no clicks. The most urgent person in range is shot at: someone about to relapse first, then the darkest.
 - No element switching in top-down: every shot uses the **target's** element, so it is always a best match. The ring
   under you shows the target's element colour (cream with no target).
@@ -53,11 +54,16 @@ Top-down:
   petals.
 - A rescued person has a 4-second grace period: a warm ring pulses on the ground under them and they glow, until it
   ends. Nearby darkness cannot drain them during it.
-- **Cover:** painted ground protects people standing in it. Deep inside a painted area, darkness cannot reach people and
-  grey people slowly lighten (joy contagion, which never rescues anyone on its own). Darkness still creeps in at the
-  edges of painted ground. Paint takes a few seconds to spread in and lingers for a long time after someone relapses.
+- **Cover:** painted ground protects people standing in it, but only paint made by *other* rescued people. A rescued
+  person's own paint does not protect them, so someone on their own is at risk. Deep inside other people's paint,
+  darkness cannot reach people and grey people slowly lighten (joy contagion, which never rescues anyone on its own).
+- **Edges:** dark people eat away the edge of painted ground near them (deep inside paint is safe, and an eroded spot
+  does not grow back for a few seconds). A dark person goes for the weakest rescued person within reach, the one with
+  the least cover, or drifts to the nearest edge of the paint when nobody is in reach. Paint takes a few seconds to
+  spread in and lingers for a long time after someone relapses.
 - **F3** toggles a debug overlay: above each person, `c` is their cover (the paint around them) and `p` their
-  protection from it. Off by default.
+  protection from it. A `[F3] debug` line shows at the top left while it is on. Off by default. If F3 does nothing
+  on your keyboard, the F-row may be set to media keys: try Fn+F3.
 - **G** or **Q** joy burst (short cooldown; boosts everyone nearby)
 - **R** restart, **M** back to menu
 

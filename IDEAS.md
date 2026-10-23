@@ -156,3 +156,31 @@ bit slow; projectile types still not distinct enough; the grace halo was not not
   darkness then almost never drains a rescued person, so relapses by drain are close to gone in top-down. Options to
   decide next round: measure cover without the person's own paint, paint a ring rather than a disc, or accept durable
   territory and let relapses come only from edges that players leave open.
+
+## POC round 8 (after seventh playtest)
+Playtest 7 feedback: relapse isn't strong enough at the edges (no sense of risking ground); rescue speed good; projectiles
+distinct, but paint is a bit large (reads as an area weapon); nature could have more defined edges; overall scale feels
+off, and a closer camera would help; grace ring visible; the F3 overlay was not seen in real play; hover felt best for
+targeting.
+- **Decision (resolves the round 7 open question): own paint doesn't protect you.** A rescued person's cover counts only
+  paint from other rescued people. So a lone rescued person is protected by nothing, and a dark neighbour can drain and
+  relapse them. Of the three options (measure cover without the person's own paint, paint a ring rather than a disc, or
+  accept durable territory), this is the first; the disc stays. Each tile keeps the strongest paint and the strongest
+  from anyone else, and a rescued person's cover uses the lower of the current paint and the others' paint.
+- **Darkness erodes paint at the edge:** each dark person takes 0.25 weight a second off the edge tiles within 2 m. A tile
+  is interior (immune) only when it and its neighbours are at least 0.9 painted. Eroded tiles cannot regrow for 3 s.
+  The edge moves inward while a dark person stays within that 2 m reach.
+- **Weakest-point pursuit:** a dark person chases the rescued person with the lowest protection within 25 m (ties go to
+  the nearer one). With nobody in reach it drifts to the nearest territory edge (and erodes there).
+- **Smaller paint, crisper blooms:** paint is 1.3x (was 2.0x), the splat is 0.6 m (was 1.0 m), and the splash radius is
+  1.1 m (was 1.6 m). The splash is shown as a brief ring at exactly its radius. A bloom has a thin darker sage outline
+  at exactly its radius, and the whole patch fades together.
+- **Closer camera:** 18 m above and 10 m behind the player (was 24 and 12). The 11 m range ring fits on screen at
+  1280x720 (a test checks it). 15 m and 8 m were tried first, but then the near edge of the ring fell off the bottom of
+  the screen. Labels use scale 1.9 (was 2.5) so they stay about the same size on screen.
+- **Hover is the default** targeting mode. F2 still cycles through the others.
+- **F3 overlay fixed:** the labels were about 0.5 m tall in the world, about 9 px on screen from the top-down camera. They
+  are now sized in metres (about 19 px) with a bigger `[F3] debug` line. A regression test goes menu, key 2, F3.
+- **Open for round 9:** does the inward erosion feel right, or should the dark person's 2 m reach be smaller?
+- **Next:** round 9 is the style pass that brings `design/style_test` into the game (pixel-diorama rendering, earthy joy
+  palette, the cold-to-warm transformation).
