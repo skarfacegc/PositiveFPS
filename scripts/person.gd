@@ -6,15 +6,18 @@ signal relapsed
 var affinity: int = 0
 var joy := 0.0
 var is_rescued := false
-# How grey this person is: 0.0 = light grey, 1.0 = nearly black. Main.gd changes this each frame.
+# Hidden darkness value, 0.0 (light) to 1.0 (nearly black). Main.gd changes this each frame.
 var gloom := 0.0
+# The visible grey level (0 light, 1 grey, 2 dark). When it changes, a short moment plays.
+var level := 0
 # Seconds since this person was last hit by a beam.
 var _since_hit := 99.0
+# Seconds left to show the sad face after a relapse.
+var _sad_timer := 0.0
 var body_mat: StandardMaterial3D
 var label: Label3D
 var body: MeshInstance3D
-var disc: MeshInstance3D
-var _disc_mat: StandardMaterial3D
+var wisp: CPUParticles3D
 
 
 func _ready() -> void:
@@ -50,7 +53,7 @@ func _ready() -> void:
 	marker.material_override = marker_mat
 	add_child(marker)
 
-	# Shows the joy percentage, and a smiley when rescued.
+	# Shows the joy percentage, a warning, or a smiley.
 	label = Label3D.new()
 	label.position = Vector3(0, 2.5, 0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -60,29 +63,36 @@ func _ready() -> void:
 	label.text = ""
 	add_child(label)
 
-	# A flat coloured disc on the ground: the colour zone (rescued) or the darkness spread (dark).
-	disc = MeshInstance3D.new()
-	var disc_mesh := CylinderMesh.new()
-	disc_mesh.top_radius = Config.ZONE_RADIUS
-	disc_mesh.bottom_radius = Config.ZONE_RADIUS
-	disc_mesh.height = 0.02
-	disc.mesh = disc_mesh
-	disc.position = Vector3(0, 0.02, 0)
-	_disc_mat = StandardMaterial3D.new()
-	_disc_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_disc_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_disc_mat.no_depth_test = false
-	_disc_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	disc.material_override = _disc_mat
-	disc.visible = false
-	add_child(disc)
+	# Dark wisps drift up from dark people (only while the person is at the dark level).
+	wisp = CPUParticles3D.new()
+	wisp.position = Vector3(0, 1.0, 0)
+	wisp.amount = 12
+	wisp.lifetime = 1.5
+	wisp.direction = Vector3.UP
+	wisp.spread = 25.0
+	wisp.initial_velocity_min = 0.5
+	wisp.initial_velocity_max = 0.7
+	wisp.gravity = Vector3(0, 0.3, 0)
+	wisp.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	wisp.emission_sphere_radius = 0.5
+	var wisp_mesh := SphereMesh.new()
+	wisp_mesh.radius = 0.08
+	wisp_mesh.height = 0.16
+	var wisp_mat := StandardMaterial3D.new()
+	wisp_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	wisp_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	wisp_mat.albedo_color = Color(0.1, 0.1, 0.12, 0.6)
+	wisp_mesh.material = wisp_mat
+	wisp.mesh = wisp_mesh
+	wisp.emitting = false
+	add_child(wisp)
 
 	_update_visuals()
 
 
-# The joy this person needs to be rescued. Darker people need more.
+# The joy this person needs to be rescued. Darker levels need more.
 func joy_needed() -> float:
-	return Config.JOY_MAX * (1.0 + gloom * Config.GLOOM_JOY_EXTRA)
+	return Config.JOY_MAX * Config.LEVEL_JOY_MULT[Config.gloom_level(gloom)]
 
 
 # Called by the player's beam when it hits this person. Works on rescued people too (top-up).
@@ -101,14 +111,18 @@ func receive_joy(element: int, amount: float, distance: float) -> void:
 		_update_visuals()
 
 
-# Called every frame by main.gd: handles joy fading and refreshes the visuals.
+# Called every frame by main.gd: handles joy fading, level changes and visuals.
 func tick(delta: float) -> void:
 	_since_hit += delta
+	if _sad_timer > 0.0:
+		_sad_timer -= delta
 	if not is_rescued:
 		if _since_hit > Config.JOY_FADE_DELAY:
 			joy = maxf(0.0, joy - Config.JOY_FADE_RATE * delta)
 		if joy >= joy_needed():
 			_rescue()
+		else:
+			_check_level()
 	_update_visuals()
 
 
@@ -126,6 +140,7 @@ func drain_joy(amount: float) -> void:
 func _rescue() -> void:
 	is_rescued = true
 	gloom = 0.0
+	level = 0
 	joy = minf(joy, Config.JOY_MAX)
 	_update_visuals()
 
@@ -142,18 +157,62 @@ func _rescue() -> void:
 func _relapse() -> void:
 	is_rescued = false
 	gloom = maxf(gloom, 0.6)
+	level = Config.gloom_level(gloom)
 	_since_hit = 0.0
+	_sad_timer = 1.5
 	_update_visuals()
-
-	# A small slump so the player notices.
-	var t := create_tween()
-	t.tween_property(body, "scale:y", 0.85, 0.15)
-	t.tween_property(body, "scale:y", 1.0, 0.15)
-
+	_puff(Color(0.15, 0.15, 0.18), 30)
+	_slump(0.85, 0.3)
 	relapsed.emit()
 
 
-# Sets the body colour, the label and the ground disc from the current state.
+# Fires a moment when the visible grey level changes: darker is a slump and dark puff, lighter is a sparkle.
+func _check_level() -> void:
+	var new_level := Config.gloom_level(gloom)
+	if new_level == level:
+		return
+	if new_level > level:
+		_slump(0.8, 0.35)
+		_puff(Color(0.15, 0.15, 0.18), 20)
+	else:
+		_puff(Color(0.95, 0.95, 0.95), 10)
+	level = new_level
+
+
+# Squashes the body vertically and springs it back. `duration` is the total time.
+func _slump(scale_y: float, duration: float) -> void:
+	var t := create_tween()
+	t.tween_property(body, "scale:y", scale_y, duration / 2.0)
+	t.tween_property(body, "scale:y", 1.0, duration / 2.0)
+
+
+# A one-off burst of small coloured particles from the body centre.
+func _puff(color: Color, count: int) -> void:
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 0.9
+	p.amount = count
+	p.lifetime = 0.6
+	p.spread = 180.0
+	p.initial_velocity_min = 1.5
+	p.initial_velocity_max = 3.0
+	p.gravity = Vector3(0, -2, 0)
+	p.position = Vector3(0, 0.9, 0)
+	var m := SphereMesh.new()
+	m.radius = 0.06
+	m.height = 0.12
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = color
+	m.material = mat
+	p.mesh = m
+	add_child(p)
+	p.emitting = true
+	var timer := get_tree().create_timer(1.2)
+	timer.timeout.connect(p.queue_free)
+
+
+# Sets the body colour, the label, the wobble and the wisps from the current state.
 func _update_visuals() -> void:
 	if body_mat == null:
 		return
@@ -162,23 +221,37 @@ func _update_visuals() -> void:
 	var elem_col: Color = Config.ELEMENT_COLORS[affinity]
 
 	if is_rescued:
-		body_mat.albedo_color = elem_col.lightened(0.15)
-		if joy >= need * 0.85:
+		wisp.emitting = false
+		var warn_line := need * Config.WARN_FRACTION
+		if joy < warn_line:
+			# Losing joy: flicker faster the closer they are to relapsing, wobble, and show "!".
+			var relapse_line := need * Config.RELAPSE_FRACTION
+			var danger := clampf((warn_line - joy) / (warn_line - relapse_line), 0.0, 1.0)
+			var speed := lerpf(4.0, 14.0, danger)
+			var wave := sin(Time.get_ticks_msec() / 1000.0 * speed)
+			var pulse := 0.5 + 0.5 * wave
+			body_mat.albedo_color = elem_col.lerp(Config.LEVEL_COLORS[1], pulse)
+			body.rotation.y = wave * 0.15
+			label.text = "!"
+			label.modulate = Color(1, 0.6, 0.1)
+			label.font_size = 72
+		else:
+			body_mat.albedo_color = elem_col.lightened(0.15)
+			body.rotation.y = 0.0
 			label.text = ":)"
-		else:
-			label.text = ":| " + str(int(frac * 100)) + "%"
-		_disc_mat.albedo_color = Color(elem_col.r, elem_col.g, elem_col.b, 0.25)
-		disc.visible = true
+			label.modulate = Color.WHITE
+			label.font_size = 48
 	else:
-		var base := Config.LIGHT_GREY.lerp(Config.DARK_GREY, gloom)
-		body_mat.albedo_color = base.lerp(elem_col, frac * 0.6)
-		label.text = "" if joy <= 0.0 else str(int(frac * 100)) + "%"
-		if gloom > Config.SPREAD_THRESHOLD:
-			var strength := (gloom - Config.SPREAD_THRESHOLD) / (1.0 - Config.SPREAD_THRESHOLD)
-			_disc_mat.albedo_color = Color(0.1, 0.1, 0.12, 0.35 * strength)
-			disc.visible = true
+		body_mat.albedo_color = Config.LEVEL_COLORS[level].lerp(elem_col, frac * 0.6)
+		body.rotation.y = 0.0
+		label.font_size = 48
+		if _sad_timer > 0.0:
+			label.text = ":("
+			label.modulate = Color(0.6, 0.6, 0.65)
 		else:
-			disc.visible = false
+			label.text = "" if joy <= 0.0 else str(int(frac * 100)) + "%"
+			label.modulate = Color.WHITE
+		wisp.emitting = level == 2
 
 
 # Spawns a floating joy number above the person. Bigger, brighter and bouncier for better matches.
@@ -215,12 +288,12 @@ func _spawn_number(value: float, mult: float) -> void:
 		t.tween_property(lbl, "modulate:a", 0.0, 0.3).set_delay(0.6)
 		t.tween_callback(lbl.queue_free).set_delay(0.9)
 	elif mult >= Config.STRONG_MULT:
-		# Strong element: medium size, plain element colour, dark outline.
+		# Strong element: large, full-strength element colour, heavy dark outline.
 		lbl.text = "+" + str(shown)
-		lbl.font_size = 70
-		lbl.modulate = Color(elem_col.r, elem_col.g, elem_col.b, 0.95)
-		lbl.outline_size = 8
-		lbl.outline_modulate = Color(0, 0, 0, 0.6)
+		lbl.font_size = 80
+		lbl.modulate = Color(elem_col.r, elem_col.g, elem_col.b, 1.0)
+		lbl.outline_size = 12
+		lbl.outline_modulate = Color(0, 0, 0, 0.85)
 		var t := lbl.create_tween()
 		t.set_parallel(true)
 		t.tween_property(lbl, "position:y", base_y + 0.4, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -228,11 +301,12 @@ func _spawn_number(value: float, mult: float) -> void:
 		t.tween_property(lbl, "modulate:a", 0.0, 0.3).set_delay(0.5)
 		t.tween_callback(lbl.queue_free).set_delay(0.8)
 	else:
-		# Weak element: small, grey, no outline, droops down with a slight sideways drift.
+		# Weak element: smaller but clearly readable, light grey with a dark outline, droops down with a slight drift.
 		lbl.text = "+" + str(shown)
-		lbl.font_size = 42
-		lbl.modulate = Color(0.7, 0.7, 0.7, 0.7)
-		lbl.outline_size = 0
+		lbl.font_size = 58
+		lbl.modulate = Color(0.88, 0.88, 0.88, 1.0)
+		lbl.outline_size = 8
+		lbl.outline_modulate = Color(0, 0, 0, 0.7)
 		var t := lbl.create_tween()
 		t.set_parallel(true)
 		t.tween_property(lbl, "position:y", base_y - 1.2, 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)

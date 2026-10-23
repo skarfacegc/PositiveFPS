@@ -10,7 +10,7 @@ enum Element { MUSIC, ART, NATURE }
 const ELEMENT_NAMES := ["Music", "Art", "Nature"]
 
 # Colours for each element, in the same order as the Element enum.
-# They are used for the person's floating marker, the beam, and the HUD text.
+# They are used for the person's floating marker, the beam, the HUD text and the painted ground.
 const ELEMENT_COLORS := [Color(0.25, 0.5, 1.0), Color(1.0, 0.4, 0.7), Color(0.3, 0.85, 0.35)]
 
 # Grey used for level geometry (the floor, walls and blocks use their own greys in main.gd).
@@ -22,11 +22,11 @@ const ROUND_SECONDS := 120.0
 # How many people are spawned in the plaza. Rescuing all of them ends the round early.
 const PEOPLE_COUNT := 20
 
-# Joy needed for a person at full strength (a fully dark person needs more, see GLOOM_JOY_EXTRA).
+# Joy needed for a person at light grey (darker levels need more, see LEVEL_JOY_MULT).
 const JOY_MAX := 1000.0
 
 # Base joy added by one beam hit, before the element multiplier and distance falloff are applied.
-const JOY_PER_SHOT := 30.0
+const JOY_PER_SHOT := 37.5
 
 # How many beam shots the player can fire per second while holding the fire button.
 const SHOTS_PER_SECOND := 8.0
@@ -56,29 +56,40 @@ const FALLOFF_NEAR := 4.0    # Metres. Full strength at or closer than this.
 const FALLOFF_FAR := 22.0    # Metres. Weakest strength at or beyond this.
 const FALLOFF_MIN := 0.25    # Strength at or beyond FALLOFF_FAR (25%).
 
-# Gloom: how grey a person is, from 0.0 (light grey) to 1.0 (nearly black).
-const GLOOM_START_MIN := 0.0          # Random starting gloom for each person, lowest...
-const GLOOM_START_MAX := 0.5          # ...and highest.
-const GLOOM_GROWTH := 0.006           # Gloom gained per second by an unrescued person, base rate.
+# Gloom: a hidden 0.0 (light) to 1.0 (nearly black) value. It is shown as three stepped levels.
+const GLOOM_START_MIN := 0.0            # Random starting gloom for each person, lowest...
+const GLOOM_START_MAX := 0.5            # ...and highest.
+const GLOOM_GROWTH := 0.006             # Gloom gained per second by an unrescued person, base rate.
 const GLOOM_GROWTH_PER_METER := 0.0008  # Extra gloom per second for each metre from the nearest colour zone.
-const ZONE_RADIUS := 6.0              # Each rescued person creates a colour zone of this radius (metres).
-const ZONE_HEAL := 0.02               # Gloom lost per second by unrescued people inside a colour zone.
-const SPREAD_THRESHOLD := 0.5         # People darker than this spread darkness to those nearby.
-const SPREAD_RADIUS := 6.0            # How far darkness spreads (metres).
-const SPREAD_GLOOM_RATE := 0.03       # Gloom per second given to nearby unrescued people (scaled by darkness).
-const SPREAD_DRAIN_RATE := 60.0       # Joy per second drained from nearby rescued people (scaled by darkness).
-const GLOOM_JOY_EXTRA := 1.0          # Joy needed = JOY_MAX * (1 + gloom * this). Fully dark needs double.
+const ZONE_RADIUS := 6.0                # Each rescued person creates a colour zone of this radius (metres).
+const ZONE_HEAL := 0.02                 # Gloom lost per second by unrescued people inside a colour zone.
+const SPREAD_RADIUS := 6.0              # How far darkness spreads from a dark person (metres).
+const SPREAD_GLOOM_RATE := 0.03         # Gloom per second given to nearby unrescued people by a dark person.
+const SPREAD_DRAIN_RATE := 60.0         # Joy per second drained from nearby rescued people by a dark person.
+
+# The three visible grey levels. Gloom below the first step is light, below the second is grey, else dark.
+const GLOOM_LEVEL_STEPS := [0.34, 0.67]
+# Body colour for each level (0 light, 1 grey, 2 dark).
+const LEVEL_COLORS := [Color(0.82, 0.82, 0.82), Color(0.5, 0.5, 0.52), Color(0.16, 0.16, 0.18)]
+# Joy needed at each level, as a multiple of JOY_MAX. Darker people need more joy.
+const LEVEL_JOY_MULT := [1.0, 1.5, 2.0]
+# Only people at this level or darker spread darkness (2 = only dark people).
+const SPREAD_LEVEL := 2
 
 # Joy fading: partly-helped people drain back toward grey if nobody keeps hitting them.
-const JOY_FADE_DELAY := 1.5           # Seconds without a hit before an unrescued person's joy starts to fade.
-const JOY_FADE_RATE := 120.0          # Joy lost per second while fading.
+const JOY_FADE_DELAY := 1.5             # Seconds without a hit before an unrescued person's joy starts to fade.
+const JOY_FADE_RATE := 120.0            # Joy lost per second while fading.
 
 # Relapse: a rescued person whose joy falls below this fraction of their joy needed turns grey again.
 const RELAPSE_FRACTION := 0.5
+# Warning: below this fraction a rescued person starts flickering and shows "!" (before they relapse).
+const WARN_FRACTION := 0.85
 
-# The colours people fade between as their gloom changes.
-const LIGHT_GREY := Color(0.78, 0.78, 0.78)
-const DARK_GREY := Color(0.18, 0.18, 0.2)
+# Painted ground: tiles around rescued people take on their element colour.
+const GROUND_GREY := Color(0.5, 0.5, 0.5)  # Unpainted ground colour.
+const GROUND_PAINT_STRENGTH := 0.75        # How strongly the paint colour shows right next to a rescued person (0-1).
+const GROUND_PAINT_SPEED := 0.15           # How fast each tile moves toward its target colour per update (0-1).
+const GROUND_UPDATE_INTERVAL := 0.1        # Seconds between ground colour updates.
 
 # Show the Borderlands-style floating joy numbers when a beam hits someone.
 const NUMBERS_ENABLED := true
@@ -108,6 +119,15 @@ static func falloff(distance: float) -> float:
 		return FALLOFF_MIN
 	var t := (distance - FALLOFF_NEAR) / (FALLOFF_FAR - FALLOFF_NEAR)
 	return lerpf(1.0, FALLOFF_MIN, t)
+
+
+# Returns the visible grey level (0 light, 1 grey, 2 dark) for a hidden gloom value.
+static func gloom_level(g: float) -> int:
+	if g < GLOOM_LEVEL_STEPS[0]:
+		return 0
+	if g < GLOOM_LEVEL_STEPS[1]:
+		return 1
+	return 2
 
 
 # Returns the names of all buildings unlocked by `count` rescued people.

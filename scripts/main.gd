@@ -7,6 +7,9 @@ const HudScript = preload("res://scripts/hud.gd")
 # Seed for the random number generator, so people appear in the same places every run.
 const PEOPLE_SEED := 42
 
+# The floor is this many tiles along each side (one metre per tile).
+const TILE_COUNT := 40
+
 # Centres of the six building blocks. Each one is 4 x 3 x 4 in size.
 const BLOCK_POSITIONS := [
 	Vector3(-10, 1.5, -8),
@@ -26,12 +29,18 @@ var people: Array = []
 var time_left := Config.ROUND_SECONDS
 var rescued_count := 0
 var running := true
+# Painted ground: one tile per metre of floor, coloured through a MultiMesh.
+var ground_mm: MultiMesh
+var tile_centers: Array = []
+var tile_colors: Array = []
+var _paint_timer := 0.0
 
 
 func _ready() -> void:
 	_setup_input()
 	_setup_environment()
 	_build_level()
+	_build_ground()
 
 	player = PlayerScript.new()
 	player.position = Vector3(0, 1, 0)
@@ -56,6 +65,10 @@ func _process(delta: float) -> void:
 	_update_gloom(delta)
 	for p in people:
 		p.tick(delta)
+	_paint_timer += delta
+	if _paint_timer >= Config.GROUND_UPDATE_INTERVAL:
+		_paint_timer = 0.0
+		_update_ground()
 	if time_left <= 0.0:
 		time_left = 0.0
 		_end_round("Time's up!")
@@ -67,7 +80,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 # Gloom: unrescued people darken over time (faster far from colour zones), heal inside a zone,
-# and very dark people spread darkness to neighbours (and drain joy from rescued ones).
+# and dark people spread darkness to neighbours (and drain joy from rescued ones).
 func _update_gloom(delta: float) -> void:
 	var zones: Array = []
 	for p in people:
@@ -86,20 +99,73 @@ func _update_gloom(delta: float) -> void:
 			p.gloom += (Config.GLOOM_GROWTH + Config.GLOOM_GROWTH_PER_METER * nearest) * delta
 		p.gloom = clampf(p.gloom, 0.0, 1.0)
 
-	var threshold := Config.SPREAD_THRESHOLD
 	for p in people:
-		if p.is_rescued or p.gloom <= threshold:
+		if p.is_rescued or Config.gloom_level(p.gloom) < Config.SPREAD_LEVEL:
 			continue
-		var strength: float = (p.gloom - threshold) / (1.0 - threshold)
 		for q in people:
 			if q == p:
 				continue
 			if _flat_dist(p.global_position, q.global_position) > Config.SPREAD_RADIUS:
 				continue
 			if q.is_rescued:
-				q.drain_joy(Config.SPREAD_DRAIN_RATE * strength * delta)
+				q.drain_joy(Config.SPREAD_DRAIN_RATE * delta)
 			else:
-				q.gloom = clampf(q.gloom + Config.SPREAD_GLOOM_RATE * strength * delta, 0.0, 1.0)
+				q.gloom = clampf(q.gloom + Config.SPREAD_GLOOM_RATE * delta, 0.0, 1.0)
+
+
+# Builds the painted ground: a grid of flat tiles just above the floor, coloured per instance.
+func _build_ground() -> void:
+	ground_mm = MultiMesh.new()
+	ground_mm.transform_format = MultiMesh.TRANSFORM_3D
+	ground_mm.use_colors = true
+	ground_mm.instance_count = TILE_COUNT * TILE_COUNT
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(1, 1)
+	ground_mm.mesh = plane
+
+	var i := 0
+	for ix in range(TILE_COUNT):
+		for iz in range(TILE_COUNT):
+			var c := Vector3(-19.5 + ix, 0.01, -19.5 + iz)
+			tile_centers.append(c)
+			tile_colors.append(Config.GROUND_GREY)
+			ground_mm.set_instance_transform(i, Transform3D(Basis(), c))
+			ground_mm.set_instance_color(i, Config.GROUND_GREY)
+			i += 1
+
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = ground_mm
+	mmi.material_override = mat
+	add_child(mmi)
+
+
+# Moves each tile's colour toward its target: the nearest rescued person's element colour near them,
+# otherwise plain grey. Edges are soft, and paint fades back out when people relapse.
+func _update_ground() -> void:
+	var rescued_people: Array = []
+	for p in people:
+		if p.is_rescued:
+			rescued_people.append(p)
+
+	for i in range(tile_centers.size()):
+		var c: Vector3 = tile_centers[i]
+		var target: Color = Config.GROUND_GREY
+		var best_dist := INF
+		var best_person = null
+		for p in rescued_people:
+			var d := _flat_dist(c, p.global_position)
+			if d < best_dist:
+				best_dist = d
+				best_person = p
+		if best_person != null and best_dist <= Config.ZONE_RADIUS:
+			var k := Config.GROUND_PAINT_STRENGTH * (1.0 - smoothstep(Config.ZONE_RADIUS * 0.6, Config.ZONE_RADIUS, best_dist))
+			target = Config.GROUND_GREY.lerp(Config.ELEMENT_COLORS[best_person.affinity], k)
+		var current: Color = tile_colors[i]
+		var next := current.lerp(target, Config.GROUND_PAINT_SPEED)
+		tile_colors[i] = next
+		ground_mm.set_instance_color(i, next)
 
 
 # Registers the input actions in code, but only if they do not already exist.
@@ -259,6 +325,7 @@ func _on_person_rescued() -> void:
 func _on_person_relapsed() -> void:
 	rescued_count -= 1
 	hud.set_rescued(rescued_count, Config.PEOPLE_COUNT)
+	hud.show_alert("Someone lost their joy!")
 
 
 func _end_round(title: String) -> void:
