@@ -48,7 +48,7 @@ func _ready() -> void:
 
 	ground = PaintedGround.new()
 	add_child(ground)
-	ground.setup(Config.TD_PLAZA_SIZE, Config.TD_GROUND_SPREAD_SPEED, Config.TD_GROUND_FADE_SPEED)
+	ground.setup(Config.TD_PLAZA_SIZE, Config.TD_GROUND_SPREAD_SPEED, Config.TD_GROUND_FADE_SPEED, true)
 
 	player = TopDownPlayer.new()
 	add_child(player)
@@ -116,13 +116,17 @@ func _set_debug(on: bool) -> void:
 
 # Works out every person's cover and protection from the painted ground around them, every GROUND_UPDATE_INTERVAL.
 # Cover is the average paint weight within TD_COVER_RADIUS; protection is derived from it (see GloomSim).
+# Round 8: a rescued person's cover leaves out their own paint, so only other people's paint protects them.
 func _update_cover(delta: float) -> void:
 	_cover_timer += delta
 	if _cover_timer < Config.GROUND_UPDATE_INTERVAL:
 		return
 	_cover_timer = 0.0
 	for p: Person in people:
-		p.cover = ground.average_weight(p.global_position, Config.TD_COVER_RADIUS)
+		if p.is_rescued:
+			p.cover = ground.average_weight_excluding(p.global_position, Config.TD_COVER_RADIUS, p)
+		else:
+			p.cover = ground.average_weight(p.global_position, Config.TD_COVER_RADIUS)
 		p.protection = GloomSim.protection_for(p.cover)
 
 
@@ -276,7 +280,8 @@ func _near_block(p: Vector3, margin: float) -> bool:
 
 
 # Moves every unrescued person for this frame. Dark people drift toward the rescued person they are assigned to
-# (see pursuit_assignments); everyone else wanders. Everyone also steers away from close neighbours (_separation).
+# (see pursuit_assignments). A dark person with nobody to chase drifts to the nearest territory edge, and everyone
+# else wanders. Everyone also steers away from close neighbours (_separation).
 func _update_people(delta: float) -> void:
 	var pursuit: Dictionary = pursuit_assignments(people)
 	for p: Person in people:
@@ -290,19 +295,22 @@ func _update_people(delta: float) -> void:
 			if to.length() > Config.TD_DARK_STOP_DISTANCE:
 				desired = to.normalized()
 			_steer(p, desired, Config.TD_DARK_DRIFT_SPEED, delta)
+		elif GloomSim.is_dark(p) and ground.has_edge():
+			var to_edge: Vector3 = ground.nearest_edge_point(p.global_position) - p.global_position
+			to_edge.y = 0.0
+			var edge_desired := Vector3.ZERO
+			if to_edge.length() > Config.TD_EDGE_REACH:
+				edge_desired = to_edge.normalized()
+			_steer(p, edge_desired, Config.TD_DARK_DRIFT_SPEED, delta)
 		else:
 			_steer(p, _wander_dir(p, delta), Config.TD_WANDER_SPEED, delta)
 
 
-# True for an unrescued person at the dark level: the people who spread darkness and drift toward rescued people.
-func _is_dark(p: Person) -> bool:
-	return not p.is_rescued and Config.gloom_level(p.gloom) >= Config.SPREAD_LEVEL
-
-
-# Works out which rescued person each dark person drifts toward. Each rescued person takes at most
-# TD_MAX_PURSUERS_PER_TARGET dark people, and a dark person takes the nearest rescued person with a free slot.
-# People are handled in array order, so the result is the same on every run. Returns a Dictionary of
-# dark Person -> rescued Person. A dark person with no free slot is not in it, and wanders instead.
+# Works out which rescued person each dark person drifts toward (round 8: the weakest point). Each rescued person
+# takes at most TD_MAX_PURSUERS_PER_TARGET dark people. A dark person takes the rescued person with the lowest
+# protection within TD_PURSUIT_SEARCH_RADIUS (ties go to the nearer one). People are handled in array order, so the
+# result is the same on every run. Returns a Dictionary of dark Person -> rescued Person. A dark person with no
+# target is not in it (see _update_people).
 func pursuit_assignments(list: Array[Person]) -> Dictionary:
 	var rescued_list: Array[Person] = []
 	for p: Person in list:
@@ -311,9 +319,9 @@ func pursuit_assignments(list: Array[Person]) -> Dictionary:
 	var slots: Dictionary = {}
 	var out: Dictionary = {}
 	for p: Person in list:
-		if not _is_dark(p):
+		if not GloomSim.is_dark(p):
 			continue
-		var best := _nearest_with_slot(p.global_position, rescued_list, slots)
+		var best := _weakest_with_slot(p.global_position, rescued_list, slots)
 		if best != null:
 			out[p] = best
 			var used: int = slots.get(best, 0)
@@ -321,8 +329,9 @@ func pursuit_assignments(list: Array[Person]) -> Dictionary:
 	return out
 
 
-# The rescued person nearest `pos` that still has a free pursuer slot (see pursuit_assignments), or null.
-func _nearest_with_slot(pos: Vector3, rescued_list: Array[Person], slots: Dictionary) -> Person:
+# The rescued person a dark person at `pos` goes for: the lowest protection within TD_PURSUIT_SEARCH_RADIUS that
+# still has a free pursuer slot (see pursuit_assignments). Ties go to the nearest. Null if there is none.
+func _weakest_with_slot(pos: Vector3, rescued_list: Array[Person], slots: Dictionary) -> Person:
 	var best: Person = null
 	var best_d := INF
 	for r: Person in rescued_list:
@@ -330,9 +339,11 @@ func _nearest_with_slot(pos: Vector3, rescued_list: Array[Person], slots: Dictio
 		if used >= Config.TD_MAX_PURSUERS_PER_TARGET:
 			continue
 		var d := _flat_dist(pos, r.global_position)
-		if d < best_d:
-			best_d = d
+		if d > Config.TD_PURSUIT_SEARCH_RADIUS:
+			continue
+		if best == null or r.protection < best.protection or (r.protection == best.protection and d < best_d):
 			best = r
+			best_d = d
 	return best
 
 

@@ -332,13 +332,14 @@ func _update_grace_cue() -> void:
 # Shows or hides the cover and protection labels above this person (the F3 debug overlay).
 func set_debug_visible(on: bool) -> void:
 	if debug_label == null and on:
+		# Sized in metres (not ui_scale), so it reads at the top-down camera distance (see Config.TD_DEBUG_FONT_SIZE).
 		debug_label = Label3D.new()
 		debug_label.position = Vector3(0, Config.TD_DEBUG_LABEL_HEIGHT, 0)
 		debug_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		debug_label.font_size = 40
-		debug_label.pixel_size = 0.005 * ui_scale
+		debug_label.font_size = Config.TD_DEBUG_FONT_SIZE
+		debug_label.pixel_size = Config.TD_DEBUG_PIXEL_SIZE
 		debug_label.no_depth_test = true
-		debug_label.outline_size = 10
+		debug_label.outline_size = 12
 		add_child(debug_label)
 	if debug_label != null:
 		debug_label.visible = on

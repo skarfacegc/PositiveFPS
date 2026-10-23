@@ -13,6 +13,7 @@ func _start() -> Dictionary:
 
 # Moves the mouse over the floor under `spot` and clicks there.
 func _click_at(runner: GdUnitSceneRunner, td: TopDownMain, spot: Vector3) -> void:
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, spot))
 	await runner.simulate_frames(2)
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
@@ -56,7 +57,7 @@ func test_locked_shots_of_each_element_leave_their_own_trail_colour() -> void:
 		await _click_at(runner, td, target.global_position)
 		await runner.simulate_frames(20)
 		# Let go of the lock before the next element, so only one element is firing at a time.
-		await _click_at(runner, td, Vector3(-25, 0, 25))
+		await _click_at(runner, td, TopDownTestUtil.clear_spot(td))
 
 		var pieces := _trail_pieces(td, affinity)
 		assert_int(pieces.size()).is_greater(0)
@@ -78,7 +79,7 @@ func test_music_trail_pieces_free_themselves_after_their_lifetime() -> void:
 	TopDownTestUtil.place(target, Vector3(0, 0, -8), Config.Element.MUSIC, 0.0)
 	await _click_at(runner, td, target.global_position)
 	await runner.simulate_frames(20)
-	await _click_at(runner, td, Vector3(-25, 0, 25))
+	await _click_at(runner, td, TopDownTestUtil.clear_spot(td))
 
 	# Wait for the notes in the air to finish (they hit or fizzle).
 	var frames := 0

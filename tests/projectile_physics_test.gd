@@ -52,8 +52,8 @@ func test_paint_hit_splashes_a_neighbour_but_not_someone_outside_the_radius() ->
 	var neighbour: Person = td.people[1]
 	var outsider: Person = td.people[2]
 	TopDownTestUtil.place(target, Vector3(0, 0, -8), 1, 0.0)
-	TopDownTestUtil.place(neighbour, Vector3(1.0, 0, -8), 0, 0.0)
-	TopDownTestUtil.place(outsider, Vector3(3.2, 0, -8), 0, 0.0)
+	TopDownTestUtil.place(neighbour, Vector3(0.9, 0, -8), 0, 0.0)  # Outside the hit reach, inside the splash.
+	TopDownTestUtil.place(outsider, Vector3(2.4, 0, -8), 0, 0.0)
 
 	_launch(td, Config.Element.ART, target)
 	await runner.simulate_frames(45)
@@ -121,6 +121,7 @@ func test_projectile_fired_at_a_target_behind_a_block_fizzles_on_the_block() -> 
 	td.player.global_position = Vector3(-20, 0, -12.5)
 	await runner.simulate_frames(2)
 
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, target.global_position))
 	await runner.simulate_frames(2)
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
@@ -130,7 +131,8 @@ func test_projectile_fired_at_a_target_behind_a_block_fizzles_on_the_block() -> 
 	assert_float(target.joy).is_equal(0.0)
 
 	# Drop the lock (click empty ground). The shots already in the air hit the block and fizzle, so none remain.
-	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, Vector3(-25, 0, 25)))
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
+	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, TopDownTestUtil.clear_spot(td)))
 	await runner.simulate_frames(2)
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 	await runner.simulate_frames(60)
@@ -147,6 +149,7 @@ func test_projectile_can_miss_and_frees_after_its_lifetime() -> void:
 	TopDownTestUtil.place(target, Vector3(0, 0, -8), 0, 0.0)
 
 	# Lock on, let the first shot leave, then teleport the target out of reach.
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, target.global_position))
 	await runner.simulate_frames(2)
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
@@ -167,6 +170,7 @@ func test_locked_shots_rescue_a_light_grey_person_at_close_range_within_a_second
 	var target: Person = td.people[0]
 	TopDownTestUtil.place(target, Vector3(3, 0, 0), 0, 0.0)
 
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, target.global_position))
 	await runner.simulate_frames(2)
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)

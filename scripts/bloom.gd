@@ -4,6 +4,10 @@ extends Node3D
 # A flower patch left where a nature projectile stopped. For TD_BLOOM_SECONDS, everyone standing inside its
 # radius gets Nature joy (no distance falloff) in pulses, then it fades out and frees itself.
 # Set people before adding it to the scene.
+#
+# Round 8: the patch has a crisp, outlined edge. A thin darker sage disc of radius TD_BLOOM_RADIUS sits under a
+# translucent fill that stops TD_BLOOM_RING_WIDTH short of it, so the outline is exactly at TD_BLOOM_RADIUS and has no
+# soft rim. The whole patch fades together at the end (alpha only).
 
 const PETAL_COLOR := Color(0.35, 0.7, 0.3)
 const CENTRE_COLOR := Color(1.0, 0.9, 0.3)
@@ -14,6 +18,9 @@ var people: Array[Person] = []
 
 var _age := 0.0
 var _pulse := 0.0
+# Every material in the patch, and its alpha when fully visible. The fade scales these together.
+var _mats: Array[StandardMaterial3D] = []
+var _base_alpha: Array[float] = []
 
 
 func _ready() -> void:
@@ -27,7 +34,7 @@ func _physics_process(delta: float) -> void:
 		_soak(_pulse)
 		_pulse = 0.0
 	var left := Config.TD_BLOOM_SECONDS - _age
-	scale = Vector3.ONE * clampf(left / Config.TD_BLOOM_FADE_SECONDS, 0.0, 1.0)
+	_set_fade(clampf(left / Config.TD_BLOOM_FADE_SECONDS, 0.0, 1.0))
 	if _age >= Config.TD_BLOOM_SECONDS:
 		queue_free()
 
@@ -40,20 +47,24 @@ func _soak(seconds: float) -> void:
 			p.receive_joy(Config.Element.NATURE, amount, 0.0)
 
 
-# A faint green disc for the patch, with a few small flowers (five petals and a yellow centre) on it.
-func _build_patch() -> void:
-	var ground := MeshInstance3D.new()
-	var disc := CylinderMesh.new()
-	disc.top_radius = Config.TD_BLOOM_RADIUS
-	disc.bottom_radius = Config.TD_BLOOM_RADIUS
-	disc.height = 0.01
-	ground.mesh = disc
-	ground.position = Vector3(0, 0.01, 0)
-	ground.material_override = _make_mat(Color(PETAL_COLOR.r, PETAL_COLOR.g, PETAL_COLOR.b, 0.3), true)
-	add_child(ground)
+# Scales the alpha of every material in the patch by `factor` (1 is fully visible, 0 is gone).
+func _set_fade(factor: float) -> void:
+	for i: int in range(_mats.size()):
+		var col := _mats[i].albedo_color
+		_mats[i].albedo_color = Color(col.r, col.g, col.b, _base_alpha[i] * factor)
 
-	var petal_mat := _make_mat(PETAL_COLOR, false)
-	var centre_mat := _make_mat(CENTRE_COLOR, false)
+
+# An outlined patch: the dark sage outline at the edge, a translucent fill inside it, and a few small flowers.
+func _build_patch() -> void:
+	var outline := _disc(Config.TD_BLOOM_RADIUS, Config.TD_BLOOM_RING_COLOR, 1.0, 0.0)
+	var fill := _disc(
+		Config.TD_BLOOM_RADIUS - Config.TD_BLOOM_RING_WIDTH, PETAL_COLOR, Config.TD_BLOOM_FILL_ALPHA, 0.01
+	)
+	add_child(outline)
+	add_child(fill)
+
+	var petal_mat := _track(PETAL_COLOR, 1.0)
+	var centre_mat := _track(CENTRE_COLOR, 1.0)
 	for i: int in range(FLOWER_COUNT):
 		var a := TAU * i / float(FLOWER_COUNT)
 		var r := Config.TD_BLOOM_RADIUS * (0.35 if i % 2 == 0 else 0.6)
@@ -80,10 +91,25 @@ func _build_patch() -> void:
 		flower.add_child(centre)
 
 
-func _make_mat(col: Color, translucent: bool) -> StandardMaterial3D:
+# A flat disc of `radius` metres, lying on the ground at height `y`, in `col` with alpha `alpha`.
+func _disc(radius: float, col: Color, alpha: float, y: float) -> MeshInstance3D:
+	var disc_node := MeshInstance3D.new()
+	var disc := CylinderMesh.new()
+	disc.top_radius = radius
+	disc.bottom_radius = radius
+	disc.height = 0.01
+	disc_node.mesh = disc
+	disc_node.position = Vector3(0, 0.01 + y, 0)
+	disc_node.material_override = _track(col, alpha)
+	return disc_node
+
+
+# A new unshaded, translucent material, remembered so the fade can reach it.
+func _track(col: Color, alpha: float) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = col
-	if translucent:
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(col.r, col.g, col.b, alpha)
+	_mats.append(mat)
+	_base_alpha.append(alpha)
 	return mat

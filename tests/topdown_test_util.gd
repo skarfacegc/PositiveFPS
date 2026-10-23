@@ -36,6 +36,27 @@ static func projectiles(td: TopDownMain) -> Array[JoyProjectile]:
 	return out
 
 
+# Frees a level a test loaded through the menu, so a later suite does not inherit it (see menu_test.gd).
+static func leave_loaded_scene(td: TopDownMain) -> void:
+	td.queue_free()
+	await td.get_tree().process_frame
+
+
+# Presses F2 (real key presses) until the player is in `mode`. The default mode is hover, so tests that need lock-on
+# or auto call this first rather than relying on the default.
+static func select_mode(runner: GdUnitSceneRunner, td: TopDownMain, mode: int) -> void:
+	var presses := 0
+	while td.player.targeting_mode != mode and presses < 3:
+		runner.simulate_key_pressed(KEY_F2)
+		await runner.simulate_frames(2)
+		presses += 1
+
+
+# A spot on the floor a few metres from the player, in view and with nobody on it. Clicking it clears a lock.
+static func clear_spot(td: TopDownMain) -> Vector3:
+	return td.player.global_position + Vector3(-6, 0, 6)
+
+
 # Every bloom currently in the level.
 static func blooms(td: TopDownMain) -> Array[Bloom]:
 	var out: Array[Bloom] = []

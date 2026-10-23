@@ -13,6 +13,7 @@ func _start() -> Dictionary:
 
 # Moves the mouse over the floor under `spot` and clicks there.
 func _click_at(runner: GdUnitSceneRunner, td: TopDownMain, spot: Vector3) -> void:
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, spot))
 	await runner.simulate_frames(2)
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
@@ -77,7 +78,7 @@ func test_clicking_empty_ground_clears_the_lock() -> void:
 	await _click_at(runner, td, target.global_position)
 	assert_object(td.player.target).is_same(target)
 
-	await _click_at(runner, td, Vector3(-25, 0, 25))
+	await _click_at(runner, td, TopDownTestUtil.clear_spot(td))
 
 	assert_object(td.player.target).is_null()
 	assert_bool(td.highlight.visible).is_false()
@@ -141,10 +142,7 @@ func test_f2_cycles_targeting_modes_and_updates_the_hud() -> void:
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	assert_bool(td.hud.targeting_label.visible).is_true()
-	assert_str(td.hud.targeting_label.text).contains("Targeting: Lock-on")
-
-	runner.simulate_key_pressed(KEY_F2)
-	await runner.simulate_frames(2)
+	# Round 8: hover is the default.
 	assert_int(td.player.targeting_mode).is_equal(Config.TargetingMode.HOVER_STICKY)
 	assert_str(td.hud.targeting_label.text).contains("Targeting: Hover")
 
@@ -158,6 +156,35 @@ func test_f2_cycles_targeting_modes_and_updates_the_hud() -> void:
 	assert_int(td.player.targeting_mode).is_equal(Config.TargetingMode.LOCK_ON)
 	assert_str(td.hud.targeting_label.text).contains("Targeting: Lock-on")
 
+	runner.simulate_key_pressed(KEY_F2)
+	await runner.simulate_frames(2)
+	assert_int(td.player.targeting_mode).is_equal(Config.TargetingMode.HOVER_STICKY)
+	assert_str(td.hud.targeting_label.text).contains("Targeting: Hover")
+
+
+# Round 8: the default is hover, and the menu's top-down entry shows it. Driven from the menu with real keys and the
+# mouse, as a player would: press 2, hover over a person, and they become the target without a click.
+func test_entering_top_down_from_the_menu_defaults_to_hover_and_hover_targets() -> void:
+	get_window().size = Vector2i(1280, 720)
+	await get_tree().process_frame
+	var menu_runner: GdUnitSceneRunner = scene_runner("res://menu.tscn")
+	(menu_runner.scene() as Control).size = Vector2(1280, 720)
+	await menu_runner.simulate_frames(10)
+	menu_runner.simulate_key_pressed(KEY_2)
+	await menu_runner.simulate_frames(10)
+	var td: TopDownMain = get_tree().current_scene as TopDownMain
+	assert_object(td).is_not_null()
+	assert_int(td.player.targeting_mode).is_equal(Config.TargetingMode.HOVER_STICKY)
+	assert_str(td.hud.targeting_label.text).contains("Hover")
+
+	TopDownTestUtil.send_everyone_away(td)
+	var person: Person = td.people[0]
+	TopDownTestUtil.place(person, Vector3(0, 0, -8), 0, 0.0)
+	menu_runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, person.global_position))
+	await menu_runner.simulate_frames(3)
+	assert_object(td.player.target).is_same(person)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
 
 func test_hover_target_follows_mouse_only_when_there_is_no_target() -> void:
 	var s: Dictionary = await _start()
@@ -168,8 +195,7 @@ func test_hover_target_follows_mouse_only_when_there_is_no_target() -> void:
 	var second: Person = td.people[1]
 	TopDownTestUtil.place(first, Vector3(0, 0, -8), 0, 0.0)
 	TopDownTestUtil.place(second, Vector3(-5, 0, -4), 1, 0.0)
-	runner.simulate_key_pressed(KEY_F2)
-	await runner.simulate_frames(2)
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.HOVER_STICKY)
 
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, first.global_position))
 	await runner.simulate_frames(2)
@@ -200,9 +226,7 @@ func test_auto_prefers_a_rescued_person_about_to_relapse_over_a_grey_one() -> vo
 	rescued.joy = 800.0
 	assert_bool(rescued.is_warning()).is_true()
 
-	runner.simulate_key_pressed(KEY_F2)
-	runner.simulate_key_pressed(KEY_F2)
-	await runner.simulate_frames(2)
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.AUTO)
 	assert_int(td.player.targeting_mode).is_equal(Config.TargetingMode.AUTO)
 	assert_object(td.player.target).is_same(rescued)
 
@@ -217,8 +241,7 @@ func test_auto_prefers_the_darkest_person_when_nobody_is_rescued() -> void:
 	TopDownTestUtil.place(near_grey, Vector3(0, 0, -6), 0, 0.5)
 	TopDownTestUtil.place(far_dark, Vector3(-9, 0, 0), 0, 0.9)
 
-	runner.simulate_key_pressed(KEY_F2)
-	runner.simulate_key_pressed(KEY_F2)
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.AUTO)
 	await runner.simulate_frames(2)
 	assert_object(td.player.target).is_same(far_dark)
 

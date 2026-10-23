@@ -13,6 +13,7 @@ func _start() -> Dictionary:
 
 # Lock on to `person` with a real mouse click on the floor under it (lock-on is the default mode).
 func _click_to_lock(runner: GdUnitSceneRunner, td: TopDownMain, person: Person) -> void:
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, person.global_position))
 	await runner.simulate_frames(2)
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
@@ -43,6 +44,7 @@ func test_mouse_alone_never_fires_in_lock_on_mode() -> void:
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
 	var target: Person = td.people[0]
 	TopDownTestUtil.place(target, Vector3(0, 0, -8), 0, 0.0)
 
@@ -67,7 +69,7 @@ func test_projectiles_spawn_while_locked_and_free_after_releasing() -> void:
 	assert_int(TopDownTestUtil.projectiles(td).size()).is_greater(0)
 
 	# Click empty ground to drop the lock. Shots stop, and the projectiles in the air finish and free themselves.
-	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, Vector3(-25, 0, 25)))
+	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, TopDownTestUtil.clear_spot(td)))
 	await runner.simulate_frames(2)
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 	await runner.simulate_frames(150)
@@ -165,40 +167,6 @@ func test_crowd_wanders_and_paints_for_several_hundred_frames() -> void:
 	assert_int(td.people.size()).is_equal(Config.TD_PEOPLE_COUNT)
 	assert_float(td.people[5].global_position.distance_to(before)).is_greater(0.05)
 	assert_bool(td.running).is_true()
-
-
-func test_dark_person_drifts_to_rescued_but_cannot_drain_them_inside_their_paint() -> void:
-	var s: Dictionary = await _start()
-	var runner: GdUnitSceneRunner = s["runner"]
-	var td: TopDownMain = s["td"]
-	TopDownTestUtil.send_everyone_away(td)
-	var target: Person = td.people[0]
-	var dark: Person = td.people[1]
-	TopDownTestUtil.place(target, Vector3(0, 0, -8), 0, 0.0)
-	TopDownTestUtil.place(dark, Vector3(6, 0, -8), 0, 1.0)
-
-	# Rescue the target by locked fire first.
-	await _click_to_lock(runner, td, target)
-	var frames := 0
-	while not target.is_rescued and frames < 600:
-		await runner.simulate_frames(1)
-		frames += 1
-	assert_bool(target.is_rescued).is_true()
-
-	# Walk the player out of range, so nothing tops the rescued person back up, and let the paint spread in.
-	td.player.global_position = Vector3(-25, 0, 25)
-	await runner.simulate_frames(240)
-	target.joy = 600.0
-	var gap_before: float = dark.global_position.distance_to(target.global_position)
-
-	# Round 7: the rescued person stands in their own painted ground, so the dark person cannot drain them. They
-	# still drift toward the rescued person, but nobody relapses.
-	await runner.simulate_frames(480)
-	assert_bool(target.is_rescued).is_true()
-	assert_float(target.protection).is_greater(0.9)
-	assert_float(target.joy).is_equal_approx(600.0, 0.5)
-	assert_float(dark.global_position.distance_to(target.global_position)).is_less(gap_before)
-	assert_int(td.rescued_count).is_equal(1)
 
 
 func test_a_relapse_lowers_the_count_and_shows_the_alert() -> void:

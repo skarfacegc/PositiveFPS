@@ -126,13 +126,17 @@ const TD_CONTAGION_RATE := 0.034
 # fading back is slow, so territory lags behind people and lingers after a relapse.
 const TD_GROUND_SPREAD_SPEED := 0.05
 const TD_GROUND_FADE_SPEED := 0.012
-# Debug overlay (F3): height of the cover and protection labels above the ground, in metres.
-const TD_DEBUG_LABEL_HEIGHT := 2.95
+# Debug overlay (F3): height of the cover and protection labels above the ground, in metres (round 8: above joy labels).
+const TD_DEBUG_LABEL_HEIGHT := 3.2
+# Round 8: the F3 labels are sized in world units, not with TD_UI_SCALE, so they stay readable at the camera distance.
+# Glyph height on screen is about font size times pixel size, in metres (0.86 m is about 24 px at 1280x720).
+const TD_DEBUG_FONT_SIZE := 80
+const TD_DEBUG_PIXEL_SIZE := 0.012
 
-# Camera height above the player, in metres.
-const TD_CAMERA_HEIGHT := 24.0
-# How far behind the player the camera sits, in metres. The camera looks down at the player.
-const TD_CAMERA_BACK := 12.0
+# Camera height above the player, in metres (round 8: closer, was 24; 15 put the range ring's near edge off screen).
+const TD_CAMERA_HEIGHT := 18.0
+# How far behind the player the camera sits, in metres. The camera looks down at the player (round 8: was 12).
+const TD_CAMERA_BACK := 10.0
 # Walking speed, in metres per second.
 const TD_MOVE_SPEED := 6.0
 # Speed while holding Shift, in metres per second.
@@ -141,8 +145,9 @@ const TD_RUN_SPEED := 9.5
 const TD_AUTO_RANGE := 11.0
 # How the player picks a target. LOCK_ON: click a person to lock on. HOVER_STICKY: the person under the mouse
 # is picked when there is no target, and then stays the target. AUTO: the most urgent person in range.
-# The mode at the start of a top-down round. F2 cycles through the modes at runtime.
-const TD_TARGETING_MODE := TargetingMode.LOCK_ON
+# The mode at the start of a top-down round. F2 cycles through the modes at runtime. Round 8: hover is the default
+# (playtest 7 preferred it).
+const TD_TARGETING_MODE := TargetingMode.HOVER_STICKY
 # Short names for each TargetingMode, in the same order (shown on the HUD).
 const TD_TARGETING_NAMES: Array[String] = ["Lock-on", "Hover", "Auto"]
 # Lock-on: a click picks the valid person nearest the mouse ground point, if within this many metres.
@@ -173,9 +178,13 @@ const TD_NOTE_TURN_RATE := 6.0
 # Round 7: slower and higher arc (was 0.55 s).
 const TD_PAINT_FLIGHT_TIME := 0.75
 const TD_PAINT_GRAVITY := 18.0
-# On a paint impact, people within this many metres (ground distance) get this fraction of the joy.
-const TD_PAINT_SPLASH_RADIUS := 1.6
+# On a paint impact, people within this many metres (ground distance) get this fraction of the joy. Round 8: 1.1 (was
+# 1.6). The splash ring on the ground is drawn at exactly this radius (see TD_SPLASH_RING_*).
+const TD_PAINT_SPLASH_RADIUS := 1.1
 const TD_PAINT_SPLASH_FRACTION := 0.5
+# The brief splash ring: it fades out over TD_SPLASH_RING_SECONDS, and is this solid at the start.
+const TD_SPLASH_RING_SECONDS := 0.35
+const TD_SPLASH_RING_ALPHA := 0.35
 # Flowers fly slower and turn more gently than notes (same units as above).
 const TD_FLOWER_SPEED := 9.0
 const TD_FLOWER_TURN_RATE := 2.0
@@ -183,11 +192,16 @@ const TD_FLOWER_TURN_RATE := 2.0
 const TD_BLOOM_SECONDS := 2.5
 # ...covers people within this radius of its centre, in metres...
 const TD_BLOOM_RADIUS := 1.3
+# Round 8: the patch has a crisp edge: a thin darker sage outline at exactly TD_BLOOM_RADIUS, a nearly solid fill inside
+# it (the fill stops TD_BLOOM_RING_WIDTH short of the outline), and no soft fade at the rim.
+const TD_BLOOM_RING_COLOR := Color(0.2, 0.34, 0.18)
+const TD_BLOOM_RING_WIDTH := 0.07
+const TD_BLOOM_FILL_ALPHA := 0.9
 # ...gives them this much joy per second (element Nature, no distance falloff)...
 const TD_BLOOM_JOY_PER_SEC := 120.0
 # ...in pulses this long apart (joy is applied in pulses so each pulse shows one floating number)...
 const TD_BLOOM_PULSE_SECONDS := 0.25
-# ...and fades out over this many seconds at the end.
+# ...and fades out over this many seconds at the end. Round 8: the whole patch fades together (alpha only, no shrink).
 const TD_BLOOM_FADE_SECONDS := 0.4
 # Colour of the element ring under the player when there is no target.
 const TD_NO_TARGET_COLOR := Color(0.92, 0.9, 0.82)
@@ -215,8 +229,8 @@ const TD_SOUND_RING_SECONDS := 0.35
 const TD_PETAL_BURST_COUNT := 8
 const TD_PETAL_BURST_RANGE := 1.1
 const TD_PETAL_BURST_SECONDS := 0.6
-# Radius of the paint splat left by an Art projectile, in metres (round 7: bigger, was 0.6).
-const TD_SPLAT_RADIUS := 1.0
+# Radius of the paint splat left by an Art projectile, in metres (round 8: smaller, was 1.0).
+const TD_SPLAT_RADIUS := 0.6
 # How solid the paint splat is (1 = solid, 0 = invisible).
 const TD_SPLAT_ALPHA := 0.6
 # Seconds for a paint splat to fade away.
@@ -260,8 +274,8 @@ const GRACE_FADE_SECONDS := 1.0  # The ring and glow fade out over this much of 
 # Top-down projectiles (notes, paint, flowers) are drawn this many times bigger, so the element is easier to tell apart.
 const TD_PROJECTILE_VISUAL_SCALE := 1.5
 # Extra size per element on top of TD_PROJECTILE_VISUAL_SCALE (music, art, nature): notes are small and quick,
-# paint blobs are big and slow.
-const TD_ELEMENT_VISUAL_SCALE: Array[float] = [0.8, 2.0, 1.0]
+# paint blobs are big and slow. Round 8: paint 1.3 (was 2.0), so it no longer reads as an area weapon.
+const TD_ELEMENT_VISUAL_SCALE: Array[float] = [0.8, 1.3, 1.0]
 # Trails: small pieces left in the level behind each projectile. They fade and free themselves.
 # Most trail pieces one projectile can leave behind (keeps many shots cheap).
 const TD_TRAIL_MAX_PIECES := 12
@@ -309,8 +323,26 @@ const TD_BURST_RADIUS := 5.5
 const TD_BURST_JOY := 350.0
 # How long the burst ring takes to expand and fade, in seconds.
 const TD_BURST_TIME := 0.35
-# Size multiplier for floating numbers and labels in top-down mode (the camera is high up).
-const TD_UI_SCALE := 2.5
+# Size multiplier for floating numbers and labels in top-down mode. Round 8: 1.9 (was 2.5), to match the closer camera
+# so the labels keep about the same size on screen.
+const TD_UI_SCALE := 1.9
+
+# Round 8: own paint does not protect. A rescued person's cover leaves out the paint made by their own soft circle
+# (see PaintedGround.average_weight_excluding). Unrescued people still use the full cover.
+#
+# Round 8: darkness erodes paint at the edge of territory. Each unrescued dark person takes TD_ERODE_RATE weight per
+# second off the edge tiles within TD_ERODE_RADIUS. A tile is edge unless it and all its neighbours are at least
+# TD_ERODE_EDGE_MAX (deep interior tiles are immune). An eroded tile cannot regrow for TD_ERODE_HOLD seconds.
+const TD_ERODE_RADIUS := 2.0
+const TD_ERODE_RATE := 0.25
+const TD_ERODE_EDGE_MAX := 0.9
+const TD_ERODE_HOLD := 3.0
+# The territory edge (for dark people with no one to chase) is painted tiles with weight in (TD_EDGE_MIN, EDGE_MAX).
+const TD_EDGE_MIN := 0.05
+# Dark people chase the weakest rescued person (lowest protection, ties to the nearest) within this many metres.
+const TD_PURSUIT_SEARCH_RADIUS := 25.0
+# A dark person with no one to chase drifts to the nearest territory edge, and stops this close to it (metres).
+const TD_EDGE_REACH := 0.5
 
 # The matchups form a soft cycle:
 #   Music is strong against Art, Art is strong against Nature, Nature is strong against Music.

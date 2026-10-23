@@ -2,6 +2,7 @@ extends GdUnitTestSuite
 
 # Round 7 cover: paint weight on the ground, protection from cover, edge-only darkness, joy contagion, the slower
 # ground (painting in and fading back), partial joy that does not fade deep in cover, and the F3 debug overlay.
+# (Round 8: own-paint exclusion, erosion and pursuit are in edge_pressure_test.gd.)
 # Pure rules are called directly. The level tests (cover in the real top-down level, and the F3 key) drive the scene.
 
 
@@ -31,6 +32,7 @@ func _start() -> Dictionary:
 
 # Moves the mouse over the floor under `spot` and clicks there (lock-on).
 func _click_at(runner: GdUnitSceneRunner, td: TopDownMain, spot: Vector3) -> void:
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, spot))
 	await runner.simulate_frames(2)
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
@@ -266,7 +268,11 @@ func test_dark_person_deep_in_cover_steps_down_to_grey_then_light_and_is_never_r
 		var rescued: Person = td.people[i]
 		TopDownTestUtil.place(rescued, centre + offsets[i], 0, 0.0)
 		rescued.receive_joy(0, Config.JOY_MAX, 0.0)
+	# Round 8: the dark person starts grey and turns dark only once the paint is fully in. Darkness erodes paint that is
+	# still growing, so a dark person placed in fresh paint would eat it. Once it is established, it is immune.
 	var dark: Person = td.people[3]
+	TopDownTestUtil.place(dark, centre, 2, 0.5)
+	await runner.simulate_frames(360)
 	TopDownTestUtil.place(dark, centre, 2, 0.9)
 
 	# Twelve seconds: the dark person is deep in cover after the paint has spread in, and steps down to grey.

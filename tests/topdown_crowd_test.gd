@@ -1,8 +1,8 @@
 extends GdUnitTestSuite
 
-# Top-down crowd rules from round 6: separation, the pursuit cap, the dark drift speed, the drain multiplier, and the
-# rescue grace period with its grace ring. Runs in the real top-down level. Rescues are made by locked fire (real
-# clicks) where a player would make them. Pure rules (pursuit_assignments) are called directly.
+# Top-down crowd rules from round 6: separation, the pursuit cap, the dark drift speed, and the rescue grace period
+# with its grace ring. Runs in the real top-down level. Round 8 edge-pressure rules are in edge_pressure_test.gd.
+# Pure rules (pursuit_assignments) are called directly.
 
 
 func _start() -> Dictionary:
@@ -13,6 +13,7 @@ func _start() -> Dictionary:
 
 # Moves the mouse over the floor under `spot` and clicks there (lock-on).
 func _click_at(runner: GdUnitSceneRunner, td: TopDownMain, spot: Vector3) -> void:
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, spot))
 	await runner.simulate_frames(2)
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
@@ -22,15 +23,6 @@ func _click_at(runner: GdUnitSceneRunner, td: TopDownMain, spot: Vector3) -> voi
 # Flat (ground) distance between two people.
 func _gap(a: Person, b: Person) -> float:
 	return Vector2(a.global_position.x - b.global_position.x, a.global_position.z - b.global_position.z).length()
-
-
-# Locks onto `target` with a real click and holds fire until it is rescued (or `cap` frames pass).
-func _rescue_by_locked_fire(runner: GdUnitSceneRunner, td: TopDownMain, target: Person, cap: int) -> void:
-	await _click_at(runner, td, target.global_position)
-	var frames := 0
-	while not target.is_rescued and frames < cap:
-		await runner.simulate_frames(1)
-		frames += 1
 
 
 func test_two_dark_people_on_the_same_spot_push_apart() -> void:
@@ -99,7 +91,8 @@ func test_dark_person_drifts_no_faster_than_the_drift_speed() -> void:
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)
 	var rescued: Person = td.people[0]
-	TopDownTestUtil.place(rescued, Vector3(-15, 0, -8), 0, 0.0)
+	# Round 8: 15 m apart (was 25), so the dark person is well inside the pursuit search radius.
+	TopDownTestUtil.place(rescued, Vector3(-5, 0, -8), 0, 0.0)
 	rescued.receive_joy(0, Config.JOY_MAX, 0.0)
 	var dark: Person = td.people[1]
 	TopDownTestUtil.place(dark, Vector3(10, 0, -8), 0, 1.0)
@@ -129,30 +122,3 @@ func test_top_down_people_get_the_grace_period_on_spawn() -> void:
 	var td: TopDownMain = s["td"]
 	for p: Person in td.people:
 		assert_float(p.grace_seconds).is_equal(Config.TD_RESCUE_GRACE_SECONDS)
-
-
-func test_rescued_person_deep_in_cover_keeps_joy_next_to_a_dark_neighbour() -> void:
-	var s: Dictionary = await _start()
-	var runner: GdUnitSceneRunner = s["runner"]
-	var td: TopDownMain = s["td"]
-	TopDownTestUtil.send_everyone_away(td)
-	var target: Person = td.people[0]
-	var dark: Person = td.people[1]
-	TopDownTestUtil.place(target, Vector3(0, 0, -8), 0, 0.0)
-	# Dark, 3 m away: inside the spread radius. Round 7: darkness only reaches people at the edges of painted ground.
-	TopDownTestUtil.place(dark, Vector3(3, 0, -8), 0, 1.0)
-
-	await _rescue_by_locked_fire(runner, td, target, 600)
-	assert_bool(target.is_rescued).is_true()
-	assert_float(target.grace_left).is_greater(Config.TD_RESCUE_GRACE_SECONDS - 0.2)
-
-	# Three seconds into the four-second grace: the grace ring shows and no joy is lost.
-	await runner.simulate_frames(180)
-	assert_bool(target.grace_ring.visible).is_true()
-	assert_float(target.joy).is_equal_approx(Config.JOY_MAX, 0.001)
-
-	# Past the grace period: the rescued person has painted ground all round, so the dark neighbour cannot drain them.
-	await runner.simulate_frames(120)
-	assert_float(target.protection).is_greater(0.9)
-	assert_float(target.joy).is_greater(Config.JOY_MAX - 5.0)
-	assert_bool(target.grace_ring.visible).is_false()

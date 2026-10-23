@@ -56,6 +56,11 @@ static func _update_covered(p: Person, nearest: float, delta: float) -> void:
 		p.gloom -= Config.TD_CONTAGION_RATE * delta * p.protection
 
 
+# True for an unrescued person at the dark level: they spread darkness, drain nearby joy and (top-down) erode paint.
+static func is_dark(p: Person) -> bool:
+	return not p.is_rescued and Config.gloom_level(p.gloom) >= Config.SPREAD_LEVEL
+
+
 # Protection for a cover value (0..1): 0 at the edge of painted ground, 1 well inside it. Smooth between the two.
 static func protection_for(cover: float) -> float:
 	return smoothstep(Config.TD_COVER_EDGE, Config.TD_COVER_FULL, cover)

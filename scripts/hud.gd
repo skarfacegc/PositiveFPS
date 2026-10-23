@@ -81,8 +81,10 @@ func _ready() -> void:
 
 	# Shows that the F3 debug overlay is on. Hidden unless it is (see set_debug_on).
 	debug_hint_label = Label.new()
-	debug_hint_label.text = "[F3] debug"
-	debug_hint_label.add_theme_font_size_override("font_size", 18)
+	debug_hint_label.text = "[F3] debug: c = cover, p = protection"
+	debug_hint_label.add_theme_font_size_override("font_size", 22)
+	debug_hint_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	debug_hint_label.add_theme_constant_override("outline_size", 6)
 	debug_hint_label.position = Vector2(20, 56)
 	debug_hint_label.visible = false
 	add_child(debug_hint_label)

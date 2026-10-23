@@ -194,6 +194,7 @@ func _element_impact(at: Vector3, direct: Person) -> void:
 	elif element == Config.Element.ART:
 		_splash(at, direct)
 		_spawn_splat(at)
+		_spawn_splash_ring(at)
 	elif element == Config.Element.NATURE:
 		_spawn_bloom(at)
 		_spawn_petal_burst(at)
@@ -237,6 +238,26 @@ func _spawn_splat(at: Vector3) -> void:
 	var t := splat.create_tween()
 	t.tween_property(mat, "albedo_color:a", 0.0, Config.TD_SPLAT_FADE_TIME)
 	t.tween_callback(splat.queue_free)
+
+
+# A brief thin ring drawn at exactly TD_PAINT_SPLASH_RADIUS, so the area on screen is the area that splashes people.
+# It fades out over TD_SPLASH_RING_SECONDS. Tagged with the "splash" impact kind.
+func _spawn_splash_ring(at: Vector3) -> void:
+	var ring := MeshInstance3D.new()
+	var disc := CylinderMesh.new()
+	disc.top_radius = Config.TD_PAINT_SPLASH_RADIUS
+	disc.bottom_radius = Config.TD_PAINT_SPLASH_RADIUS
+	disc.height = 0.02
+	ring.mesh = disc
+	var col: Color = Config.ELEMENT_COLORS[Config.Element.ART]
+	col.a = Config.TD_SPLASH_RING_ALPHA
+	var mat := _make_mat(col)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring.material_override = mat
+	_add_impact_node(ring, Vector3(at.x, 0.04, at.z), "splash")
+	var t := ring.create_tween()
+	t.tween_property(mat, "albedo_color:a", 0.0, Config.TD_SPLASH_RING_SECONDS)
+	t.tween_callback(ring.queue_free)
 
 
 # Music impact: a dusty-blue ring on the ground that grows and fades out (the "sound ring"). Added to the level.

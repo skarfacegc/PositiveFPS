@@ -13,6 +13,7 @@ func _start() -> Dictionary:
 
 # Moves the mouse over the floor under `spot` and clicks there (lock-on).
 func _click_at(runner: GdUnitSceneRunner, td: TopDownMain, spot: Vector3) -> void:
+	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, spot))
 	await runner.simulate_frames(2)
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
@@ -21,7 +22,7 @@ func _click_at(runner: GdUnitSceneRunner, td: TopDownMain, spot: Vector3) -> voi
 
 # Clicks empty ground, which drops the lock.
 func _release(runner: GdUnitSceneRunner, td: TopDownMain) -> void:
-	await _click_at(runner, td, Vector3(-25, 0, 25))
+	await _click_at(runner, td, TopDownTestUtil.clear_spot(td))
 
 
 # Impact nodes of one kind ("ring", "splat" or "petals") still in the level.
