@@ -21,6 +21,8 @@ var wisp: CPUParticles3D
 var _since_hit: float = 99.0
 # Seconds left to show the sad face after a relapse.
 var _sad_timer: float = 0.0
+# Seeded random numbers for purely cosmetic jitter (floating number positions), so runs repeat.
+var _fx_rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
@@ -90,6 +92,7 @@ func _ready() -> void:
 	wisp.emitting = false
 	add_child(wisp)
 
+	_fx_rng.seed = Config.RNG_SEED
 	_update_visuals()
 
 
@@ -278,7 +281,7 @@ func _spawn_number(value: float, mult: float) -> void:
 	lbl.pixel_size = 0.004 * ui_scale
 	lbl.fixed_size = false
 	var elem_col: Color = Config.ELEMENT_COLORS[affinity]
-	var start := global_position + Vector3(randf_range(-0.4, 0.4), 2.0, randf_range(-0.4, 0.4))
+	var start := global_position + Vector3(_fx_rng.randf_range(-0.4, 0.4), 2.0, _fx_rng.randf_range(-0.4, 0.4))
 	parent.add_child(lbl)
 	lbl.global_position = start
 	var base_y := lbl.position.y
@@ -331,6 +334,6 @@ func _spawn_number(value: float, mult: float) -> void:
 		var t := lbl.create_tween()
 		t.set_parallel(true)
 		t.tween_property(lbl, "position:y", base_y - 1.2, 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		t.tween_property(lbl, "position:x", lbl.position.x + randf_range(-0.3, 0.3), 0.7)
+		t.tween_property(lbl, "position:x", lbl.position.x + _fx_rng.randf_range(-0.3, 0.3), 0.7)
 		t.tween_property(lbl, "modulate:a", 0.0, 0.3).set_delay(0.4)
 		t.tween_callback(lbl.queue_free).set_delay(0.7)

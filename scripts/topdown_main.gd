@@ -156,7 +156,7 @@ func _make_box(size: Vector3, pos: Vector3, color: Color) -> StaticBody3D:
 
 
 func _spawn_people() -> void:
-	_rng.seed = Config.TD_SEED
+	_rng.seed = Config.RNG_SEED
 	var placed: Array[Vector3] = []
 	for i: int in range(Config.TD_PEOPLE_COUNT):
 		var pos := _find_spot(placed)

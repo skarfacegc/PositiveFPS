@@ -24,6 +24,8 @@ DEFAULT_GODOT = (
     r"\Godot_v4.7.2-stable_win64_console.exe"
 )
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Frames per second forced for test runs (Godot --fixed-fps). Matches the physics tick rate in project.godot.
+TEST_FIXED_FPS = 60
 
 
 def godot_path():
@@ -56,6 +58,9 @@ def import_project(project):
 def run_gdunit(project, report_dir, extra_args=None):
     """Runs every test under res://tests with the gdUnit4 CLI. Returns Godot's exit code."""
     args = [
+        # Fixed timestep: every frame advances exactly 1/60 s of game time and the physics steps match,
+        # so frame timing (and the top-down wander and firing timers) cannot vary from run to run.
+        "--fixed-fps", str(TEST_FIXED_FPS),
         "-s", "res://addons/gdUnit4/bin/GdUnitCmdTool.gd",
         "--ignoreHeadlessMode",
         "-c",  # keep running after a failure

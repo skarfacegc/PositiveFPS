@@ -73,3 +73,11 @@ A mini project inside PositiveFPS. Godot has no standard code coverage tool, so 
     0.5-point ratchet does not fail on a lucky run. Making those tests deterministic would remove the noise.
   - Typed locals and `as` casts add executable lines: the total rose from 1138 to 1144. The covered ratio stayed
     within the run-to-run noise above (97.4% to 97.6%).
+- 2026-10-22: Determinism fixed. Cause: top-down wander timers, the blocked-move check and the wander fallback all
+  ran on wall-clock frame deltas (gdUnit `simulate_frames(n, 16)` waits real 16 ms timers, and physics ticks took
+  whatever the real frame time was), so the timings and positions drifted between runs. Global `randf` in the cosmetic
+  floating numbers was also unseeded. Fix: `Config.RNG_SEED` (42) seeds every random source (top-down placement and
+  wandering, and a seeded RNG for the floating-number jitter in `person.gd`), and `tools/run_tests.py` launches Godot
+  with `--fixed-fps 60` (`TEST_FIXED_FPS`), so each frame advances exactly 1/60 s and the physics step matches.
+  Proof: three full `tools/coverage.py` runs gave identical per-file line coverage (topdown_main.gd 95.3% (182/191),
+  topdown_player.gd 95.9% (142/148), total 97.4%, 57/57 tests).

@@ -106,8 +106,9 @@ const TD_PLAZA_SIZE := 70
 const TD_PEOPLE_COUNT := 60
 # Length of a top-down round, in seconds.
 const TD_ROUND_SECONDS := 150.0
-# Seed for the top-down random numbers (placement and wandering), so each run starts the same.
-const TD_SEED := 42
+# Seed for every gameplay random number (top-down placement and wandering, cosmetic jitter). Gameplay code
+# uses its own seeded RandomNumberGenerator, never the global randf(), so a run is repeatable.
+const RNG_SEED := 42
 # Buildings unlocked on the top-down end screen. Same format as BUILDING_THRESHOLDS.
 const TD_BUILDING_THRESHOLDS := [[15, "Cafe"], [30, "Music Shop"], [45, "Community Garden"], [60, "Plaza Fountain"]]
 # Camera height above the player, in metres.
