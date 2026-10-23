@@ -37,14 +37,14 @@ func _ready() -> void:
 	beam.visible = false
 	camera.add_child(beam)
 
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Controls.set_mouse_captured(true)
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not active:
 		return
 
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+	if event is InputEventMouseMotion and Controls.is_mouse_captured():
 		rotate_y(-event.relative.x * Config.MOUSE_SENSITIVITY)
 		camera.rotate_x(-event.relative.y * Config.MOUSE_SENSITIVITY)
 		camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-85), deg_to_rad(85))
@@ -62,13 +62,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		_set_element((current_element + 2) % 3)
 
 	if event.is_action_pressed("release_mouse"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		Controls.set_mouse_captured(false)
 		return
 
 	# Clicking the game window again while the mouse is free captures it.
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
-			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		if not Controls.is_mouse_captured():
+			Controls.set_mouse_captured(true)
 
 
 func _set_element(e: int) -> void:
@@ -98,7 +98,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	_cooldown -= delta
-	if Input.is_action_pressed("fire") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and _cooldown <= 0.0:
+	if Input.is_action_pressed("fire") and Controls.is_mouse_captured() and _cooldown <= 0.0:
 		_cooldown = 1.0 / Config.SHOTS_PER_SECOND
 		_fire()
 

@@ -18,6 +18,9 @@ var burst_cooldown := 0.0
 var _fire_cooldown := 0.0
 var _aim_point := Vector3.ZERO
 var _has_aim := false
+# Last mouse position from real mouse-motion events. Read by _update_aim (see _input).
+var _mouse_pos := Vector2.ZERO
+var _mouse_seen := false
 var _ring_mat: StandardMaterial3D
 
 
@@ -66,6 +69,12 @@ func _ready() -> void:
 	_ring_mat.albedo_color = Config.ELEMENT_COLORS[current_element]
 	ring.material_override = _ring_mat
 	add_child(ring)
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		_mouse_pos = event.position
+		_mouse_seen = true
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -123,7 +132,7 @@ func _physics_process(delta: float) -> void:
 func _update_aim() -> void:
 	if camera == null:
 		return
-	var m := get_viewport().get_mouse_position()
+	var m: Vector2 = _mouse_pos if _mouse_seen else get_viewport().get_mouse_position()
 	var from := camera.project_ray_origin(m)
 	var dir := camera.project_ray_normal(m)
 	var hit = Plane(Vector3.UP, 0.0).intersects_ray(from, dir)

@@ -1,11 +1,32 @@
 class_name Controls
 extends RefCounted
 
+# The player's intent for mouse capture. In automated tests the real OS mouse mode is never changed,
+# so tests check this instead (see is_mouse_captured).
+static var mouse_captured := false
+
+
+# Captures or frees the mouse. In automated tests only the intent is recorded.
+static func set_mouse_captured(captured: bool) -> void:
+	mouse_captured = captured
+	if Config.is_automated_test():
+		return
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE
+
+
+# True if the mouse is captured. The real game reads the OS mode; automated tests read the intent.
+static func is_mouse_captured() -> bool:
+	if Config.is_automated_test():
+		return mouse_captured
+	return Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+
 # Registers every input action the game uses. Each action is only added if it does not exist yet,
 # so it is safe to call from the menu, first-person mode and top-down mode.
 
 
 static func setup() -> void:
+	if Config.is_automated_test():
+		DisplayServer.window_set_title("PositiveFPS — AUTOMATED TEST (not for playing)")
 	_add_action("move_forward", [_key(KEY_W)])
 	_add_action("move_back", [_key(KEY_S)])
 	_add_action("move_left", [_key(KEY_A)])

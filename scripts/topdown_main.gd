@@ -38,7 +38,7 @@ var _wander: Dictionary = {}
 
 func _ready() -> void:
 	Controls.setup()
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Controls.set_mouse_captured(false)
 	_setup_environment()
 	_build_level()
 
@@ -87,7 +87,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("restart"):
 		get_tree().reload_current_scene()
 	elif event.is_action_pressed("menu"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		Controls.set_mouse_captured(false)
 		get_tree().change_scene_to_file("res://menu.tscn")
 
 
@@ -312,6 +312,6 @@ func _end_round(title: String) -> void:
 		return
 	running = false
 	player.active = false
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Controls.set_mouse_captured(false)
 	hud.set_time(time_left)
 	hud.show_end(Config.buildings_for(rescued_count, Config.TD_BUILDING_THRESHOLDS), title)

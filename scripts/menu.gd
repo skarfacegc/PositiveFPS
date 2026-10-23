@@ -8,7 +8,7 @@ const TOP_DOWN_SCENE := "res://topdown.tscn"
 
 func _ready() -> void:
 	Controls.setup()
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Controls.set_mouse_captured(false)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
 	var bg := ColorRect.new()

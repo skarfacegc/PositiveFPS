@@ -217,3 +217,14 @@ static func buildings_for(count: int, thresholds: Array = BUILDING_THRESHOLDS) -
 		if entry[0] <= count:
 			result.append(entry[1])
 	return result
+
+
+# True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1
+# environment variable, a "--automated-test" user argument, or a headless display. In that mode the game
+# never captures the real OS mouse, so a test run can never grab a player's mouse.
+static func is_automated_test() -> bool:
+	if OS.get_environment("POSITIVEFPS_TEST") == "1":
+		return true
+	if "--automated-test" in OS.get_cmdline_user_args():
+		return true
+	return DisplayServer.get_name() == "headless"
