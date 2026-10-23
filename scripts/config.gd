@@ -61,6 +61,7 @@ const GLOOM_START_MIN := 0.0            # Random starting gloom for each person,
 const GLOOM_START_MAX := 0.5            # ...and highest.
 const GLOOM_GROWTH := 0.006             # Gloom gained per second by an unrescued person, base rate.
 const GLOOM_GROWTH_PER_METER := 0.0008  # Extra gloom per second for each metre from the nearest colour zone.
+const NO_ZONE_DISTANCE := 20.0          # Distance used for gloom growth when nobody has been rescued yet (no colour zones).
 const ZONE_RADIUS := 6.0                # Each rescued person creates a colour zone of this radius (metres).
 const ZONE_HEAL := 0.02                 # Gloom lost per second by unrescued people inside a colour zone.
 const SPREAD_RADIUS := 6.0              # How far darkness spreads from a dark person (metres).
@@ -97,6 +98,84 @@ const NUMBERS_ENABLED := true
 # Buildings unlocked on the end screen. Each entry is [rescues needed, building name].
 const BUILDING_THRESHOLDS := [[5, "Cafe"], [10, "Music Shop"], [15, "Community Garden"], [20, "Plaza Fountain"]]
 
+# ---- Top-down mode (scripts/topdown_*.gd, joy_projectile.gd). All names start with TD_. ----
+
+# Side length of the top-down plaza, in metres. Walls go around the edge.
+const TD_PLAZA_SIZE := 70
+# How many people are in the top-down plaza.
+const TD_PEOPLE_COUNT := 60
+# Length of a top-down round, in seconds.
+const TD_ROUND_SECONDS := 150.0
+# Seed for the top-down random numbers (placement and wandering), so each run starts the same.
+const TD_SEED := 42
+# Buildings unlocked on the top-down end screen. Same format as BUILDING_THRESHOLDS.
+const TD_BUILDING_THRESHOLDS := [[15, "Cafe"], [30, "Music Shop"], [45, "Community Garden"], [60, "Plaza Fountain"]]
+# Camera height above the player, in metres.
+const TD_CAMERA_HEIGHT := 24.0
+# How far behind the player the camera sits, in metres. The camera looks down at the player.
+const TD_CAMERA_BACK := 12.0
+# Walking speed, in metres per second.
+const TD_MOVE_SPEED := 6.0
+# Speed while holding Shift, in metres per second.
+const TD_RUN_SPEED := 9.5
+# Auto-fire reaches people this close, in metres.
+const TD_AUTO_RANGE := 11.0
+# If a person is this close to the mouse aim point, auto-fire picks them over the nearest person.
+const TD_AIM_ASSIST_RADIUS := 3.5
+# Auto-fire shots per second.
+const TD_SHOTS_PER_SECOND := 5.0
+# Joy added by each auto-fire shot (before the element multiplier and distance falloff).
+const TD_JOY_PER_SHOT := 45.0
+# Speed of the visual joy projectiles, in metres per second. Hits are instant; this only changes how they look.
+const TD_PROJECTILE_SPEED := 16.0
+# The shortest a projectile's flight can take, in seconds.
+const TD_PROJECTILE_MIN_TIME := 0.08
+# How high projectiles arc over their flight, in metres.
+const TD_PROJECTILE_ARC := 0.8
+# How far music notes wobble from side to side, in metres.
+const TD_PROJECTILE_BOB := 0.3
+# How fast flower projectiles spin, in radians per second.
+const TD_FLOWER_SPIN := 8.0
+# Radius of the paint splat left by an Art projectile, in metres.
+const TD_SPLAT_RADIUS := 0.6
+# How solid the paint splat is (1 = solid, 0 = invisible).
+const TD_SPLAT_ALPHA := 0.6
+# Seconds for a paint splat to fade away.
+const TD_SPLAT_FADE_TIME := 2.5
+# Walking speed for wandering people, in metres per second.
+const TD_WANDER_SPEED := 0.8
+# Wandering people pick a new spot within this distance of where they are, in metres.
+const TD_WANDER_RANGE := 4.0
+# A wandering person counts as having reached their spot when this close, in metres.
+const TD_WANDER_REACH := 0.5
+# Wandering people pick a new spot after a random time between these two values, in seconds.
+const TD_WANDER_TIME_MIN := 3.0
+const TD_WANDER_TIME_MAX := 6.0
+# Dark people drift toward the nearest rescued person at this speed, in metres per second.
+const TD_DARK_DRIFT_SPEED := 1.3
+# Dark people stop drifting when this close to a rescued person, in metres.
+const TD_DARK_STOP_DISTANCE := 2.0
+# People stay this far inside the plaza walls, in metres.
+const TD_EDGE_MARGIN := 2.0
+# People are placed at least this far from the plaza edge, in metres.
+const TD_SPAWN_EDGE := 3.0
+# People are never placed closer than this to the centre (where the player starts), in metres.
+const TD_SPAWN_CENTRE_CLEAR := 5.0
+# Minimum distance between two people when placing them, in metres.
+const TD_SPAWN_SPACING := 2.5
+# Distance kept beyond an obstacle block's edge, for spawning and walking, in metres.
+const TD_BLOCK_CLEARANCE := 1.5
+# Seconds before the joy burst can be used again.
+const TD_BURST_COOLDOWN := 8.0
+# Everyone this close to the player gets the burst, in metres.
+const TD_BURST_RADIUS := 5.5
+# Joy given to each person by a burst. They use their own element, so it always counts as a match.
+const TD_BURST_JOY := 350.0
+# How long the burst ring takes to expand and fade, in seconds.
+const TD_BURST_TIME := 0.35
+# Size multiplier for floating numbers and labels in top-down mode (the camera is high up).
+const TD_UI_SCALE := 2.5
+
 # The matchups form a soft cycle:
 #   Music is strong against Art, Art is strong against Nature, Nature is strong against Music.
 # Matching the affinity gives MATCH_MULT. The element that loses to the affinity gives WEAK_MULT.
@@ -131,9 +210,10 @@ static func gloom_level(g: float) -> int:
 
 
 # Returns the names of all buildings unlocked by `count` rescued people.
-static func buildings_for(count: int) -> Array:
+# Pass a different thresholds array (same format) to use another mode's list.
+static func buildings_for(count: int, thresholds: Array = BUILDING_THRESHOLDS) -> Array:
 	var result: Array = []
-	for entry in BUILDING_THRESHOLDS:
+	for entry in thresholds:
 		if entry[0] <= count:
 			result.append(entry[1])
 	return result

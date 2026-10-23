@@ -3,6 +3,7 @@ extends CanvasLayer
 var crosshair: Label
 var timer_label: Label
 var element_label: Label
+var burst_label: Label
 var hint_label: Label
 var rescued_label: Label
 var alert_label: Label
@@ -41,6 +42,13 @@ func _ready() -> void:
 	element_label.add_theme_font_size_override("font_size", 28)
 	element_label.position = Vector2(20, 640)
 	add_child(element_label)
+
+	# Joy burst cooldown, just above the element label. Only shown in top-down mode (see set_burst).
+	burst_label = Label.new()
+	burst_label.add_theme_font_size_override("font_size", 22)
+	burst_label.position = Vector2(20, 606)
+	burst_label.visible = false
+	add_child(burst_label)
 
 	# Controls hint under the element label.
 	hint_label = Label.new()
@@ -97,6 +105,27 @@ func set_element(e: int) -> void:
 
 func set_rescued(n: int, total: int) -> void:
 	rescued_label.text = "Rescued: %d / %d" % [n, total]
+
+
+# Replaces the controls hint text at the bottom of the screen.
+func set_hint(text: String) -> void:
+	hint_label.text = text
+
+
+# Hides or shows the crosshair in the middle of the screen.
+func set_crosshair_visible(v: bool) -> void:
+	crosshair.visible = v
+
+
+# Shows the joy burst cooldown: READY in green when it can be used, otherwise the seconds left in grey.
+func set_burst(cooldown_left: float) -> void:
+	burst_label.visible = true
+	if cooldown_left <= 0.0:
+		burst_label.text = "Joy burst [G]: READY"
+		burst_label.add_theme_color_override("font_color", Color(0.6, 1, 0.6))
+	else:
+		burst_label.text = "Joy burst [G]: %.1fs" % cooldown_left
+		burst_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 
 
 # Shows a short alert that waits 0.8s, then fades out over 2s. Calling again restarts it.

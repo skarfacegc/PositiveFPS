@@ -6,6 +6,8 @@ signal relapsed
 var affinity: int = 0
 var joy := 0.0
 var is_rescued := false
+# Scales the joy label and floating numbers. Top-down mode sets this higher, because the camera is far away.
+var ui_scale := 1.0
 # Hidden darkness value, 0.0 (light) to 1.0 (nearly black). Main.gd changes this each frame.
 var gloom := 0.0
 # The visible grey level (0 light, 1 grey, 2 dark). When it changes, a short moment plays.
@@ -58,7 +60,7 @@ func _ready() -> void:
 	label.position = Vector3(0, 2.5, 0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.font_size = 48
-	label.pixel_size = 0.005
+	label.pixel_size = 0.005 * ui_scale
 	label.no_depth_test = true
 	label.text = ""
 	add_child(label)
@@ -93,6 +95,16 @@ func _ready() -> void:
 # The joy this person needs to be rescued. Darker levels need more.
 func joy_needed() -> float:
 	return Config.JOY_MAX * Config.LEVEL_JOY_MULT[Config.gloom_level(gloom)]
+
+
+# True when a rescued person is losing joy and close to relapsing (they flicker and show "!").
+func is_warning() -> bool:
+	return is_rescued and joy < joy_needed() * Config.WARN_FRACTION
+
+
+# Where a joy projectile should land: a little above the feet, at chest height.
+func chest_position() -> Vector3:
+	return global_position + Vector3(0, 1.0, 0)
 
 
 # Called by the player's beam when it hits this person. Works on rescued people too (top-up).
@@ -262,7 +274,7 @@ func _spawn_number(value: float, mult: float) -> void:
 	var lbl := Label3D.new()
 	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	lbl.no_depth_test = true
-	lbl.pixel_size = 0.004
+	lbl.pixel_size = 0.004 * ui_scale
 	lbl.fixed_size = false
 	var elem_col: Color = Config.ELEMENT_COLORS[affinity]
 	var start := global_position + Vector3(randf_range(-0.4, 0.4), 2.0, randf_range(-0.4, 0.4))
