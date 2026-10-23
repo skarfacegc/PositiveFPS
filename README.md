@@ -60,17 +60,39 @@ Using an element that is strong against them gives 1.5x. Anything else gives 1x.
 ## Tests & coverage
 
 The tests use [gdUnit4](https://github.com/godot-gdunit-labs/gdUnit4) (in `addons/gdUnit4`, enabled in
-`project.godot`). The suites live in `tests/`.
+`project.godot`). The suites live in `tests/`. Rule for new features: add tests that drive real inputs
+(key presses, mouse buttons and motion, actions) through `scene_runner(...)`, the same way a player would.
+Pure rules can be tested directly.
+
+Setup (once per clone):
+
+1. Install the lint tools: `python -m pip install --user "gdtoolkit==4.*"` (gdtoolkit 4.x, the gdformat and
+   gdlint modules, run through `python -m gdtoolkit.formatter` and `python -m gdtoolkit.linter`).
+2. Enable the git hooks: `python tools/install_hooks.py` (sets `core.hooksPath` to `.githooks`).
+
+Commands:
 
 - Run the tests: `python tools/run_tests.py`. It runs headless against this project and writes HTML and
   JUnit reports to `reports/`. Exit code 1 means a test failed.
+- Lint and format: `python tools/lint.py` checks formatting (gdformat, 120 columns) and lint (gdlint, settings in
+  `gdlintrc`) over `scripts/` and `tests/`. `python tools/lint.py --fix` reformats the files first, then lints.
 - Tests and coverage: `python tools/coverage.py`. It copies the project to `.coverage_build/`, instruments
-  every function in `scripts/`, runs the tests there, and writes `coverage/index.html` (plus `summary.txt`
-  and `coverage.json`).
+  every executable line in `scripts/`, runs the tests there, and writes `coverage/index.html` (open it in a
+  browser: a per-file table, then an annotated copy of each script with green lines that ran and red lines that
+  never ran), plus `coverage/summary.txt` and `coverage/coverage.json`. Line coverage is the headline number;
+  function coverage is kept as a secondary column.
+- Coverage ratchet: `coverage_baseline.json` (committed) holds the line coverage of the last accepted run.
+  - `python tools/coverage.py --check-baseline` fails (exit 3) if the total or any existing file drops by more
+    than 0.5 points, or a new file is under 60%.
+  - `python tools/coverage.py --update-baseline` records the current numbers. It only works if all tests pass,
+    and refuses any decrease unless you add `--allow-decrease`.
 - The Godot executable comes from the `GODOT` environment variable, or the default path in `tools/run_tests.py`.
 
-Rule for new features: add tests that drive real inputs (key presses, mouse buttons and motion, actions)
-through `scene_runner(...)`, the same way a player would. Pure rules can be tested directly.
+Pre-commit gate: once the hooks are enabled, a commit that changes `*.gd`, `*.tscn`, `*.tres`, `project.godot`,
+`tools/` or `tests/` runs `tools/lint.py` and `tools/coverage.py --check-baseline` first. That takes about two
+minutes. It prints a one-line summary (tests passed, line coverage, baseline OK) or the failure. Fix the cause
+and commit again; never use `--no-verify`. Known limitation: the gate tests the working tree, not only the staged
+snapshot, so stash unstaged edits if you need the staged version tested exactly. Other commits skip the gate.
 
 Test runs set `POSITIVEFPS_TEST=1` (or run headless). In that mode the game never captures the real mouse, so a
 test run cannot take over your mouse; the window title is also changed to say it is an automated test.

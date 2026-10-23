@@ -1,0 +1,49 @@
+#!/bin/sh
+# Pre-commit quality gate for PositiveFPS (versioned in .githooks/; enable with: python tools/install_hooks.py).
+#
+# For commits that touch code (*.gd, *.tscn, *.tres, project.godot, tools/*, tests/*):
+#   1. python tools/lint.py                  (gdformat --check and gdlint)
+#   2. python tools/coverage.py --check-baseline   (full gdUnit4 run + line coverage ratchet, about 2 minutes)
+# Other commits are not checked.
+#
+# Known limitation: lint and tests run on the working tree, not on the staged snapshot. Unstaged edits
+# therefore count too. Stash them first if you need the staged version tested exactly.
+#
+# Never bypass this with --no-verify; fix the cause instead.
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+PYTHON="${PYTHON:-python}"
+
+if ! git diff --cached --name-only --diff-filter=ACMR |
+    grep -Eq '(\.gd|\.tscn|\.tres)$|^project\.godot$|^(tools|tests)/'; then
+  echo "pre-commit: no code changes, skipping tests"
+  exit 0
+fi
+
+echo "pre-commit: lint (tools/lint.py)"
+if ! "$PYTHON" tools/lint.py; then
+  echo "pre-commit: FAILED lint. Run: python tools/lint.py --fix   (then re-stage and commit again)"
+  exit 1
+fi
+
+echo "pre-commit: tests and line coverage (about 2 minutes)"
+log=$(mktemp)
+"$PYTHON" tools/coverage.py --check-baseline > "$log" 2>&1
+code=$?
+if [ "$code" -ne 0 ]; then
+  case "$code" in
+    1) echo "pre-commit: FAILED tests" ;;
+    3) echo "pre-commit: FAILED coverage ratchet (line coverage dropped below coverage_baseline.json)" ;;
+    *) echo "pre-commit: FAILED, the coverage run could not complete (exit $code)" ;;
+  esac
+  grep -E '^FAIL |COVERAGE CHECK|^  - |^ERROR|Baseline NOT|^Tests:' "$log"
+  echo "Full output: $log"
+  exit 1
+fi
+rm -f "$log"
+
+summary="coverage/summary.txt"
+tests=$(sed -n 's/^Tests: \([0-9]* passed\).*/\1/p' "$summary" 2>/dev/null)
+lines=$(sed -n 's/^Line coverage: \([0-9.]*%\).*/\1/p' "$summary" 2>/dev/null)
+echo "pre-commit OK: ${tests:-tests unknown}, line coverage ${lines:-unknown}, baseline OK"
+exit 0
