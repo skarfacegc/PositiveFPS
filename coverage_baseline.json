@@ -9,10 +9,10 @@
     "scripts/main.gd": 97.3,
     "scripts/menu.gd": 100.0,
     "scripts/painted_ground.gd": 100.0,
-    "scripts/person.gd": 98.2,
+    "scripts/person.gd": 98.8,
     "scripts/player.gd": 98.8,
-    "scripts/topdown_main.gd": 97.2,
+    "scripts/topdown_main.gd": 97.3,
     "scripts/topdown_player.gd": 97.1
   },
-  "line_overall": 98.1
+  "line_overall": 98.3
 }

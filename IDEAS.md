@@ -60,6 +60,9 @@ Goal: find out whether reading cues, picking the right element and helping as ma
 - **Building → unlock mapping:** e.g. music shop → guitar upgrades, garden centre → flower variants, café → healing item.
 - **Visual progression / style:** Town goes from desaturated to full colour as it's rebuilt. Current POC look is placeholder; want a richer, less plain style later.
 - **Tone:** Keep it light and warm. Joy is something shared with people, not a cure applied to them.
+- **Enemy tiers & bosses:** formalise grey levels into distinct types (light 'routine' people as the bulk, grey normal,
+  dark 'spreaders' rarer and tougher) and design bosses (e.g. a heavily gloomed figure with a big gloom aura) in a
+  dedicated later round.
 
 ## POC round 2 (after first playtest)
 Playtest 1 feedback: movement and cues good; rescues too fast; not enough push-back; right/wrong element choice not visible enough.
@@ -104,3 +107,21 @@ too early to tell. A gamepad is wanted eventually; no device to test with yet.
   each future gamepad button would take. No bindings yet.
 - **Deterministic tests:** one seed for all gameplay randomness, and test runs use a fixed timestep, so coverage no
   longer changes between runs.
+
+## POC round 6 (after fifth playtest)
+Playtest 5 feedback: too much clustering of dark people; drain and relapse too fast; time-to-joy still a bit high for
+ordinary people (wants about 1.5x faster); projectile types hard to tell apart (wants them bigger, with trails); targeting
+modes not compared yet; enemy tiers and bosses deferred to a later dedicated round.
+- **Less clustering (top-down):** dark people drift more slowly (0.8 m/s, was 1.3) and stop 2.5 m from the rescued
+  person. Everyone steers away from neighbours within 2.2 m. At most two dark people drift toward one rescued person;
+  the rest pick the next-nearest rescued person with a free slot, or wander.
+- **Slower drain and relapse (top-down):** darkness drains rescued joy at half rate. A rescued person has 4 s of grace
+  before they can be drained, shown by a soft warm halo that fades as the grace runs out. First person is unchanged.
+- **About 1.5x faster rescues (top-down):** each shot gives 135 joy (was 90). Bloom and splash rates are unchanged.
+  Measured: a light person 3 m away is rescued by locked fire in 47 frames, down from 72.
+- **Readable projectiles (top-down):** shots are drawn 1.5x bigger, and each element leaves its own trail. Notes leave a
+  wavy dusty-blue ribbon. Paint drips rose and terracotta drops that land as small splats. Flowers shed sage and pink
+  petals that drift down and fade. Each projectile leaves at most 12 trail pieces.
+- **Not changed:** the three targeting modes (still to be compared in a playtest), the first-person rules.
+- **Next:** round 7 is a Godot style test built from the style pillars above (pixel-diorama rendering, earthy joy
+  palette, the cold-to-warm transformation).
