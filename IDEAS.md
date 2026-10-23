@@ -86,3 +86,21 @@ Playtest 3 feedback: first-person aiming makes it feel like an "element selector
 - **Joy burst (G/Q):** cooldown ability that gives everyone nearby a best-match hit. A second verb; first step toward a loadout.
 - **Bigger moving crowd:** 60 people in a larger plaza; people wander, dark people drift toward colourful areas.
 - **Projectile visuals:** music notes, paint blobs (leave splats), flowers.
+
+## POC round 5 (after fourth playtest)
+Playtest 4 feedback (top-down): too hard to get someone joyful. Too slow, and the fire went somewhere other than where
+the player was looking. Moving and switching element on the same hand was awkward. First person vs top-down is still
+too early to tell. A gamepad is wanted eventually; no device to test with yet.
+- **Auto-chosen element (top-down):** every shot uses the target's element, so it is always a best match. No more
+  switching; the ring under the player shows the target's colour.
+- **Click-to-lock targeting, switchable with F2:** click a person to lock on (a warm ring marks them). Modes: lock-on
+  (default), hover-sticky (the person under the mouse, then sticky) and auto (rescued-and-about-to-relapse first, then
+  the darkest, then the nearest). The lock drops on rescue or when you walk away.
+- **2x faster rescues:** each top-down shot gives twice the joy.
+- **Lightly physics-based projectiles, with per-element behaviour:** notes home in on their target; paint is lobbed
+  onto the target's spot and splashes people nearby; flowers drift in gently and bloom where they land, giving joy to
+  everyone standing in the patch for a few seconds. Projectiles are stopped by walls, and they can miss.
+- **Gamepad-ready input:** all gameplay goes through InputMap actions (no raw keys), and `controls.gd` lists the action
+  each future gamepad button would take. No bindings yet.
+- **Deterministic tests:** one seed for all gameplay randomness, and test runs use a fixed timestep, so coverage no
+  longer changes between runs.

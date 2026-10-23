@@ -1,17 +1,18 @@
 {
   "line_files": {
+    "scripts/bloom.gd": 100.0,
     "scripts/config.gd": 88.5,
-    "scripts/controls.gd": 94.4,
+    "scripts/controls.gd": 94.6,
     "scripts/gloom_sim.gd": 100.0,
-    "scripts/hud.gd": 98.9,
-    "scripts/joy_projectile.gd": 99.1,
+    "scripts/hud.gd": 99.0,
+    "scripts/joy_projectile.gd": 100.0,
     "scripts/main.gd": 97.3,
     "scripts/menu.gd": 100.0,
     "scripts/painted_ground.gd": 100.0,
     "scripts/person.gd": 98.2,
     "scripts/player.gd": 98.8,
-    "scripts/topdown_main.gd": 95.3,
-    "scripts/topdown_player.gd": 95.9
+    "scripts/topdown_main.gd": 97.2,
+    "scripts/topdown_player.gd": 97.1
   },
-  "line_overall": 97.4
+  "line_overall": 98.1
 }

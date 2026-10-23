@@ -15,7 +15,7 @@ fill their joy meter, and they turn colourful and bounce. You have two minutes.
 The game opens a menu. Pick a mode:
 
 - **1 = First person** (the original): aim with the mouse and fire beams.
-- **2 = Top-down** (new): a bigger plaza seen from above. You move and choose the element; joy fires automatically at the nearest person (or the one under your mouse).
+- **2 = Top-down**: a bigger plaza seen from above. You move and pick your target; joy flies at it as physical projectiles.
 
 Press **M** at any time to go back to the menu.
 
@@ -36,10 +36,22 @@ First person:
 Top-down:
 
 - **WASD** move, **Shift** run
-- **Mouse** aim (joy fires automatically)
-- **1 / 2 / 3** or **mouse wheel** switch element
+- **Left click** a person to lock on. A warm ring under their feet marks the target, and your shots fly at them while
+  you hold the lock. Click empty ground to let go. The lock drops when they are rescued or you walk more than 14 m away.
+- **F2** cycles the targeting mode (shown top right):
+  - **Lock-on** (default): click to lock, as above.
+  - **Hover**: with no target, the person under the mouse becomes the target and stays one until they are rescued
+    or out of reach, even if you move the mouse.
+  - **Auto**: no clicks. The most urgent person in range is shot at: someone about to relapse first, then the darkest.
+- No element switching in top-down: every shot uses the **target's** element, so it is always a best match. The ring
+  under you shows the target's element colour (cream with no target).
+- Shots are real projectiles and take a moment to arrive. Music notes home in on their target. Paint is lobbed and
+  splashes people nearby. Flowers drift in, and where they land they bloom and give joy to anyone standing in them.
 - **G** or **Q** joy burst (short cooldown; boosts everyone nearby)
 - **R** restart, **M** back to menu
+
+Gamepad: not bound yet. Every gameplay action goes through the InputMap, and `scripts/controls.gd` lists the action
+a future gamepad mapping would use for each one.
 
 ## Tuning
 
@@ -74,6 +86,8 @@ Commands:
 
 - Run the tests: `python tools/run_tests.py`. It runs headless against this project and writes HTML and
   JUnit reports to `reports/`. Exit code 1 means a test failed.
+- Test runs use a fixed timestep (`--fixed-fps 60`, `TEST_FIXED_FPS` in `tools/run_tests.py`) and one seed
+  (`Config.RNG_SEED`), so repeated runs give the same coverage.
 - Lint and format: `python tools/lint.py` checks formatting (gdformat, 120 columns) and lint (gdlint, settings in
   `gdlintrc`) over `scripts/` and `tests/`. `python tools/lint.py --fix` reformats the files first, then lints.
 - Tests and coverage: `python tools/coverage.py`. It copies the project to `.coverage_build/`, instruments
