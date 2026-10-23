@@ -9,7 +9,7 @@
     "scripts/menu.gd": 100.0,
     "scripts/painted_ground.gd": 100.0,
     "scripts/person.gd": 98.2,
-    "scripts/player.gd": 98.7,
+    "scripts/player.gd": 98.8,
     "scripts/topdown_main.gd": 95.3,
     "scripts/topdown_player.gd": 95.9
   },

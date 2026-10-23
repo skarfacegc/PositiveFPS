@@ -62,3 +62,14 @@ A mini project inside PositiveFPS. Godot has no standard code coverage tool, so 
   `tools/lint.py` and then the ratchet on commits that touch code. It tests the working tree, not the staged snapshot;
   this is a known limitation. Its cost is about 2 minutes per code commit, which is a reason to keep the suite fast.
 - 2026-10-22: Lint: gdtoolkit 4.5.0 (`python -m gdtoolkit.formatter` and `python -m gdtoolkit.linter`), 120 columns.
+- 2026-10-23: Strict typing (`gdscript/warnings/*` set to errors in `project.godot`) across `scripts/` and `tests/`.
+  The tool needed no changes. `class_name` scripts instrument and load in the copy, and `CovProbe` is unaffected.
+  Three things learned:
+  - A typed loop variable over a list that can hold freed nodes fails at runtime ("Trying to assign invalid
+    previously freed instance"). Check the scene tree (`get_children()`) instead of iterating the freed list.
+  - Line coverage of `scripts/topdown_main.gd` moved between 95.3% (182/191) and 96.9% (185/191) on identical code.
+    The top-down tests are not fully deterministic: the blocked-move and wander-fallback lines flip between runs
+    (the cause is not yet confirmed; wander timing uses real frame deltas). The baseline keeps the lower value so the
+    0.5-point ratchet does not fail on a lucky run. Making those tests deterministic would remove the noise.
+  - Typed locals and `as` casts add executable lines: the total rose from 1138 to 1144. The covered ratio stayed
+    within the run-to-run noise above (97.4% to 97.6%).
