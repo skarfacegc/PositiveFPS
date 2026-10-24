@@ -33,9 +33,15 @@ func is_over() -> bool:
 	return elapsed >= Config.NIGHT_LENGTH
 
 
-# How strong the grey is right now: 1 at dusk and dawn, 1 + NIGHT_PEAK_EXTRA at midnight.
+# How strong the grey is right now. Round 10: calm (NIGHT_CALM_STRENGTH) for the first NIGHT_CALM_FRACTION of the night,
+# then it eases (smoothstep) into the curve 1 + NIGHT_PEAK_EXTRA * sin(PI * progress), which is 1 at dawn and peaks at
+# midnight.
 func strength() -> float:
-	return 1.0 + Config.NIGHT_PEAK_EXTRA * sin(PI * progress())
+	var p := progress()
+	if p < Config.NIGHT_CALM_FRACTION:
+		return Config.NIGHT_CALM_STRENGTH
+	var curve := 1.0 + Config.NIGHT_PEAK_EXTRA * sin(PI * p)
+	return lerpf(Config.NIGHT_CALM_STRENGTH, curve, smoothstep(Config.NIGHT_CALM_FRACTION, 0.5, p))
 
 
 func sun_color() -> Color:

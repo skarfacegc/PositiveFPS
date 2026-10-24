@@ -3,9 +3,10 @@ extends GdUnitTestSuite
 # Dusk to dawn (round 9): the grey strength curve, the light, the HUD bar, and dawn ending the level in the real level.
 
 
-func test_strength_is_one_at_dusk_and_dawn_and_peaks_at_midnight() -> void:
+func test_strength_is_calm_at_dusk_peaks_at_midnight_and_is_one_at_dawn() -> void:
 	var night := NightCycle.new()
-	assert_float(night.strength()).is_equal_approx(1.0, 0.0001)
+	# Round 10: calm at dusk (the first quarter of the night is calm), not 1.0.
+	assert_float(night.strength()).is_equal_approx(Config.NIGHT_CALM_STRENGTH, 0.0001)
 	night.elapsed = Config.NIGHT_LENGTH / 2.0
 	assert_float(night.strength()).is_equal_approx(1.0 + Config.NIGHT_PEAK_EXTRA, 0.0001)
 	assert_float(night.strength()).is_equal_approx(1.75, 0.0001)
@@ -13,10 +14,31 @@ func test_strength_is_one_at_dusk_and_dawn_and_peaks_at_midnight() -> void:
 	assert_float(night.strength()).is_equal_approx(1.0, 0.0001)
 
 
-func test_strength_at_a_quarter_of_the_night_is_between_dusk_and_midnight() -> void:
+# Round 10 calm opening: almost no grey pressure for the first quarter of the night, then a build toward midnight.
+func test_the_first_quarter_of_the_night_is_calm() -> void:
+	var night := NightCycle.new()
+	for f: float in [0.0, 0.1, 0.24]:
+		night.elapsed = Config.NIGHT_LENGTH * f
+		assert_float(night.strength()).is_equal_approx(Config.NIGHT_CALM_STRENGTH, 0.0001)
+
+
+func test_the_strength_eases_out_of_the_calm_and_rises_to_midnight() -> void:
+	var night := NightCycle.new()
+	# Just past the calm the strength is still close to calm, then it climbs through the easing to the curve.
+	night.elapsed = Config.NIGHT_LENGTH * (Config.NIGHT_CALM_FRACTION + 0.001)
+	assert_float(night.strength()).is_less(Config.NIGHT_CALM_STRENGTH + 0.01)
+	var last := -1.0
+	for f: float in [0.3, 0.35, 0.4, 0.45, 0.5]:
+		night.elapsed = Config.NIGHT_LENGTH * f
+		assert_float(night.strength()).is_greater(last)
+		last = night.strength()
+	assert_float(last).is_equal_approx(1.0 + Config.NIGHT_PEAK_EXTRA, 0.0001)
+
+
+func test_strength_at_a_quarter_of_the_night_is_still_calm() -> void:
 	var night := NightCycle.new()
 	night.elapsed = Config.NIGHT_LENGTH / 4.0
-	assert_float(night.strength()).is_equal_approx(1.0 + Config.NIGHT_PEAK_EXTRA * sin(PI / 4.0), 0.0001)
+	assert_float(night.strength()).is_equal_approx(Config.NIGHT_CALM_STRENGTH, 0.0001)
 
 
 func test_the_light_goes_from_warm_dusk_to_dim_blue_night_and_back_to_soft_dawn() -> void:

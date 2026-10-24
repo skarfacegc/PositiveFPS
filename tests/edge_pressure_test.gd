@@ -114,6 +114,8 @@ func test_a_lone_rescued_person_next_to_a_dark_person_relapses_within_a_bounded_
 	lone.receive_joy(0, Config.JOY_MAX, 0.0)
 	var dark: Person = td.people[1]
 	TopDownTestUtil.place(dark, Vector3(2, 0, -8), 1, 0.9)
+	# Round 10: the calm opening (grey strength 0.2) slows the drain, so this runs at midnight, where it was tuned.
+	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
 
 	# Grace first, then the drain (about 24 joy a second) takes them below half their joy: about 25 seconds in all.
 	var frames := 0

@@ -71,6 +71,7 @@ func _ready() -> void:
 
 	player = TopDownPlayer.new()
 	add_child(player)
+	player.burst_fired.connect(border.shove)
 
 	camera = Camera3D.new()
 	camera.current = true

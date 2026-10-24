@@ -15,6 +15,8 @@ func test_circle_polygon_has_the_samples_on_the_circle() -> void:
 func test_slot_count_is_the_perimeter_over_the_spacing_rounded_up() -> void:
 	assert_int(Border.slot_count_for(Config.BORDER_TARGET_SPACING * 9.0)).is_equal(9)
 	assert_int(Border.slot_count_for(Config.BORDER_TARGET_SPACING * 9.0 + 0.5)).is_equal(10)
+	assert_float(Config.BORDER_TARGET_SPACING).is_equal(3.0)
+	assert_float(Config.BORDER_PUSH).is_equal(2.4)
 
 
 func test_perimeter_of_a_unit_square_is_four() -> void:

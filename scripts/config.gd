@@ -313,7 +313,8 @@ const BORDER_MIN_PEOPLE := 3
 # The centre (the smoothed centroid of rescued people) moves toward the target centroid at this speed, in m/s.
 const BORDER_CENTRE_FOLLOW := 0.5
 # Members stand this far apart along the border, in metres. The slot count is perimeter / this, rounded up.
-const BORDER_TARGET_SPACING := 2.2
+# Round 10: 3.0 (was 2.2), so growing is easier.
+const BORDER_TARGET_SPACING := 3.0
 # Members walk to their slot at this speed, in metres per second.
 const BORDER_WALK_SPEED := 3.0
 # A stretch of border between two members longer than this is a gap: darkness can pass through it.
@@ -324,8 +325,9 @@ const BORDER_PRESS_RANGE := 1.5
 const BORDER_SAMPLES := 48
 # The border never shrinks below a circle of this radius, in metres.
 const BORDER_MIN_RADIUS := 3.0
-# Each rescue pushes the border outward at its angle, by this much at the peak (metres).
-const BORDER_PUSH := 1.6
+# Each rescue pushes the border outward at its angle, by this much at the peak (metres). Round 10: 2.4 (was 1.6), which
+# is about one member's spacing of perimeter (the Gaussian area is BORDER_PUSH x 1.25).
+const BORDER_PUSH := 2.4
 # The push is spread over this many radians (a Gaussian), so the bump is smooth.
 const BORDER_PUSH_WIDTH := 0.5
 # The total size is eased toward the target perimeter over this many seconds.
@@ -362,6 +364,27 @@ const BORDER_LINE_HEIGHT := 0.08
 # Dusk to dawn: the level lasts NIGHT_LENGTH seconds. Grey strength is 1 at dusk and dawn and peaks at midnight.
 const NIGHT_LENGTH := 240.0
 const NIGHT_PEAK_EXTRA := 0.75
+
+# ---- Round 10: easier growth (scripts/border.gd, building.gd, night_cycle.gd, topdown_player.gd). ----
+
+# Calm opening: the grey strength is NIGHT_CALM_STRENGTH for the first NIGHT_CALM_FRACTION of the night, then eases
+# (smoothstep) into the curve above, which peaks at midnight.
+const NIGHT_CALM_FRACTION := 0.25
+const NIGHT_CALM_STRENGTH := 0.2
+# A beautified building whose footprint is this close to the loop (metres) is a border post.
+const BORDER_POST_REACH := 2.0
+# A post holds this many members' worth of perimeter, so the loop needs that many fewer people.
+const BORDER_POST_WORTH := 3
+# Post visuals (placeholder): a warm lantern on the block, and a golden ring around its base.
+const BORDER_POST_LANTERN_COLOUR := Color(1.0, 0.8, 0.45)
+const BORDER_POST_RING_COLOUR := Color(1.0, 0.82, 0.3)
+const BORDER_POST_RING_INNER := 2.3
+const BORDER_POST_RING_OUTER := 2.6
+# An intact stretch is not drained: dark people pressing on it are pushed outward at this speed (metres per second).
+const BORDER_PUSHBACK_SPEED := 0.6
+# The joy burst shoves the border outward toward the player when they are this close to it (metres), by this much.
+const BORDER_SHOVE_RANGE := 4.0
+const BORDER_SHOVE_AMOUNT := 1.5
 
 # The matchups form a soft cycle:
 #   Music is strong against Art, Art is strong against Nature, Nature is strong against Music.

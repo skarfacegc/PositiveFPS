@@ -23,6 +23,8 @@ var perimeter: float = 0.0
 # Distance between neighbouring border members, in metres (perimeter / border members).
 var spacing: float = 0.0
 var member_count: int = 0
+# Beautified buildings on the line that count as posts (see _assign_members). Each holds BORDER_POST_WORTH slots.
+var post_count: int = 0
 var inner_count: int = 0
 # The loop, as (x, z) points in order around the centre. Empty when there is no border.
 var polygon := PackedVector2Array()
@@ -40,6 +42,8 @@ var _line_mat: StandardMaterial3D
 var _has_centre: bool = false
 # Rescued people whose outward push has not been applied yet (see on_rescue).
 var _pending_pushes: Array[Person] = []
+# Where each post stands on the loop (world positions), from the last update. They pull the centre (see _update_centre).
+var _post_points: Array[Vector3] = []
 # Organic: the radius per angle before smoothing, and the size factor that eases toward the target perimeter.
 var _raw_radii: Array[float] = []
 var _scale: float = 1.0
@@ -81,6 +85,7 @@ func register_building(body: StaticBody3D, half: Vector2, is_landmark: bool) -> 
 			b.mat = (child as MeshInstance3D).material_override as StandardMaterial3D
 	if b.mat != null:
 		b.base_colour = b.mat.albedo_color
+	b.attach(body)
 	buildings.append(b)
 	if is_landmark:
 		landmark_building = b
@@ -107,7 +112,7 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 	_assign_members(rescued)
 	_move_members(delta)
 	_update_buildings(delta)
-	_drain_darkness(people, delta, strength)
+	_press_darkness(people, delta, strength)
 	_update_ground()
 	_draw_lines()
 	if _debug_on:
@@ -241,8 +246,8 @@ func debug_summary() -> String:
 	if not active:
 		return "border: none yet"
 	return (
-		"border, members %d, inner %d, spacing %.1f m, gaps %d, night x%.2f"
-		% [member_count, inner_count, spacing, gap_count(), _strength]
+		"border, members %d, inner %d, posts %d, spacing %.1f m, gaps %d, night x%.2f"
+		% [member_count, inner_count, post_count, spacing, gap_count(), _strength]
 	)
 
 
@@ -271,12 +276,16 @@ static func slot_count_for(loop_perimeter: float) -> int:
 	return ceili(loop_perimeter / Config.BORDER_TARGET_SPACING)
 
 
-# One gap flag per slot segment. A segment is a gap if the spacing is too wide, or it touches an empty slot.
-static func gap_flags(spacing_m: float, filled: Array[bool]) -> Array[bool]:
+# One gap flag per slot segment. A segment is a gap if the spacing is too wide, or it touches an empty slot. A segment
+# that
+# touches a post (`anchored`) is never a gap while the post stands.
+static func gap_flags(spacing_m: float, filled: Array[bool], anchored: Array[bool] = []) -> Array[bool]:
 	var out: Array[bool] = []
 	var m := filled.size()
 	for k: int in range(m):
 		var gap := spacing_m > Config.BORDER_MAX_GAP or not filled[k] or not filled[(k + 1) % m]
+		if anchored.size() == m and (anchored[k] or anchored[(k + 1) % m]):
+			gap = false
 		out.append(gap)
 	return out
 
@@ -400,10 +409,16 @@ func _first_crossing(a2: Vector2, b2: Vector2) -> Variant:
 func _update_centre(rescued: Array[Person], delta: float) -> void:
 	if rescued.is_empty():
 		return
+	# Round 10: a post pulls the centre like three rescued people (see BORDER_POST_WORTH), so the loop does not slide away
+	# from a landmark or a captured block that no member stands beside.
 	var sum := Vector3.ZERO
 	for p: Person in rescued:
 		sum += Vector3(p.position.x, 0.0, p.position.z)
-	var target := sum / float(rescued.size())
+	var weight := float(rescued.size())
+	for pt: Vector3 in _post_points:
+		sum += pt * float(Config.BORDER_POST_WORTH)
+		weight += float(Config.BORDER_POST_WORTH)
+	var target := sum / weight
 	if not _has_centre:
 		centre = target
 		_has_centre = true
@@ -416,8 +431,12 @@ func _update_centre(rescued: Array[Person], delta: float) -> void:
 		centre += to.normalized() * step
 
 
-# Splits the rescued people into border members (the outermost, one per slot) and inner members, works out the slots,
-# and the gaps. Everyone gets a target position (see _move_members).
+# Splits the rescued people into border members (the outermost, one per free slot) and inner members, works out the
+# slots
+# and the gaps. Round 10: beautified buildings on the line are posts. Each post claims BORDER_POST_WORTH consecutive
+# slots,
+# so the loop needs that many fewer people, and the segments beside a post are never gaps. Everyone gets a target
+# position (see _move_members).
 func _assign_members(rescued: Array[Person]) -> void:
 	members.clear()
 	inner.clear()
@@ -425,10 +444,14 @@ func _assign_members(rescued: Array[Person]) -> void:
 	_targets.clear()
 	member_count = 0
 	inner_count = 0
+	post_count = 0
 	spacing = 0.0
 	perimeter = 0.0
 	_sample_gap.clear()
 	_arc.clear()
+	for b: Building in buildings:
+		b.set_post(false)
+	_post_points.clear()
 	var n := polygon.size()
 	for j: int in range(n):
 		_sample_gap.append(false)
@@ -443,9 +466,40 @@ func _assign_members(rescued: Array[Person]) -> void:
 		acc += polygon[j].distance_to(polygon[(j + 1) % n])
 	_arc.append(acc)
 
-	var m := mini(rescued.size(), slot_count_for(perimeter))
+	var posts := _find_posts(slot_count_for(perimeter))
+	post_count = posts.size()
+	var m := mini(rescued.size(), required_members())
 	if m < 1:
 		return
+	# The slot grid: m member slots plus BORDER_POST_WORTH slots per post, evenly spaced around the loop.
+	var k_total := m + Config.BORDER_POST_WORTH * post_count
+	spacing = perimeter / float(k_total)
+	var slot_taken: Array[bool] = []
+	var post_slot: Array[bool] = []
+	for k: int in range(k_total):
+		slot_taken.append(false)
+		post_slot.append(false)
+	var placed := 0
+	for entry: Dictionary in posts:
+		var b: Building = entry["building"]
+		var arc: float = entry["arc"]
+		var c := roundi(arc / spacing)
+		for off: int in range(k_total):
+			var s := posmod(c - 1 + off, k_total)
+			if _run_free(slot_taken, s):
+				for t: int in range(Config.BORDER_POST_WORTH):
+					slot_taken[posmod(s + t, k_total)] = true
+					post_slot[posmod(s + t, k_total)] = true
+				b.set_post(true)
+				placed += 1
+				var at2 := _point_at_arc(arc)
+				_post_points.append(Vector3(at2.x, 0.0, at2.y))
+				break
+	post_count = placed
+
+	var slots: Array[Vector2] = []
+	for k: int in range(k_total):
+		slots.append(_point_at_arc(float(k) * spacing))
 	# The outermost m rescued people are border members; the rest are inner members.
 	var remaining: Array[Person] = []
 	for p: Person in rescued:
@@ -462,26 +516,21 @@ func _assign_members(rescued: Array[Person]) -> void:
 		border_list.append(remaining[best_i])
 		remaining.remove_at(best_i)
 	inner = remaining
-	spacing = perimeter / float(m)
 
-	# Greedy assignment: each border member takes the nearest free slot, in the order they were chosen.
-	var slots: Array[Vector2] = []
-	var used: Array[bool] = []
-	for k: int in range(m):
-		slots.append(_point_at_arc(float(k) * spacing))
-		used.append(false)
+	# Greedy assignment: each border member takes the nearest free slot, in the order they were chosen. There are always
+	# at least m free slots, because the posts were counted out of the slot total.
 	for p: Person in border_list:
 		var pos2 := Vector2(p.position.x, p.position.z)
 		var best_k := -1
 		var best_d2 := INF
-		for k: int in range(m):
-			if used[k]:
+		for k: int in range(k_total):
+			if slot_taken[k]:
 				continue
 			var d2 := pos2.distance_to(slots[k])
 			if d2 < best_d2:
 				best_d2 = d2
 				best_k = k
-		used[best_k] = true
+		slot_taken[best_k] = true
 		_targets[p] = Vector3(slots[best_k].x, 0.0, slots[best_k].y)
 		members.append(p)
 
@@ -493,13 +542,59 @@ func _assign_members(rescued: Array[Person]) -> void:
 
 	member_count = members.size()
 	inner_count = inner.size()
-	var filled: Array[bool] = []
-	for k: int in range(m):
-		filled.append(true)
-	segment_gap = gap_flags(spacing, filled)
+	var anchored: Array[bool] = []
+	for k: int in range(k_total):
+		anchored.append(post_slot[k] or post_slot[(k + 1) % k_total])
+	segment_gap = gap_flags(spacing, slot_taken, anchored)
 	for j: int in range(n):
-		var k := mini(m - 1, floori(_arc[j] / spacing))
+		var k := mini(k_total - 1, floori(_arc[j] / spacing))
 		_sample_gap[j] = segment_gap[k]
+
+
+# True when slot `s` and the BORDER_POST_WORTH slots after it are all free (see _assign_members).
+static func _run_free(taken: Array[bool], s: int) -> bool:
+	var k := taken.size()
+	for t: int in range(Config.BORDER_POST_WORTH):
+		if taken[posmod(s + t, k)]:
+			return false
+	return true
+
+
+# The members the loop needs now: the slots its perimeter holds, less BORDER_POST_WORTH for each post.
+func required_members() -> int:
+	return maxi(0, slot_count_for(perimeter) - Config.BORDER_POST_WORTH * post_count)
+
+
+# The beautified buildings the loop passes within BORDER_POST_REACH of. Each entry has the building and the arc length
+# of
+# the nearest loop point. At most as many as leave BORDER_MIN_PEOPLE slots for people.
+func _find_posts(slots_total: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var cap := (slots_total - Config.BORDER_MIN_PEOPLE) / Config.BORDER_POST_WORTH
+	for b: Building in buildings:
+		if not b.beautified or out.size() >= cap:
+			continue
+		var near := _nearest_loop_point_to_box(b)
+		if near.x <= Config.BORDER_POST_REACH:
+			out.append({"building": b, "arc": near.y})
+	return out
+
+
+# The distance from a building's footprint to the nearest loop point, and that point's arc length: Vector2(distance,
+# arc).
+func _nearest_loop_point_to_box(b: Building) -> Vector2:
+	var best := Vector2(INF, 0.0)
+	for j: int in range(polygon.size()):
+		var d := box_distance(polygon[j], b.centre, b.half)
+		if d < best.x:
+			best = Vector2(d, _arc[j])
+	return best
+
+
+# Distance from point `p` to the box centred on `c` with half-size `half` (0 inside it).
+static func box_distance(p: Vector2, c: Vector2, half: Vector2) -> float:
+	var d := Vector2(maxf(absf(p.x - c.x) - half.x, 0.0), maxf(absf(p.y - c.y) - half.y, 0.0))
+	return d.length()
 
 
 # The point on the loop at arc length `s` from its first point.
@@ -565,26 +660,81 @@ func _update_buildings(delta: float) -> void:
 		b.update(delta, frac)
 
 
-# Dark people outside the loop drain the nearest member within BORDER_PRESS_RANGE (at the usual drain rate, scaled by
-# the night strength). Dark people inside are handled by GloomSim.
-func _drain_darkness(people: Array[Person], delta: float, strength: float) -> void:
+# Dark people pressing on the border (outside, within BORDER_PRESS_RANGE of the line). On an intact stretch they are
+# pushed
+# outward at BORDER_PUSHBACK_SPEED and nothing is drained. At a gap they drain the nearest member, at the usual drain
+# rate
+# scaled by the night strength. Dark people inside are handled by GloomSim.
+func _press_darkness(people: Array[Person], delta: float, strength: float) -> void:
 	if not active:
 		return
 	var rate := Config.SPREAD_DRAIN_RATE * Config.TD_DRAIN_MULTIPLIER * strength * delta
 	for p: Person in people:
 		if p.is_rescued or not GloomSim.is_dark(p):
 			continue
-		if Geometry2D.is_point_in_polygon(Vector2(p.position.x, p.position.z), polygon):
+		var p2 := Vector2(p.position.x, p.position.z)
+		if Geometry2D.is_point_in_polygon(p2, polygon):
 			continue
-		var best: Person = null
-		var best_d := INF
-		for m: Person in members:
-			var d := GloomSim.flat_dist(p.position, m.position)
-			if d <= Config.BORDER_PRESS_RANGE and d < best_d:
-				best_d = d
-				best = m
-		if best != null:
-			best.drain_joy(rate)
+		var near := _nearest_on_loop(p2)
+		var dist: float = near["dist"]
+		if dist > Config.BORDER_PRESS_RANGE:
+			continue
+		var seg: int = near["seg"]
+		if segment_is_gap(seg):
+			var best := _nearest_member(p.position)
+			if best != null:
+				best.drain_joy(rate)
+		else:
+			var point: Vector2 = near["point"]
+			var out := p2 - point
+			if out.length() < 0.001:
+				out = p2 - Vector2(centre.x, centre.z)
+			if out.length() < 0.001:
+				continue
+			var move := out.normalized() * Config.BORDER_PUSHBACK_SPEED * delta
+			p.position += Vector3(move.x, 0.0, move.y)
+
+
+# The border member nearest to `pos`, or null when there are none.
+func _nearest_member(pos: Vector3) -> Person:
+	var best: Person = null
+	var best_d := INF
+	for m: Person in members:
+		var d := GloomSim.flat_dist(pos, m.position)
+		if d < best_d:
+			best_d = d
+			best = m
+	return best
+
+
+# The nearest point on the loop to `p2`: a Dictionary with "dist" (metres), "point" (Vector2) and "seg" (segment index).
+func _nearest_on_loop(p2: Vector2) -> Dictionary:
+	var best := {"dist": INF, "point": p2, "seg": -1}
+	var n := polygon.size()
+	for j: int in range(n):
+		var c := Geometry2D.get_closest_point_to_segment(p2, polygon[j], polygon[(j + 1) % n])
+		var d := c.distance_to(p2)
+		var best_dist: float = best["dist"]
+		if d < best_dist:
+			best = {"dist": d, "point": c, "seg": j}
+	return best
+
+
+# The joy burst shoves the border outward toward the player when they are within BORDER_SHOVE_RANGE of the line. It
+# uses the
+# same bump as a rescue, divided by the size factor so that it shows as about BORDER_SHOVE_AMOUNT metres on the line.
+func shove(at: Vector3) -> void:
+	if not active:
+		return
+	var p2 := Vector2(at.x, at.z)
+	var near := _nearest_on_loop(p2)
+	var dist: float = near["dist"]
+	if dist > Config.BORDER_SHOVE_RANGE:
+		return
+	var to := p2 - Vector2(centre.x, centre.z)
+	if to.length() < 0.001:
+		return
+	_push_at(atan2(to.y, to.x), Config.BORDER_SHOVE_AMOUNT / maxf(_scale, 0.01))
 
 
 # The ground inside the loop is painted by the region (paint edge uses its own painted region instead).

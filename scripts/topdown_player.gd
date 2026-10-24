@@ -11,6 +11,8 @@ signal target_changed(affinity: int)
 signal targeting_changed(mode: int)
 # Emitted when F3 is pressed. The level toggles its debug overlay.
 signal debug_toggled
+# Emitted when the joy burst is used, with the player's position (the border shoves toward it).
+signal burst_fired(at: Vector3)
 
 var targeting_mode: int = Config.TD_TARGETING_MODE
 # The person being shot at, or null. Kept between frames in lock-on and hover modes.
@@ -276,6 +278,7 @@ func _burst() -> void:
 		if _flat_dist(global_position, p.global_position) <= Config.TD_BURST_RADIUS:
 			p.receive_joy(p.affinity, Config.TD_BURST_JOY, 0.0)
 	_spawn_burst_ring()
+	burst_fired.emit(global_position)
 
 
 func _spawn_burst_ring() -> void:

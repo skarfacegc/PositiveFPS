@@ -135,7 +135,8 @@ func test_three_locked_rescues_by_real_clicks_form_the_border() -> void:
 
 
 func test_slot_and_inner_counts_follow_the_formula() -> void:
-	# A circle of radius 3 (perimeter about 18.85) has 9 slots. Twelve people: nine border members, three inner.
+	# A circle of radius 3 (perimeter about 18.85) has 7 slots at 3.0 m (round 10). Twelve people: seven border members,
+	# five inner.
 	var loop := Border.circle_polygon(Vector2.ZERO, 3.0, Config.BORDER_SAMPLES)
 	var border := _bare_border(loop)
 	var people := _people(12)
@@ -144,9 +145,9 @@ func test_slot_and_inner_counts_follow_the_formula() -> void:
 		people[i].position = Vector3(cos(float(i)) * 3.0, 0.0, sin(float(i)) * 3.0)
 		rescued.append(people[i])
 	border._assign_members(rescued)
-	assert_int(border.member_count).is_equal(9)
-	assert_int(border.inner_count).is_equal(3)
-	assert_float(border.spacing).is_equal_approx(Border.perimeter_of(loop) / 9.0, 0.001)
+	assert_int(border.member_count).is_equal(7)
+	assert_int(border.inner_count).is_equal(5)
+	assert_float(border.spacing).is_equal_approx(Border.perimeter_of(loop) / 7.0, 0.001)
 	assert_int(border.gap_count()).is_equal(0)
 
 
@@ -389,3 +390,34 @@ func test_f3_from_the_menu_shows_the_border_labels() -> void:
 	assert_str(td.hud.debug_hint_label.text).contains("border")
 	assert_int(td.border.visible_debug_label_count()).is_greater(0)
 	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+# Round 10: the joy burst used within BORDER_SHOVE_RANGE of the line shoves it outward toward the player.
+func _radius_toward(border: Border, dir: Vector2) -> float:
+	var c := Vector2(border.centre.x, border.centre.z)
+	var best_r := 0.0
+	var best_dot := -INF
+	for p2: Vector2 in border.polygon:
+		var v := p2 - c
+		var d := v.normalized().dot(dir)
+		if d > best_dot:
+			best_dot = d
+			best_r = v.length()
+	return best_r
+
+
+func test_the_joy_burst_near_the_border_bulges_it_toward_the_player() -> void:
+	var s: Dictionary = await _start()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	_rescue_ring(td, Vector3.ZERO, 4.0, 8)
+	await runner.simulate_frames(300)
+	var before := _radius_toward(td.border, Vector2.RIGHT)
+	# Stand 2 m outside the line, to the east, and use the joy burst (G) with real input.
+	td.player.global_position = Vector3(before + 2.0, 0.0, 0.0)
+	await runner.simulate_frames(2)
+	runner.simulate_key_pressed(KEY_G)
+	await runner.simulate_frames(120)
+	var after := _radius_toward(td.border, Vector2.RIGHT)
+	assert_float(after - before).is_greater(0.8)
+	assert_float(after - before).is_less(1.8)
