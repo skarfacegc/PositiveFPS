@@ -235,3 +235,41 @@ menu picks one of three border shapes, so they can be compared in play.
 - Organic wrapping can jump the loop out past a block, so a border can briefly bulge into a corridor.
 - The end screen counts beautified buildings and the painted share at the end, not the peak.
 
+
+## Round 10 plan (after playing round 9, 2026-10-24)
+Playtest 9 feedback: the living border is good and just needs balance; it was too hard to grow the control zone. Green
+circles (most likely nature blooms) were distracting, especially with all the other floor detail.
+
+**A. Make growing easier (suggestions 2 + 3)**
+- More ground per rescue: border spacing per person 2.2 m to about 3.0 m, and a bigger outward push where you rescue
+  (organic variant).
+- Captured buildings become **border posts**: a beautified building on the border line holds that stretch on its own,
+  worth several people, so growth accelerates as you capture buildings.
+- Calm opening: almost no grey pressure for the first quarter of the night, then a build toward midnight.
+- An intact border slowly pushes dark people back instead of being drained; drain only happens at gaps.
+- The joy burst used near the border shoves the line outward a little.
+- Overextension stays the risk: wider spacing means gaps appear sooner if people relapse.
+
+**B. Calm the floor (visual hierarchy)**
+- Audit every floor overlay (painted tiles, splats, drip dots, splash rings, music ring pulses, blooms, grace rings,
+  target highlight, border line and gaps) and rank them. Border and gaps first, then the target and threats, then
+  everything else.
+- Blooms become subtle: no hard outline, low alpha, a few petals, quick fade. Splats and drip dots get smaller and fade
+  faster; impact rings get fainter. Cap the number of floor effects alive at once.
+- Add an F3 debug readout that counts live floor effects by type, so the next "what was that?" is answerable.
+
+**C. Readability from the locked art style** (design/style_test/REVIEW_NOTES.md, placeholder visuals until the style
+pass)
+- Closer camera (orthographic, about the locked size 14.5).
+- Circular minimap, top-left: warm and grey ground, buildings, border, gaps, dark people, landmark, player.
+- Off-screen gap arrows on the screen edge.
+- Bigger, more readable people and a distinct player marker.
+- Gaps pulse softly (coral, 1.2 s, eased) instead of a hard flicker.
+
+**D. Tooling**
+- The pre-commit hook skips the test gate for commits that only touch design/.
+
+**Open questions for the playtest:** which border variant felt best? Is the calm opening long enough? Do border posts
+make buildings feel worth capturing?
+
+**After round 10:** the full style pass (port design/style_test into the game).
