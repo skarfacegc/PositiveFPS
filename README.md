@@ -2,7 +2,7 @@
 
 A gentle top-down territory game. Dark people slowly take over a plaza, and you rescue people to bring joy back. The
 people you rescue form a living border that holds the darkness back and paints the land inside it. The level runs from
-dusk to dawn: the light fades, the grey gets stronger at midnight, and the level ends at dawn. (Round 10. The first person
+dusk to dawn: the light fades, the grey gets stronger at midnight, and the level ends at dawn. (Round 11. The first person
 mode was retired.)
 
 ## How to run
@@ -21,15 +21,15 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
 ## The living border
 
 - **The centre forms by itself.** It is the average position of the rescued people. There is no pre-placed heart.
-- **Three people make a border.** The rescued people stand evenly spaced along it, 3 m apart (the outermost ones are
+- **Three people make a border.** The rescued people stand evenly spaced along it, 2.6 m apart (the outermost ones are
   the border; the rest stand inside). A stretch longer than 3.5 m is a **gap**, which glows coral and pulses softly.
   Gaps let darkness through.
 - **Posts.** A beautified block on the line (or the landmark, once beautified) is a **post**: it has a warm lantern and
   a golden ring, and it holds three people's worth of border, so the loop needs three fewer people. Segments beside a
   post are never gaps.
 - **Darkness is held back.** Dark people outside the border cannot cross a solid (gold) stretch. Pressing on an intact
-  stretch pushes them back, and nobody is drained. Through a gap they can get in, and they drain the nearest border
-  person.
+  stretch pushes them back, and it drains the nearest border person a little (a quarter of the rate through a gap).
+  Through a gap they can get in, and they drain the nearest border person at the full rate.
 - **Relapses open holes.** A border person who relapses steps out, and the others shuffle to close the gap. With too
   few people, the gaps stay open.
 - **Inside the border the land changes.** The ground is painted warm (it fills in slowly), and blocks inside are

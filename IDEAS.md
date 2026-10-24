@@ -450,3 +450,32 @@ buildings, people, player, border, minimap). This is the already-planned style p
 
 **Watch for:** the two looks drifting apart in readability (a gap that is obvious as a placeholder may be subtle when
 styled). Keep style rounds regular, and check readability of gaps, threats and the player in both modes.
+
+## Round 11 build (tuning)
+Built from the round 10 feedback above. Values changed in `scripts/config.gd`; the rules are in `gloom_sim.gd` (darkening)
+and `border.gd` (intact drain). Unchanged: calm opening, border posts, floor effects, minimap and arrows.
+
+Final values (round 10 in brackets):
+- Walk `TD_MOVE_SPEED` 6.9 (6.0); run `TD_RUN_SPEED` 10.9 (9.5), about +15%.
+- Wandering and dark drift `TD_WANDER_SPEED` and `TD_DARK_DRIFT_SPEED` 0.92 (0.8), about +15%.
+- Night `NIGHT_LENGTH` 180 s (240). The calm opening is still a quarter of the night (now 45 s), the curve is unchanged.
+- Darkening: `GLOOM_DARK_STEP_MULT` 0.65 on growth at grey only (grey to dark about 35% slower). Light grey to grey is
+  unchanged. Spread and contagion are unchanged.
+- Camera `TD_CAMERA_ORTHO_SIZE` 16.7 (14.5), about 15% further out. Distance and pitch are unchanged.
+- `TD_AUTO_RANGE` 10.0 (8.6). A ring 11 m out no longer fits the 1280x720 view (the test checks both).
+- `TD_UI_SCALE` 2.2 (1.9), so labels keep their size on screen with the wider view (1.9 x 16.7 / 14.5 is 2.19, rounded).
+  F3 label sizes are in metres and are unchanged.
+- Border `BORDER_TARGET_SPACING` 2.6 (3.0). Gaps are still over `BORDER_MAX_GAP` 3.5 m.
+- `BORDER_PUSHBACK_SPEED` 0.35 (0.6).
+- New `BORDER_INTACT_DRAIN_FRACTION` 0.25: dark people pressing an intact stretch drain the nearest member at a quarter
+  of the gap rate (gaps keep the full rate, 24 joy per second at strength 1).
+
+Playtest questions for round 11:
+- Pace: does the walk and run feel right now, and do the grey and dark people feel fast enough to be a threat, not a
+  nuisance?
+- Darkening: does grey to dark feel slower, while light grey to grey still feels good?
+- Zoom and range: is the wider view still easy to read? Is 10 m the right range (does auto feel too eager now)?
+  Are the labels still readable?
+- Growth risk: is it risky enough again? Does a lone press on the intact line feel like a threat, or does it still feel
+  harmless?
+- Night: does 3 minutes feel like the right length for the calm opening and the midnight push?
