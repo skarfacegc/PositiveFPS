@@ -520,6 +520,8 @@ progression tree.
 **E. Noticeable grey-level changes**
 - A short cold puff or ripple when someone darkens, and a warm one when they lighten.
 - A brief blip on the minimap when someone turns dark.
+- A sound cue is wanted for each transition, but is not designed yet. It waits for a general discussion about sound
+  cues (to do, not now).
 
 **Deferred:** checking balance with one starting element waits for the level goals and progression work (every
 element is still available until then).
