@@ -65,7 +65,7 @@ func test_update_clamps_at_the_end_of_the_night() -> void:
 
 
 func test_the_level_shows_the_night_progress_and_its_light() -> void:
-	var runner: GdUnitSceneRunner = scene_runner(TopDownTestUtil.SCENE)
+	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(10)
 	var td: TopDownMain = runner.scene()
 	td.night.elapsed = Config.NIGHT_LENGTH / 2.0

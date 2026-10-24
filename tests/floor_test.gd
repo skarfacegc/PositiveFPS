@@ -5,7 +5,7 @@ extends GdUnitTestSuite
 
 
 func _start() -> Dictionary:
-	var runner: GdUnitSceneRunner = scene_runner(TopDownTestUtil.SCENE)
+	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(10)
 	var td: TopDownMain = runner.scene()
 	TopDownTestUtil.send_everyone_away(td)

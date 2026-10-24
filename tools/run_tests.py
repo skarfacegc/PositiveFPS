@@ -2,22 +2,32 @@
 """Runs the PositiveFPS gdUnit4 test suite headless.
 
 Usage:
-    python tools/run_tests.py                 # test the repo itself
+    python tools/run_tests.py                 # test the repo itself, suites in parallel Godot processes
     python tools/run_tests.py --project DIR   # test another copy of the project
+    python tools/run_tests.py --workers 1     # one Godot process runs everything (the old, serial behaviour)
+    python tools/run_tests.py --update-weights  # after a run, record each test's duration in tools/test_weights.json
 
 The Godot console executable comes from the GODOT environment variable, or the known install path below.
 Reports are written to <project>/reports/<timestamp>/ (HTML and JUnit XML). The exit code is 0 when all
 tests pass, 1 when any test fails, and 2 if Godot could not run.
 
+Parallelism: the suites are independent (each builds its own scene), so they are split into units and run in
+several Godot processes at once (`--workers`, default WORKERS_DEFAULT). A unit is a whole suite, or, for suites
+with slow tests listed in tools/test_weights.json, a single slow test, so one slow suite cannot set the run time.
+Every process uses the same fixed 1/60 s step and seed, so results do not depend on the split or the order.
+
 Only the Python standard library is used. This module's functions are also used by tools/coverage.py.
 """
 import argparse
+import concurrent.futures
 import datetime
+import json
 import os
+import re
 import subprocess
 import sys
+import threading
 import xml.etree.ElementTree as ET
-
 
 
 def _use_utf8_console():
@@ -40,6 +50,11 @@ DEFAULT_GODOT = (
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Frames per second forced for test runs (Godot --fixed-fps). Matches the physics tick rate in project.godot.
 TEST_FIXED_FPS = 60
+WORKERS_DEFAULT = max(1, min(8, (os.cpu_count() or 2) // 2))
+WEIGHTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_weights.json")
+UNKNOWN_TEST_SECONDS = 0.5  # weight of a test that is not in test_weights.json yet
+OWN_UNIT_SECONDS = 3.0  # a test at least this slow gets a Godot process of its own
+_print_lock = threading.Lock()
 
 
 def godot_path():
@@ -69,8 +84,8 @@ def import_project(project):
         raise RuntimeError("Godot --import failed with exit code %d" % code)
 
 
-def run_gdunit(project, report_dir, extra_args=None):
-    """Runs every test under res://tests with the gdUnit4 CLI. Returns Godot's exit code."""
+def gdunit_args(report_dir, suite=None, skip=None):
+    """The Godot arguments for one gdUnit4 CLI run: every test (or one suite), minus the `skip` test names."""
     args = [
         # Fixed timestep: every frame advances exactly 1/60 s of game time and the physics steps match,
         # so frame timing (and the top-down wander and firing timers) cannot vary from run to run.
@@ -78,11 +93,90 @@ def run_gdunit(project, report_dir, extra_args=None):
         "-s", "res://addons/gdUnit4/bin/GdUnitCmdTool.gd",
         "--ignoreHeadlessMode",
         "-c",  # keep running after a failure
-        "-a", "res://tests",
+        "-a", "res://tests" + ("/%s.gd" % suite if suite else ""),
         "-rd", report_dir,
-    ] + (extra_args or [])
-    code, _ = run_godot(args, project)
-    return code
+    ]
+    for name in skip or []:
+        args += ["-i", "res://tests/%s.gd:%s" % (suite, name)]
+    return args
+
+
+def discover_tests(project):
+    """Returns {suite name: [test function names, in file order]} for tests/*_test.gd."""
+    out = {}
+    tests_dir = os.path.join(project, "tests")
+    for name in sorted(os.listdir(tests_dir)):
+        if not name.endswith("_test.gd"):
+            continue
+        with open(os.path.join(tests_dir, name), encoding="utf-8") as fh:
+            found = re.findall(r"^func (test_\w+)\(", fh.read(), re.M)
+        if found:
+            out[name[:-3]] = found
+    return out
+
+
+def load_weights():
+    try:
+        with open(WEIGHTS_FILE, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return {}
+
+
+def plan_units(tests, weights):
+    """Splits the suites into units that run in separate Godot processes, heaviest first.
+
+    Returns a list of {"name", "suite", "skip", "weight"}. A unit runs one suite minus the tests in `skip`.
+    """
+    units = []
+    for suite, names in tests.items():
+        w = {n: weights.get("%s::%s" % (suite, n), UNKNOWN_TEST_SECONDS) for n in names}
+        slow = [n for n in names if w[n] >= OWN_UNIT_SECONDS]
+        rest = [n for n in names if n not in slow]
+        for n in slow:
+            units.append({"name": "%s::%s" % (suite, n), "suite": suite,
+                          "skip": [m for m in names if m != n], "weight": w[n]})
+        if rest and slow:
+            units.append({"name": "%s (rest)" % suite, "suite": suite, "skip": slow,
+                          "weight": sum(w[n] for n in rest)})
+        elif rest:
+            units.append({"name": suite, "suite": suite, "skip": [], "weight": sum(w.values())})
+    units.sort(key=lambda u: -u["weight"])
+    return units
+
+
+def run_parallel(project, report_dir, workers, cov_dir=None):
+    """Runs all test units, `workers` Godot processes at a time. Returns (worst exit code, results list)."""
+    units = plan_units(discover_tests(project), load_weights())
+
+    def job(i, unit):
+        unit_dir = os.path.join(report_dir, "u%02d" % i)
+        os.makedirs(unit_dir, exist_ok=True)
+        env = {}
+        if cov_dir:
+            env["POSITIVEFPS_COV_OUT"] = os.path.join(cov_dir, "hits_%02d.json" % i)
+        code, out = run_godot(gdunit_args(unit_dir, unit["suite"], unit["skip"]), project, env, stream=False)
+        xml = latest_results_xml(unit_dir)
+        parsed = parse_results(xml) if xml else None
+        with _print_lock:
+            print("unit %-70s exit %d" % (unit["name"], code), flush=True)
+            if parsed is None or code not in (0, 100):
+                print(out, flush=True)
+        return code, parsed
+
+    code = 0
+    results = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        futures = [pool.submit(job, i, u) for i, u in enumerate(units)]
+        for f in futures:
+            unit_code, parsed = f.result()
+            if parsed is None:
+                code = max(code, 2)
+            else:
+                results.extend(parsed)
+                code = max(code, 1 if unit_code not in (0, 100) else 0)
+    results.sort(key=lambda r: (r["file"], r["name"]))
+    return code, results
 
 
 def latest_results_xml(report_dir):
@@ -97,7 +191,7 @@ def latest_results_xml(report_dir):
 
 
 def parse_results(xml_path):
-    """Returns a list of {file, name, ok, messages} dicts, one per test case, from a gdUnit4 JUnit XML."""
+    """Returns a list of {file, name, ok, messages, time} dicts, one per test case, from a gdUnit4 JUnit XML."""
     tree = ET.parse(xml_path)
     results = []
     for case in tree.iter("testcase"):
@@ -110,30 +204,43 @@ def parse_results(xml_path):
                 ok = False
                 text = (child.get("message") or "") + " " + (child.text or "")
                 messages.append(" ".join(text.split()))
-        results.append({"file": file_name, "name": case.get("name", ""), "ok": ok, "messages": messages})
+        results.append({"file": file_name, "name": case.get("name", ""), "ok": ok, "messages": messages,
+                        "time": float(case.get("time", 0) or 0)})
     return results
 
 
-def run_suite(project, report_root=None):
-    """Runs the whole suite on `project`. Returns (exit code, list of test result dicts or None)."""
+def run_suite(project, report_root=None, workers=None, cov_dir=None):
+    """Runs the whole suite on `project`. Returns (exit code, list of test result dicts or None, report dir).
+
+    workers=1 runs everything in one Godot process; more runs units in parallel (see the module docstring).
+    cov_dir: a folder where each process writes its coverage hits (used by tools/coverage.py).
+    """
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     report_root = report_root or os.path.join(project, "reports")
     report_dir = os.path.join(report_root, stamp)
     os.makedirs(report_dir, exist_ok=True)
     import_project(project)
-    code = run_gdunit(project, report_dir)
-    xml = latest_results_xml(report_dir)
-    results = parse_results(xml) if xml else None
-    return code, results, report_dir
+    workers = WORKERS_DEFAULT if workers is None else workers
+    if workers <= 1:
+        env = {"POSITIVEFPS_COV_OUT": os.path.join(cov_dir, "hits_00.json")} if cov_dir else None
+        code, _ = run_godot(gdunit_args(report_dir), project, env)
+        xml = latest_results_xml(report_dir)
+        return code, (parse_results(xml) if xml else None), report_dir
+    code, results = run_parallel(project, report_dir, workers, cov_dir)
+    return code, (results or None), report_dir
 
 
 def main():
     parser = argparse.ArgumentParser(description="Run the PositiveFPS gdUnit4 suite headless.")
     parser.add_argument("--project", default=ROOT, help="project folder (default: this repo)")
+    parser.add_argument("--workers", type=int, default=None,
+                        help="Godot processes to run at once (default %d; 1 = serial)" % WORKERS_DEFAULT)
+    parser.add_argument("--update-weights", action="store_true",
+                        help="after the run, write each test's duration to tools/test_weights.json")
     args = parser.parse_args()
     project = os.path.abspath(args.project)
     try:
-        code, results, report_dir = run_suite(project)
+        code, results, report_dir = run_suite(project, workers=args.workers)
     except (RuntimeError, OSError) as err:
         print("ERROR: " + str(err), file=sys.stderr)
         return 2
@@ -141,6 +248,12 @@ def main():
         print("ERROR: no results.xml written; see the Godot output above.", file=sys.stderr)
         return 2
     failed = [r for r in results if not r["ok"]]
+    if args.update_weights:
+        weights = {"%s::%s" % (r["file"], r["name"]): round(r["time"], 1) for r in results}
+        with open(WEIGHTS_FILE, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(weights, fh, indent=0, sort_keys=True)
+            fh.write("\n")
+        print("Wrote %s" % WEIGHTS_FILE)
     print("")
     print("Tests: %d passed, %d failed (reports: %s)" % (len(results) - len(failed), len(failed), report_dir))
     for r in failed:

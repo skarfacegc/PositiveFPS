@@ -5,9 +5,7 @@ extends GdUnitTestSuite
 
 
 func _start() -> Dictionary:
-	get_window().size = Vector2i(1280, 720)
-	await get_tree().process_frame
-	var runner: GdUnitSceneRunner = scene_runner(TopDownTestUtil.SCENE)
+	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self, true)
 	await runner.simulate_frames(10)
 	var td: TopDownMain = runner.scene()
 	return {"runner": runner, "td": td}
@@ -78,6 +76,12 @@ func test_the_minimap_marks_dark_people_and_refreshes_about_ten_times_a_second()
 	TopDownTestUtil.place(td.people[0], Vector3(-10, 0, 10), 0, 1.0)
 	_refresh(td)
 	assert_int(td.minimap.dark_pts.size()).is_equal(1)
+	# A dark person in the plaza corner is on the map's data but outside its circle, so no pixel is drawn there.
+	TopDownTestUtil.place(td.people[1], TopDownTestUtil.FAR, 0, 1.0)
+	_refresh(td)
+	assert_int(td.minimap.dark_pts.size()).is_equal(2)
+	var corner := td.minimap._to_px(Vector2(TopDownTestUtil.FAR.x, TopDownTestUtil.FAR.z))
+	assert_float(td.minimap._image.get_pixel(int(corner.x), int(corner.y)).a).is_equal(0.0)
 	# The tick is due once a refresh interval has passed, and not before.
 	td.minimap._timer = 0.0
 	assert_bool(td.minimap.tick(0.05)).is_false()

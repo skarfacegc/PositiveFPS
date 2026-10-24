@@ -25,7 +25,7 @@ func _person(affinity: int, pos: Vector3, gloom: float, rescued: bool = false) -
 
 
 func _start() -> Dictionary:
-	var runner: GdUnitSceneRunner = scene_runner(TopDownTestUtil.SCENE)
+	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(60)
 	return {"runner": runner, "td": runner.scene()}
 
