@@ -245,3 +245,68 @@ func test_dimmed_people_have_a_haze_and_wistful_or_gloomy_people_do_not() -> voi
 	# A rescued person has none either.
 	dimmed.receive_joy(dimmed.affinity, Config.JOY_MAX * 3.0, 0.0)
 	assert_bool(dimmed.look.has_aura()).is_false()
+
+
+# --- Edge cases (direct calls on Grabs) ------------------------------------------------------------------------
+
+
+func test_a_windup_is_cancelled_when_the_player_goes_dim() -> void:
+	var s: Dictionary = await _start()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	var grabber: Person = s["grabber"]
+	await runner.simulate_frames(15)
+	assert_bool(td.grabs.is_winding_up(grabber)).is_true()
+	td.player.lose_spirit(1000.0)
+	await runner.simulate_frames(2)
+	assert_bool(td.grabs.is_grabbing(grabber)).is_false()
+	assert_float(grabber.grab_frac).is_equal(0.0)
+	assert_bool(grabber.look.grab_ring.visible).is_false()
+	await runner.simulate_frames(60)
+	assert_int(_landed).is_equal(0)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func _bare_player_and_person(person_at: Vector3, player_at: Vector3) -> Dictionary:
+	var player: TopDownPlayer = auto_free(TopDownPlayer.new())
+	add_child(player)
+	player.global_position = player_at
+	var p: Person = auto_free(Person.new())
+	p.gloom = 0.95
+	add_child(p)
+	p.global_position = person_at
+	var grabs: Grabs = auto_free(Grabs.new())
+	add_child(grabs)
+	grabs.grab_avoided.connect(_on_avoided)
+	grabs.grab_landed.connect(_on_landed)
+	return {"player": player, "person": p, "grabs": grabs}
+
+
+func test_a_twirl_from_far_away_that_ends_in_reach_is_a_plain_avoid() -> void:
+	_avoided.clear()
+	var d := _bare_player_and_person(Vector3.ZERO, Vector3(0, 0, 1.0))
+	var player: TopDownPlayer = d["player"]
+	var grabs: Grabs = d["grabs"]
+	var person: Person = d["person"]
+	# The twirl began 10 m away (so nothing was about to land), but the dash ended within reach: still safe, no burst.
+	player.twirl_age = 0.1
+	player.twirl_from = Vector3(10, 0, 10)
+	grabs._resolve(person, player)
+	assert_array(_avoided).is_equal([false])
+	assert_float(player.spirit).is_equal(Config.SPIRIT_START)
+
+	# A twirl that ended out of reach with a far start: nothing to report.
+	_avoided.clear()
+	player.global_position = Vector3(0, 0, 6.0)
+	grabs._resolve(person, player)
+	assert_array(_avoided).is_empty()
+
+
+func test_aiming_at_a_player_on_the_same_spot_changes_nothing() -> void:
+	var d := _bare_player_and_person(Vector3(2, 0, 2), Vector3(2, 0, 2))
+	var p: Person = d["person"]
+	var before := p.grab_toward
+	var grabs: Grabs = d["grabs"]
+	var player: TopDownPlayer = d["player"]
+	grabs._aim(p, player)
+	assert_vector(p.grab_toward).is_equal(before)
