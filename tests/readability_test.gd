@@ -159,7 +159,7 @@ func test_a_gap_glows_coral_and_intact_stretches_stay_gold() -> void:
 func test_the_player_marker_is_saffron_and_no_person_shares_its_colour() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
-	var col := td.player.body_mat.albedo_color
+	var col := (td.player.look as PlayerLookPlaceholder).body_mat.albedo_color
 	assert_float(col.r).is_equal_approx(Config.TD_PLAYER_COLOUR.r, 0.001)
 	for c: Color in Config.ELEMENT_COLORS:
 		assert_bool(col.is_equal_approx(c)).is_false()
@@ -172,7 +172,7 @@ func test_people_are_drawn_one_and_a_half_times_bigger_and_collide_the_same() ->
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	var p: Person = td.people[0]
-	assert_float(p.visual.scale.x).is_equal_approx(1.5, 0.0001)
+	assert_float(p.look.visual.scale.x).is_equal_approx(1.5, 0.0001)
 	var shape: CapsuleShape3D = null
 	for child: Node in p.get_children():
 		if child is CollisionShape3D:

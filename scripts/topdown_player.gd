@@ -24,15 +24,17 @@ var camera: Camera3D
 # Seconds left before the joy burst can be used again. topdown_main.gd shows this on the HUD.
 var burst_cooldown: float = 0.0
 
-# The body material (round 10: saffron, a colour no person uses). Exposed so tests can check it.
-var body_mat: StandardMaterial3D
+# The look: draws the body and the ring under the feet from this state (see scripts/looks/player_look.gd).
+var look: PlayerLook
+# Turns a window mouse position into the camera's own view coordinates. Empty (the default) when the camera renders
+# at window size. The styled look renders the 3D view smaller (see ViewPipeline.window_to_view) and sets this.
+var mouse_mapper: Callable = Callable()
 var _fire_cooldown := 0.0
 var _aim_point := Vector3.ZERO
 var _has_aim := false
 # Last mouse position from real mouse-motion events. Read by _update_aim (see _input).
 var _mouse_pos := Vector2.ZERO
 var _mouse_seen := false
-var _ring_mat: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -45,75 +47,20 @@ func _ready() -> void:
 	collision.position = Vector3(0, 0.9, 0)
 	add_child(collision)
 
-	# Body: a white-ish capsule, with a small nose in front so facing is visible.
-	var body := MeshInstance3D.new()
-	var body_mesh := CapsuleMesh.new()
-	body_mesh.radius = 0.45
-	body_mesh.height = 1.8
-	body.mesh = body_mesh
-	body.position = Vector3(0, 0.9, 0)
-	body_mat = StandardMaterial3D.new()
-	body_mat.albedo_color = Config.TD_PLAYER_COLOUR
-	body.material_override = body_mat
-	add_child(body)
-
-	var nose := MeshInstance3D.new()
-	var nose_mesh := BoxMesh.new()
-	nose_mesh.size = Vector3(0.2, 0.2, 0.2)
-	nose.mesh = nose_mesh
-	nose.position = Vector3(0, 1.2, -0.5)
-	var nose_mat := StandardMaterial3D.new()
-	nose_mat.albedo_color = Color(0.4, 0.4, 0.42)
-	nose.material_override = nose_mat
-	add_child(nose)
-
-	# Element ring under the feet: the target's element colour, or cream with no target.
-	var ring := MeshInstance3D.new()
-	var ring_mesh := CylinderMesh.new()
-	ring_mesh.top_radius = 0.9
-	ring_mesh.bottom_radius = 0.9
-	ring_mesh.height = 0.02
-	ring.mesh = ring_mesh
-	ring.position = Vector3(0, 0.03, 0)
-	_ring_mat = StandardMaterial3D.new()
-	_ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_ring_mat.albedo_color = Config.TD_NO_TARGET_COLOR
-	ring.material_override = _ring_mat
-	add_child(ring)
-	_build_marker()
+	look = Looks.player_look()
+	add_child(look)
+	look.setup(self)
 
 
-# Round 10: the warm double ring on the ground and the soft glow under the player (a placeholder for the locked player
-# art).
-func _build_marker() -> void:
-	for r: float in Config.TD_PLAYER_RING_RADII:
-		var ring := MeshInstance3D.new()
-		var torus := TorusMesh.new()
-		torus.inner_radius = r
-		torus.outer_radius = r + Config.TD_PLAYER_RING_WIDTH
-		ring.mesh = torus
-		ring.position = Vector3(0, 0.035, 0)
-		ring.material_override = _warm_material(Config.TD_PLAYER_RING_COLOUR)
-		add_child(ring)
-	var glow := MeshInstance3D.new()
-	var disc := CylinderMesh.new()
-	disc.top_radius = Config.TD_PLAYER_GLOW_RADIUS
-	disc.bottom_radius = Config.TD_PLAYER_GLOW_RADIUS
-	disc.height = 0.01
-	glow.mesh = disc
-	glow.position = Vector3(0, 0.02, 0)
-	var glow_col := Config.TD_PLAYER_RING_COLOUR
-	glow_col.a = Config.TD_PLAYER_GLOW_ALPHA
-	glow.material_override = _warm_material(glow_col)
-	add_child(glow)
-
-
-func _warm_material(col: Color) -> StandardMaterial3D:
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = col
-	return mat
+# Swaps the look in place (F4).
+func rebuild_look() -> void:
+	if look != null:
+		remove_child(look)
+		look.queue_free()
+	look = Looks.player_look()
+	add_child(look)
+	look.setup(self)
+	look.sync()
 
 
 func _input(event: InputEvent) -> void:
@@ -161,7 +108,7 @@ func _physics_process(delta: float) -> void:
 	_face_aim()
 	_fire_cooldown -= delta
 	_update_target()
-	_refresh_ring()
+	look.sync()
 	_try_fire()
 
 
@@ -170,6 +117,8 @@ func _update_aim() -> void:
 	if camera == null:
 		return
 	var m: Vector2 = _mouse_pos if _mouse_seen else get_viewport().get_mouse_position()
+	if mouse_mapper.is_valid():
+		m = mouse_mapper.call(m)
 	var from := camera.project_ray_origin(m)
 	var dir := camera.project_ray_normal(m)
 	var hit: Variant = Plane(Vector3.UP, 0.0).intersects_ray(from, dir)
@@ -235,14 +184,6 @@ func _try_fire() -> void:
 	pr.velocity = JoyProjectile.launch_velocity(pr.element, start, target.chest_position())
 	get_parent().add_child(pr)
 	pr.global_position = start
-
-
-# Sets the ring under the player to the target's element colour, or cream with no target.
-func _refresh_ring() -> void:
-	if target == null:
-		_ring_mat.albedo_color = Config.TD_NO_TARGET_COLOR
-	else:
-		_ring_mat.albedo_color = Config.ELEMENT_COLORS[target.affinity]
 
 
 func _set_target(p: Person) -> void:
@@ -318,26 +259,7 @@ func _burst() -> void:
 
 
 func _spawn_burst_ring() -> void:
-	var ring := MeshInstance3D.new()
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = 1.0
-	mesh.bottom_radius = 1.0
-	mesh.height = 0.05
-	ring.mesh = mesh
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(1, 0.9, 0.5, 0.6)
-	ring.material_override = mat
-	ring.scale = Vector3(0.1, 1.0, 0.1)
-	get_parent().add_child(ring)
-	ring.global_position = Vector3(global_position.x, 0.03, global_position.z)
-
-	var t := ring.create_tween()
-	t.set_parallel(true)
-	t.tween_property(ring, "scale", Vector3(Config.TD_BURST_RADIUS, 1.0, Config.TD_BURST_RADIUS), Config.TD_BURST_TIME)
-	t.tween_property(mat, "albedo_color:a", 0.0, Config.TD_BURST_TIME)
-	t.chain().tween_callback(ring.queue_free)
+	look.play_burst(Config.TD_BURST_RADIUS, Config.TD_BURST_TIME)
 
 
 # Distance between two points, ignoring height.

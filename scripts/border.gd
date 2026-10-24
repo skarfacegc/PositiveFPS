@@ -1,3 +1,4 @@
+# gdlint: ignore=max-public-methods
 class_name Border
 extends Node3D
 
@@ -35,14 +36,9 @@ var segment_gap: Array[bool] = []
 var buildings: Array[Building] = []
 var landmark_building: Building = null
 
+# The look: draws the line, the haze and the gap glow from the state above (see scripts/looks/border_look.gd).
+var look: BorderLook
 var _ground: PaintedGround
-var _line_node: MeshInstance3D
-var _line_mesh: ImmediateMesh
-var _line_mat: StandardMaterial3D
-# Round 10: the gap glow (a soft coral band over each gap), drawn on its own mesh.
-var _glow_node: MeshInstance3D
-var _glow_mesh: ImmediateMesh
-var _glow_mat: StandardMaterial3D
 var _has_centre: bool = false
 # Rescued people whose outward push has not been applied yet (see on_rescue).
 var _pending_pushes: Array[Person] = []
@@ -70,36 +66,39 @@ func setup(ground: PaintedGround) -> void:
 	_raw_radii.clear()
 	for i: int in range(Config.BORDER_SAMPLES):
 		_raw_radii.append(Config.BORDER_MIN_RADIUS)
-	_line_mat = StandardMaterial3D.new()
-	_line_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_line_mat.vertex_color_use_as_albedo = true
-	_line_mesh = ImmediateMesh.new()
-	_line_node = MeshInstance3D.new()
-	_line_node.mesh = _line_mesh
-	add_child(_line_node)
-	_glow_mat = StandardMaterial3D.new()
-	_glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_glow_mat.vertex_color_use_as_albedo = true
-	_glow_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_glow_mesh = ImmediateMesh.new()
-	_glow_node = MeshInstance3D.new()
-	_glow_node.mesh = _glow_mesh
-	add_child(_glow_node)
+	_make_look()
+
+
+# Swaps the look in place (F4).
+func rebuild_look() -> void:
+	if look != null:
+		remove_child(look)
+		look.queue_free()
+	_make_look()
+	look.refresh()
+
+
+func _make_look() -> void:
+	look = Looks.border_look()
+	add_child(look)
+	look.setup(self)
 
 
 # Registers a block the border can beautify. `half` is the half-size of its footprint in x and z.
-func register_building(body: StaticBody3D, half: Vector2, is_landmark: bool) -> void:
+# `size` is the block's collision box (its footprint is `half` * 2 when left out) and `colour` its plain colour.
+func register_building(
+	body: StaticBody3D,
+	half: Vector2,
+	is_landmark: bool,
+	size: Vector3 = Vector3.ZERO,
+	colour: Color = Color(0.6, 0.6, 0.62)
+) -> void:
 	var b := Building.new()
 	b.centre = Vector2(body.position.x, body.position.z)
 	b.half = half
 	b.is_landmark = is_landmark
-	for child: Node in body.get_children():
-		if child is MeshInstance3D:
-			b.mat = (child as MeshInstance3D).material_override as StandardMaterial3D
-	if b.mat != null:
-		b.base_colour = b.mat.albedo_color
-	b.attach(body)
+	var box := size if size != Vector3.ZERO else Vector3(half.x * 2.0, 2.0, half.y * 2.0)
+	b.attach(body, box, colour)
 	buildings.append(b)
 	if is_landmark:
 		landmark_building = b
@@ -789,68 +788,10 @@ func _update_ground() -> void:
 # -----------------------------------------------------------------------------------------------
 
 
-# The intact stretches are drawn as gold lines. A gap is not drawn as a line: it glows (see _draw_gap_glow).
+# Tells the look to redraw the line, the haze and the gap glow from the current state.
 func _draw_lines() -> void:
-	_line_mesh.clear_surfaces()
-	var n := polygon.size()
-	if not active or n < 3:
-		_glow_mesh.clear_surfaces()
-		return
-	var intact := 0
-	for j: int in range(n):
-		if not segment_is_gap(j):
-			intact += 1
-	if intact > 0:
-		_line_mesh.surface_begin(Mesh.PRIMITIVE_LINES, _line_mat)
-		for j: int in range(n):
-			if segment_is_gap(j):
-				continue
-			var colour := segment_colour(j)
-			var a := polygon[j]
-			var b := polygon[(j + 1) % n]
-			_line_mesh.surface_set_color(colour)
-			_line_mesh.surface_add_vertex(Vector3(a.x, Config.BORDER_LINE_HEIGHT, a.y))
-			_line_mesh.surface_set_color(colour)
-			_line_mesh.surface_add_vertex(Vector3(b.x, Config.BORDER_LINE_HEIGHT, b.y))
-		_line_mesh.surface_end()
-	_draw_gap_glow()
-
-
-# Each gap is a coral band, BORDER_GAP_GLOW_WIDTH metres wide: strongest along the stretch and fading to nothing at
-# its two edges. Its alpha follows the gap pulse, so the whole glow breathes softly.
-func _draw_gap_glow() -> void:
-	_glow_mesh.clear_surfaces()
-	var n := polygon.size()
-	if not active or n < 3 or gap_count() == 0:
-		return
-	var alpha := lerpf(Config.BORDER_GAP_GLOW_ALPHA_MIN, Config.BORDER_GAP_GLOW_ALPHA_MAX, pulse())
-	var centre_col := Color(Config.BORDER_GAP_COLOUR.r, Config.BORDER_GAP_COLOUR.g, Config.BORDER_GAP_COLOUR.b, alpha)
-	var edge_col := Color(Config.BORDER_GAP_COLOUR.r, Config.BORDER_GAP_COLOUR.g, Config.BORDER_GAP_COLOUR.b, 0.0)
-	var half := Config.BORDER_GAP_GLOW_WIDTH * 0.5
-	_glow_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, _glow_mat)
-	for j: int in range(n):
-		if not segment_is_gap(j):
-			continue
-		var a := polygon[j]
-		var b := polygon[(j + 1) % n]
-		var dir := b - a
-		if dir.length() < 0.0001:
-			continue
-		var nrm := Vector2(-dir.y, dir.x).normalized()
-		for side: float in [-1.0, 1.0]:
-			var off := nrm * half * side
-			_glow_vertex(a, centre_col)
-			_glow_vertex(b, centre_col)
-			_glow_vertex(b + off, edge_col)
-			_glow_vertex(a, centre_col)
-			_glow_vertex(b + off, edge_col)
-			_glow_vertex(a + off, edge_col)
-	_glow_mesh.surface_end()
-
-
-func _glow_vertex(p2: Vector2, col: Color) -> void:
-	_glow_mesh.surface_set_color(col)
-	_glow_mesh.surface_add_vertex(Vector3(p2.x, Config.BORDER_LINE_HEIGHT, p2.y))
+	if look != null:
+		look.refresh()
 
 
 func _update_debug_labels() -> void:

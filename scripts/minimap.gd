@@ -26,6 +26,8 @@ var view_pts := PackedVector2Array()
 var building_rects: Array[Rect2] = []
 var building_warm: Array[bool] = []
 
+# The look: the palette and the frame (see scripts/looks/minimap_look.gd). The picture itself is built here.
+var look: MinimapLook
 var _image: Image
 var _texture: ImageTexture
 var _ground: PaintedGround
@@ -37,6 +39,15 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_image = Image.create(RESOLUTION, RESOLUTION, false, Image.FORMAT_RGBA8)
 	_texture = ImageTexture.create_from_image(_image)
+	if look == null:
+		look = Looks.minimap_look()
+
+
+# Swaps the look in place (F4): the data model is kept, the picture is redrawn with the new palette.
+func rebuild_look() -> void:
+	look = Looks.minimap_look()
+	_render()
+	queue_redraw()
 
 
 # The minimap is a circle: the picture is clipped to it, and the frame is drawn round it.
@@ -107,7 +118,7 @@ func refresh_from(
 
 func _draw() -> void:
 	draw_texture_rect(_texture, Rect2(Vector2.ZERO, size), false)
-	draw_arc(size * 0.5, radius() - 2.0, 0.0, TAU, 96, Config.TD_MINIMAP_FRAME_COLOUR, 4.0, true)
+	look.draw_frame(self)
 
 
 # Rebuilds the image from the data model: the ground inside the circle, then the buildings, the border, the people,
@@ -120,29 +131,33 @@ func _render() -> void:
 		for px: int in range(RESOLUTION):
 			if _in_circle(Vector2(px + 0.5, py + 0.5)):
 				var w := _to_world(Vector2(px + 0.5, py + 0.5))
-				_image.set_pixel(px, py, _ground_colour(w))
+				_image.set_pixel(px, py, _ground_colour(w, px, py))
 	for i: int in range(building_rects.size()):
-		var col := Config.TD_MINIMAP_WARM_COLOUR if building_warm[i] else Config.TD_MINIMAP_GREY_COLOUR
-		_fill_rect(building_rects[i], col)
+		_fill_rect(building_rects[i], look.building_colour(building_warm[i]))
 	var n := border_pts.size()
 	for j: int in range(n):
-		var col := Config.BORDER_GAP_COLOUR if gap_flags[j] else Config.TD_MINIMAP_LINE_COLOUR
-		_line(border_pts[j], border_pts[(j + 1) % n], col)
+		_line(border_pts[j], border_pts[(j + 1) % n], look.line_colour(gap_flags[j]))
 	for m: Vector2 in member_pts:
-		_disc(m, 1.6, Config.TD_MINIMAP_MEMBER_COLOUR)
+		_marker(m, 1.6, look.member_colour())
 	for d: Vector2 in dark_pts:
-		_disc(d, 1.3, Config.TD_MINIMAP_DARK_COLOUR)
-	_star(landmark_pos, Config.TD_MINIMAP_LANDMARK_COLOUR)
-	_disc(player_pos, 2.2, Config.TD_MINIMAP_PLAYER_COLOUR)
+		_marker(d, 1.3, look.dark_colour())
+	_star(landmark_pos, look.landmark_colour())
+	_marker(player_pos, 2.2, look.player_colour())
 	for k: int in range(view_pts.size()):
-		_line(view_pts[k], view_pts[(k + 1) % view_pts.size()], Config.TD_MINIMAP_VIEW_COLOUR)
+		_line(view_pts[k], view_pts[(k + 1) % view_pts.size()], look.view_colour())
 	_texture.update(_image)
 
 
-func _ground_colour(w: Vector2) -> Color:
-	if _ground == null:
-		return Config.TD_MINIMAP_GREY_COLOUR
-	return _ground.paint_colour_at(Vector3(w.x, 0.0, w.y))
+func _ground_colour(w: Vector2, px: int, py: int) -> Color:
+	return look.ground_colour(_ground, w, px, py)
+
+
+# A round marker, with the look's outline round it when it has one.
+func _marker(w: Vector2, radius_px: float, col: Color) -> void:
+	var halo := look.halo_colour()
+	if halo.a > 0.0:
+		_disc(w, radius_px + 0.9, halo)
+	_disc(w, radius_px, col)
 
 
 # Pixel coordinates (0 to RESOLUTION) of a world point (metres).

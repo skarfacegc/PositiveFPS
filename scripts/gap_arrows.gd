@@ -18,8 +18,15 @@ func _ready() -> void:
 
 # Works out the arrows for this frame from the gap middles, then redraws. `minimap_rect` is the minimap circle's
 # bounding box on screen. `pulse` is the gap pulse (0 to 1), which sets the badges' brightness.
-func update_arrows(camera: Camera3D, screen: Rect2, gaps: Array[Vector3], minimap_rect: Rect2, pulse: float) -> void:
-	arrows = off_screen_arrows(camera, screen, gaps, minimap_rect)
+func update_arrows(
+	camera: Camera3D,
+	screen: Rect2,
+	gaps: Array[Vector3],
+	minimap_rect: Rect2,
+	pulse: float,
+	view_scale: Vector2 = Vector2.ONE
+) -> void:
+	arrows = off_screen_arrows(camera, screen, gaps, minimap_rect, view_scale)
 	_alpha = lerpf(0.45, 1.0, pulse)
 	queue_redraw()
 
@@ -27,8 +34,10 @@ func update_arrows(camera: Camera3D, screen: Rect2, gaps: Array[Vector3], minima
 # The arrows for the gaps that are off the screen. Each badge sits where the line from the screen centre to the gap
 # leaves an inset rectangle (OFFSCREEN_ARROW_MARGIN pixels in from the edge). A badge that would land on the minimap
 # circle (plus OFFSCREEN_ARROW_PAD) is pushed out radially from the minimap centre, and kept on screen.
+# `view_scale` turns the camera's own view coordinates into window coordinates (the styled look draws the 3D view
+# small).
 static func off_screen_arrows(
-	camera: Camera3D, screen: Rect2, gaps: Array[Vector3], minimap_rect: Rect2
+	camera: Camera3D, screen: Rect2, gaps: Array[Vector3], minimap_rect: Rect2, view_scale: Vector2 = Vector2.ONE
 ) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var inner := screen.grow(-Config.OFFSCREEN_ARROW_MARGIN)
@@ -37,7 +46,7 @@ static func off_screen_arrows(
 	var mm_centre := minimap_rect.get_center()
 	var mm_clear := minimap_rect.size.x * 0.5 + Config.OFFSCREEN_ARROW_PAD
 	for g: Vector3 in gaps:
-		var sp := camera.unproject_position(g)
+		var sp := camera.unproject_position(g) * view_scale
 		if screen.has_point(sp):
 			continue
 		var dir := sp - centre

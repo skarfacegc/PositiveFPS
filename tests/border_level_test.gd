@@ -324,8 +324,6 @@ func test_a_grey_person_inside_the_loop_lightens_and_one_outside_darkens() -> vo
 
 func test_a_building_is_beautified_after_three_seconds_inside() -> void:
 	var b := Building.new()
-	b.mat = StandardMaterial3D.new()
-	b.base_colour = Color(0.5, 0.5, 0.5)
 	b.update(1.0, 1.0)
 	b.update(1.0, 1.0)
 	assert_bool(b.beautified).is_false()

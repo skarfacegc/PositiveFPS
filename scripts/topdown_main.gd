@@ -21,6 +21,7 @@ const BLOCK_POSITIONS: Array[Vector3] = [
 	Vector3(-6, 1, 24),
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
+const HINT := "WASD move | Shift run | Click a person to lock on | G/Q joy burst | R restart | M menu | [F4] look"
 
 var ground: PaintedGround
 var player: TopDownPlayer
@@ -32,6 +33,10 @@ var arrows: GapArrows
 var border: Border
 var landmark: Landmark
 var night: NightCycle
+# The looks that are not owned by one object: the floor and walls, and the camera / post-process pipeline (see
+# scripts/looks). F4 flips the look in place with toggle_look().
+var plaza_look: PlazaLook
+var pipeline: ViewPipeline
 # The ring under the target's feet (see _update_highlight). Public so tests can check it.
 var highlight: MeshInstance3D
 var people: Array[Person] = []
@@ -50,11 +55,15 @@ var _highlight_mat: StandardMaterial3D
 var _pulse_time := 0.0
 # Seconds since the cover (see _update_cover) was last worked out. It is refreshed every GROUND_UPDATE_INTERVAL.
 var _cover_timer := 0.0
+# The frame F4 last flipped the look (the key press can arrive twice in one frame, see Known gotchas).
+var _look_frame: int = -1
 
 
 func _ready() -> void:
 	Controls.setup()
 	night = NightCycle.new()
+	pipeline = ViewPipeline.new()
+	add_child(pipeline)
 	_setup_environment()
 	_build_level()
 
@@ -67,7 +76,9 @@ func _ready() -> void:
 	border.setup(ground)
 	for body: StaticBody3D in _obstacles:
 		var is_landmark := body == _landmark_body
-		border.register_building(body, Vector2(BLOCK_SIZE.x, BLOCK_SIZE.z) * 0.5, is_landmark)
+		var size := Config.BORDER_LANDMARK_SIZE if is_landmark else BLOCK_SIZE
+		var colour := Config.BORDER_LANDMARK_COLOUR if is_landmark else BLOCK_COLOUR
+		border.register_building(body, Vector2(BLOCK_SIZE.x, BLOCK_SIZE.z) * 0.5, is_landmark, size, colour)
 
 	landmark = Landmark.new()
 	add_child(landmark)
@@ -97,7 +108,7 @@ func _ready() -> void:
 	hud.add_child(minimap)
 	arrows = GapArrows.new()
 	hud.add_child(arrows)
-	hud.set_hint("WASD move  |  Shift run  |  Click a person to lock on  |  G/Q joy burst  |  R restart  |  M menu")
+	hud.set_hint(HINT)
 	hud.set_targeting(player.targeting_mode)
 	player.target_changed.connect(hud.set_target)
 	player.debug_toggled.connect(_toggle_debug)
@@ -105,6 +116,8 @@ func _ready() -> void:
 	hud.set_target(-1)
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)
 	hud.set_night_progress(0.0)
+	_note_shared_placeholders()
+	pipeline.apply(self)
 
 
 func _process(delta: float) -> void:
@@ -136,6 +149,55 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_tree().reload_current_scene()
 	elif event.is_action_pressed("menu"):
 		get_tree().change_scene_to_file("res://menu.tscn")
+	elif event.is_action_pressed("toggle_look"):
+		var frame := Engine.get_process_frames()
+		if frame != _look_frame:
+			_look_frame = frame
+			toggle_look()
+
+
+# F4: flips between the placeholder and the styled look without touching the game state.
+func toggle_look() -> void:
+	set_look(Looks.toggle())
+
+
+# Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
+func set_look(new_mode: int) -> void:
+	Looks.set_mode(new_mode)
+	remove_child(plaza_look)
+	plaza_look.queue_free()
+	_make_plaza_look()
+	ground.rebuild_look()
+	border.rebuild_look()
+	for b: Building in border.buildings:
+		b.rebuild_look()
+	landmark.rebuild_look()
+	player.rebuild_look()
+	for p: Person in people:
+		p.rebuild_look()
+	minimap.rebuild_look()
+	pipeline.apply(self)
+	if debug_on:
+		_update_debug_hint()
+
+
+# The screen (window) position of a world point, whatever size the look draws the 3D view at.
+func world_to_screen(world: Vector3) -> Vector2:
+	return camera.unproject_position(world) * pipeline.view_scale()
+
+
+func sun_light() -> DirectionalLight3D:
+	return _sun
+
+
+func environment() -> Environment:
+	return _env
+
+
+# Objects the styled look does not redraw yet (they stay placeholder; see Looks.note_placeholder).
+func _note_shared_placeholders() -> void:
+	Looks.note_placeholder(highlight, "target highlight")
+	Looks.note_placeholder(hud, "hud text")
 
 
 # F3: flips the debug overlay. The player reads the key and emits debug_toggled.
@@ -155,7 +217,7 @@ func _set_debug(on: bool) -> void:
 
 
 func _update_debug_hint() -> void:
-	hud.set_floor_text(FloorEffects.summary(get_tree()))
+	hud.set_floor_text(FloorEffects.summary(get_tree()) + "\n" + Looks.debug_line())
 	hud.set_debug_text("[F3] debug: c = cover, p = protection.  " + border.debug_summary())
 
 
@@ -208,7 +270,9 @@ func _update_readability(delta: float) -> void:
 	var screen := get_viewport().get_visible_rect()
 	if minimap.tick(delta):
 		minimap.refresh_from(ground, border, people, player.global_position, _view_centre(), view_half_extents())
-	arrows.update_arrows(camera, screen, border.gap_midpoints(), minimap.get_global_rect(), border.pulse())
+	arrows.update_arrows(
+		camera, screen, border.gap_midpoints(), minimap.get_global_rect(), border.pulse(), pipeline.view_scale()
+	)
 
 
 # Builds the target highlight: a flat warm ring that is shown under the target, hidden when there is none.
@@ -270,53 +334,46 @@ func _build_level() -> void:
 	var side := float(Config.TD_PLAZA_SIZE)
 	var wall_at := side / 2.0 + 0.5
 
-	# Floor: top surface at y = 0.
-	add_child(_make_box(Vector3(side, 1, side), Vector3(0, -0.5, 0), Color(0.5, 0.5, 0.5)))
+	# Floor: top surface at y = 0. The plaza look draws the floor and the walls; the bodies here are the collision.
+	add_child(_make_body(Vector3(side, 1, side), Vector3(0, -0.5, 0)))
 
 	# Walls around the edge.
-	var wall_color := Color(0.45, 0.45, 0.45)
-	add_child(_make_box(Vector3(side + 2, 3, 1), Vector3(0, 1.5, -wall_at), wall_color))
-	add_child(_make_box(Vector3(side + 2, 3, 1), Vector3(0, 1.5, wall_at), wall_color))
-	add_child(_make_box(Vector3(1, 3, side + 2), Vector3(-wall_at, 1.5, 0), wall_color))
-	add_child(_make_box(Vector3(1, 3, side + 2), Vector3(wall_at, 1.5, 0), wall_color))
+	add_child(_make_body(Vector3(side + 2, 3, 1), Vector3(0, 1.5, -wall_at)))
+	add_child(_make_body(Vector3(side + 2, 3, 1), Vector3(0, 1.5, wall_at)))
+	add_child(_make_body(Vector3(1, 3, side + 2), Vector3(-wall_at, 1.5, 0)))
+	add_child(_make_body(Vector3(1, 3, side + 2), Vector3(wall_at, 1.5, 0)))
+	_make_plaza_look()
 
-	# Obstacle blocks.
+	# Obstacle blocks. Each one is drawn by its Building's look (see Border.register_building).
 	for pos: Vector3 in BLOCK_POSITIONS:
-		var block := _make_box(BLOCK_SIZE, pos, BLOCK_COLOUR)
+		var block := _make_body(BLOCK_SIZE, pos)
 		add_child(block)
 		_obstacles.append(block)
 
 	# The landmark: a taller block (its base on the floor), away from the start.
 	var lm_pos := Config.BORDER_LANDMARK_POS
-	_landmark_body = _make_box(
-		Config.BORDER_LANDMARK_SIZE,
-		Vector3(lm_pos.x, Config.BORDER_LANDMARK_SIZE.y / 2.0, lm_pos.z),
-		Config.BORDER_LANDMARK_COLOUR
+	_landmark_body = _make_body(
+		Config.BORDER_LANDMARK_SIZE, Vector3(lm_pos.x, Config.BORDER_LANDMARK_SIZE.y / 2.0, lm_pos.z)
 	)
 	add_child(_landmark_body)
 	_obstacles.append(_landmark_body)
 
 
-# Creates a solid grey box with a collision shape and a matching mesh.
-func _make_box(size: Vector3, pos: Vector3, color: Color) -> StaticBody3D:
+func _make_plaza_look() -> void:
+	plaza_look = Looks.plaza_look()
+	add_child(plaza_look)
+	plaza_look.setup(float(Config.TD_PLAZA_SIZE))
+
+
+# Creates a static body with a box collision shape (the drawing is done by looks).
+func _make_body(size: Vector3, pos: Vector3) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.position = pos
-
 	var collision := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
 	shape.size = size
 	collision.shape = shape
 	body.add_child(collision)
-
-	var mesh_inst := MeshInstance3D.new()
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	mesh_inst.mesh = mesh
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mesh_inst.material_override = mat
-	body.add_child(mesh_inst)
-
 	return body
 
 

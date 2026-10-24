@@ -1,7 +1,8 @@
 class_name PaintedGround
-extends MultiMeshInstance3D
+extends Node3D
 
-# Painted ground: a square grid of flat tiles (1 m each) just above the floor, one colour per tile. Tiles near rescued
+# Painted ground: a square grid of flat tiles (1 m each), one colour per tile (the look draws them, see
+# scripts/looks/ground_look.gd). Tiles near rescued
 # people take on that person's element colour, with soft edges. Each tile also has a paint weight from 0 (unpainted)
 # to 1 (fully painted). Top-down mode reads it as cover.
 #
@@ -11,6 +12,8 @@ extends MultiMeshInstance3D
 
 # True when darkness erodes paint (the top-down level turns it on).
 var erodes: bool = false
+# The look: draws the tiles from the weights and colours below.
+var look: GroundLook
 # The radius of a rescued person's paint disc, in metres. Top-down uses the zone radius; the paint edge border uses
 # its own.
 var paint_radius: float = Config.ZONE_RADIUS
@@ -20,7 +23,6 @@ var region_active: bool = false
 var _region := PackedVector2Array()
 # Per tile: true when the tile's centre is inside the region (see _paint_region).
 var _in_region: Array[bool] = []
-
 var _size: int = 0
 var _colors: Array[Color] = []
 var _targets: Array[Color] = []
@@ -51,22 +53,8 @@ func setup(
 	_spread_speed = spread_speed
 	_fade_speed = fade_speed
 	erodes = erodes_paint
-	var count := size * size
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_colors = true
-	mm.instance_count = count
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(1, 1)
-	mm.mesh = plane
-
-	var half := size / 2.0
-	var i := 0
 	for ix: int in range(size):
 		for iz: int in range(size):
-			var c := Vector3(-half + 0.5 + ix, 0.01, -half + 0.5 + iz)
-			mm.set_instance_transform(i, Transform3D(Basis(), c))
-			mm.set_instance_color(i, Config.GROUND_GREY)
 			_colors.append(Config.GROUND_GREY)
 			_targets.append(Config.GROUND_GREY)
 			_weights.append(0.0)
@@ -75,12 +63,15 @@ func setup(
 			_other_weights.append(0.0)
 			_hold.append(0.0)
 			_in_region.append(false)
-			i += 1
-	multimesh = mm
+	_make_look()
 
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	material_override = mat
+
+# Swaps the look in place (F4): the weights and colours are kept, the visuals are rebuilt from them.
+func rebuild_look() -> void:
+	if look != null:
+		remove_child(look)
+		look.queue_free()
+	_make_look()
 
 
 # Call every frame. Repaints the target colours every GROUND_UPDATE_INTERVAL seconds, and moves each tile's colour and
@@ -216,14 +207,12 @@ func _paint(people: Array) -> void:
 			var ratio := clampf(_weights[i] / maxf(before, 0.001), 0.0, 1.0)
 			_targets[i] = Config.GROUND_GREY.lerp(_targets[i], ratio)
 
-	var mm := multimesh
 	for i: int in range(count):
 		# Painting in uses the spread speed; fading back uses the fade speed.
 		var rate := _spread_speed if _target_weights[i] > _weights[i] else _fade_speed
 		_weights[i] = lerpf(_weights[i], _target_weights[i], rate)
-		var next: Color = _colors[i].lerp(_targets[i], rate)
-		_colors[i] = next
-		mm.set_instance_color(i, next)
+		_colors[i] = _colors[i].lerp(_targets[i], rate)
+	look.refresh(_colors, _weights)
 	_rebuild_edge()
 
 
@@ -337,3 +326,10 @@ func _rebuild_edge() -> void:
 			var w := _weights[ix * _size + iz]
 			if w > Config.TD_EDGE_MIN and w < Config.TD_ERODE_EDGE_MAX:
 				_edge_points.append(Vector3(-half + 0.5 + ix, 0.0, -half + 0.5 + iz))
+
+
+func _make_look() -> void:
+	look = Looks.ground_look()
+	add_child(look)
+	look.setup(self, _size)
+	look.refresh(_colors, _weights)

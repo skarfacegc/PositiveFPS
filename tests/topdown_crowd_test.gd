@@ -114,7 +114,7 @@ func test_a_person_with_no_grace_period_gets_none() -> void:
 	p.receive_joy(0, Config.JOY_MAX, 0.0)
 	assert_bool(p.is_rescued).is_true()
 	assert_float(p.grace_left).is_equal(0.0)
-	assert_bool(p.grace_ring.visible).is_false()
+	assert_bool(p.look.grace_ring.visible).is_false()
 
 
 func test_top_down_people_get_the_grace_period_on_spawn() -> void:

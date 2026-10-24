@@ -254,12 +254,22 @@ func test_shots_use_the_target_element_and_the_ring_matches() -> void:
 	var target: Person = td.people[0]
 	TopDownTestUtil.place(target, Vector3(0, 0, -8), 1, 0.0)  # Art
 	await runner.simulate_frames(2)
-	assert_bool(td.player._ring_mat.albedo_color.is_equal_approx(Config.TD_NO_TARGET_COLOR)).is_true()
+	(
+		assert_bool(
+			(td.player.look as PlayerLookPlaceholder)._ring_mat.albedo_color.is_equal_approx(Config.TD_NO_TARGET_COLOR)
+		)
+		. is_true()
+	)
 
 	await _click_at(runner, td, target.global_position)
 	await runner.simulate_frames(3)
 
-	assert_bool(td.player._ring_mat.albedo_color.is_equal_approx(Config.ELEMENT_COLORS[1])).is_true()
+	(
+		assert_bool(
+			(td.player.look as PlayerLookPlaceholder)._ring_mat.albedo_color.is_equal_approx(Config.ELEMENT_COLORS[1])
+		)
+		. is_true()
+	)
 	assert_str(td.hud.element_label.text).is_equal("Target: Art")
 	var shots := TopDownTestUtil.projectiles(td)
 	assert_int(shots.size()).is_greater(0)

@@ -43,7 +43,7 @@ static func place(p: Person, spot: Vector3, affinity: int, gloom: float) -> void
 
 # The screen position of the floor point under `spot`. A mouse there aims (or clicks) that spot.
 static func screen_of(td: TopDownMain, spot: Vector3) -> Vector2:
-	return td.camera.unproject_position(Vector3(spot.x, 0.0, spot.z))
+	return td.world_to_screen(Vector3(spot.x, 0.0, spot.z))
 
 
 # Every joy projectile currently in the level.

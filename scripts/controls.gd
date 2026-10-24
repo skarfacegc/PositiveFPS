@@ -23,6 +23,8 @@ static func setup() -> void:
 	_add_action("cycle_targeting", [_key(KEY_F2)])
 	# Shows cover and protection above each person, and a hint in the HUD (off by default).
 	_add_action("toggle_debug", [_key(KEY_F3)])
+	# Flips between the placeholder and the styled look (graphics checkpoint 1).
+	_add_action("toggle_look", [_key(KEY_F4)])
 	_add_action("restart", [_key(KEY_R)])
 	_add_action("menu", [_key(KEY_M)])
 

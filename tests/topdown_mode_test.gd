@@ -140,7 +140,12 @@ func test_element_keys_and_wheel_do_nothing_in_top_down() -> void:
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_WHEEL_DOWN)
 	await runner.simulate_frames(2)
 	assert_str(td.hud.element_label.text).is_equal("No target")
-	assert_bool(player._ring_mat.albedo_color.is_equal_approx(Config.TD_NO_TARGET_COLOR)).is_true()
+	(
+		assert_bool(
+			(player.look as PlayerLookPlaceholder)._ring_mat.albedo_color.is_equal_approx(Config.TD_NO_TARGET_COLOR)
+		)
+		. is_true()
+	)
 	assert_object(player.target).is_null()
 
 

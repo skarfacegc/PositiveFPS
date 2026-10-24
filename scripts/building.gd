@@ -2,14 +2,13 @@ class_name Building
 extends RefCounted
 
 # One block the border can beautify. It is beautified after BORDER_BUILDING_SECONDS with enough of its footprint inside
-# the border (see Border). Its colour fades toward warm over BORDER_TINT_SECONDS. Mechanical blocks keep their grey.
-# Round 10: a beautified block on the border line is a post (see Border.post_count). Its placeholder visuals are a warm
-# lantern on top and a golden ring around its base. attach() creates them on the block's body.
+# the border (see Border). Its tint fades toward warm over BORDER_TINT_SECONDS. Mechanical blocks keep their grey.
+# Round 10: a beautified block on the border line is a post (see Border.post_count). How a block looks (its box or
+# its styled buildings, the lantern and ring of a post) is its look (scripts/looks/building_look.gd); this script only
+# keeps the rules state the look reads: tint, beautified and post.
 
 var centre := Vector2.ZERO
 var half := Vector2.ONE
-var mat: StandardMaterial3D
-var base_colour := Color.WHITE
 var is_landmark: bool = false
 # Seconds this building has had enough of its footprint inside the border in a row.
 var inside_time: float = 0.0
@@ -18,42 +17,33 @@ var tint: float = 0.0
 var beautified: bool = false
 # True while the border counts this block as a post (see Border._assign_members).
 var post: bool = false
-var _lantern: MeshInstance3D
-var _ring: MeshInstance3D
+var look: BuildingLook
+var _body: StaticBody3D
+var _size := Vector3.ONE
+var _colour := Color.WHITE
 
 
-# Adds the post visuals to the block's body (hidden until the block is a post).
-func attach(body: StaticBody3D) -> void:
-	var top := 1.0
-	for child: Node in body.get_children():
-		if child is MeshInstance3D and (child as MeshInstance3D).mesh is BoxMesh:
-			top = ((child as MeshInstance3D).mesh as BoxMesh).size.y / 2.0
-	_lantern = MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = 0.35
-	sphere.height = 0.7
-	_lantern.mesh = sphere
-	_lantern.position = Vector3(0.0, top + 0.6, 0.0)
-	_lantern.material_override = _unshaded(Config.BORDER_POST_LANTERN_COLOUR)
-	_ring = MeshInstance3D.new()
-	var torus := TorusMesh.new()
-	torus.inner_radius = Config.BORDER_POST_RING_INNER
-	torus.outer_radius = Config.BORDER_POST_RING_OUTER
-	_ring.mesh = torus
-	# The body sits at the block's centre, so the base is `top` below it.
-	_ring.position = Vector3(0.0, -top + 0.06, 0.0)
-	_ring.material_override = _unshaded(Config.BORDER_POST_RING_COLOUR)
-	body.add_child(_lantern)
-	body.add_child(_ring)
-	set_post(false)
+# Adds the block's look to its body. `size` is the block's collision box and `colour` its plain colour.
+func attach(body: StaticBody3D, size: Vector3, colour: Color) -> void:
+	_body = body
+	_size = size
+	_colour = colour
+	_make_look()
+
+
+# Swaps the look in place (F4).
+func rebuild_look() -> void:
+	if look != null:
+		_body.remove_child(look)
+		look.queue_free()
+	_make_look()
 
 
 # Shows or hides the post visuals, and records whether this block is a post.
 func set_post(on: bool) -> void:
 	post = on
-	if _lantern != null:
-		_lantern.visible = on
-		_ring.visible = on
+	if look != null:
+		look.set_post(on)
 
 
 # `inside_fraction` is the share of the footprint (0..1) inside the border this frame.
@@ -65,12 +55,11 @@ func update(delta: float, inside_fraction: float) -> void:
 	beautified = inside_time >= Config.BORDER_BUILDING_SECONDS
 	var target := 1.0 if beautified else 0.0
 	tint = move_toward(tint, target, delta / Config.BORDER_TINT_SECONDS)
-	if mat != null:
-		mat.albedo_color = base_colour.lerp(Config.BORDER_BUILDING_COLOUR, tint)
+	if look != null:
+		look.sync(delta)
 
 
-static func _unshaded(colour: Color) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = colour
-	return m
+func _make_look() -> void:
+	look = Looks.building_look()
+	_body.add_child(look)
+	look.setup(self, _body, _size, _colour)

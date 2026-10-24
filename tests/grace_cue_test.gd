@@ -42,8 +42,8 @@ func test_rescue_shows_a_pulsing_ring_and_glow_that_end_with_the_grace() -> void
 
 	# During the grace period the ring is visible and the body glows.
 	await runner.simulate_frames(1)
-	assert_bool(target.grace_ring.visible).is_true()
-	assert_bool(target.body_mat.emission_enabled).is_true()
+	assert_bool(target.look.grace_ring.visible).is_true()
+	assert_bool((target.look as PersonLookPlaceholder).body_mat.emission_enabled).is_true()
 
 	# The ring pulses: its scale moves between about 0.9 and 1.15 times its size, changing frame to frame.
 	var lo := INF
@@ -52,7 +52,7 @@ func test_rescue_shows_a_pulsing_ring_and_glow_that_end_with_the_grace() -> void
 	var last := -1.0
 	for i: int in range(60):
 		await runner.simulate_frames(1)
-		var sx: float = target.grace_ring.scale.x
+		var sx: float = target.look.grace_ring.scale.x
 		lo = minf(lo, sx)
 		hi = maxf(hi, sx)
 		if not is_equal_approx(sx, last):
@@ -65,8 +65,8 @@ func test_rescue_shows_a_pulsing_ring_and_glow_that_end_with_the_grace() -> void
 
 	# Past the grace period, the ring and the glow are gone.
 	await runner.simulate_frames(int((Config.TD_RESCUE_GRACE_SECONDS + 0.5) * 60.0))
-	assert_bool(target.grace_ring.visible).is_false()
-	assert_bool(target.body_mat.emission_enabled).is_false()
+	assert_bool(target.look.grace_ring.visible).is_false()
+	assert_bool((target.look as PersonLookPlaceholder).body_mat.emission_enabled).is_false()
 
 
 func test_grace_ring_and_glow_fade_over_the_last_second() -> void:
@@ -82,13 +82,13 @@ func test_grace_ring_and_glow_fade_over_the_last_second() -> void:
 	# Plenty of grace left: full strength.
 	target.grace_left = 3.0
 	await runner.simulate_frames(1)
-	var full_alpha: float = target._grace_mat.albedo_color.a
-	var full_glow: float = target.body_mat.emission_energy_multiplier
+	var full_alpha: float = target.look._grace_mat.albedo_color.a
+	var full_glow: float = (target.look as PersonLookPlaceholder).body_mat.emission_energy_multiplier
 	# Half a second left: within the fade, so both are weaker.
 	target.grace_left = 0.5
 	await runner.simulate_frames(1)
-	assert_float(target._grace_mat.albedo_color.a).is_less(full_alpha * 0.7)
-	assert_float(target.body_mat.emission_energy_multiplier).is_less(full_glow * 0.7)
+	assert_float(target.look._grace_mat.albedo_color.a).is_less(full_alpha * 0.7)
+	assert_float((target.look as PersonLookPlaceholder).body_mat.emission_energy_multiplier).is_less(full_glow * 0.7)
 
 
 func test_light_person_three_metres_away_is_rescued_quickly_by_each_element() -> void:
