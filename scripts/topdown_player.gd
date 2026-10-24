@@ -32,7 +32,7 @@ var _ring_mat: StandardMaterial3D
 
 
 func _ready() -> void:
-	# Collision, same as the first-person player.
+	# Collision: a capsule the same size as a person.
 	var collision := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = 0.4

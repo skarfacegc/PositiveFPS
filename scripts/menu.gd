@@ -1,14 +1,12 @@
 extends Control
 
-# The start menu: pick first person (main.tscn) or top-down (topdown.tscn).
+# The start menu. For now it has one entry: Play (top-down, topdown.tscn). Round 9 turns it into a variant picker.
 
-const FIRST_PERSON_SCENE := "res://main.tscn"
 const TOP_DOWN_SCENE := "res://topdown.tscn"
 
 
 func _ready() -> void:
 	Controls.setup()
-	Controls.set_mouse_captured(false)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
 	var bg := ColorRect.new()
@@ -25,29 +23,23 @@ func _ready() -> void:
 	center.add_child(box)
 
 	box.add_child(_make_label("PositiveFPS", 48))
-	box.add_child(_make_label("Pick a mode to playtest", 24))
+	box.add_child(_make_label("Press Play to start", 24))
 
-	var first := _make_button("1 — First person")
-	first.pressed.connect(_start.bind(FIRST_PERSON_SCENE))
-	box.add_child(first)
-
-	var top := _make_button("2 — Top-down")
-	top.pressed.connect(_start.bind(TOP_DOWN_SCENE))
-	box.add_child(top)
+	var play := _make_button("1 — Play")
+	play.pressed.connect(_start)
+	box.add_child(play)
 
 	box.add_child(_make_label("In game: R restart, M back to this menu", 18))
 
 
-# Keys 1 and 2 also pick a mode.
+# Key 1 also starts the level.
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("element_1"):
-		_start(FIRST_PERSON_SCENE)
-	elif event.is_action_pressed("element_2"):
-		_start(TOP_DOWN_SCENE)
+	if event.is_action_pressed("choice_1"):
+		_start()
 
 
-func _start(path: String) -> void:
-	get_tree().change_scene_to_file(path)
+func _start() -> void:
+	get_tree().change_scene_to_file(TOP_DOWN_SCENE)
 
 
 func _make_label(text: String, font_size: int) -> Label:

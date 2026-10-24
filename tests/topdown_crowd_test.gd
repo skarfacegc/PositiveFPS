@@ -107,7 +107,7 @@ func test_dark_person_drifts_no_faster_than_the_drift_speed() -> void:
 	assert_float(_gap(dark, rescued)).is_less(gap_before)
 
 
-func test_first_person_style_person_has_no_grace() -> void:
+func test_a_person_with_no_grace_period_gets_none() -> void:
 	var p: Person = auto_free(Person.new())
 	add_child(p)
 	assert_float(p.grace_seconds).is_equal(0.0)

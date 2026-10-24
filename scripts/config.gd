@@ -3,7 +3,7 @@ extends RefCounted
 
 # All tuning values for the prototype live here. Change a number and run the game to feel the difference.
 
-# The three elements. Each person has an affinity for one of them, and the player picks one to shoot with.
+# The three elements. Each person has an affinity for one of them. Every shot uses the target's element.
 enum Element { MUSIC, ART, NATURE }
 # Top-down targeting modes (see TD_TARGETING_MODE below).
 enum TargetingMode { LOCK_ON, HOVER_STICKY, AUTO }
@@ -12,48 +12,18 @@ enum TargetingMode { LOCK_ON, HOVER_STICKY, AUTO }
 const ELEMENT_NAMES: Array[String] = ["Music", "Art", "Nature"]
 
 # Colours for each element, in the same order as the Element enum.
-# They are used for the person's floating marker, the beam, the HUD text and the painted ground.
+# They are used for the person's floating marker, the projectiles, the HUD text and the painted ground.
 const ELEMENT_COLORS: Array[Color] = [Color(0.25, 0.5, 1.0), Color(1.0, 0.4, 0.7), Color(0.3, 0.85, 0.35)]
-
-# Grey used for level geometry (the floor, walls and blocks use their own greys in main.gd).
-const GREY := Color(0.55, 0.55, 0.55)
-
-# How long one round lasts, in seconds (120 = 2 minutes).
-const ROUND_SECONDS := 120.0
-
-# How many people are spawned in the plaza. Rescuing all of them ends the round early.
-const PEOPLE_COUNT := 20
 
 # Joy needed for a person at light grey (darker levels need more, see LEVEL_JOY_MULT).
 const JOY_MAX := 1000.0
-
-# Base joy added by one beam hit, before the element multiplier and distance falloff are applied.
-const JOY_PER_SHOT := 37.5
-
-# How many beam shots the player can fire per second while holding the fire button.
-const SHOTS_PER_SECOND := 8.0
-
-# How far the beam reaches, in metres.
-const BEAM_RANGE := 40.0
-
-# Walking speed, in metres per second.
-const WALK_SPEED := 5.0
-
-# Speed while holding Shift, in metres per second.
-const RUN_SPEED := 8.5
-
-# How hard the player jumps. Higher means a higher jump.
-const JUMP_VELOCITY := 4.5
-
-# How fast the view turns with the mouse. Higher means faster turning.
-const MOUSE_SENSITIVITY := 0.0025
 
 # Damage multipliers for the element matchups (see multiplier() below).
 const MATCH_MULT := 2.0  # Same element as the person's affinity.
 const STRONG_MULT := 1.5  # The element beats the person's affinity.
 const WEAK_MULT := 1.0  # The element loses to the person's affinity.
 
-# Distance falloff: beam joy is strongest close up and weakens with distance (see falloff() below).
+# Distance falloff: joy is strongest close up and weakens with distance (see falloff() below).
 const FALLOFF_NEAR := 4.0  # Metres. Full strength at or closer than this.
 const FALLOFF_FAR := 22.0  # Metres. Weakest strength at or beyond this.
 const FALLOFF_MIN := 0.25  # Strength at or beyond FALLOFF_FAR (25%).
@@ -65,7 +35,6 @@ const GLOOM_GROWTH := 0.006  # Gloom gained per second by an unrescued person, b
 const GLOOM_GROWTH_PER_METER := 0.0008  # Extra gloom per second for each metre from the nearest colour zone.
 const NO_ZONE_DISTANCE := 20.0  # Gloom growth distance when nobody is rescued yet (no colour zones).
 const ZONE_RADIUS := 6.0  # Each rescued person creates a colour zone of this radius (metres).
-const ZONE_HEAL := 0.02  # Gloom lost per second by unrescued people inside a colour zone.
 const SPREAD_RADIUS := 6.0  # How far darkness spreads from a dark person (metres).
 const SPREAD_GLOOM_RATE := 0.03  # Gloom per second given to nearby unrescued people by a dark person.
 const SPREAD_DRAIN_RATE := 60.0  # Joy per second drained from nearby rescued people by a dark person.
@@ -94,13 +63,10 @@ const GROUND_PAINT_STRENGTH := 0.75  # How strongly the paint colour shows right
 const GROUND_PAINT_SPEED := 0.15  # How fast each tile moves toward its target colour per update (0-1).
 const GROUND_UPDATE_INTERVAL := 0.1  # Seconds between ground colour updates.
 
-# Show the Borderlands-style floating joy numbers when a beam hits someone.
+# Show the Borderlands-style floating joy numbers when a joy projectile hits someone.
 const NUMBERS_ENABLED := true
 
-# Buildings unlocked on the end screen. Each entry is [rescues needed, building name].
-const BUILDING_THRESHOLDS := [[5, "Cafe"], [10, "Music Shop"], [15, "Community Garden"], [20, "Plaza Fountain"]]
-
-# ---- Top-down mode (scripts/topdown_*.gd, joy_projectile.gd). All names start with TD_. ----
+# ---- Territory game (scripts/topdown_*.gd, joy_projectile.gd, bloom.gd, painted_ground.gd). Names start with TD_. ----
 
 # Side length of the top-down plaza, in metres. Walls go around the edge.
 const TD_PLAZA_SIZE := 70
@@ -255,7 +221,7 @@ const TD_MAX_PURSUERS_PER_TARGET := 2
 const TD_SEPARATION_RADIUS := 2.2
 # How strongly the separation push is added to a person's movement direction (before it is normalised).
 const TD_SEPARATION_STRENGTH := 1.2
-# Top-down joy drain is scaled by this. Dark people drain rescued joy at 0.4 of the first-person rate (round 7).
+# Top-down joy drain is scaled by this. Dark people drain rescued joy at 0.4 of the round 6 rate (round 7).
 # It is also scaled by (1 - protection) of the rescued person (see GloomSim), so cover makes it smaller.
 const TD_DRAIN_MULTIPLIER := 0.4
 # After a rescue, the person cannot be drained by nearby darkness for this many seconds (a warm halo shows it).
@@ -358,7 +324,7 @@ static func multiplier(element: int, affinity: int) -> float:
 	return WEAK_MULT
 
 
-# Returns the strength of a beam hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+# Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
 static func falloff(distance: float) -> float:
 	if distance <= FALLOFF_NEAR:
 		return 1.0
@@ -377,9 +343,9 @@ static func gloom_level(g: float) -> int:
 	return 2
 
 
-# Returns the names of all buildings unlocked by `count` rescued people.
-# Pass a different thresholds array (same format) to use another mode's list.
-static func buildings_for(count: int, thresholds: Array = BUILDING_THRESHOLDS) -> Array:
+# Returns the names of all buildings unlocked by `count` rescued people, from a thresholds list
+# (see TD_BUILDING_THRESHOLDS).
+static func buildings_for(count: int, thresholds: Array) -> Array:
 	var result: Array = []
 	for entry: Array in thresholds:
 		if entry[0] <= count:

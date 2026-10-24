@@ -14,7 +14,7 @@ func test_f3_from_the_menu_shows_readable_on_screen_labels() -> void:
 	var menu: GdUnitSceneRunner = scene_runner("res://menu.tscn")
 	(menu.scene() as Control).size = Vector2(1280, 720)
 	await menu.simulate_frames(10)
-	menu.simulate_key_pressed(KEY_2)
+	menu.simulate_key_pressed(KEY_1)
 	await menu.simulate_frames(10)
 	var td: TopDownMain = get_tree().current_scene as TopDownMain
 	assert_object(td).is_not_null()

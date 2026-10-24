@@ -42,7 +42,6 @@ var _cover_timer := 0.0
 
 func _ready() -> void:
 	Controls.setup()
-	Controls.set_mouse_captured(false)
 	_setup_environment()
 	_build_level()
 
@@ -64,7 +63,6 @@ func _ready() -> void:
 
 	hud = Hud.new()
 	add_child(hud)
-	hud.set_crosshair_visible(false)
 	hud.set_hint("WASD move  |  Shift run  |  Click a person to lock on  |  G/Q joy burst  |  R restart  |  M menu")
 	hud.set_targeting(player.targeting_mode)
 	player.target_changed.connect(hud.set_target)
@@ -83,7 +81,7 @@ func _process(delta: float) -> void:
 	hud.set_time(time_left)
 	_update_people(delta)
 	_update_cover(delta)
-	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER, true)
+	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER)
 	for p: Person in people:
 		p.tick(delta)
 	ground.update_paint(people, delta)
@@ -97,7 +95,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("restart"):
 		get_tree().reload_current_scene()
 	elif event.is_action_pressed("menu"):
-		Controls.set_mouse_captured(false)
 		get_tree().change_scene_to_file("res://menu.tscn")
 
 
@@ -240,7 +237,6 @@ func _spawn_people() -> void:
 		p.position = pos
 		p.ui_scale = Config.TD_UI_SCALE
 		p.grace_seconds = Config.TD_RESCUE_GRACE_SECONDS
-		p.use_cover = true
 		add_child(p)
 		p.rescued.connect(_on_person_rescued)
 		p.relapsed.connect(_on_person_relapsed)
@@ -453,6 +449,5 @@ func _end_round(title: String) -> void:
 		return
 	running = false
 	player.active = false
-	Controls.set_mouse_captured(false)
 	hud.set_time(time_left)
 	hud.show_end(Config.buildings_for(rescued_count, Config.TD_BUILDING_THRESHOLDS), title)

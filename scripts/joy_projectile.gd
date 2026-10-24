@@ -161,7 +161,7 @@ func _excluded_rids() -> Array[RID]:
 	return rids
 
 
-# The first person whose chest is within TD_PROJECTILE_HIT_RADIUS of this projectile, or null.
+# The person whose chest is within TD_PROJECTILE_HIT_RADIUS of this projectile, or null.
 func _person_in_reach() -> Person:
 	for p: Person in people:
 		if is_instance_valid(p) and p.chest_position().distance_to(global_position) <= Config.TD_PROJECTILE_HIT_RADIUS:

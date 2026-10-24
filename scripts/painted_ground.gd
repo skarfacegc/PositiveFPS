@@ -9,7 +9,7 @@ extends MultiMeshInstance3D
 # (_other_weights). That lets average_weight_excluding leave a person's own paint out of their cover. With `erodes`
 # on (top-down), unrescued dark people take paint off the edge of the territory (see _erode).
 
-# True when darkness erodes paint (top-down only). First person leaves it off.
+# True when darkness erodes paint (the top-down level turns it on).
 var erodes: bool = false
 
 var _size: int = 0
@@ -219,7 +219,7 @@ func _add_contribution(idx: int, owner: int, k: float, paint_col: Color) -> void
 		_other_weights[idx] = k
 
 
-# Darkness erodes paint (top-down only). Each unrescued dark person takes TD_ERODE_RATE weight per second off the
+# Darkness erodes paint. Each unrescued dark person takes TD_ERODE_RATE weight per second off the
 # edge tiles within TD_ERODE_RADIUS of them, and an eroded tile is held for TD_ERODE_HOLD seconds (see _paint).
 # Deep interior tiles are immune. Tiles are checked before any are changed, so the order of people does not matter.
 func _erode(people: Array) -> void:

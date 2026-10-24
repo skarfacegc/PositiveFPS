@@ -163,14 +163,14 @@ func test_f2_cycles_targeting_modes_and_updates_the_hud() -> void:
 
 
 # Round 8: the default is hover, and the menu's top-down entry shows it. Driven from the menu with real keys and the
-# mouse, as a player would: press 2, hover over a person, and they become the target without a click.
+# mouse, as a player would: press 1, hover over a person, and they become the target without a click.
 func test_entering_top_down_from_the_menu_defaults_to_hover_and_hover_targets() -> void:
 	get_window().size = Vector2i(1280, 720)
 	await get_tree().process_frame
 	var menu_runner: GdUnitSceneRunner = scene_runner("res://menu.tscn")
 	(menu_runner.scene() as Control).size = Vector2(1280, 720)
 	await menu_runner.simulate_frames(10)
-	menu_runner.simulate_key_pressed(KEY_2)
+	menu_runner.simulate_key_pressed(KEY_1)
 	await menu_runner.simulate_frames(10)
 	var td: TopDownMain = get_tree().current_scene as TopDownMain
 	assert_object(td).is_not_null()

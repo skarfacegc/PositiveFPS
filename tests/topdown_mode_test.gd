@@ -109,7 +109,7 @@ func test_element_keys_and_wheel_do_nothing_in_top_down() -> void:
 
 	# With no target the HUD says so, and the ring stays cream.
 	assert_str(td.hud.element_label.text).is_equal("No target")
-	runner.simulate_key_pressed(KEY_2)
+	runner.simulate_key_pressed(KEY_2)  # Number keys no longer switch element: nothing happens.
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_WHEEL_DOWN)
 	await runner.simulate_frames(2)
 	assert_str(td.hud.element_label.text).is_equal("No target")

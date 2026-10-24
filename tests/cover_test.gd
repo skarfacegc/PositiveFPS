@@ -39,11 +39,11 @@ func _click_at(runner: GdUnitSceneRunner, td: TopDownMain, spot: Vector3) -> voi
 	await runner.simulate_frames(2)
 
 
-# Runs `seconds` of gloom rules at a fixed step, with the cover flags as they are set on the people.
-func _run_gloom(people: Array[Person], seconds: float, use_cover: bool) -> void:
+# Runs `seconds` of gloom rules at a fixed step, with the cover values as they are set on the people.
+func _run_gloom(people: Array[Person], seconds: float) -> void:
 	var steps := roundi(seconds * 60.0)
 	for i: int in range(steps):
-		GloomSim.update(people, 1.0 / 60.0, Config.TD_DRAIN_MULTIPLIER, use_cover)
+		GloomSim.update(people, 1.0 / 60.0, Config.TD_DRAIN_MULTIPLIER)
 
 
 # --- Ground paint weight -------------------------------------------------------------------------------------------
@@ -134,7 +134,7 @@ func test_dark_neighbour_cannot_drain_a_rescued_person_deep_in_cover() -> void:
 	var dark := _person(1, Vector3(2.0, 0.0, 0.0), 1.0)
 	rescued.protection = 1.0
 	var before := rescued.joy
-	GloomSim.update([rescued, dark], 1.0, Config.TD_DRAIN_MULTIPLIER, true)
+	GloomSim.update([rescued, dark], 1.0, Config.TD_DRAIN_MULTIPLIER)
 	assert_float(rescued.joy).is_equal_approx(before, 0.001)
 
 
@@ -143,7 +143,7 @@ func test_dark_neighbour_drains_a_rescued_person_at_the_edge_at_the_top_down_rat
 	var dark := _person(1, Vector3(2.0, 0.0, 0.0), 1.0)
 	rescued.protection = 0.0
 	var before := rescued.joy
-	GloomSim.update([rescued, dark], 1.0, Config.TD_DRAIN_MULTIPLIER, true)
+	GloomSim.update([rescued, dark], 1.0, Config.TD_DRAIN_MULTIPLIER)
 	var lost := before - rescued.joy
 	assert_float(lost).is_equal_approx(Config.SPREAD_DRAIN_RATE * Config.TD_DRAIN_MULTIPLIER, 0.01)
 
@@ -156,18 +156,9 @@ func test_darkness_spreads_to_unrescued_people_only_at_the_edges() -> void:
 	deep.cover = 0.5  # Below the contagion threshold, so only the spread and growth rules act on it.
 	edge.protection = 0.0
 	edge.cover = 0.0
-	GloomSim.update([dark, deep, edge], 1.0, Config.TD_DRAIN_MULTIPLIER, true)
+	GloomSim.update([dark, deep, edge], 1.0, Config.TD_DRAIN_MULTIPLIER)
 	assert_float(deep.gloom).is_less_equal(0.2001)
 	assert_float(edge.gloom).is_greater(0.2 + Config.SPREAD_GLOOM_RATE * 0.9)
-
-
-func test_first_person_gloom_rules_ignore_cover() -> void:
-	# Without use_cover the zone heal still applies, and protection is ignored (first person).
-	var rescued := _person(0, Vector3.ZERO, 0.0, true)
-	var near := _person(1, Vector3(3.0, 0.0, 0.0), 0.5)
-	near.protection = 1.0
-	GloomSim.update([rescued, near], 1.0)
-	assert_float(near.gloom).is_less(0.5)
 
 
 # --- Joy contagion ------------------------------------------------------------------------------------------------
@@ -178,12 +169,12 @@ func test_contagion_lightens_a_dark_person_deep_in_cover_but_never_rescues_them(
 	p.cover = 0.9
 	p.protection = 1.0
 	var people: Array[Person] = [p]
-	_run_gloom(people, 12.0, true)
+	_run_gloom(people, 12.0)
 	# 12 s at 0.034 per second takes 0.8 down to about 0.39: grey.
 	assert_int(Config.gloom_level(p.gloom)).is_equal(1)
-	_run_gloom(people, 10.0, true)
+	_run_gloom(people, 10.0)
 	assert_int(Config.gloom_level(p.gloom)).is_equal(0)
-	_run_gloom(people, 10.0, true)
+	_run_gloom(people, 10.0)
 	# Floored at light grey (0), and never rescued or given joy by contagion.
 	assert_float(p.gloom).is_equal(0.0)
 	assert_bool(p.is_rescued).is_false()
@@ -198,7 +189,7 @@ func test_outside_cover_gloom_grows_and_inside_cover_it_does_not() -> void:
 	inside.cover = 0.9
 	inside.protection = 1.0
 	var people: Array[Person] = [outside, inside]
-	_run_gloom(people, 12.0, true)
+	_run_gloom(people, 12.0)
 	assert_float(outside.gloom).is_greater(0.5)
 	# Inside cover, growth is off (the contagion only lowers gloom), so the gloom has gone down.
 	assert_float(inside.gloom).is_less(0.3)
@@ -209,23 +200,16 @@ func test_outside_cover_gloom_grows_and_inside_cover_it_does_not() -> void:
 
 func test_partial_joy_does_not_fade_deep_in_cover_but_fades_outside_it() -> void:
 	var deep := _person(1, Vector3(0.0, 0.0, 0.0), 0.0)
-	deep.use_cover = true
 	deep.protection = 1.0
 	deep.receive_joy(0, 100.0, 0.0)  # Music on art: 1.5x, so 150 joy.
 	var outside := _person(1, Vector3(5.0, 0.0, 0.0), 0.0)
-	outside.use_cover = true
 	outside.protection = 0.0
 	outside.receive_joy(0, 100.0, 0.0)
-	var first_person := _person(1, Vector3(-5.0, 0.0, 0.0), 0.0)
-	first_person.protection = 1.0  # Ignored: first person does not use cover.
-	first_person.receive_joy(0, 100.0, 0.0)
 	for i: int in range(360):
 		deep.tick(1.0 / 60.0)
 		outside.tick(1.0 / 60.0)
-		first_person.tick(1.0 / 60.0)
 	assert_float(deep.joy).is_equal_approx(150.0, 0.001)
 	assert_float(outside.joy).is_less(150.0)
-	assert_float(first_person.joy).is_less(150.0)
 
 
 # --- Level tests (real top-down level, driven by real input where it matters) -----------------------------------------

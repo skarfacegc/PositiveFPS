@@ -34,13 +34,6 @@ func test_gloom_level_steps() -> void:
 	assert_int(Config.gloom_level(1.0)).is_equal(2)
 
 
-func test_buildings_first_person() -> void:
-	assert_int(Config.buildings_for(0).size()).is_equal(0)
-	assert_array(Config.buildings_for(5)).is_equal(["Cafe"])
-	assert_array(Config.buildings_for(10)).is_equal(["Cafe", "Music Shop"])
-	assert_int(Config.buildings_for(20).size()).is_equal(4)
-
-
 func test_buildings_top_down() -> void:
 	assert_int(Config.buildings_for(0, Config.TD_BUILDING_THRESHOLDS).size()).is_equal(0)
 	assert_array(Config.buildings_for(15, Config.TD_BUILDING_THRESHOLDS)).is_equal(["Cafe"])

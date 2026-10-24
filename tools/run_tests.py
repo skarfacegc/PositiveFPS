@@ -18,6 +18,20 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
+
+
+def _use_utf8_console():
+    """Prints UTF-8 whatever the console code page is (Windows cp1252 cannot print the em dashes in Godot's output).
+
+    Characters the console still cannot show are replaced, not raised, so a test name can never stop a run.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
+_use_utf8_console()
+
 DEFAULT_GODOT = (
     r"C:\Users\amw1\AppData\Local\Microsoft\WinGet\Packages"
     r"\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe"

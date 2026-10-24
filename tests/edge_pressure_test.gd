@@ -213,7 +213,7 @@ func test_a_tile_at_the_grid_corner_is_interior_only_if_its_neighbours_are_paint
 
 
 func test_erosion_only_runs_when_the_ground_is_set_to_erode() -> void:
-	# First person leaves erosion off: a dark neighbour does not take paint away.
+	# With erosion off (a plain ground), a dark neighbour does not take paint away.
 	var g := _ground(40, false)
 	var lone := _person(0, Vector3.ZERO, 0.0, true)
 	var dark := _person(1, Vector3(4.0, 0.0, 0.0), 0.9)

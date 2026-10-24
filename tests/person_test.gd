@@ -14,7 +14,7 @@ func _make_person(affinity: int, pos: Vector3 = Vector3.ZERO, gloom: float = 0.0
 
 func _shots_to_rescue(p: Person, element: int, cap: int = 200) -> int:
 	for i: int in range(cap):
-		p.receive_joy(element, Config.JOY_PER_SHOT, 0.0)
+		p.receive_joy(element, Config.TD_JOY_PER_SHOT, 0.0)
 		if p.is_rescued:
 			return i + 1
 	return -1
@@ -34,7 +34,7 @@ func test_rescued_signal_fires_once() -> void:
 	var count := [0]
 	p.rescued.connect(func() -> void: count[0] += 1)
 	for i: int in range(60):
-		p.receive_joy(1, Config.JOY_PER_SHOT, 0.0)
+		p.receive_joy(1, Config.TD_JOY_PER_SHOT, 0.0)
 	assert_bool(p.is_rescued).is_true()
 	assert_int(count[0]).is_equal(1)
 
@@ -84,7 +84,7 @@ func test_rescued_person_can_be_topped_up() -> void:
 	p.receive_joy(0, Config.JOY_MAX, 0.0)
 	p.drain_joy(300.0)
 	var before: float = p.joy
-	p.receive_joy(0, Config.JOY_PER_SHOT, 0.0)
+	p.receive_joy(0, Config.TD_JOY_PER_SHOT, 0.0)
 	assert_float(p.joy).is_greater(before)
 	assert_bool(p.is_rescued).is_true()
 
@@ -103,11 +103,11 @@ func test_level_changes_run_without_errors() -> void:
 func test_each_hit_tier_adds_joy_and_numbers() -> void:
 	# Affinity Music: Music matches, Nature is strong against it, Art is weak.
 	var p: Person = _make_person(0)
-	p.receive_joy(0, Config.JOY_PER_SHOT, 0.0)
+	p.receive_joy(0, Config.TD_JOY_PER_SHOT, 0.0)
 	var after_match: float = p.joy
-	p.receive_joy(2, Config.JOY_PER_SHOT, 0.0)
+	p.receive_joy(2, Config.TD_JOY_PER_SHOT, 0.0)
 	var after_strong: float = p.joy
-	p.receive_joy(1, Config.JOY_PER_SHOT, 0.0)
+	p.receive_joy(1, Config.TD_JOY_PER_SHOT, 0.0)
 	assert_float(after_match).is_greater(0.0)
 	assert_float(after_strong).is_greater(after_match)
 	assert_float(p.joy).is_greater(after_strong)

@@ -9,7 +9,7 @@ var joy: float = 0.0
 var is_rescued: bool = false
 # Scales the joy label and floating numbers. Top-down mode sets this higher, because the camera is far away.
 var ui_scale: float = 1.0
-# Hidden darkness value, 0.0 (light) to 1.0 (nearly black). Main.gd changes this each frame.
+# Hidden darkness value, 0.0 (light) to 1.0 (nearly black). topdown_main.gd changes this each frame.
 var gloom: float = 0.0
 # The visible grey level (0 light, 1 grey, 2 dark). When it changes, a short moment plays.
 var level: int = 0
@@ -17,7 +17,7 @@ var body_mat: StandardMaterial3D
 var label: Label3D
 var body: MeshInstance3D
 var wisp: CPUParticles3D
-# Seconds after a rescue during which nearby darkness cannot drain this person. 0 (first person) means no grace.
+# Seconds after a rescue during which nearby darkness cannot drain this person. 0 means no grace.
 var grace_seconds: float = 0.0
 # Seconds of grace left. The grace cue (ring and glow) is shown while this is above zero.
 var grace_left: float = 0.0
@@ -27,14 +27,12 @@ var grace_ring: MeshInstance3D
 var cover: float = 0.0
 # Protection (0..1) from the cover: 0 at a painted edge, 1 deep inside. Darkness and joy fade scale by it.
 var protection: float = 0.0
-# True in top-down mode: the partial-joy fade is scaled by protection. First person leaves it off.
-var use_cover: bool = false
 # Cover and protection labels, built the first time the F3 debug overlay is turned on (see set_debug_visible).
 var debug_label: Label3D
 var _grace_mat: StandardMaterial3D
 # Seconds since the person was made (drives the grace ring's pulse).
 var _grace_time: float = 0.0
-# Seconds since this person was last hit by a beam.
+# Seconds since this person was last hit by a joy projectile.
 var _since_hit: float = 99.0
 # Seconds left to show the sad face after a relapse.
 var _sad_timer: float = 0.0
@@ -144,7 +142,7 @@ func chest_position() -> Vector3:
 	return global_position + Vector3(0, 1.0, 0)
 
 
-# Called by the player's beam when it hits this person. Works on rescued people too (top-up).
+# Called when a joy projectile (or a burst) hits this person. Works on rescued people too (top-up).
 func receive_joy(element: int, amount: float, distance: float) -> void:
 	var mult := Config.multiplier(element, affinity)
 	var gain := amount * mult * Config.falloff(distance)
@@ -160,7 +158,7 @@ func receive_joy(element: int, amount: float, distance: float) -> void:
 		_update_visuals()
 
 
-# Called every frame by topdown_main.gd or main.gd: handles joy fading, level changes and visuals.
+# Called every frame by topdown_main.gd: handles joy fading, level changes and visuals.
 func tick(delta: float) -> void:
 	_since_hit += delta
 	_grace_time += delta
@@ -170,8 +168,8 @@ func tick(delta: float) -> void:
 		grace_left = maxf(0.0, grace_left - delta)
 	if not is_rescued:
 		if _since_hit > Config.JOY_FADE_DELAY:
-			# With cover (top-down), partial joy does not fade deep inside painted ground.
-			var exposure := (1.0 - protection) if use_cover else 1.0
+			# Partial joy does not fade deep inside painted ground (protection 1).
+			var exposure := 1.0 - protection
 			joy = maxf(0.0, joy - Config.JOY_FADE_RATE * delta * exposure)
 		if joy >= joy_needed():
 			_rescue()

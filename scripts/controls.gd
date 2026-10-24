@@ -1,28 +1,8 @@
 class_name Controls
 extends RefCounted
 
-# The player's intent for mouse capture. In automated tests the real OS mouse mode is never changed,
-# so tests check this instead (see is_mouse_captured).
-static var mouse_captured: bool = false
-
-
-# Captures or frees the mouse. In automated tests only the intent is recorded.
-static func set_mouse_captured(captured: bool) -> void:
-	mouse_captured = captured
-	if Config.is_automated_test():
-		return
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE
-
-
-# True if the mouse is captured. The real game reads the OS mode; automated tests read the intent.
-static func is_mouse_captured() -> bool:
-	if Config.is_automated_test():
-		return mouse_captured
-	return Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
-
-
 # Registers every input action the game uses. Each action is only added if it does not exist yet,
-# so it is safe to call from the menu, first-person mode and top-down mode.
+# so it is safe to call from the menu and the level.
 
 
 static func setup() -> void:
@@ -33,21 +13,19 @@ static func setup() -> void:
 	_add_action("move_left", [_key(KEY_A)])
 	_add_action("move_right", [_key(KEY_D)])
 	_add_action("run", [_key(KEY_SHIFT)])
-	_add_action("jump", [_key(KEY_SPACE)])
+	# Left click: lock on to a person (lock-on mode). Read as "fire" in the level.
 	_add_action("fire", [_mouse(MOUSE_BUTTON_LEFT)])
-	_add_action("element_1", [_key(KEY_1)])
-	_add_action("element_2", [_key(KEY_2)])
-	_add_action("element_3", [_key(KEY_3)])
-	_add_action("element_next", [_mouse(MOUSE_BUTTON_WHEEL_DOWN)])
-	_add_action("element_prev", [_mouse(MOUSE_BUTTON_WHEEL_UP)])
+	# Menu: keys 1, 2 and 3 pick a menu entry.
+	_add_action("choice_1", [_key(KEY_1)])
+	_add_action("choice_2", [_key(KEY_2)])
+	_add_action("choice_3", [_key(KEY_3)])
 	# Joy burst: G is the grenade-style key by convention, Q is a second option.
 	_add_action("burst", [_key(KEY_G), _key(KEY_Q)])
-	# Top-down: cycles the targeting mode (lock-on, hover, auto). A debug key for now.
+	# Cycles the targeting mode (lock-on, hover, auto).
 	_add_action("cycle_targeting", [_key(KEY_F2)])
-	# Top-down: shows cover and protection above each person, and a hint in the HUD (off by default).
+	# Shows cover and protection above each person, and a hint in the HUD (off by default).
 	_add_action("toggle_debug", [_key(KEY_F3)])
 	_add_action("restart", [_key(KEY_R)])
-	_add_action("release_mouse", [_key(KEY_ESCAPE)])
 	_add_action("menu", [_key(KEY_M)])
 
 
@@ -55,12 +33,11 @@ static func setup() -> void:
 # actions, never raw keys, so a future gamepad mapping only needs joypad events added to the actions above:
 #   move_forward, move_back, move_left, move_right  -> left stick
 #   run                                             -> left stick click
-#   jump                                            -> bottom face button
-#   fire (top-down: lock on to a person)            -> right trigger
 #   burst                                           -> top face button
+#   fire (lock on to a person)                      -> right trigger
 #   cycle_targeting                                 -> left shoulder button
 #   restart, menu                                   -> start or back
-# Top-down aiming uses the mouse position on the floor, so a gamepad would also need a right-stick aim point.
+# Aiming uses the mouse position on the floor, so a gamepad would also need a right-stick aim point.
 
 
 static func _add_action(action: String, events: Array) -> void:

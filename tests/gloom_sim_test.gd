@@ -51,11 +51,12 @@ func test_drain_multiplier_scales_the_drain_from_darkness() -> void:
 	assert_float(half_lost).is_equal_approx(full_lost * Config.TD_DRAIN_MULTIPLIER, 0.01)
 
 
-func test_zone_heals_nearby_gloom() -> void:
+func test_gloom_still_grows_near_rescued_people_when_they_have_no_cover() -> void:
+	# Round 9: there is no colour-zone heal any more. Without paint around them, a person near a rescued one grows.
 	var rescued: Person = _make_person(0, Vector3(0, 0, 0), 0.0, true)
 	var near: Person = _make_person(1, Vector3(3, 0, 0), 0.5)
 	GloomSim.update([rescued, near], 1.0)
-	assert_float(near.gloom).is_less(0.5)
+	assert_float(near.gloom).is_greater(0.5)
 
 
 func test_gloom_grows_far_from_zones() -> void:

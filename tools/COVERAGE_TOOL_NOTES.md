@@ -31,7 +31,8 @@ A mini project inside PositiveFPS. Godot has no standard code coverage tool, so 
 - **Lines inside a multi-line lambda passed as an argument** (`foo(func():` with the body on following lines) are not
   measured: they sit inside brackets, so they count as continuation lines. Hoist the lambda into a `var` to measure it.
 - **Windows path length:** copying the project into a deep folder (for example a scratchpad path) failed inside
-  `.coverage_build` with WinError 3 (MAX_PATH). Keep test copies in a short path such as `C:t_ratchet`.
+  `.coverage_build` with WinError 3 (MAX_PATH). Keep test copies in a short path such as `C:
+t_ratchet`.
 - **Baseline files from PowerShell** (`Set-Content -Encoding utf8`) start with a BOM. The loader now accepts `utf-8-sig`.
 - **gdformat 4.5 output** wraps long multi-line calls awkwardly (for example a `(
  hud
@@ -81,3 +82,8 @@ A mini project inside PositiveFPS. Godot has no standard code coverage tool, so 
   with `--fixed-fps 60` (`TEST_FIXED_FPS`), so each frame advances exactly 1/60 s and the physics step matches.
   Proof: three full `tools/coverage.py` runs gave identical per-file line coverage (topdown_main.gd 95.3% (182/191),
   topdown_player.gd 95.9% (142/148), total 97.4%, 57/57 tests).
+- 2026-10-24: Round 9 step 1 (first person retired). Deleted scripts are dropped from the baseline: `--check-baseline`
+  reports a removed file as a note, not a failure, and `--update-baseline` writes only the files that still exist.
+  Found and fixed: `run_tests.py` and `coverage.py` could not print Godot's em dashes on a cp1252 Windows console, so an
+  `--update-baseline` run died halfway. Both now reconfigure stdout and stderr to UTF-8 (`errors="replace"`) when
+  `run_tests.py` loads, so no `PYTHONIOENCODING` workaround is needed.
