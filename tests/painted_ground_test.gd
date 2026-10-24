@@ -32,3 +32,12 @@ func test_rescued_person_paints_nearby_tiles_and_leaves_far_corner_grey() -> voi
 	assert_float(far.r).is_equal_approx(Config.GROUND_GREY.r, 0.001)
 	assert_float(far.g).is_equal_approx(Config.GROUND_GREY.g, 0.001)
 	assert_float(far.b).is_equal_approx(Config.GROUND_GREY.b, 0.001)
+
+
+# Round 10: the minimap reads the colour each tile is showing. Off the grid it is grey.
+func test_paint_colour_at_shows_the_tile_colour_and_grey_off_the_grid() -> void:
+	var ground: PaintedGround = auto_free(PaintedGround.new())
+	add_child(ground)
+	ground.setup(10)
+	assert_bool(ground.paint_colour_at(Vector3.ZERO).is_equal_approx(Config.GROUND_GREY)).is_true()
+	assert_bool(ground.paint_colour_at(Vector3(50.0, 0.0, 0.0)).is_equal_approx(Config.GROUND_GREY)).is_true()
