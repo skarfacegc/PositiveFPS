@@ -408,5 +408,14 @@ which branch grows, and a real overextension trade-off.
 
 **Suggested first test:** the Busker and Lamplighter branches only (one weapon, one placeable), before building all four.
 
+**Key risk: balance with one starting element (user priority).** All tuning so far assumed every element is available.
+When implementation starts, give this focused attention as its own step, not a side effect:
+- Check that a one-element start can capture the first town at a fair difficulty, with no unlocks at all.
+- Check each element is viable alone, if the player may pick the starting element.
+- Make sure unlocks feel like a real boost without becoming required, so a skipped side goal never makes a town
+  unwinnable.
+- Expect retuning of rescue speed, grey pressure and the night curve for the one-element case. Use the existing config
+  values and F3 readouts, and add a playtest question on how the opening feels with one element.
+
 **Open questions:** starting element (paint or player's pick); placeable stock and whether darkness erodes them; the
 story tone and the bigger aim.
