@@ -21,6 +21,19 @@ float vnoise(vec2 p) {
 	f = f * f * (3.0 - 2.0 * f);
 	return mix(mix(hash21(i), hash21(i + vec2(1, 0)), f.x), mix(hash21(i + vec2(0, 1)), hash21(i + vec2(1, 1)), f.x), f.y);
 }
+float ihash(ivec2 q) {
+	uint h = uint(q.x) * 374761393u + uint(q.y) * 668265263u;
+	h = (h ^ (h >> 13u)) * 1274126177u;
+	h = h ^ (h >> 16u);
+	return float(h & 65535u) / 65535.0;
+}
+float vnoise_i(vec2 p) {
+	vec2 fl = floor(p);
+	ivec2 i = ivec2(fl);
+	vec2 f = p - fl;
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(ihash(i), ihash(i + ivec2(1, 0)), f.x), mix(ihash(i + ivec2(0, 1)), ihash(i + ivec2(1, 1)), f.x), f.y);
+}
 vec3 S(vec3 c) { return pow(c, vec3(2.2)); }
 
 // signed field: >0 inside the joy wash, <0 outside. xz of world position.
@@ -29,7 +42,7 @@ float joy_field(vec2 p) {
 	for (int i = 0; i < circle_count; i++) {
 		m = max(m, circles[i].z - length(p - circles[i].xy));
 	}
-	m += (vnoise(p * 0.55) - 0.5) * 2.0 + (vnoise(p * 1.7) - 0.5) * 0.55;
+	m += (vnoise_i(p * 0.55) - 0.5) * 2.0 + (vnoise_i(p * 1.7) - 0.5) * 0.55;
 	return m;
 }
 float joy_field_smooth(vec2 p) {
@@ -37,7 +50,7 @@ float joy_field_smooth(vec2 p) {
 	for (int i = 0; i < circle_count; i++) {
 		m = max(m, circles[i].z - length(p - circles[i].xy));
 	}
-	return m + (vnoise(p * 0.55) - 0.5) * 2.0;
+	return m + (vnoise_i(p * 0.55) - 0.5) * 2.0;
 }
 float joy_dither(float m, vec2 frag) {
 	if (smooth_mode > 0.5) return smoothstep(-0.9, 0.9, m);
@@ -54,7 +67,7 @@ vec3 sand_ridges(vec3 c, float m, vec2 p, vec2 frag) {
 	float lsm = smoothstep(0.55, 0.95, -rp);
 	float dark = ((smooth_mode > 0.5) ? dsm : step(bay, dsm)) * fade;
 	float lite = ((smooth_mode > 0.5) ? lsm : step(bay, lsm)) * fade;
-	c = mix(c, S(vec3(0.22, 0.22, 0.25)), dark * 0.7);
+	c = mix(c, S(vec3(0.22, 0.22, 0.25)), dark * 0.5);
 	c = mix(c, c + S(vec3(0.12)), lite * 0.6);
 	return c;
 }

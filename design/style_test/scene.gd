@@ -19,6 +19,28 @@ var env: Environment
 var player_node: Node3D
 var joy_level := 0.0
 var pixel_mode := true
+var people_nodes: Array = []
+var gloomy_nodes: Array = []
+var glow_mat: ShaderMaterial
+var dyn: Node3D
+var border_info := {}
+var dark_spots: Array = []
+var lineup_nodes: Array = []
+var smoke_mat: ShaderMaterial
+var gap_mote_mat: ShaderMaterial
+var gap_glow_mat: ShaderMaterial
+var gap_motes: Array = []
+var pulse := 0.0
+var gap_glows: Array = []
+var haze_mat: ShaderMaterial
+var cur_circles: Array = []
+var cam_size := 12.0
+var cam_tgt := Vector3.ZERO
+var cam_pitch := 0.0
+var lineup_pos: Array = []
+var lineup_circles: Array = []
+var landmark := Vector2(8.0, -5.5)
+var PLAYER_POS := Vector3(0.6, 0, 3.2)
 
 # ---------------------------------------------------------------- helpers
 func C(h: String) -> Color:
@@ -195,34 +217,50 @@ func _ready() -> void:
 	set_shot("topdown")
 
 func _build_world() -> void:
+	glow_mat = ShaderMaterial.new()
+	glow_mat.shader = load("res://glow.gdshader")
+	smoke_mat = ShaderMaterial.new()
+	smoke_mat.shader = load("res://glow.gdshader")
+	smoke_mat.set_shader_parameter("glow_color", Color(0.07, 0.07, 0.1))
+	smoke_mat.set_shader_parameter("strength", 0.45)
+	gap_mote_mat = mat(C("#ff7a66"), 0, 0.0, 1.2)
+	gap_glow_mat = ShaderMaterial.new()
+	gap_glow_mat.shader = load("res://glow.gdshader")
+	gap_glow_mat.set_shader_parameter("glow_color", Color(1.0, 0.42, 0.34))
+	haze_mat = ShaderMaterial.new()
+	haze_mat.shader = load("res://haze.gdshader")
 	# buildings: pos, w, d, h, opts, joy threshold, wash radius
 	add_building(Vector3(-9.5, 0, -5.5), 7.0, 5.0, 4.0, {"stack": true, "tank": true, "nwin": 2, "roof": "#ad6249", "shutter": "#5f86b0", "door": "#5f86b0"}, 0.85, 6.5)
-	add_building(Vector3(8.0, 0, -5.5), 5.4, 4.6, 3.4, {"tank": true, "nwin": 1, "roof": "#5f86b0", "shutter": "#c0604f", "door": "#c0604f", "tankside": -1}, 0.4, 6.0)
+	add_building(Vector3(8.0, 0, -5.5), 5.4, 4.6, 3.4, {"tank": true, "nwin": 1, "roof": "#5f86b0", "shutter": "#c0604f", "door": "#c0604f", "tankside": -1, "landmark": true}, 0.4, 6.0)
 	add_building(Vector3(-0.5, 0, -9.5), 4.2, 3.4, 2.8, {"kiosk": true, "nwin": 1, "roof": "#c0604f", "shutter": "#7f9d62", "door": "#7f9d62"}, 0.7, 5.0)
 
-	# people: x, z, yaw, affinity, hat variant, threshold
-	add_person(3.2, 2.6, 0.5, 0, 0, 0.0)
-	add_person(-4.6, 3.6, -0.4, 1, 1, 0.0)
-	add_person(7.2, -0.6, 0.3, 2, 2, 0.3)
-	add_person(-1.4, -0.8, 0.0, 2, 0, 0.45)
-	add_person(5.4, 4.8, -0.2, 0, 1, 0.5)
-	add_person(-8.4, 0.6, 0.6, 1, 2, 0.6)
-	add_person(12.0, 3.2, -0.5, 0, 0, 0.7)
-	add_person(-12.2, 4.6, 0.4, 2, 1, 0.8)
-	add_person(1.0, -4.0, 0.2, 1, 2, 0.9)
-	add_person(-6.2, -1.6, -0.3, 0, 2, 0.95)
-	add_gloomy(Vector3(-15.8, 0, 1.2))
-	add_player(Vector3(0.6, 0, 6.2))
+	# people: x, z, yaw, affinity (0 music, 1 art, 2 nature), pose variant, joy threshold
+	add_person(3.6, 4.8, 0.5, 0, 0, 0.0)
+	add_person(-3.0, 5.0, -0.4, 1, 1, 0.0)
+	add_person(6.6, 1.6, 0.3, 2, 2, 0.3)
+	add_person(-1.4, 0.8, 0.0, 2, 0, 0.45)
+	add_person(5.6, 7.0, -0.2, 0, 1, 0.5)
+	add_person(-6.6, 2.2, 0.6, 1, 2, 0.6)
+	add_person(9.4, 4.4, -0.5, 0, 0, 0.7)
+	add_person(-9.2, 5.6, 0.4, 2, 1, 0.8)
+	add_person(1.4, -1.2, 0.2, 1, 2, 0.9)
+	add_person(-5.0, -0.8, -0.3, 0, 2, 0.95)
+	add_person(-1.2, 8.2, 0.1, 2, 2, 0.55)
+	add_person(8.8, -0.4, 0.4, 1, 1, 0.65)
+	for gp in [Vector3(-12.2, 0, 2.4), Vector3(11.6, 0, 7.8), Vector3(-3.4, 0, -1.6)]:
+		add_gloomy(gp, 0.5 + gp.x * 0.1)
+	player_node = add_player(PLAYER_POS)
 	add_projectiles()
 
 	# props
-	for pp in [Vector3(-3.0, 0, 1.0), Vector3(9.8, 0, 2.2)]:
+	for pp in [Vector3(-3.4, 0, 2.2), Vector3(9.8, 0, 3.2)]:
 		add_grate_pair(pp)
-	for lp in [Vector3(-5.8, 0, 6.5), Vector3(5.8, 0, -2.4), Vector3(14.0, 0, -1.0)]:
+	for lp in [Vector3(-5.8, 0, 7.5), Vector3(5.8, 0, -1.4), Vector3(13.0, 0, -1.0)]:
 		add_lamp_pair(lp)
-	for tp in [Vector3(-15.0, 0, -4.0), Vector3(15.0, 0, -9.0), Vector3(13.5, 0, 7.5), Vector3(-6.5, 0, -11.5)]:
+	for tp in [Vector3(-14.5, 0, -2.0), Vector3(14.5, 0, -8.0), Vector3(13.5, 0, 9.0), Vector3(-6.5, 0, -11.5)]:
 		add_tree_pair(tp)
 	add_far_skyline()
+	build_lineup()
 
 # ---------------------------------------------------------------- buildings
 func add_building(pos: Vector3, w: float, d: float, h: float, o: Dictionary, thr: float, rad: float) -> void:
@@ -231,7 +269,7 @@ func add_building(pos: Vector3, w: float, d: float, h: float, o: Dictionary, thr
 	add_child(root)
 	build_industrial(root, w, d, h, o)
 	build_whimsical(root, w, d, h, o)
-	bldg_defs.append({"x": pos.x, "z": pos.z, "thr": thr, "r": rad})
+	bldg_defs.append({"x": pos.x, "z": pos.z, "thr": thr, "r": rad, "w": w, "d": d, "landmark": o.get("landmark", false)})
 
 func build_industrial(p: Node3D, w: float, d: float, h: float, o: Dictionary) -> void:
 	var wall := mat(C("#8d95a1"), 1, 1.0)
@@ -398,6 +436,11 @@ func build_whimsical(p: Node3D, w: float, d: float, h: float, o: Dictionary) -> 
 		sph(p, 0.45, Vector3(cx + 0.3, h + 5.9, cz), puff, Vector3(1.2, 0.9, 1.0), 8, false)
 		sph(p, 0.62, Vector3(cx + 1.0, h + 6.7, cz), puff, Vector3(1.2, 0.9, 1.0), 8, false)
 		sph(p, 0.8, Vector3(cx + 2.0, h + 7.3, cz), puff, Vector3(1.3, 0.85, 1.0), 8, false)
+	if o.get("landmark", false):
+		var gold_f := mat(C("#f2c14e"), 2, 0.0, 0.5)
+		seg(p, Vector3(w * 0.5 - 0.5, h + 0.2, 0.0), Vector3(w * 0.5 - 0.5, h + 3.3, 0.0), 0.05, timber)
+		prism(p, Vector3(0.9, 0.6, 0.05), Vector3(w * 0.5 - 0.05, h + 3.0, 0.0), gold_f, Vector3(0, 0, -PI / 2), false)
+		sph(p, 0.1, Vector3(w * 0.5 - 0.5, h + 3.35, 0.0), gold_f, Vector3.ONE, 6, false)
 	# door
 	var dx := -w * 0.5 + 1.0
 	var doorc := mat(C(o.get("door", "#5f86b0")), 2)
@@ -576,187 +619,395 @@ func add_far_skyline() -> void:
 	for sx in [-30.0, 10.0, 38.0]:
 		cyl(self, 1.2, 22.0, Vector3(sx, 11.0, -52), m2, Vector3.ZERO, 0.8, 8, false)
 
+
+# ---------------------------------------------------------------- noise port (mirrors common.gdshaderinc)
+# The joy field noise uses an integer hash so GDScript can compute exactly the same wash edge as the shaders.
+# That lets the living border, the minimap and the people all agree with what the ground shows.
+func ihash(x: int, y: int) -> float:
+	var h: int = ((x & 0xFFFFFFFF) * 374761393 + (y & 0xFFFFFFFF) * 668265263) & 0xFFFFFFFF
+	h = ((h ^ (h >> 13)) * 1274126177) & 0xFFFFFFFF
+	h = h ^ (h >> 16)
+	return float(h & 65535) / 65535.0
+
+func vnoise_i(px: float, py: float) -> float:
+	var fx0 := floorf(px)
+	var fy0 := floorf(py)
+	var ix := int(fx0)
+	var iy := int(fy0)
+	var fx := px - fx0
+	var fy := py - fy0
+	fx = fx * fx * (3.0 - 2.0 * fx)
+	fy = fy * fy * (3.0 - 2.0 * fy)
+	return lerpf(lerpf(ihash(ix, iy), ihash(ix + 1, iy), fx), lerpf(ihash(ix, iy + 1), ihash(ix + 1, iy + 1), fx), fy)
+
+func joy_field(p: Vector2, cs: Array) -> float:
+	var m := -100.0
+	for c in cs:
+		m = maxf(m, c.z - Vector2(c.x, c.y).distance_to(p))
+	m += (vnoise_i(p.x * 0.55, p.y * 0.55) - 0.5) * 2.0 + (vnoise_i(p.x * 1.7, p.y * 1.7) - 0.5) * 0.55
+	return m
+
 # ---------------------------------------------------------------- people
-func add_person(x: float, z: float, yaw: float, aff: int, v: int, thr: float) -> void:
+const AFF_COAT := ["#5f86b0", "#c4604f", "#7f9d62"]   # music dusty blue, art rose/terracotta, nature sage
+const AFF_PIP := ["#7fa6d6", "#e0806c", "#97b872"]    # the small affinity pip grey people carry
+const AFF_NAME := ["music", "art", "nature"]
+
+func bm(col: Color, grey: bool, a: Vector3, grime := 0.0, emit := 0.0) -> ShaderMaterial:
+	return mat(col, 1 if grey else 2, grime, emit, a)
+
+func add_person(x: float, z: float, yaw: float, aff: int, v: int, thr: float, parent: Node = null, register := true) -> Node3D:
 	var pos := Vector3(x, 0, z)
 	var root := Node3D.new()
 	root.position = pos
 	root.rotation.y = yaw
-	add_child(root)
+	if parent == null:
+		parent = self
+	parent.add_child(root)
 	var g := Node3D.new()
 	root.add_child(g)
 	var j := Node3D.new()
 	root.add_child(j)
-	_body_grey(g, pos, v)
+	_body_grey(g, pos, aff, v)
 	_body_joy(j, pos, aff, v)
-	people_defs.append({"x": x, "z": z, "thr": thr})
+	if register:
+		people_defs.append({"x": x, "z": z, "thr": thr, "aff": aff})
+		people_nodes.append(root)
+	return root
 
 func _face(p: Node3D, y: float, em: Material, scl := 1.0) -> void:
 	for sx in [-0.085, 0.085]:
 		sph(p, 0.04 * scl, Vector3(sx, y, 0.225), em, Vector3.ONE, 5, false)
 
-func _body_grey(p: Node3D, a: Vector3, v: int) -> void:
-	var skin := mat(C("#b4a9a1"), 1, 0.0, 0.0, a)
-	var coat := mat(C(["#5b6370", "#4f5662", "#69707b"][v % 3]), 1, 0.5, 0.0, a)
-	var pants := mat(C("#383d47"), 1, 0.3, 0.0, a)
-	var cap := mat(C("#2b2f37"), 1, 0.3, 0.0, a)
-	var eye := mat(C("#1b1d22"), 1, 0.0, 0.0, a)
-	var brass := mat(C("#a9a28a"), 1, 0.0, 0.0, a)
-	for sx in [-0.14, 0.14]:
-		box(p, Vector3(0.22, 0.62, 0.24), Vector3(sx, 0.31, 0), pants)
-		box(p, Vector3(0.24, 0.1, 0.3), Vector3(sx, 0.05, 0.03), cap)
-	box(p, Vector3(0.56, 0.9, 0.38), Vector3(0, 0.95, 0), coat)
-	box(p, Vector3(0.6, 0.14, 0.42), Vector3(0, 0.55, 0), coat)
-	for sx in [-0.37, 0.37]:
-		box(p, Vector3(0.14, 0.72, 0.18), Vector3(sx, 0.92, 0), coat)
-		sph(p, 0.08, Vector3(sx, 0.52, 0), skin, Vector3.ONE, 5)
-	sph(p, 0.04, Vector3(0.14, 0.95, 0.2), brass, Vector3.ONE, 5, false)
-	sph(p, 0.23, Vector3(0, 1.57, 0.02), skin, Vector3.ONE, 8)
-	_face(p, 1.58, eye)
-	cyl(p, 0.24, 0.12, Vector3(0, 1.76, 0), cap, Vector3.ZERO, -1.0, 8)
-	box(p, Vector3(0.3, 0.03, 0.16), Vector3(0, 1.72, 0.22), cap, Vector3.ZERO, false)
+# the thing a person carries, built along local -Y from the hand
+func _item(parent: Node3D, aff: int, grey: bool, a: Vector3, scl: float) -> void:
+	var n := Node3D.new()
+	n.scale = Vector3.ONE * scl
+	parent.add_child(n)
+	var tint := C(AFF_PIP[aff])
+	var g1 := C("#8c9098").lerp(tint, 0.3)
+	var g2 := C("#6a6e76").lerp(tint, 0.2)
+	match aff:
+		0: # little brass horn
+			var brass := bm(g1 if grey else C("#e8b24a"), grey, a, 0.0, 0.0 if grey else 0.12)
+			cyl(n, 0.045, 0.3, Vector3(0, -0.15, 0), brass, Vector3.ZERO, -1.0, 6, false)
+			cyl(n, 0.15, 0.2, Vector3(0, -0.4, 0), brass, Vector3.ZERO, 0.05, 8, false)
+			sph(n, 0.06, Vector3(0, 0.0, 0), brass, Vector3.ONE, 5, false)
+		1: # paintbrush
+			var wood := bm(g2 if grey else C("#8a5a3a"), grey, a)
+			var metal := bm(g1 if grey else C("#c9c2b0"), grey, a)
+			var paint := bm(g1.lightened(0.1) if grey else C("#f2c04c"), grey, a, 0.0, 0.0 if grey else 0.2)
+			cyl(n, 0.03, 0.44, Vector3(0, -0.22, 0), wood, Vector3.ZERO, -1.0, 5, false)
+			cyl(n, 0.05, 0.1, Vector3(0, -0.47, 0), metal, Vector3.ZERO, -1.0, 6, false)
+			sph(n, 0.08, Vector3(0, -0.58, 0), paint, Vector3(1.0, 1.5, 1.0), 6, false)
+		2: # flower on a stem
+			var stem := bm(g2 if grey else C("#56753f"), grey, a)
+			var petal := bm(g1.lightened(0.08) if grey else C("#f08aa0"), grey, a, 0.0, 0.0 if grey else 0.12)
+			var mid := bm(g2 if grey else C("#f2c04c"), grey, a)
+			cyl(n, 0.025, 0.34, Vector3(0, -0.17, 0), stem, Vector3.ZERO, -1.0, 5, false)
+			for k in range(6):
+				var ang := k * TAU / 6.0
+				sph(n, 0.085, Vector3(cos(ang) * 0.11, -0.38, sin(ang) * 0.11), petal, Vector3.ONE, 5, false)
+			sph(n, 0.075, Vector3(0, -0.38, 0), mid, Vector3.ONE, 5, false)
+
+func _body_grey(p: Node3D, a: Vector3, aff: int, v: int) -> void:
+	# stiff, upright, drab: straight legs, flat cap. Affinity shows as a muted scarf, a cap band, a pip and a
+	# grey version of their object held out in front at a readable size.
+	var skin := bm(C("#b4a9a1"), true, a)
+	var coat := bm(C(["#5b6370", "#4f5662", "#69707b"][v % 3]), true, a, 0.5)
+	var coat_d := bm(C("#3d434e"), true, a, 0.4)
+	var pants := bm(C("#383d47"), true, a, 0.3)
+	var cap := bm(C("#2b2f37"), true, a, 0.3)
+	var eye := bm(C("#1b1d22"), true, a)
+	var brass := bm(C("#a9a28a"), true, a)
+	var tint := C("#6a707c").lerp(C(AFF_PIP[aff]), 0.42)
+	var scarf := bm(tint, true, a, 0.0, 0.12)
+	var pip := bm(C(AFF_PIP[aff]), true, a, 0.0, 0.35)
+	for sx in [-0.12, 0.12]:
+		box(p, Vector3(0.2, 0.62, 0.22), Vector3(sx, 0.31, 0), pants)
+		box(p, Vector3(0.22, 0.1, 0.3), Vector3(sx, 0.05, 0.04), cap)
+	box(p, Vector3(0.54, 0.86, 0.36), Vector3(0, 1.0, 0), coat)
+	box(p, Vector3(0.58, 0.14, 0.4), Vector3(0, 0.6, 0), coat_d)
+	box(p, Vector3(0.62, 0.12, 0.36), Vector3(0, 1.38, 0), coat_d)
+	box(p, Vector3(0.1, 0.5, 0.04), Vector3(0, 1.1, 0.19), coat_d, Vector3.ZERO, false)
+	# muted affinity scarf (collar + a short tail down the chest)
+	box(p, Vector3(0.6, 0.14, 0.42), Vector3(0, 1.47, 0.0), scarf)
+	box(p, Vector3(0.12, 0.34, 0.05), Vector3(0.16, 1.26, 0.2), scarf, Vector3.ZERO, false)
+	for sx in [-1.0, 1.0]:
+		var arm := Node3D.new()
+		arm.position = Vector3(sx * 0.37, 1.38, 0)
+		p.add_child(arm)
+		if sx > 0.0:
+			# forearm bent forward, holding the object up
+			arm.rotation.x = -1.3
+			box(arm, Vector3(0.13, 0.74, 0.17), Vector3(0, -0.37, 0), coat)
+			sph(arm, 0.08, Vector3(0, -0.78, 0), skin, Vector3.ONE, 5)
+			var held := Node3D.new()
+			held.position = Vector3(0, -0.8, 0.0)
+			held.rotation.x = 4.7
+			arm.add_child(held)
+			held.rotation.z = -0.45
+			_item(held, aff, true, a, 1.1)
+		else:
+			arm.rotation.z = sx * 0.04
+			box(arm, Vector3(0.13, 0.74, 0.17), Vector3(0, -0.37, 0), coat)
+			sph(arm, 0.08, Vector3(0, -0.78, 0), skin, Vector3.ONE, 5)
+	sph(p, 0.04, Vector3(0.14, 1.0, 0.19), brass, Vector3.ONE, 5, false)
+	sph(p, 0.09, Vector3(-0.15, 1.28, 0.2), pip, Vector3.ONE, 5, false)
+	sph(p, 0.23, Vector3(0, 1.66, 0.01), skin, Vector3.ONE, 8)
+	_face(p, 1.67, eye)
+	cyl(p, 0.25, 0.1, Vector3(0, 1.85, 0), cap, Vector3.ZERO, -1.0, 8)
+	cyl(p, 0.26, 0.05, Vector3(0, 1.8, 0), scarf, Vector3.ZERO, -1.0, 8, false)
+	box(p, Vector3(0.3, 0.03, 0.16), Vector3(0, 1.8, 0.23), cap, Vector3.ZERO, false)
+	sph(p, 0.06, Vector3(0.0, 1.86, 0.25), pip, Vector3.ONE, 5, false)
 
 func _body_joy(p: Node3D, a: Vector3, aff: int, v: int) -> void:
-	var coats := ["#5f86b0", "#c0604f", "#7f9d62"]
-	var accs := ["#f1dfbd", "#e5b04a", "#f1dfbd"]
+	# relaxed, tilted, dancing; affinity-coloured coat, playful hat, carries their thing high
 	var skins := ["#e2b18c", "#c98a63", "#a46a47", "#ecc19c"]
-	var skin := mat(C(skins[(v + aff) % 4]), 2, 0.0, 0.0, a)
-	var coat := mat(C(coats[aff]), 2, 0.0, 0.0, a)
-	var acc := mat(C(accs[aff]), 2, 0.0, 0.0, a)
-	var pants := mat(C("#6d5a4b"), 2, 0.0, 0.0, a)
-	var eye := mat(C("#2a1f1c"), 2, 0.0, 0.0, a)
-	var lean_dir := 1.0 if v % 2 == 0 else -1.0
-	var hop := 0.12 if v != 1 else 0.0
+	var skin := bm(C(skins[(v + aff) % 4]), false, a)
+	var coat := bm(C(AFF_COAT[aff]), false, a)
+	var acc := bm(C(["#f1dfbd", "#f1dfbd", "#8a6a45"][aff]), false, a)
+	var pants := bm(C("#6d5a4b"), false, a)
+	var boots := bm(C("#5a3d2c"), false, a)
+	var eye := bm(C("#2a1f1c"), false, a)
+	var lean := 1.0 if v % 2 == 0 else -1.0
+	var hop := 0.14 if v == 0 else (0.0 if v == 1 else 0.07)
 	for sx in [-1.0, 1.0]:
 		var leg := Node3D.new()
 		leg.position = Vector3(sx * 0.14, 0.62 + hop, 0)
-		leg.rotation.z = sx * 0.16 * lean_dir
+		leg.rotation.z = sx * (0.2 if v != 1 else 0.1) * lean
+		leg.rotation.x = (0.35 if (sx > 0.0 and v == 0) else 0.0)
 		p.add_child(leg)
 		box(leg, Vector3(0.22, 0.62, 0.24), Vector3(0, -0.31, 0), pants)
-		box(leg, Vector3(0.24, 0.1, 0.3), Vector3(0, -0.57, 0.03), mat(C("#5a3d2c"), 2, 0.0, 0.0, a))
+		box(leg, Vector3(0.24, 0.1, 0.3), Vector3(0, -0.57, 0.03), boots)
 	var up := Node3D.new()
 	up.position = Vector3(0, 0.62 + hop, 0)
-	up.rotation.z = 0.13 * lean_dir
+	up.rotation.z = 0.15 * lean
+	up.rotation.y = 0.25 * lean
 	p.add_child(up)
 	box(up, Vector3(0.56, 0.74, 0.38), Vector3(0, 0.37, 0), coat)
 	box(up, Vector3(0.58, 0.12, 0.4), Vector3(0, 0.04, 0), acc)
 	box(up, Vector3(0.62, 0.16, 0.2), Vector3(0, 0.62, 0.12), acc)
+	var holder := 1.0 if v % 2 == 0 else -1.0
 	for sx in [-1.0, 1.0]:
 		var arm := Node3D.new()
 		arm.position = Vector3(sx * 0.37, 0.68, 0)
-		var raised: bool = (sx > 0.0) if (v % 2 == 0) else (sx < 0.0)
-		arm.rotation.z = (sx * 2.5) if raised else (-sx * 0.65)
+		var carrying: bool = (sx == holder)
+		if carrying:
+			arm.rotation.z = sx * (2.55 if v != 1 else 2.0)
+		else:
+			arm.rotation.z = sx * (1.5 if v == 2 else 0.5)   # other arm flung out or relaxed
 		up.add_child(arm)
 		box(arm, Vector3(0.14, 0.62, 0.17), Vector3(0, -0.28, 0), coat)
 		sph(arm, 0.085, Vector3(0, -0.62, 0), skin, Vector3.ONE, 5)
+		if carrying:
+			var held := Node3D.new()
+			held.position = Vector3(0, -0.64, 0)
+			arm.add_child(held)
+			_item(held, aff, false, a, 1.0)
 	var head := Node3D.new()
 	head.position = Vector3(0, 0.98, 0.02)
-	head.rotation.z = -0.18 * lean_dir
+	head.rotation.z = -0.2 * lean
 	up.add_child(head)
 	sph(head, 0.23, Vector3.ZERO, skin, Vector3.ONE, 8)
 	_face(head, 0.01, eye)
-	sph(head, 0.045, Vector3(0.0, -0.07, 0.21), mat(C("#c4604f"), 2, 0.0, 0.0, a), Vector3(1.8, 0.5, 0.6), 5, false)
-	var hatc := [C("#e5b04a"), C("#d9667a"), C("#d8b97a")]
-	var hc: Color = hatc[v % 3]
-	if (v % 3) == 0:
-		cyl(head, 0.27, 0.5, Vector3(0.0, 0.46, 0.0), mat(hc, 2, 0.0, 0.0, a), Vector3.ZERO, 0.03, 8)
-		sph(head, 0.07, Vector3(0.0, 0.73, 0.0), mat(C("#f3ead2"), 2, 0.0, 0.0, a), Vector3.ONE, 6)
-		cyl(head, 0.29, 0.07, Vector3(0.0, 0.22, 0.0), mat(C("#f3ead2"), 2, 0.0, 0.0, a), Vector3.ZERO, -1.0, 8)
-	elif (v % 3) == 1:
-		sph(head, 0.3, Vector3(-0.04, 0.24, 0.0), mat(hc, 2, 0.0, 0.0, a), Vector3(1.05, 0.5, 1.05), 8)
-		cyl(head, 0.03, 0.12, Vector3(-0.04, 0.42, 0.0), mat(hc.darkened(0.3), 2, 0.0, 0.0, a), Vector3.ZERO, -1.0, 4)
-	else:
-		cyl(head, 0.46, 0.05, Vector3(0.0, 0.2, 0.0), mat(hc, 2, 0.0, 0.0, a), Vector3(0.18, 0, 0), -1.0, 10)
-		cyl(head, 0.22, 0.2, Vector3(0.0, 0.3, 0.0), mat(hc, 2, 0.0, 0.0, a), Vector3.ZERO, -1.0, 8)
-		cyl(head, 0.23, 0.06, Vector3(0.0, 0.26, 0.0), mat(C(coats[aff]), 2, 0.0, 0.0, a), Vector3.ZERO, -1.0, 8)
+	sph(head, 0.05, Vector3(0.0, -0.07, 0.21), bm(C("#c4604f"), false, a), Vector3(1.8, 0.5, 0.6), 5, false)   # smile
+	_hat_joy(head, aff, a)
 
-func add_gloomy(pos: Vector3) -> void:
+func _hat_joy(head: Node3D, aff: int, a: Vector3) -> void:
+	match aff:
+		0: # music: soft navy cap with a long cream feather
+			var navy := bm(C("#3b5a82"), false, a)
+			var navy_d := bm(C("#2c4566"), false, a)
+			var cream := bm(C("#f3ead2"), false, a, 0.0, 0.1)
+			sph(head, 0.27, Vector3(0.0, 0.2, 0.0), navy, Vector3(1.05, 0.62, 1.05), 8)
+			box(head, Vector3(0.34, 0.035, 0.18), Vector3(0.0, 0.16, 0.23), navy_d, Vector3.ZERO, false)
+			seg(head, Vector3(0.2, 0.28, 0.0), Vector3(0.34, 0.72, -0.1), 0.04, cream, 4, false)
+			sph(head, 0.06, Vector3(0.35, 0.74, -0.1), cream, Vector3(0.8, 1.6, 0.8), 5, false)
+		1: # art: tilted terracotta beret with a nub
+			var ber := bm(C("#9a3f31"), false, a)
+			var nub := bm(C("#5b2219"), false, a)
+			var b := sph(head, 0.32, Vector3(-0.05, 0.25, 0.0), ber, Vector3(1.1, 0.42, 1.1), 8)
+			b.rotation.z = 0.28
+			sph(head, 0.045, Vector3(0.0, 0.37, 0.0), nub, Vector3.ONE, 5, false)
+		2: # nature: straw brim, leafy crown, flower on top
+			var straw := bm(C("#d8b97a"), false, a)
+			var l1 := bm(C("#4f8a40"), false, a)
+			var l2 := bm(C("#7fb04c"), false, a)
+			var pink := bm(C("#f08aa0"), false, a, 0.0, 0.1)
+			cyl(head, 0.44, 0.04, Vector3(0.0, 0.19, 0.0), straw, Vector3(0.16, 0, 0), -1.0, 10)
+			cyl(head, 0.22, 0.16, Vector3(0.0, 0.29, 0.0), straw, Vector3.ZERO, -1.0, 8)
+			for k in range(6):
+				var ang := k * TAU / 6.0
+				var lf := sph(head, 0.12, Vector3(cos(ang) * 0.2, 0.43, sin(ang) * 0.2), l1 if k % 2 == 0 else l2, Vector3(0.7, 0.4, 1.5), 5, false)
+				lf.rotation.y = -ang
+			sph(head, 0.09, Vector3(0.0, 0.42, 0.0), pink, Vector3.ONE, 5, false)
+
+func add_gloomy(pos: Vector3, yaw := 0.5, parent: Node = null, register := true) -> Node3D:
+	# Heavily gloomed but clearly human: hunched, long heavy coat, hood/cap pulled low, head down, hands hanging.
+	# A smoky ground haze and drifting soot motes replace the old umbrella cloud.
 	var root := Node3D.new()
 	root.position = pos
-	root.rotation.y = 0.5
-	add_child(root)
-	var coat := mat(C("#23262e"), 0)
-	var skin := mat(C("#8a8079"), 0)
-	var cap := mat(C("#16181d"), 0)
-	for sx in [-0.14, 0.14]:
-		box(root, Vector3(0.22, 0.62, 0.24), Vector3(sx, 0.31, 0), mat(C("#1b1d23"), 0))
+	root.rotation.y = yaw
+	if parent == null:
+		parent = self
+	parent.add_child(root)
+	if register:
+		gloomy_nodes.append(root)
+	var coat := mat(C("#454a58"), 0)
+	var coat_l := mat(C("#5a6070"), 0)
+	var skin := mat(C("#9d958d"), 0)
+	var cap := mat(C("#20222a"), 0)
+	var boots := mat(C("#1d1f25"), 0)
+	var soot := mat(C("#565b67"), 0)
+	for sx in [-0.13, 0.13]:
+		box(root, Vector3(0.2, 0.3, 0.26), Vector3(sx, 0.15, 0.0), boots)
+	# long coat skirt
+	box(root, Vector3(0.62, 0.62, 0.42), Vector3(0, 0.5, -0.02), coat)
 	var up := Node3D.new()
-	up.position = Vector3(0, 0.6, 0)
-	up.rotation.x = 0.28
+	up.position = Vector3(0, 0.78, 0)
+	up.rotation.x = 0.36
 	root.add_child(up)
-	box(up, Vector3(0.58, 0.9, 0.4), Vector3(0, 0.4, 0), coat)
-	for sx in [-0.37, 0.37]:
-		box(up, Vector3(0.14, 0.7, 0.18), Vector3(sx, 0.35, 0.05), coat)
+	box(up, Vector3(0.64, 0.8, 0.44), Vector3(0, 0.36, 0), coat)
+	box(up, Vector3(0.7, 0.22, 0.5), Vector3(0, 0.74, 0), coat_l)     # heavy collar / shoulders
+	box(up, Vector3(0.1, 0.8, 0.04), Vector3(0, 0.36, 0.23), coat_l, Vector3.ZERO, false)
+	for sx in [-1.0, 1.0]:
+		var arm := Node3D.new()
+		arm.position = Vector3(sx * 0.4, 0.66, 0.02)
+		arm.rotation.x = -0.35
+		up.add_child(arm)
+		box(arm, Vector3(0.15, 0.7, 0.18), Vector3(0, -0.34, 0), coat)
+		sph(arm, 0.08, Vector3(0, -0.72, 0), skin, Vector3.ONE, 5)
 	var head := Node3D.new()
-	head.position = Vector3(0, 1.0, 0.1)
-	head.rotation.x = 0.35
+	head.position = Vector3(0, 0.8, 0.12)
+	head.rotation.x = 0.12
 	up.add_child(head)
-	sph(head, 0.23, Vector3.ZERO, skin, Vector3.ONE, 8)
-	cyl(head, 0.25, 0.14, Vector3(0, 0.2, 0), cap, Vector3.ZERO, -1.0, 8)
-	box(head, Vector3(0.3, 0.03, 0.16), Vector3(0, 0.15, 0.22), cap, Vector3.ZERO, false)
-	# small dark cloud + drizzle
-	var cl := mat(C("#3a3e49"), 0)
-	sph(root, 0.45, Vector3(0, 2.9, 0), cl, Vector3(1.5, 0.7, 1.1), 8, false)
-	sph(root, 0.36, Vector3(-0.5, 2.8, 0.1), cl, Vector3(1.3, 0.7, 1.0), 8, false)
-	sph(root, 0.34, Vector3(0.5, 2.78, -0.05), cl, Vector3(1.3, 0.7, 1.0), 8, false)
-	var rain := mat(C("#8d9bb0"), 0, 0.0, 0.3)
-	for k in range(6):
-		box(root, Vector3(0.03, 0.26, 0.03), Vector3(-0.45 + k * 0.18, 2.15 - (k % 2) * 0.2, 0.05 * (k % 3)), rain, Vector3.ZERO, false)
+	sph(head, 0.22, Vector3.ZERO, skin, Vector3.ONE, 8)
+	_face(head, 0.0, cap, 1.1)
+	cyl(head, 0.24, 0.09, Vector3(0, 0.17, 0), cap, Vector3.ZERO, -1.0, 8)
+	box(head, Vector3(0.34, 0.04, 0.2), Vector3(0, 0.1, 0.22), cap, Vector3(0.35, 0, 0), false)
+	# drifting soot motes + smoky haze on the ground
+	for k in range(9):
+		var ang := k * 2.4
+		var r := 0.45 + 0.35 * fmod(k * 0.37, 1.0)
+		sph(root, 0.05 + 0.04 * fmod(k * 0.53, 1.0), Vector3(cos(ang) * r, 0.5 + 0.28 * k, sin(ang) * r), soot, Vector3.ONE, 4, false)
+	var haze := MeshInstance3D.new()
+	var hp := PlaneMesh.new()
+	hp.size = Vector2(3.4, 3.4)
+	haze.mesh = hp
+	haze.material_override = smoke_mat
+	haze.position = Vector3(0, 0.05, 0)
+	haze.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(haze)
+	return root
 
-func add_player(pos: Vector3) -> void:
+func add_player(pos: Vector3, parent: Node = null, yaw := 0.7, hat := 0) -> Node3D:
+	# Findable at a glance: saffron coat, teal scarf (no NPC uses either), warm hat, satchel with three glowing
+	# tubes, gold double ring + dithered glow on the ground.
+	# hat 0 = A wide-brim felt hat with a glowing feather, 1 = B knit beanie with pom-pom, 2 = C flat cap with patch.
 	var root := Node3D.new()
 	root.position = pos
-	root.rotation.y = PI + 0.25
-	add_child(root)
-	player_node = root
-	root.scale = Vector3(1.12, 1.12, 1.12)
-	var coat := mat(C("#eab72e"), 0)
-	var coat_d := mat(C("#c8921e"), 0)
+	root.rotation.y = yaw
+	if parent == null:
+		parent = self
+	parent.add_child(root)
+	var body := Node3D.new()
+	body.scale = Vector3.ONE * 1.1
+	root.add_child(body)
+	var coat := mat(C("#f2a516"), 0, 0.0, 0.22)
+	var coat_d := mat(C("#cf7f12"), 0, 0.0, 0.1)
 	var skin := mat(C("#d9a47c"), 0)
 	var pants := mat(C("#4c3a30"), 0)
-	var scarf := mat(C("#b8453c"), 0)
-	var felt := mat(C("#8a5a3a"), 0)
-	var wood := mat(C("#8c3a22"), 0)
+	var teal := mat(C("#27b3a6"), 0, 0.0, 0.25)
+	var gold := mat(C("#ffe08a"), 0, 0.0, 1.4)
 	var wood_d := mat(C("#4a2418"), 0)
+	var satchel := mat(C("#7a4a2c"), 0)
 	var eye := mat(C("#2a1f1c"), 0)
 	for sx in [-0.16, 0.16]:
-		box(root, Vector3(0.25, 0.7, 0.27), Vector3(sx, 0.35, 0), pants)
-		box(root, Vector3(0.27, 0.14, 0.34), Vector3(sx, 0.07, 0.03), wood_d)
-	box(root, Vector3(0.66, 0.9, 0.44), Vector3(0, 1.1, 0), coat)
-	box(root, Vector3(0.8, 0.42, 0.52), Vector3(0, 0.62, 0), coat_d)
+		box(body, Vector3(0.25, 0.7, 0.27), Vector3(sx, 0.35, 0), pants)
+		box(body, Vector3(0.27, 0.14, 0.34), Vector3(sx, 0.07, 0.03), wood_d)
+	box(body, Vector3(0.66, 0.9, 0.44), Vector3(0, 1.1, 0), coat)
+	box(body, Vector3(0.8, 0.42, 0.52), Vector3(0, 0.62, 0), coat_d)
 	for sx in [-1.0, 1.0]:
 		var arm := Node3D.new()
 		arm.position = Vector3(sx * 0.42, 1.45, 0)
 		arm.rotation.z = -sx * 0.25
 		arm.rotation.x = -0.5 if sx > 0 else 0.0
-		root.add_child(arm)
+		body.add_child(arm)
 		box(arm, Vector3(0.17, 0.7, 0.2), Vector3(0, -0.33, 0), coat)
 		sph(arm, 0.095, Vector3(0, -0.72, 0), skin, Vector3.ONE, 5)
-	sph(root, 0.26, Vector3(0, 1.78, 0.02), skin, Vector3.ONE, 8)
-	_face(root, 1.8, eye, 1.2)
-	box(root, Vector3(0.7, 0.16, 0.5), Vector3(0, 1.55, 0.02), scarf)
-	box(root, Vector3(0.18, 0.7, 0.1), Vector3(0.3, 1.2, -0.28), scarf, Vector3(0.1, 0, -0.3))
-	cyl(root, 0.42, 0.06, Vector3(0, 2.0, 0), felt, Vector3.ZERO, -1.0, 12)
-	cyl(root, 0.26, 0.3, Vector3(0, 2.15, 0), felt, Vector3.ZERO, -1.0, 10)
-	cyl(root, 0.27, 0.07, Vector3(0, 2.06, 0), scarf, Vector3.ZERO, -1.0, 10)
-	seg(root, Vector3(0.15, 2.15, -0.1), Vector3(0.45, 2.55, -0.25), 0.03, mat(C("#f3ead2"), 0), 4)
-	# guitar on the back (-z)
-	var gt := Node3D.new()
-	gt.position = Vector3(0, 1.05, -0.36)
-	gt.rotation.z = -0.4
-	root.add_child(gt)
-	sph(gt, 0.36, Vector3(0, -0.15, 0), wood, Vector3(1.0, 1.1, 0.34), 10)
-	sph(gt, 0.27, Vector3(0, 0.3, 0), wood, Vector3(1.0, 1.0, 0.34), 10)
-	cyl(gt, 0.1, 0.05, Vector3(0, 0.05, -0.1), mat(C("#2a1f1c"), 0), Vector3(PI / 2, 0, 0), -1.0, 8, false)
-	box(gt, Vector3(0.1, 1.1, 0.07), Vector3(0, 1.0, -0.02), wood_d)
-	box(gt, Vector3(0.17, 0.26, 0.07), Vector3(0, 1.62, -0.02), wood_d)
-	seg(root, Vector3(-0.3, 1.5, 0.23), Vector3(0.32, 0.8, 0.23), 0.03, wood_d, 4, false)
+	sph(body, 0.26, Vector3(0, 1.78, 0.02), skin, Vector3.ONE, 8)
+	_face(body, 1.8, eye, 1.2)
+	# scarf: collar + streaming tails
+	box(body, Vector3(0.74, 0.18, 0.54), Vector3(0, 1.54, 0.02), teal)
+	box(body, Vector3(0.16, 0.5, 0.1), Vector3(0.28, 1.28, -0.3), teal, Vector3(0.25, 0, -0.2))
+	box(body, Vector3(0.15, 0.5, 0.1), Vector3(0.4, 0.9, -0.5), teal, Vector3(0.5, 0, -0.45))
+	box(body, Vector3(0.14, 0.4, 0.1), Vector3(0.62, 0.58, -0.7), teal, Vector3(0.75, 0, -0.7))
+	match hat:
+		0:
+			var felt := mat(C("#8a5a3a"), 0)
+			var felt_l := mat(C("#a8734a"), 0)
+			var h1 := cyl(body, 0.56, 0.06, Vector3(0, 2.03, 0), felt, Vector3(0.08, 0, 0.1), -1.0, 12)
+			cyl(body, 0.28, 0.3, Vector3(0, 2.2, 0), felt_l, Vector3(0.0, 0, 0.04), 0.25, 10)
+			cyl(body, 0.295, 0.08, Vector3(0, 2.08, 0), teal, Vector3.ZERO, -1.0, 10)
+			seg(body, Vector3(0.24, 2.18, -0.02), Vector3(0.58, 2.62, -0.12), 0.05, gold, 4, false)
+			sph(body, 0.09, Vector3(0.6, 2.66, -0.13), gold, Vector3(0.8, 1.6, 0.8), 5, false)
+		1:
+			var wool := mat(C("#d8453a"), 0, 0.0, 0.1)
+			var wool_d := mat(C("#b3342c"), 0)
+			sph(body, 0.32, Vector3(0, 2.02, 0), wool, Vector3(1.0, 0.9, 1.0), 9)
+			cyl(body, 0.31, 0.12, Vector3(0, 1.96, 0), wool_d, Vector3.ZERO, -1.0, 10)
+			sph(body, 0.13, Vector3(0, 2.38, 0), gold, Vector3.ONE, 6, false)
+		2:
+			var cp := mat(C("#8a6a3a"), 0)
+			var cp_d := mat(C("#5e4626"), 0)
+			sph(body, 0.32, Vector3(0, 2.0, 0), cp, Vector3(1.05, 0.5, 1.1), 9)
+			box(body, Vector3(0.4, 0.05, 0.26), Vector3(0, 1.96, 0.32), cp_d, Vector3.ZERO, false)
+			box(body, Vector3(0.14, 0.14, 0.05), Vector3(0.29, 2.0, 0.05), teal, Vector3(0, 0.0, 0.0), false)
+			box(body, Vector3(0.1, 0.45, 0.06), Vector3(-0.3, 1.78, -0.1), teal, Vector3(0.0, 0, 0.12), false)
+	# satchel with three "joy tubes" (music blue, art rose, nature sage)
+	box(body, Vector3(0.52, 0.6, 0.26), Vector3(0, 1.1, -0.35), satchel)
+	var tubes := [C("#6ea0d8"), C("#e0806c"), C("#a8c868")]
+	for k in range(3):
+		var tx := -0.16 + k * 0.16
+		cyl(body, 0.05, 0.5, Vector3(tx, 1.62, -0.38), mat(tubes[k], 0, 0.0, 0.7), Vector3(0.0, 0.0, (k - 1) * -0.18), -1.0, 5, false)
+	# the ground marker: dithered glow, ring, outer ring
+	var glow := MeshInstance3D.new()
+	var gp := PlaneMesh.new()
+	gp.size = Vector2(5.0, 5.0)
+	glow.mesh = gp
+	glow.material_override = glow_mat
+	glow.position = Vector3(0, 0.06, 0)
+	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(glow)
+	var gm := mat(C("#ffd466"), 0, 0.0, 1.2)
+	var ring := TorusMesh.new()
+	ring.inner_radius = 0.84
+	ring.outer_radius = 1.04
+	ring.rings = 18
+	ring.ring_segments = 5
+	var rmi := _mi(root, ring, gm, Vector3(0, 0.08, 0), Vector3.ZERO, false)
+	rmi.scale = Vector3(1, 0.3, 1)
+	var ring2 := TorusMesh.new()
+	ring2.inner_radius = 1.3
+	ring2.outer_radius = 1.38
+	ring2.rings = 20
+	ring2.ring_segments = 4
+	var rmi2 := _mi(root, ring2, mat(C("#ffd466"), 0, 0.0, 0.7), Vector3(0, 0.07, 0), Vector3.ZERO, false)
+	rmi2.scale = Vector3(1, 0.25, 1)
+	var ol := OmniLight3D.new()
+	ol.light_color = Color(1.0, 0.8, 0.45)
+	ol.light_energy = 0.9
+	ol.omni_range = 4.2
+	ol.shadow_enabled = false
+	ol.position = Vector3(0, 1.8, 0.4)
+	root.add_child(ol)
+	return root
 
 func add_projectiles() -> void:
-	var from := Vector3(0.6, 1.5, 6.0)
-	_proj_note(Vector3(1.3, 1.75, 3.6), Vector3(0.5, 0.1, -1.0).normalized())
-	_proj_blob(Vector3(-1.4, 1.55, 4.7), Vector3(-0.8, 0.0, -0.6).normalized())
-	_proj_flower(Vector3(2.9, 1.9, 4.9), Vector3(0.6, 0.0, -0.8).normalized())
+	var o := player_node.position
+	_proj_note(o + Vector3(1.0, 1.75, -2.4), Vector3(0.5, 0.1, -1.0).normalized())
+	_proj_blob(o + Vector3(-1.9, 1.55, -1.4), Vector3(-0.8, 0.0, -0.6).normalized())
+	_proj_flower(o + Vector3(2.4, 1.9, -1.2), Vector3(0.6, 0.0, -0.8).normalized())
 
 func _trail(pos: Vector3, dir: Vector3, col: Color, r: float) -> void:
 	for i in range(1, 7):
@@ -792,6 +1043,176 @@ func _proj_flower(pos: Vector3, dir: Vector3) -> void:
 		sph(self, 0.12, pos + Vector3(cos(a) * 0.22, sin(a) * 0.22, 0.0), m, Vector3.ONE, 6, false)
 	sph(self, 0.12, pos, mat(C("#f2c04c"), 0, 0.0, 0.9), Vector3.ONE, 6, false)
 
+# ---------------------------------------------------------------- lineup (character sheet), far away from the plaza
+func build_lineup() -> void:
+	# one row at z=42: grey music/art/nature + dark person, joyful music/art/nature, then 3 player hat options.
+	var xs := [-11.5, -9.2, -6.9, -4.6, -2.3, 0.0, 2.3, 5.0, 7.6, 10.2]
+	for i in range(xs.size()):
+		var pos := Vector3(xs[i], 0, 42.0)
+		lineup_pos.append(pos)
+		var n: Node3D
+		match i:
+			0, 1, 2:
+				n = add_person(pos.x, pos.z, 0.12, i, i, 2.0, null, false)
+			3:
+				n = add_gloomy(pos, 0.12, null, false)
+			4, 5, 6:
+				n = add_person(pos.x, pos.z, -0.12, i - 4, [0, 2, 1][i - 4], 2.0, null, false)
+			_:
+				n = add_player(pos, null, 0.2, i - 7)
+		lineup_nodes.append(n)
+	lineup_circles = [Vector4(4.5, 42.0, 9.5, 0)]
+
+# ---------------------------------------------------------------- living border
+func clear_dynamic() -> void:
+	if dyn != null:
+		dyn.queue_free()
+		dyn = null
+	border_info = {}
+	dark_spots = []
+	gap_motes = []
+	gap_glows = []
+
+# soft haze band: vertex colour = tint, alpha = intensity; lateral falloff + dither happen in haze.gdshader
+func _haze_mesh(samples: Array, half_w: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for q in samples:
+		var a: Vector2 = q[0]
+		var b: Vector2 = q[1]
+		var col: Color = q[2]
+		var dist: float = q[3]
+		var t := (b - a).normalized()
+		var n := Vector2(-t.y, t.x) * half_w
+		var vs := [Vector3(a.x - n.x, 0.045, a.y - n.y), Vector3(a.x + n.x, 0.045, a.y + n.y), Vector3(b.x - n.x, 0.045, b.y - n.y), Vector3(b.x + n.x, 0.045, b.y + n.y)]
+		var gw: float = q[4]
+		var us := [Vector2(-1, dist), Vector2(1, dist), Vector2(-1, dist + 0.14), Vector2(1, dist + 0.14)]
+		for tri in [[0, 1, 2], [2, 1, 3], [2, 1, 0], [3, 1, 2]]:
+			for k in tri:
+				st.set_normal(Vector3.UP)
+				st.set_color(col)
+				st.set_uv(us[k])
+				st.set_uv2(Vector2(gw, 0.0))
+				st.add_vertex(vs[k])
+	return st.commit()
+
+func build_border(cs: Array, center: Vector2, n_people: int, gaps: Array, level := 1.5) -> void:
+	clear_dynamic()
+	dyn = Node3D.new()
+	add_child(dyn)
+	# 1. trace the edge of the warm area (outermost point where the field is safely warm)
+	var raw: Array = []
+	for k in range(360):
+		var ang := deg_to_rad(float(k))
+		var d := Vector2(cos(ang), sin(ang))
+		var t := 30.0
+		while t > 0.0:
+			if joy_field(center + d * t, cs) >= level:
+				raw.append(center + d * t)
+				break
+			t -= 0.05
+	var pts: Array = []
+	for i in range(raw.size()):
+		var acc := Vector2.ZERO
+		for j in range(-5, 6):
+			acc += raw[(i + j + raw.size()) % raw.size()]
+		pts.append(acc / 11.0)
+	var cum: Array = [0.0]
+	for i in range(1, pts.size() + 1):
+		cum.append(cum[i - 1] + (pts[i % pts.size()] as Vector2).distance_to(pts[i - 1]))
+	var total: float = cum[cum.size() - 1]
+	var step_len := total / float(n_people)
+	var at := func(dist: float) -> Vector2:
+		dist = fposmod(dist, total)
+		var lo := 0
+		var hi: int = cum.size() - 1
+		while hi - lo > 1:
+			var mid := (lo + hi) / 2
+			if cum[mid] <= dist:
+				lo = mid
+			else:
+				hi = mid
+		var f: float = (dist - cum[lo]) / maxf(cum[hi] - cum[lo], 0.0001)
+		return (pts[lo % pts.size()] as Vector2).lerp(pts[hi % pts.size()], f)
+	# 2. people on the line (skip the gap slots)
+	var people: Array = []
+	var gap_pos: Array = []
+	var gap_out: Array = []
+	for i in range(n_people):
+		var dist := (i + 0.5) * step_len
+		var p2: Vector2 = at.call(dist)
+		var tan2: Vector2 = ((at.call(dist + 0.4) as Vector2) - (at.call(dist - 0.4) as Vector2)).normalized()
+		var out := Vector2(tan2.y, -tan2.x)
+		if out.dot(p2 - center) < 0.0:
+			out = -out
+		if i in gaps:
+			gap_pos.append(p2)
+			gap_out.append(out)
+			continue
+		var aff := (i * 5 + 1) % 3
+		var v := (i * 2) % 3
+		add_person(p2.x, p2.y, atan2(out.x, out.y) + 0.2 * ((i % 3) - 1), aff, v, 0.0, dyn, false)
+		people.append(p2)
+	# 3. soft haze band that hints at the border; it thins out and turns cool-red across each gap
+	var samples: Array = []
+	var motes := RandomNumberGenerator.new()
+	motes.seed = 7
+	var d := 0.0
+	var prev: Vector2 = at.call(0.0)
+	var next_mote := 0.0
+	while d < total - 0.01:
+		d += 0.14
+		var cur: Vector2 = at.call(d)
+		var gt := 9.0
+		for g in gaps:
+			gt = minf(gt, absf(d - (g + 0.5) * step_len) / step_len)
+		var k := smoothstep(0.35, 0.95, gt)          # 0 in the gap centre .. 1 on intact stretches
+		var tint := Color("#ff6a58").lerp(Color("#e8963a"), smoothstep(0.2, 0.8, gt))
+		var inten := lerpf(0.4, 1.0, k)
+		samples.append([prev, cur, Color(tint.r, tint.g, tint.b, inten), d, 1.0 - k])
+		if d > next_mote:
+			var tan3 := (cur - prev).normalized()
+			var nrm := Vector2(-tan3.y, tan3.x)
+			var mp := cur + nrm * motes.randf_range(-0.7, 0.7)
+			var gap_mote := k < 0.45
+			if (not gap_mote) or motes.randf() < 0.75:
+				if gap_mote:
+					var gn := sph(dyn, 0.055, Vector3(mp.x, motes.randf_range(0.25, 1.5), mp.y), gap_mote_mat, Vector3.ONE, 4, false)
+					gap_motes.append(gn)
+				else:
+					var mm2 := mat(C("#ffe28a"), 0, 0.0, 1.2)
+					sph(dyn, 0.055, Vector3(mp.x, motes.randf_range(0.25, 1.5), mp.y), mm2, Vector3.ONE, 4, false)
+			next_mote = d + (0.42 if not gap_mote else 0.6)
+		prev = cur
+	var hmi := MeshInstance3D.new()
+	hmi.mesh = _haze_mesh(samples, 0.9)
+	hmi.material_override = haze_mat
+	hmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	dyn.add_child(hmi)
+	var segs: Array = []
+	var dd := 0.0
+	var pp: Vector2 = at.call(0.0)
+	while dd < total - 0.01:
+		dd += 0.7
+		var cc: Vector2 = at.call(dd)
+		var red := false
+		for g in gaps:
+			if absf(dd - (g + 0.5) * step_len) < 0.72 * step_len:
+				red = true
+		segs.append([pp, cc, red])
+		pp = cc
+	for gp2 in gap_pos:
+		var gl := MeshInstance3D.new()
+		var gpm := PlaneMesh.new()
+		gpm.size = Vector2(5.0, 5.0)
+		gl.mesh = gpm
+		gl.material_override = gap_glow_mat
+		gl.position = Vector3(gp2.x, 0.055, gp2.y)
+		gl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		dyn.add_child(gl)
+		gap_glows.append(gl)
+	border_info = {"poly": pts, "segs": segs, "people": people, "gaps": gap_pos, "gap_out": gap_out, "total": total, "step": step_len, "center": center}
+
 # ---------------------------------------------------------------- parameters
 func set_joy(j: float) -> void:
 	joy_level = j
@@ -806,6 +1227,7 @@ func set_joy(j: float) -> void:
 		for b in bldg_defs:
 			if j >= b["thr"] - 0.001:
 				cs.append(Vector4(b["x"], b["z"], b["r"], 0))
+	cur_circles = cs
 	var arr := PackedVector4Array()
 	for i in range(MAXC):
 		arr.append(cs[i] if i < cs.size() else Vector4(0, 0, 0, 0))
@@ -821,35 +1243,43 @@ func set_pixel_mode(on: bool) -> void:
 	for m in all_mats:
 		m.set_shader_parameter("smooth_mode", 0.0 if on else 1.0)
 
-func set_shot(name: String) -> void:
+func place_camera(tgt: Vector3, size: float, pitch_deg := 41.0, yaw_deg := 0.0) -> void:
+	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+	cam.size = size
+	cam_size = size
+	cam_tgt = tgt
+	cam_pitch = deg_to_rad(pitch_deg)
+	var pitch := cam_pitch
+	var yaw := deg_to_rad(yaw_deg)
+	cam.look_at_from_position(tgt + Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * 40.0, tgt, Vector3.UP)
+	post_mat.set_shader_parameter("dthr", 0.3)
+	post_mat.set_shader_parameter("rel", 0.0)
+
+func set_shot(name: String, extra := {}) -> void:
 	player_node.visible = true
 	env.fog_enabled = false
 	light.directional_shadow_max_distance = 70.0
 	match name:
 		"topdown":
-			cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-			cam.size = 21.5
-			var pitch := deg_to_rad(41.0)
-			var tgt := Vector3(0.0, 0.5, -3.4)
-			cam.look_at_from_position(tgt + Vector3(0, sin(pitch), cos(pitch)) * 40.0, tgt, Vector3.UP)
-			post_mat.set_shader_parameter("dthr", 0.3)
-			post_mat.set_shader_parameter("rel", 0.0)
+			# gameplay camera: follows the player in the middle of the plaza, about 1.8x closer than review 1
+			place_camera(player_node.position + Vector3(0.0, 0.5, -2.4), 14.5)
 		"closeup":
-			cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-			cam.size = 10.5
-			var pitch := deg_to_rad(30.0)
-			var yaw := deg_to_rad(-22.0)
-			var tgt := Vector3(-9.0, 1.6, -4.0)
-			cam.look_at_from_position(tgt + Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * 40.0, tgt, Vector3.UP)
-			post_mat.set_shader_parameter("dthr", 0.3)
-			post_mat.set_shader_parameter("rel", 0.0)
-		"fps":
-			cam.projection = Camera3D.PROJECTION_PERSPECTIVE
-			cam.fov = 72.0
-			cam.look_at_from_position(Vector3(0.4, 1.7, 8.8), Vector3(-0.8, 1.55, -6.0), Vector3.UP)
-			player_node.visible = false
-			env.fog_enabled = true
-			light.directional_shadow_max_distance = 45.0
-			env.fog_density = 0.013
-			post_mat.set_shader_parameter("dthr", 0.1)
-			post_mat.set_shader_parameter("rel", 0.12)
+			place_camera(Vector3(-9.0, 1.6, -4.0), 10.5, 30.0, -22.0)
+		"lineup":
+			place_camera(Vector3(float(extra.get("x", 0.0)), 0.9, 42.0), float(extra.get("size", 12.0)))
+
+# gap pulse: p in 0..1 (0 = trough, the quiet review-4 look; 1 = peak). Period in the real game ~1.2 s, eased.
+func pulse_value(t: float, period := 1.2) -> float:
+	return 0.5 - 0.5 * cos(TAU * t / period)
+
+func set_pulse(p: float) -> void:
+	pulse = p
+	haze_mat.set_shader_parameter("gap_pulse", p)
+	gap_mote_mat.set_shader_parameter("emit", 1.0 + 3.2 * p)
+	gap_glow_mat.set_shader_parameter("strength", 0.05 + 0.44 * p)
+	for n in gap_motes:
+		if is_instance_valid(n):
+			n.scale = Vector3.ONE * (0.8 + 1.3 * p)
+	for g in gap_glows:
+		if is_instance_valid(g):
+			g.scale = Vector3(0.8 + 0.45 * p, 1, 0.8 + 0.45 * p)
