@@ -145,8 +145,36 @@ def plan_units(tests, weights):
     return units
 
 
+# Godot output that means a script did not load or crashed: gdUnit then skips the suite but still reports success.
+SCRIPT_PROBLEM = re.compile(r"Parse Error|SCRIPT ERROR|Failed to load script|Failed to compile|Compile Error", re.I)
+
+
+def script_problems(output):
+    """Lines of Godot output that show a test or game script failed to parse or load."""
+    return [ln.strip() for ln in output.splitlines() if SCRIPT_PROBLEM.search(ln)][:12]
+
+
+def integrity_problems(project, results, outputs):
+    """Checks a finished run for what gdUnit hides. Returns a list of problem strings (empty = fine).
+
+    A parse error in a test file makes gdUnit skip that suite while the summary still says all passed, so:
+    (1) any script error in the Godot output is a problem, and (2) every discovered suite must report, with at
+    least as many tests as the file declares.
+    """
+    problems = ["script error in Godot output: " + ln for out in outputs for ln in script_problems(out)]
+    ran = {}
+    for r in results or []:
+        ran[r["file"]] = ran.get(r["file"], 0) + 1
+    for suite, names in discover_tests(project).items():
+        if suite not in ran:
+            problems.append("suite %s did not report any results (skipped?)" % suite)
+        elif ran[suite] < len(names):
+            problems.append("suite %s ran %d of its %d tests" % (suite, ran[suite], len(names)))
+    return problems
+
+
 def run_parallel(project, report_dir, workers, cov_dir=None):
-    """Runs all test units, `workers` Godot processes at a time. Returns (worst exit code, results list)."""
+    """Runs all test units, `workers` Godot processes at a time. Returns (worst exit code, results list, outputs)."""
     units = plan_units(discover_tests(project), load_weights())
 
     def job(i, unit):
@@ -162,21 +190,23 @@ def run_parallel(project, report_dir, workers, cov_dir=None):
             print("unit %-70s exit %d" % (unit["name"], code), flush=True)
             if parsed is None or code not in (0, 100):
                 print(out, flush=True)
-        return code, parsed
+        return code, parsed, out
 
     code = 0
     results = []
+    outputs = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
         futures = [pool.submit(job, i, u) for i, u in enumerate(units)]
         for f in futures:
-            unit_code, parsed = f.result()
+            unit_code, parsed, out = f.result()
+            outputs.append(out)
             if parsed is None:
                 code = max(code, 2)
             else:
                 results.extend(parsed)
                 code = max(code, 1 if unit_code not in (0, 100) else 0)
     results.sort(key=lambda r: (r["file"], r["name"]))
-    return code, results
+    return code, results, outputs
 
 
 def latest_results_xml(report_dir):
@@ -223,11 +253,19 @@ def run_suite(project, report_root=None, workers=None, cov_dir=None):
     workers = WORKERS_DEFAULT if workers is None else workers
     if workers <= 1:
         env = {"POSITIVEFPS_COV_OUT": os.path.join(cov_dir, "hits_00.json")} if cov_dir else None
-        code, _ = run_godot(gdunit_args(report_dir), project, env)
+        code, out = run_godot(gdunit_args(report_dir), project, env)
         xml = latest_results_xml(report_dir)
-        return code, (parse_results(xml) if xml else None), report_dir
-    code, results = run_parallel(project, report_dir, workers, cov_dir)
-    return code, (results or None), report_dir
+        results, outputs = (parse_results(xml) if xml else None), [out]
+    else:
+        code, results, outputs = run_parallel(project, report_dir, workers, cov_dir)
+        results = results or None
+    if results is not None:
+        problems = integrity_problems(project, results, outputs)
+        for p in problems:
+            print("ERROR: " + p, flush=True)
+        if problems:
+            code = max(code, 1)
+    return code, results, report_dir
 
 
 def main():

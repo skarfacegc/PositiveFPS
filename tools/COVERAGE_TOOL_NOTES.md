@@ -110,3 +110,8 @@ t_ratchet`.
     resources, project.godot, gdlintrc, the gdUnit4 version and the baseline; not `design/` or Markdown).
   - Hit counts for a line now come from per-process arrays indexed by the original line number, so the JSON format
     (`"scripts/x.gd:LINE": count`) and the reports are unchanged.
+- 2026-10-24: Gate hole closed (round 12b). gdUnit skips a suite whose script has a parse error and still reports
+  "all passed". `run_tests.py` now fails the run when any Godot output contains `Parse Error`, `SCRIPT ERROR`,
+  `Failed to load script` or a compile error, or when a discovered `tests/*_test.gd` suite reports no results or fewer
+  tests than it declares (`integrity_problems()`, used by the serial and parallel paths, so `coverage.py` gets it too).
+  `tools/test_gate.py` proves it with a deliberately broken suite in a temporary project under `.scratch/`.

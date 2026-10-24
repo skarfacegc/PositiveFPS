@@ -54,6 +54,54 @@ finally:
             os.remove(path)
 expect("fingerprint returns to the start", gate.fingerprint(), base)
 
+
+# --- Gate hole (round 12b): a test file with a parse error must fail the run, not be skipped quietly. ---
+import shutil  # noqa: E402
+import time  # noqa: E402
+import run_tests  # noqa: E402
+
+NL = chr(10)
+SAMPLE = NL.join(["ok", "SCRIPT ERROR: Parse Error: x", "   at: y"])
+expect("script_problems finds a parse error", len(run_tests.script_problems(SAMPLE)), 1)
+expect("script_problems ignores clean output", run_tests.script_problems("Tests passed"), [])
+
+
+def remove_tree(path):
+    """rmtree that retries: Windows (and OneDrive) can hold a freshly used folder for a moment."""
+    for _ in range(10):
+        shutil.rmtree(path, ignore_errors=True)
+        if not os.path.exists(path):
+            return
+        time.sleep(0.5)
+
+
+def write_suite(folder, name, body_lines):
+    with open(os.path.join(folder, name), "w", encoding="utf-8", newline="") as fh:
+        fh.write(NL.join(["extends GdUnitTestSuite", "", ""] + body_lines) + NL)
+
+
+scratch = os.path.join(gate.ROOT, ".scratch", "gate_broken_%d" % os.getpid())
+try:
+    remove_tree(scratch)
+    os.makedirs(os.path.join(scratch, "tests"))
+    shutil.copy(os.path.join(gate.ROOT, "project.godot"), scratch)
+    shutil.copytree(os.path.join(gate.ROOT, "addons"), os.path.join(scratch, "addons"))
+    tests_dir = os.path.join(scratch, "tests")
+    write_suite(tests_dir, "good_test.gd", ["func test_ok() -> void:", "	assert_int(1).is_equal(1)"])
+    write_suite(tests_dir, "good2_test.gd", ["func test_ok2() -> void:", "	assert_int(2).is_equal(2)"])
+    code, results, _ = run_tests.run_suite(scratch, workers=2)
+    expect("a healthy scratch project passes", code, 0)
+    write_suite(tests_dir, "broken_test.gd", ["func test_broken() -> void:", "	var x: int = ", "	assert_int(x).is_equal(1"])
+    code, results, _ = run_tests.run_suite(scratch, workers=2)
+    expect("a suite with a parse error fails the run", code != 0, True)
+    problems = run_tests.integrity_problems(scratch, results, [])  # the check itself, whatever Godot's exit code says
+    expect("the skipped suite is reported by name", any("broken_test" in p for p in problems), True)
+    code, results, _ = run_tests.run_suite(scratch, workers=1)
+    expect("a suite with a parse error fails the serial run", code != 0, True)
+finally:
+    remove_tree(scratch)
+
+
 if failures:
     print("test_gate: FAILED")
     for line in failures:

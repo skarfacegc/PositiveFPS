@@ -94,7 +94,7 @@ Player physics (`TopDownPlayer._physics_process`) and projectile physics run on 
 - Windows long paths: keep temp copies in short paths (coverage copies to `.coverage_build/`, excluding `design/`).
 - The console is cp1252: `tools/run_tests.py` and `gate.py` reconfigure stdout to UTF-8; keep non-ASCII out of `print` elsewhere.
 - The gdUnit CLI shrinks the window to 64x64; set `get_window().size` before loading a scene that lays out at `_ready`.
-- A parse error in a test file makes gdUnit skip that suite quietly while the summary still says all passed: after adding tests, grep the gate's `tests.log` (path printed on failure; `run_tests.py` output) for `Parse Error`.
+- A parse error in a test file makes gdUnit skip that suite quietly while its own summary still says all passed. `tools/run_tests.py` now catches this (`integrity_problems()`: it fails on `Parse Error` / `SCRIPT ERROR` / failed-to-load-script in any Godot output, and when a `tests/*_test.gd` suite reports no or fewer results than it declares); `tools/test_gate.py` proves it with a broken scratch suite.
 - Strict typing: warnings are errors (`project.godot`). Type every `for` variable; avoid iterating arrays that may hold freed nodes.
 - Coverage ignores lambda bodies passed as multi-line arguments; hoist them into a `var` to measure them.
 
