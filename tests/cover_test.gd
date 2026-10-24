@@ -190,7 +190,8 @@ func test_outside_cover_gloom_grows_and_inside_cover_it_does_not() -> void:
 	inside.protection = 1.0
 	var people: Array[Person] = [outside, inside]
 	_run_gloom(people, 12.0)
-	assert_float(outside.gloom).is_greater(0.5)
+	# Round 11: the grey -> dark step grows at 0.65 of the old rate, so 12 s from 0.3 is about 0.49 (was 0.5 or more).
+	assert_float(outside.gloom).is_greater(0.45)
 	# Inside cover, growth is off (the contagion only lowers gloom), so the gloom has gone down.
 	assert_float(inside.gloom).is_less(0.3)
 
@@ -228,10 +229,12 @@ func test_cover_and_protection_follow_the_painted_ground_in_the_level() -> void:
 	TopDownTestUtil.place(grey, Vector3(1, 0, -8), 1, 0.5)
 	TopDownTestUtil.place(far, Vector3(-25, 0, 25), 2, 0.5)
 
-	# Five seconds: the rescued person's ground paints in, so the grey person next to them is deep inside.
+	# Five seconds: the rescued person's ground paints in, so the grey person next to them is deep inside. Round 11: the
+	# grey person wanders (0.92 m/s now, was 0.8), so in 5 s they walk to a new spot at the edge of the paint. Cover is
+	# still well above the contagion threshold there, so the thresholds are looser than round 10.
 	await runner.simulate_frames(300)
-	assert_float(grey.cover).is_greater(0.75)
-	assert_float(grey.protection).is_greater(0.95)
+	assert_float(grey.cover).is_greater(0.5)
+	assert_float(grey.protection).is_greater(0.2)
 	assert_float(far.cover).is_less(0.01)
 	assert_float(far.protection).is_equal(0.0)
 	# Contagion has lightened the grey person (they are not rescued by it).

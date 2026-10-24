@@ -33,6 +33,9 @@ const GLOOM_START_MIN := 0.0  # Random starting gloom for each person, lowest...
 const GLOOM_START_MAX := 0.5  # ...and highest.
 const GLOOM_GROWTH := 0.006  # Gloom gained per second by an unrescued person, base rate.
 const GLOOM_GROWTH_PER_METER := 0.0008  # Extra gloom per second for each metre from the nearest colour zone.
+# Round 11: growth is multiplied by this while the person is at grey (level 1), so the grey -> dark step is slower.
+# Light grey -> grey is unchanged (1.0 is the old rate). Applies to growth only, not spread or contagion.
+const GLOOM_DARK_STEP_MULT := 0.65
 const NO_ZONE_DISTANCE := 20.0  # Gloom growth distance when nobody is rescued yet (no colour zones).
 const ZONE_RADIUS := 6.0  # Each rescued person creates a colour zone of this radius (metres).
 const SPREAD_RADIUS := 6.0  # How far darkness spreads from a dark person (metres).
@@ -100,18 +103,17 @@ const TD_DEBUG_PIXEL_SIZE := 0.012
 # Round 10: an orthographic camera, size TD_CAMERA_ORTHO_SIZE (the view height in metres at the focus), tilted down at
 # TD_CAMERA_PITCH_DEG degrees. It sits TD_CAMERA_DISTANCE metres from its look point, which is the player plus
 # TD_CAMERA_LOOK_OFFSET (2.4 m north, so the player sits a little below the centre of the screen).
-const TD_CAMERA_ORTHO_SIZE := 14.5
+const TD_CAMERA_ORTHO_SIZE := 16.7
 const TD_CAMERA_PITCH_DEG := 41.0
 const TD_CAMERA_DISTANCE := 20.0
 const TD_CAMERA_LOOK_OFFSET := Vector3(0, 0, -2.4)
 # Walking speed, in metres per second.
-const TD_MOVE_SPEED := 6.0
-# Speed while holding Shift, in metres per second.
-const TD_RUN_SPEED := 9.5
-# A person can only be targeted (and shot at) while this close to the player, in metres. Round 10: 8.6 (was 11), the
-# largest range whose full ring still fits on a 1280x720 screen with the closer orthographic camera (see the camera
-# test).
-const TD_AUTO_RANGE := 8.6
+const TD_MOVE_SPEED := 6.9
+# Speed while holding Shift, in metres per second. Round 11: walk and run are about 15% faster than round 10 (6.0, 9.5).
+const TD_RUN_SPEED := 10.9
+# A person can only be targeted (and shot at) while this close to the player, in metres. Round 11: 10.0 (was 8.6), the
+# largest round value whose full ring still fits on a 1280x720 screen with the zoomed-out camera (see the camera test).
+const TD_AUTO_RANGE := 10.0
 # How the player picks a target. LOCK_ON: click a person to lock on. HOVER_STICKY: the person under the mouse is
 # picked when there is no target, and then stays the target. AUTO: the most urgent person in range. The mode at the
 # start of a top-down round. F2 cycles through the modes at runtime. Round 8: hover is the default (playtest 7
@@ -206,7 +208,7 @@ const TD_SPLAT_ALPHA := 0.6
 # Seconds for a paint splat to fade away.
 const TD_SPLAT_FADE_TIME := 0.8
 # Walking speed for wandering people, in metres per second.
-const TD_WANDER_SPEED := 0.8
+const TD_WANDER_SPEED := 0.92  # Round 11: about 15% faster than round 10 (0.8).
 # Wandering people pick a new spot within this distance of where they are, in metres.
 const TD_WANDER_RANGE := 4.0
 # A wandering person counts as having reached their spot when this close, in metres.
@@ -215,7 +217,7 @@ const TD_WANDER_REACH := 0.5
 const TD_WANDER_TIME_MIN := 3.0
 const TD_WANDER_TIME_MAX := 6.0
 # Dark people drift toward a rescued person at this speed, in metres per second (round 6: slowed from 1.3).
-const TD_DARK_DRIFT_SPEED := 0.8
+const TD_DARK_DRIFT_SPEED := 0.92  # Round 11: about 15% faster than round 10 (0.8), with the wander speed.
 # Dark people stop drifting when this close to their rescued person, in metres.
 const TD_DARK_STOP_DISTANCE := 2.5
 # At most this many dark people may drift toward the same rescued person. Others pick the next-nearest rescued person
@@ -296,7 +298,7 @@ const TD_BURST_JOY := 350.0
 const TD_BURST_TIME := 0.35
 # Size multiplier for floating numbers and labels in top-down mode. Round 8: 1.9 (was 2.5), to match the closer camera
 # so the labels keep about the same size on screen.
-const TD_UI_SCALE := 1.9
+const TD_UI_SCALE := 2.2  # Round 11: 1.9 x the zoom-out (16.7 / 14.5), so the labels keep their size on screen.
 
 # Round 8: own paint does not protect. A rescued person's cover leaves out the paint made by their own soft circle
 # (see PaintedGround.average_weight_excluding). Unrescued people still use the full cover.
@@ -361,7 +363,7 @@ const BORDER_MIN_PEOPLE := 3
 const BORDER_CENTRE_FOLLOW := 0.5
 # Members stand this far apart along the border, in metres. The slot count is perimeter / this, rounded up. Round 10:
 # 3.0 (was 2.2), so growing is easier.
-const BORDER_TARGET_SPACING := 3.0
+const BORDER_TARGET_SPACING := 2.6
 # Members walk to their slot at this speed, in metres per second.
 const BORDER_WALK_SPEED := 3.0
 # A stretch of border between two members longer than this is a gap: darkness can pass through it.
@@ -419,7 +421,7 @@ const OFFSCREEN_ARROW_PAD := 16.0
 const BORDER_LINE_HEIGHT := 0.08
 
 # Dusk to dawn: the level lasts NIGHT_LENGTH seconds. Grey strength is 1 at dusk and dawn and peaks at midnight.
-const NIGHT_LENGTH := 240.0
+const NIGHT_LENGTH := 180.0  # Round 11: 180 s (was 240).
 const NIGHT_PEAK_EXTRA := 0.75
 
 # ---- Round 10: easier growth (scripts/border.gd, building.gd, night_cycle.gd, topdown_player.gd). ----
@@ -438,7 +440,10 @@ const BORDER_POST_RING_COLOUR := Color(1.0, 0.82, 0.3)
 const BORDER_POST_RING_INNER := 2.3
 const BORDER_POST_RING_OUTER := 2.6
 # An intact stretch is not drained: dark people pressing on it are pushed outward at this speed (metres per second).
-const BORDER_PUSHBACK_SPEED := 0.6
+const BORDER_PUSHBACK_SPEED := 0.35
+# Round 11: dark people pressing an intact stretch also drain the nearest member, at this fraction of the gap drain rate
+# (gaps keep the full rate). It makes the border feel at risk again without letting it fall to one press.
+const BORDER_INTACT_DRAIN_FRACTION := 0.25
 # The joy burst shoves the border outward toward the player when they are this close to it (metres), by this much.
 const BORDER_SHOVE_RANGE := 4.0
 const BORDER_SHOVE_AMOUNT := 1.5

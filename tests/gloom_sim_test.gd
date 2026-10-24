@@ -66,6 +66,22 @@ func test_gloom_grows_far_from_zones() -> void:
 	assert_float(far.gloom).is_greater(0.2)
 
 
+# Round 11: with nobody rescued and no cover, a person grows at the base rate plus the far-from-zones rate
+# (NO_ZONE_DISTANCE). Light grey -> grey is unchanged; grey -> dark is slowed by GLOOM_DARK_STEP_MULT.
+func test_the_grey_to_dark_step_grows_slower_and_light_to_grey_does_not() -> void:
+	var base := Config.GLOOM_GROWTH + Config.GLOOM_GROWTH_PER_METER * Config.NO_ZONE_DISTANCE
+	var light: Person = _make_person(1, Vector3(100, 0, 0), 0.2)
+	var grey: Person = _make_person(1, Vector3(-100, 0, 0), 0.5)
+	GloomSim.update([light], 1.0)
+	GloomSim.update([grey], 1.0)
+	var light_gain := light.gloom - 0.2
+	var grey_gain := grey.gloom - 0.5
+	assert_float(light_gain).is_equal_approx(base, 0.0001)
+	assert_float(grey_gain).is_equal_approx(base * Config.GLOOM_DARK_STEP_MULT, 0.0001)
+	assert_float(Config.GLOOM_DARK_STEP_MULT).is_equal_approx(0.65, 0.0001)
+	assert_float(grey_gain).is_less(light_gain)
+
+
 func test_flat_dist_ignores_height() -> void:
 	assert_float(GloomSim.flat_dist(Vector3(3, 5, 4), Vector3.ZERO)).is_equal_approx(5.0, 0.0001)
 	assert_float(GloomSim.flat_dist(Vector3(1, 100, 1), Vector3(1, -50, 1))).is_equal_approx(0.0, 0.0001)

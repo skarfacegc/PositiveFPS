@@ -135,8 +135,8 @@ func test_three_locked_rescues_by_real_clicks_form_the_border() -> void:
 
 
 func test_slot_and_inner_counts_follow_the_formula() -> void:
-	# A circle of radius 3 (perimeter about 18.85) has 7 slots at 3.0 m (round 10). Twelve people: seven border members,
-	# five inner.
+	# A circle of radius 3 (perimeter about 18.85) has 8 slots at 2.6 m (round 11; was 7 at 3.0 m). Twelve people: eight
+	# border members, four inner.
 	var loop := Border.circle_polygon(Vector2.ZERO, 3.0, Config.BORDER_SAMPLES)
 	var border := _bare_border(loop)
 	var people := _people(12)
@@ -145,9 +145,9 @@ func test_slot_and_inner_counts_follow_the_formula() -> void:
 		people[i].position = Vector3(cos(float(i)) * 3.0, 0.0, sin(float(i)) * 3.0)
 		rescued.append(people[i])
 	border._assign_members(rescued)
-	assert_int(border.member_count).is_equal(7)
-	assert_int(border.inner_count).is_equal(5)
-	assert_float(border.spacing).is_equal_approx(Border.perimeter_of(loop) / 7.0, 0.001)
+	assert_int(border.member_count).is_equal(8)
+	assert_int(border.inner_count).is_equal(4)
+	assert_float(border.spacing).is_equal_approx(Border.perimeter_of(loop) / 8.0, 0.001)
 	assert_int(border.gap_count()).is_equal(0)
 
 

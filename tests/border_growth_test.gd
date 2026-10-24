@@ -50,13 +50,14 @@ func test_a_beautified_building_on_the_line_is_a_post_that_needs_three_fewer_mem
 	_block(border, Vector2(5.5, 0.0), Vector2(0.5, 0.5), false)
 	border._assign_members(rescued)
 	assert_int(border.post_count).is_equal(0)
-	assert_int(border.member_count).is_equal(13)
+	# Round 11: spacing 2.6, so a radius 6 loop (37.7 m) holds 15 slots (was 13 at 3.0 m).
+	assert_int(border.member_count).is_equal(15)
 	# The same block, now beautified and on the line: it is a post, and the loop needs three fewer members.
 	border.buildings[0].beautified = true
 	border._assign_members(rescued)
 	assert_int(border.post_count).is_equal(1)
-	assert_int(border.required_members()).is_equal(10)
-	assert_int(border.member_count).is_equal(10)
+	assert_int(border.required_members()).is_equal(12)
+	assert_int(border.member_count).is_equal(12)
 	# With the post standing, the segments beside it (and the whole loop, with enough people) are not gaps.
 	assert_int(border.gap_count()).is_equal(0)
 	assert_bool(border.buildings[0].post).is_true()
@@ -86,7 +87,9 @@ func test_a_segment_beside_a_post_is_never_a_gap() -> void:
 	assert_array(flags).is_equal([false, false, true, true])
 
 
-func test_a_dark_person_pressing_an_intact_line_is_pushed_out_and_drains_nobody() -> void:
+func test_a_dark_person_pressing_an_intact_line_is_pushed_out_and_drains_a_quarter_of_a_gap() -> void:
+	# Round 11: the intact push-back is slower (0.35) and the nearest member loses BORDER_INTACT_DRAIN_FRACTION of the
+	# gap drain rate (round 10 drained nobody here).
 	var border := _organic_border()
 	border.polygon = Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
 	border.active = true
@@ -102,8 +105,12 @@ func test_a_dark_person_pressing_an_intact_line_is_pushed_out_and_drains_nobody(
 	var before_x := dark.position.x
 	border._press_darkness(people, 1.0, 1.0)
 	assert_float(dark.position.x - before_x).is_equal_approx(Config.BORDER_PUSHBACK_SPEED, 0.02)
+	var lost := 0.0
 	for m: Person in border.members:
-		assert_float(m.joy).is_equal(900.0)
+		lost += 900.0 - m.joy
+	var gap_rate := Config.SPREAD_DRAIN_RATE * Config.TD_DRAIN_MULTIPLIER * 1.0 * 1.0
+	assert_float(lost).is_equal_approx(gap_rate * Config.BORDER_INTACT_DRAIN_FRACTION, 0.01)
+	assert_float(lost).is_equal_approx(6.0, 0.01)
 
 
 func test_a_dark_person_pressing_a_gap_drains_the_nearest_member() -> void:
@@ -127,6 +134,11 @@ func test_a_dark_person_pressing_a_gap_drains_the_nearest_member() -> void:
 	assert_float(dark.position.x).is_equal_approx(5.8, 0.0001)
 	var nearest: Person = ring[0]
 	assert_float(nearest.joy).is_less(900.0)
+	# Round 11: a gap keeps the full drain rate (24 joy at strength 1 for one second), four times the intact rate.
+	var lost := 0.0
+	for m: Person in border.members:
+		lost += 900.0 - m.joy
+	assert_float(lost).is_equal_approx(Config.SPREAD_DRAIN_RATE * Config.TD_DRAIN_MULTIPLIER, 0.01)
 
 
 func test_shove_bulges_the_line_toward_a_player_within_range_and_ignores_one_far_away() -> void:
@@ -145,7 +157,8 @@ func test_shove_bulges_the_line_toward_a_player_within_range_and_ignores_one_far
 	assert_float(border._raw_radii[0]).is_equal_approx(before + Config.BORDER_SHOVE_AMOUNT, 0.001)
 
 
-func test_the_loop_keeps_the_perimeter_at_three_metres_per_person_once_it_settles() -> void:
+func test_the_loop_keeps_the_perimeter_at_two_point_six_metres_per_person_once_it_settles() -> void:
+	# Round 11: ten people at 2.6 m each is a perimeter of about 26 m (was about 30 m at 3.0 m).
 	var border := _organic_border()
 	border._has_centre = true
 	border.centre = Vector3.ZERO
@@ -153,5 +166,5 @@ func test_the_loop_keeps_the_perimeter_at_three_metres_per_person_once_it_settle
 	border.update(rescued, 1.0 / 60.0, 1.0)
 	for i: int in range(300):
 		border.update(rescued, 1.0 / 60.0, 1.0)
-	assert_float(border.perimeter).is_greater(28.5)
-	assert_float(border.perimeter).is_less(31.5)
+	assert_float(border.perimeter).is_greater(24.5)
+	assert_float(border.perimeter).is_less(27.5)

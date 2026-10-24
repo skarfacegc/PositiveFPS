@@ -30,7 +30,7 @@ func test_the_camera_is_orthographic_at_the_configured_size_and_pitch() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	assert_int(td.camera.projection).is_equal(Camera3D.PROJECTION_ORTHOGONAL)
-	assert_float(td.camera.size).is_equal(Config.TD_CAMERA_ORTHO_SIZE)
+	assert_float(td.camera.size).is_equal_approx(Config.TD_CAMERA_ORTHO_SIZE, 0.001)
 	# The camera looks down at the pitch angle.
 	var forward := -td.camera.global_transform.basis.z
 	assert_float(forward.y).is_equal_approx(-sin(deg_to_rad(Config.TD_CAMERA_PITCH_DEG)), 0.001)

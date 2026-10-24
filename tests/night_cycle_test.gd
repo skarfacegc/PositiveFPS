@@ -57,6 +57,17 @@ func test_the_light_goes_from_warm_dusk_to_dim_blue_night_and_back_to_soft_dawn(
 	assert_bool(night.is_over()).is_true()
 
 
+# Round 11: the night is 180 s (was 240). The calm opening stays a quarter of it, so it is now 45 s.
+func test_the_night_is_180_seconds_with_the_calm_quarter_kept() -> void:
+	assert_float(Config.NIGHT_LENGTH).is_equal(180.0)
+	assert_float(Config.NIGHT_CALM_FRACTION).is_equal(0.25)
+	var night := NightCycle.new()
+	night.elapsed = 44.9
+	assert_float(night.strength()).is_equal_approx(Config.NIGHT_CALM_STRENGTH, 0.0001)
+	night.update(180.0)
+	assert_bool(night.is_over()).is_true()
+
+
 func test_update_clamps_at_the_end_of_the_night() -> void:
 	var night := NightCycle.new()
 	night.update(Config.NIGHT_LENGTH * 2.0)

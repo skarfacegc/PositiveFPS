@@ -39,6 +39,33 @@ func test_wasd_moves_in_world_space() -> void:
 	assert_float(player.global_position.x - after_w.x).is_greater(1.0)  # D is world east (+X)
 
 
+# Round 11: walk and run are about 15% faster than round 10 (6.0 and 9.5 m/s). Measured from real key presses: one
+# second (60 frames at the fixed 60 Hz) of W walking, then one second of Shift + S running back.
+func test_walking_and_running_are_about_fifteen_percent_faster_than_round_ten() -> void:
+	var s: Dictionary = await _start()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	var player: TopDownPlayer = td.player
+	var start: Vector3 = player.global_position
+
+	runner.simulate_key_press(KEY_W)
+	await runner.simulate_frames(60)
+	runner.simulate_key_release(KEY_W)
+	var walked := start.distance_to(player.global_position)
+	assert_float(walked).is_greater(6.0 * 1.12)
+	assert_float(walked).is_equal_approx(Config.TD_MOVE_SPEED, 0.2)
+
+	var after_walk: Vector3 = player.global_position
+	runner.simulate_key_press(KEY_SHIFT)
+	runner.simulate_key_press(KEY_S)
+	await runner.simulate_frames(60)
+	runner.simulate_key_release(KEY_S)
+	runner.simulate_key_release(KEY_SHIFT)
+	var ran := after_walk.distance_to(player.global_position)
+	assert_float(ran).is_greater(9.5 * 1.12)
+	assert_float(ran).is_equal_approx(Config.TD_RUN_SPEED, 0.2)
+
+
 func test_mouse_alone_never_fires_in_lock_on_mode() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]

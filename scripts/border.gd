@@ -696,8 +696,9 @@ func _update_buildings(delta: float) -> void:
 
 
 # Dark people pressing on the border (outside, within BORDER_PRESS_RANGE of the line). On an intact stretch they are
-# pushed outward at BORDER_PUSHBACK_SPEED and nothing is drained. At a gap they drain the nearest member, at the usual
-# drain rate scaled by the night strength. Dark people inside are handled by GloomSim.
+# pushed outward at BORDER_PUSHBACK_SPEED, and the nearest member drains at BORDER_INTACT_DRAIN_FRACTION of the rate
+# (round 11). At a gap they drain the nearest member at the full rate, scaled by the night strength. Dark people
+# inside are handled by GloomSim.
 func _press_darkness(people: Array[Person], delta: float, strength: float) -> void:
 	if not active:
 		return
@@ -724,6 +725,9 @@ func _press_darkness(people: Array[Person], delta: float, strength: float) -> vo
 				out = p2 - Vector2(centre.x, centre.z)
 			if out.length() < 0.001:
 				continue
+			var best_intact := _nearest_member(p.position)
+			if best_intact != null:
+				best_intact.drain_joy(rate * Config.BORDER_INTACT_DRAIN_FRACTION)
 			var move := out.normalized() * Config.BORDER_PUSHBACK_SPEED * delta
 			p.position += Vector3(move.x, 0.0, move.y)
 

@@ -50,7 +50,11 @@ static func update(
 # Cover rules for one unrescued person. Growth is scaled by (1 - protection), so it only happens at the edges.
 # Contagion lowers gloom when the cover is high enough, scaled by protection. It never touches joy.
 static func _update_covered(p: Person, nearest: float, delta: float, strength: float) -> void:
-	p.gloom += (Config.GLOOM_GROWTH + Config.GLOOM_GROWTH_PER_METER * nearest) * delta * strength * (1.0 - p.protection)
+	var growth := Config.GLOOM_GROWTH + Config.GLOOM_GROWTH_PER_METER * nearest
+	# Round 11: the grey -> dark step (level 1) is slower. Light grey -> grey is not changed.
+	if Config.gloom_level(p.gloom) == 1:
+		growth *= Config.GLOOM_DARK_STEP_MULT
+	p.gloom += growth * delta * strength * (1.0 - p.protection)
 	if p.cover >= Config.TD_CONTAGION_THRESHOLD:
 		p.gloom -= Config.TD_CONTAGION_RATE * delta * p.protection
 
