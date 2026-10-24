@@ -566,3 +566,60 @@ The theme is **gloom** in general, not cold or frost.
   above stay as written (history). Code names such as `dark` and `TD_DARK_DRIFT_SPEED` can be renamed in a later build
   round when convenient; not urgent. The locked art note "hunched gloomy dark people" in design/style_test/REVIEW_NOTES.md
   reads as "hunched gloomy dimmed people" from now on.
+
+## Round 12a build
+Built from the round 12 plan: item **C (going dim)** and item **B (dance with the gloom)**, with the spirit resource that
+joins them. Items A, D and E (moods, edge pressure, noticeable grey levels) wait for round 12b. Player-facing text uses
+the new terms (gloom; wistful, gloomy, dimmed; "dimmed people"); code names such as `dark_*` and `is_dark()` are unchanged.
+
+**What was built**
+- **Spirit** (`TopDownPlayer.spirit`, 0..100; the player starts with 50, a choice the plan did not specify): +20 per rescue,
+  the joy burst costs 30 and is unavailable (HUD: "needs 30 spirit") without it. Joy fire rate is full at 50% spirit or
+  more and falls linearly to 40% of the rate just above 0. A HUD bar and label sit above the burst indicator.
+- **Going dim** at spirit 0: walk speed x0.5, no joy fire, no burst, body colour lerps to grey (placeholder look; the
+  styled player is not tinted yet: rough spot). Dimmed people ignore a dim player (they go back to chasing the weakest
+  rescued person or the edge). Recovery is **only while dim**, only inside the border, at 10/s x (0.3 + 0.7 x depth
+  protection); before any border exists, within 6 m of the landmark at the full rate. Dim ends at spirit 30. While dim the
+  border loses ground x1.5: drain of members by pressing and by GloomSim, paint erosion and paint fade; the border line
+  (placeholder: alpha pulse; styled: haze and motes drop out in the dark half of the flicker) flickers.
+- **Dance with the gloom** (`scripts/grabs.gd`): a dimmed person who notices a non-dim player within 7 m walks toward
+  them. Within 2.0 m they start a 0.7 s wind-up (lean back, red ring growing at their feet toward the player: drawn by the
+  person look from `Person.grab_frac`), then a 0.15 s lunge of up to 1.0 m toward where the player stood. If the player is
+  within 1.3 m of the grabber when the lunge ends, 25 spirit is drained. 2.5 s cooldown per person.
+- **Twirl** (Space, new `twirl` action): 3.0 m in 0.2 s in the move direction (facing direction when standing still),
+  1.5 s cooldown, usable while dim, no grabs land while it runs. **Perfect twirl:** a twirl that began within 0.25 s before
+  the lunge ended, from a spot within 1.3 m of the grabber, avoids the grab and sets off a free joy burst (radius 2.5 m,
+  half of the burst joy, no spirit cost, no border shove) and an alert. A twirl out of reach early just avoids it.
+- **Checkpoint fixes:** the styled minimap shades warm as soon as a tile has paint (it waited for half paint, so slowly
+  filling ground looked unclaimed); dimmed people get a bigger, denser smoke pool and twice the soot motes in the styled
+  look, and a soft dark disc on the ground in the placeholder look.
+- New things are placeholder-look only (grab ring, dimmed disc): the ring registers itself in F3 in styled mode.
+
+**Tuning values** (all in `config.gd`, "Round 12a"): `SPIRIT_MAX 100`, `SPIRIT_START 50`, `SPIRIT_PER_RESCUE 20`,
+`BURST_SPIRIT_COST 30`, `SPIRIT_FULL_FIRE_FRACTION 0.5`, `SPIRIT_MIN_FIRE_FRACTION 0.4`, `DIM_MOVE_MULT 0.5`,
+`DIM_RECOVER_RATE 10` (base 0.3, depth 0.7), `LANDMARK_RECOVER_RADIUS 6`, `DIM_EXIT_SPIRIT 30`, `DIM_LOSS_MULT 1.5`,
+`GRAB_NOTICE_RANGE 7`, `GRAB_RANGE 2.0`, `GRAB_HIT_RANGE 1.3`, `GRAB_WINDUP 0.7`, `GRAB_LUNGE_TIME 0.15`,
+`GRAB_LUNGE_DISTANCE 1.0`, `GRAB_COOLDOWN 2.5`, `GRAB_SPIRIT_DRAIN 25`, `TWIRL_DISTANCE 3.0`, `TWIRL_TIME 0.2`,
+`TWIRL_COOLDOWN 1.5`, `TWIRL_PERFECT_WINDOW 0.25`, `TWIRL_BURST_RADIUS 2.5`, `TWIRL_BURST_JOY_FRACTION 0.5`.
+
+**Judgement calls to check**
+- The plan said the hit check happens "at the end" of the wind-up; with a start range of 2.0 and a hit range of 1.3 a
+  standing player could never be hit, so the lunge was made to close the gap (up to 1.0 m) and the check is at its end.
+- Spirit only recovers while dim. A non-dim player's spirit comes only from rescues. If that feels too stingy, add a
+  slow passive recovery inside the border.
+- Spending the burst down to exactly 0 spirit makes the player go dim (a 30 spirit burst from 30). This is probably
+  harsh; the alternative is to forbid a burst that would leave 0.
+- Dimmed people now walk toward a non-dim player, which changes the feel of standing in the open. They are still held at
+  the border line like everything else.
+
+**Playtest questions**
+- Is the spirit/dim tension good: do rescues feel like they refill something worth protecting?
+- Do the grabs feel fair with the wind-up (ring, lean, 0.7 s)? Is 25 spirit the right price, 1.3 m the right reach?
+- Is the twirl satisfying (distance, cooldown, the perfect window)? Does a perfect twirl feel worth aiming for?
+- Does going dim feel like a meaningful cost (half speed, no joy, the border flickering and losing heart), and is the
+  recovery (inside the border, deeper is faster) clear and fair? Is the landmark fallback before a border findable?
+- Is the dimmed aura enough to pick dimmed people out from gloomy people at a glance?
+
+**Rough spots:** the styled player does not tint when dim; the styled smoke pool is dark on a dark night and reads
+mostly through the soot motes; the HUD spirit bar uses the default progress bar look; no sound cues yet.
+

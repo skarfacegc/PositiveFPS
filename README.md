@@ -41,15 +41,35 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
 - **Dusk to dawn**: a bar at the top shows the night. The level ends at dawn. The end screen says whether the landmark
   was held, how much of the plaza is painted, how many buildings are beautified, and how many people were rescued.
 
+## Spirit, going dim and the dance with the gloom (round 12a)
+
+- **Spirit** is your spendable resource (0 to 100, you start with 50). Every rescue gives +20. The joy burst costs 30,
+  so with less than that it is unavailable (the HUD says "needs 30 spirit"). Your joy fire rate depends on spirit:
+  full at 50 or more, then slower, down to 40% of the rate just above 0. The spirit bar is bottom left, above the burst.
+- **Dimmed people reach for you.** A dimmed person who notices you (within 7 m) walks toward you. Within 2 m they start a
+  **grab**: a clear wind-up (0.7 s) where they lean back and a red ring grows at their feet toward you, then a lunge. If
+  you are within 1.3 m of them when the lunge ends, it lands and drains 25 spirit. Each person waits 2.5 s between grabs.
+  Walking away works; so does the **twirl**.
+- **Twirl** (**Space**): a short dash (3 m in 0.2 s) in the direction you are moving, or the way you face if you are
+  standing still. 1.5 s cooldown (shown on the HUD). You cannot be grabbed while you twirl. A **perfect twirl**, one that
+  starts in the last quarter second before a grab would have landed, avoids it and sets off a small free joy burst
+  (2.5 m radius, half the normal joy).
+- **Going dim.** At 0 spirit you go dim: half walking speed, no joy fire and no burst, and your colour drains toward
+  grey. The twirl still works. Dimmed people ignore a dim player and go back to pressing the border. While you are dim the
+  border loses ground 1.5 times faster and its line flickers, so the cause is clear.
+- **Recovering.** A dim player recovers 10 spirit a second, scaled by how deep inside the border they stand (30% at the
+  line up to 100% a metre in), and only inside the border. Before a border exists, stand within 6 m of the landmark.
+  At 30 spirit you are back to normal.
+
 ## Controls
 
-- **WASD** move, **Shift** run.
+- **WASD** move, **Shift** run, **Space** twirl.
 - **Click** a person to lock on (in lock-on mode). The default is **hover**: the person under the mouse becomes the
   target. **F2** cycles the modes: lock-on, hover (default) and auto (the most urgent person in range).
 - Every shot uses the target's element, so it is always a best match. Music is quick and small, art is slow and big
   (it splashes), nature is a floating flower that blooms where it lands.
-- **G** or **Q** joy burst: everyone close by gets a best-match hit (short cooldown). Used within 4 m of the border, it
-  also shoves the line outward toward you.
+- **G** or **Q** joy burst: everyone close by gets a best-match hit (short cooldown, costs 30 spirit). Used within 4 m
+  of the border, it also shoves the line outward toward you.
 - **F3** toggles the debug overlay: cover (`c`) and protection (`p`) above each person, a label per border segment (its
   spacing, and GAP where it is one), and the member, inner, post and night numbers at the top left, and the live floor-effect counts (for example
   `floor fx 12/40: ring 2, splat 3`, against the cap of 40). Off by default. If F3 does
@@ -57,7 +77,7 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
 - **R** restart, **M** back to the menu.
 
 **On screen (round 10):** the camera is orthographic and looks down at the plaza. A circular **minimap** sits top-left
-(warm and grey ground, buildings, the border, gaps, members, dark people, the landmark star, you, and the view rectangle).
+(warm and grey ground, buildings, the border, gaps, members, dimmed people, the landmark star, you, and the view rectangle).
 When a gap is off screen, a coral **arrow** on the screen edge points at it. You are a saffron figure with a warm ring
 under your feet, and people are drawn bigger.
 
