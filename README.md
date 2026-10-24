@@ -2,7 +2,7 @@
 
 A gentle top-down territory game. Dark people slowly take over a plaza, and you rescue people to bring joy back. The
 people you rescue form a living border that holds the darkness back and paints the land inside it. The level runs from
-dusk to dawn: the light fades, the grey gets stronger at midnight, and the level ends at dawn. (Round 9. The first person
+dusk to dawn: the light fades, the grey gets stronger at midnight, and the level ends at dawn. (Round 10. The first person
 mode was retired.)
 
 ## How to run
@@ -11,25 +11,25 @@ mode was retired.)
 2. Click **Import** and pick the `project.godot` file in this folder.
 3. Press **F5** (or the Play button) to run the game.
 
-## Modes
+## Play
 
-The game opens a menu. Pick a border variant with a button, or with keys 1, 2 and 3:
-
-- **1 = A, Circle**: the border is a ring around the centre, sized by how many people you have rescued.
-- **2 = B, Organic push (recommended)**: each rescue pushes the border outward where it happened, and the border wraps
-  around blocks it reaches.
-- **3 = C, Paint edge**: the border follows the painted region your rescued people spread.
+The game opens a menu with one **Play** button. Press **Enter**, **1** or click Play to start the level. The border
+variants were retired in round 10; the organic push is the border.
 
 Press **M** at any time to go back to the menu. **R** restarts the level.
 
 ## The living border
 
 - **The centre forms by itself.** It is the average position of the rescued people. There is no pre-placed heart.
-- **Three people make a border.** The rescued people stand evenly spaced along it (the outermost ones are the border;
-  the rest stand inside). A stretch longer than 3.5 m is a **gap**, drawn grey and red and flickering. Gaps let darkness
-  through.
-- **Darkness is held back.** Dark people outside the border cannot cross a solid (gold) stretch. They press on the line
-  and drain the nearest border person. Through a gap they can get in.
+- **Three people make a border.** The rescued people stand evenly spaced along it, 3 m apart (the outermost ones are
+  the border; the rest stand inside). A stretch longer than 3.5 m is a **gap**, which glows coral and pulses softly.
+  Gaps let darkness through.
+- **Posts.** A beautified block on the line (or the landmark, once beautified) is a **post**: it has a warm lantern and
+  a golden ring, and it holds three people's worth of border, so the loop needs three fewer people. Segments beside a
+  post are never gaps.
+- **Darkness is held back.** Dark people outside the border cannot cross a solid (gold) stretch. Pressing on an intact
+  stretch pushes them back, and nobody is drained. Through a gap they can get in, and they drain the nearest border
+  person.
 - **Relapses open holes.** A border person who relapses steps out, and the others shuffle to close the gap. With too
   few people, the gaps stay open.
 - **Inside the border the land changes.** The ground is painted warm (it fills in slowly), and blocks inside are
@@ -37,6 +37,7 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
 - **The landmark** is the taller block with a beacon, 18 m east and 16 m north of the plaza centre. Beautify it and hold
   the border around it for 10 seconds to win.
 - **Losing**: if the border has formed and fewer than three people are rescued, the border falls.
+- **Calm opening**: the first quarter of the night is calm (almost no grey pressure), then it builds toward midnight.
 - **Dusk to dawn**: a bar at the top shows the night. The level ends at dawn. The end screen says whether the landmark
   was held, how much of the plaza is painted, how many buildings are beautified, and how many people were rescued.
 
@@ -47,11 +48,18 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
   target. **F2** cycles the modes: lock-on, hover (default) and auto (the most urgent person in range).
 - Every shot uses the target's element, so it is always a best match. Music is quick and small, art is slow and big
   (it splashes), nature is a floating flower that blooms where it lands.
-- **G** or **Q** joy burst: everyone close by gets a best-match hit (short cooldown).
+- **G** or **Q** joy burst: everyone close by gets a best-match hit (short cooldown). Used within 4 m of the border, it
+  also shoves the line outward toward you.
 - **F3** toggles the debug overlay: cover (`c`) and protection (`p`) above each person, a label per border segment (its
-  spacing, and GAP where it is one), and the member, inner and night numbers at the top left. Off by default. If F3 does
+  spacing, and GAP where it is one), and the member, inner, post and night numbers at the top left, and the live floor-effect counts (for example
+  `floor fx 12/40: ring 2, splat 3`, against the cap of 40). Off by default. If F3 does
   nothing on your keyboard, the F-row may be set to media keys: try Fn+F3.
 - **R** restart, **M** back to the menu.
+
+**On screen (round 10):** the camera is orthographic and looks down at the plaza. A circular **minimap** sits top-left
+(warm and grey ground, buildings, the border, gaps, members, dark people, the landmark star, you, and the view rectangle).
+When a gap is off screen, a coral **arrow** on the screen edge points at it. You are a saffron figure with a warm ring
+under your feet, and people are drawn bigger.
 
 Gamepad: not bound yet. Every gameplay action goes through the InputMap, and `scripts/controls.gd` lists the action a
 future gamepad mapping would use for each one.

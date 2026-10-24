@@ -277,3 +277,65 @@ pass)
 make buildings feel worth capturing?
 
 **After round 10:** the full style pass (port design/style_test into the game).
+
+## Round 10 build
+
+Built from the round 10 plan. Only the organic push border is kept (Circle and Paint edge are in history at `0e9d19b`).
+Commits: retire variants `6803067`, easier growth `703bbf2`, calmer floor and readability `d13b7db`, hook `6677f50`,
+docs and baseline (this round's last commit).
+
+**What was built**
+- **Menu:** one Play button (Enter, key 1 or click). Hint line names the keys.
+- **Growing easier:** spacing 3.0 m (was 2.2), rescue push 2.4 m (was 1.6). Beautified blocks on the line, and the
+  landmark once beautified, are **posts**: each holds three members' worth of perimeter (the loop needs three fewer
+  people) and the segments beside it are never gaps. Posts also pull the centre like three people. The night is calm for
+  the first 25% (strength 0.2), then eases (smoothstep) into the old curve, peaking at midnight. An intact line pushes
+  dark people back at 0.6 m/s and drains nobody; only gaps drain. The joy burst within 4 m of the line shoves it out
+  toward you by about 1.5 m.
+- **Calmer floor:** blooms have no outline, fill alpha 0.25, 4 flowers of 4 petals, fade over the last 40% of life.
+  Splats radius x0.7 (0.42 m) and fade 0.8 s. Drip dots x0.6 and fade 0.8 s. Music ring and splash ring alpha halved.
+  Floor effects are capped at `TD_MAX_FLOOR_EFFECTS` = 40: the oldest priority-3 effect goes first. The inventory and
+  priorities are in `config.gd`. F3 shows the live counts.
+- **Readability (placeholders, per REVIEW_NOTES):** orthographic camera, size 14.5, pitch 41 degrees, look point 2.4 m
+  north of the player. Circular minimap top-left at 20% of the screen width. Off-screen gap arrows on the screen edge,
+  kept clear of the minimap. People drawn 1.5x (collision unchanged). Saffron player with a warm double ring and glow.
+  Gaps glow coral with a 1.2 s cosine pulse, never a hard line.
+- **Hook:** design/ and Markdown-only commits skip the lint and test gate. Rules are in `tools/hook_paths.sh`, dry-run by
+  `tools/test_hook_paths.sh` (13 fake path lists).
+
+**Final tuning values** (all in `scripts/config.gd`)
+- `BORDER_TARGET_SPACING` 3.0, `BORDER_PUSH` 2.4, `BORDER_POST_REACH` 2.0, `BORDER_POST_WORTH` 3, `BORDER_PUSHBACK_SPEED`
+  0.6, `BORDER_SHOVE_RANGE` 4.0, `BORDER_SHOVE_AMOUNT` 1.5, `BORDER_GAP_PULSE_SECONDS` 1.2.
+- `NIGHT_CALM_FRACTION` 0.25, `NIGHT_CALM_STRENGTH` 0.2.
+- `TD_CAMERA_ORTHO_SIZE` 14.5, `TD_CAMERA_PITCH_DEG` 41, `TD_CAMERA_DISTANCE` 20, `TD_CAMERA_LOOK_OFFSET` (0, 0, -2.4).
+- `TD_MAX_FLOOR_EFFECTS` 40, `TD_MINIMAP_WIDTH_FRACTION` 0.2, `PERSON_VISUAL_SCALE` 1.5.
+
+**TD_AUTO_RANGE outcome: 8.6 m (was 11).** With the look point 2.4 m north, the far side of the auto ring sits
+(r + 2.4) m from the look point. Projected at sin 41 degrees, that must fit the 7.25 m half-height of a 14.5 m view,
+which gives r at most 8.65. The camera test checks 16 points around the full ring on a 1280x720 screen. The range is
+now the reach of a shot, so targets walking away from it lose the lock sooner.
+
+**Deviations from the plan, and why**
+- **A bug fix in the organic push (commit `6803067`).** A rescue measured its push from the person's own spot before
+  any centre existed, so the first rescues, and any made in the same frame, pushed toward angle 0. The loop then drifted
+  east at full speed. Pushes are now queued and applied from the centre. This was found while the variant tests failed.
+- **Posts pull the centre.** Without it the loop slid away from a landmark that no member stood beside (found by the
+  landmark test).
+- **"Fade 1.5 to 0.8 s" for splats:** the config had 2.5 s for paint splats and 1.5 s for splat dots. Both are now 0.8 s.
+- **"At most 4 petals":** read as 4 flowers of 4 petals each (16 petals, down from 35).
+- **Shove:** the bump is divided by the size factor, so it shows as about 1.5 m on the line. Normalisation trims the rest
+  of the loop a little, so the measured bulge is within 0.8 to 1.8 m.
+
+**Tests added:** floor cap and priority (input-driven F3 through the menu), camera, minimap model, off-screen arrows,
+gap pulse, player colour, people scale, posts, anchored gaps, push-back, shove (by G key), the spacing settle, and the
+calm-opening night curve. The Round 10 border tests are in `tests/border_growth_test.gd`.
+
+**Playtest questions**
+- Is growth now easy enough? Does the calm opening feel long enough (a quarter of the night)?
+- Do border posts make buildings feel worth capturing?
+- Is the floor calm enough, and are the minimap and arrows enough to manage gaps?
+- Does the 8.6 m auto range feel too short now that targets walk away from it?
+
+**Rough spots to watch in play:** a three-person loop is lopsided and can still wander a little while it settles; the
+burst shove shrinks the rest of a loop slightly; a post's slots can be shifted by its neighbours, leaving a rare empty slot
+(a gap beside it).
