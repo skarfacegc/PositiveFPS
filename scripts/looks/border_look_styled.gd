@@ -4,10 +4,10 @@ extends BorderLook
 # The styled border: never a hard line. A faint amber haze band (dithered, see shaders/style_haze.gdshader) and golden
 # motes float between the members. In a gap the haze thins and turns coral, with coral motes and a soft coral glow on
 # the ground; all of those swell and glow with the gap pulse (the game's own pulse value, 1.2 s, eased). The geometry
-# is rebuilt about ten times a second; the pulse is applied every frame.
+# is rebuilt every six frames; the pulse is applied every frame.
 
 const HAZE_SHADER := "res://shaders/style_haze.gdshader"
-const REBUILD_MS := 100
+const REBUILD_FRAMES := 6
 const HAZE_HALF_WIDTH := 0.9
 const HAZE_HEIGHT := 0.045
 const MOTE_STEP := 0.42
@@ -24,7 +24,7 @@ var _gap_mote_mat: ShaderMaterial
 var _gap_glow_mat: ShaderMaterial
 var _glows: Array[MeshInstance3D] = []
 var _gap_points: PackedVector3Array = PackedVector3Array()
-var _last_ms: int = -100000
+var _last_frame: int = -100000
 
 
 func is_styled() -> bool:
@@ -45,9 +45,9 @@ func refresh() -> void:
 		for g: MeshInstance3D in _glows:
 			g.visible = false
 		return
-	var now := Time.get_ticks_msec()
-	if now - _last_ms >= REBUILD_MS:
-		_last_ms = now
+	var now := Engine.get_process_frames()
+	if now - _last_frame >= REBUILD_FRAMES:
+		_last_frame = now
 		_rebuild()
 	_swell(pulse)
 

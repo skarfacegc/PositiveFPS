@@ -6,7 +6,7 @@ and paints the land inside. One night (dusk to dawn) per level; hold the landmar
 Ideas and decisions: `IDEAS.md`. Nothing here describes gameplay changes; it describes where things live.
 
 ## Scenes
-- `menu.tscn` (`scripts/menu.gd`): title and one Play button (Enter, 1, or click) -> loads `topdown.tscn`.
+- `menu.tscn` (`scripts/menu.gd`): title, a Look toggle and one Play button (Enter, 1, or click) -> loads `topdown.tscn`.
 - `topdown.tscn`: only a `TopDownMain` root. **Everything else is built in code** in `TopDownMain._ready()`.
 
 ## Script map (`scripts/*.gd`)
@@ -29,6 +29,30 @@ Ideas and decisions: `IDEAS.md`. Nothing here describes gameplay changes; it des
 | `gap_arrows.gd` (`GapArrows`) | Coral screen-edge arrows toward off-screen gaps | `update_arrows()`, static `off_screen_arrows()` | `OFFSCREEN_*` |
 | `controls.gd` (`Controls`) | Registers every InputMap action (no raw keys elsewhere) | `setup()` | none |
 | `config.gd` (`Config`) | All tuning constants and tiny pure helpers | `multiplier()`, `falloff()`, `gloom_level()`, `is_automated_test()` | n/a |
+
+## Looks (rules vs visuals, `scripts/looks/`)
+Every main thing on screen is split into a **rules script** (the table above) and a **look**: a node/object that reads the
+rules' public state and draws it. Rules scripts never reach into look internals; they only call the generic look API
+(`sync()`, `play_bounce()`, `refresh()`, `set_post()` ...). Looks: `PersonLook`, `PlayerLook`, `BuildingLook`,
+`LandmarkLook`, `GroundLook`, `BorderLook`, `MinimapLook`, `PlazaLook`, each with `*_placeholder.gd` (plain shapes, the
+tests' default) and `*_styled.gd` (the locked art style; shaders in `shaders/`, builders in `style_kit.gd`,
+`style_people.gd`, `style_buildings.gd`). `ViewPipeline` (`view_pipeline.gd`) owns the camera and post-process: styled
+mode moves the camera into a 640x360 SubViewport that shares the world, with nearest upscale and outlines.
+- `Looks` (`looks.gd`) holds the mode (`PLACEHOLDER` default, `STYLED`; static, so the menu choice lasts for the session),
+  the factories, and the fallback registry. A kind with no styled look returns its placeholder and registers itself with
+  `Looks.note_placeholder(obj, kind)`; F3 shows `Looks.debug_line()` (`placeholder_fallback_count()`).
+- F4 (`toggle_look` action) calls `TopDownMain.set_look()`: every object calls its own `rebuild_look()`, game state is
+  untouched. The menu has a "Look" button.
+- **Gameplay rounds** add a placeholder look only (extend the base look class and the placeholder; new loose things
+  simply register as placeholder). **Style rounds** add the styled look for what is still listed by F3, then playtest.
+- Pixel view and the mouse: in styled mode window mouse coordinates are divided by `pipeline.view_scale()` before
+  `camera.project_ray_*` (the player's `mouse_mapper`); use `TopDownMain.world_to_screen()` (not `camera.unproject_position`)
+  for window positions. The HUD, minimap and gap arrows stay in the window at full resolution.
+- Checkpoint renders: `python tools/checkpoint_shots.py` (scripted scenario in `tools/checkpoint/checkpoint_shots.gd`,
+  both looks, `design/renders/checkpoint_01/`; needs a real window, about 20 s). Look at the PNGs; write `NOTES.md` there.
+- Tests run in the placeholder look; `tests/looks_test.gd` switches to styled on purpose and always switches back.
+  Headless uses a dummy renderer, so shaders are not compiled by the tests; the screenshot run is the shader check
+  (grep its log for errors).
 
 ## Where tuning lives (`scripts/config.gd`)
 Top: element enum, joy numbers, person look. `TD_*` block ("Territory game", ~line 69): plaza, people, gloom, drain, wander,
@@ -91,6 +115,7 @@ Player physics (`TopDownPlayer._physics_process`) and projectile physics run on 
 - **People / gloom / night**: `person.gd`, `gloom_sim.gd`, `night_cycle.gd`, `topdown_main.gd` (`_update_people`, `pursuit_assignments`); tests `person_test`, `gloom_sim_test`, `night_cycle_test`, `topdown_crowd_test`.
 - **Projectiles / blooms / floor effects**: `joy_projectile.gd`, `bloom.gd`, `floor_effects.gd`; tests `projectile_*_test.gd`, `floor_test`, `paint_bloom_camera_test`.
 - **Targeting / input**: `topdown_player.gd`, `controls.gd`; tests `targeting_test`, `topdown_mode_test`, `grace_cue_test`.
+- **Looks / styled art**: `scripts/looks/*`, `shaders/*`, `topdown_main.gd` (`set_look`); tests `looks_test`; tool `checkpoint_shots.py`.
 - **HUD / minimap / camera**: `hud.gd`, `minimap.gd`, `gap_arrows.gd`, `topdown_main.gd` (`_update_camera`, `view_half_extents`); tests `hud_test`, `readability_test`, `debug_overlay_test`, `menu_test`.
 - **Tooling**: `tools/gate.py`, `run_tests.py`, `coverage.py`, `lint.py`, `.githooks/pre-commit`, `tools/COVERAGE_TOOL_NOTES.md`.
 - Always also read: this file, the config section you touch, and `tests/topdown_test_util.gd` before writing a level test.

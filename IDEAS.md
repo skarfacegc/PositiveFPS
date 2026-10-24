@@ -528,3 +528,25 @@ element is still available until then).
 
 **Build note:** round 12 should start from the switchable-looks work if that lands first; new things get placeholder
 visuals only. Round 12 is large; consider splitting it (for example C + B first, then A, D and E).
+
+## Graphics checkpoint 1
+**Built:** the one-time setup of switchable looks from the "Style pass approach" section. Rules and looks are split
+(`scripts/looks/`), the locked style is ported as the styled look, and F4 / the menu "Look" button flip between them.
+
+**How to switch:** menu button "Look: Placeholder / Styled" (remembered for the session), or F4 in game (rebuilds the
+visuals in place; game state is untouched). F3 shows the current look and how many objects still use placeholder.
+Screenshots of both looks at the same moment: `python tools/checkpoint_shots.py` (results in
+`design/renders/checkpoint_01/`, with `NOTES.md`).
+
+**Styled:** pixel pipeline (640x360, toon + dither, outlines, long warm shadows), cobble ground from the paint weights,
+industrial/whimsical buildings and landmark, grey/joyful/dark people, the player, border haze + motes + coral gap glow,
+the round parchment minimap, landmark hold ring.
+**Still placeholder:** projectiles, blooms, burst/grace rings, target highlight, HUD text and arrows, labels and joy numbers.
+
+**Cadence rule:** gameplay rounds add placeholder visuals only. Run a style round every few gameplay rounds, and before any
+playtest where the look matters: give whatever F3 lists as placeholder its styled look, run the checkpoint tool, look at
+the PNGs (can you spot the player, the gaps, dark people, the landmark?), then playtest in styled mode.
+
+**Found while building:** the current border rules open every stretch of a loop at once (spacing over `BORDER_MAX_GAP`),
+so a single gap on a healthy loop never happens by itself; the screenshot scenario marks two stretches by hand. A
+gameplay decision for later (should gaps be per stretch?).
