@@ -518,7 +518,7 @@ progression tree.
   drain numbers are unchanged for now; retune after playing with going dim.
 
 **E. Noticeable grey-level changes**
-- A short cold puff or ripple when someone darkens, and a warm one when they lighten.
+- A short gloomy puff or ripple when someone sinks a stage, and a warm one when they lift (not cold: see "Gloom terminology").
 - A brief blip on the minimap when someone turns dark.
 - A sound cue is wanted for each transition, but is not designed yet. It waits for a general discussion about sound
   cues (to do, not now).
@@ -550,3 +550,19 @@ the PNGs (can you spot the player, the gaps, dark people, the landmark?), then p
 **Found while building:** the current border rules open every stretch of a loop at once (spacing over `BORDER_MAX_GAP`),
 so a single gap on a healthy loop never happens by itself; the screenshot scenario marks two stretches by hand. A
 gameplay decision for later (should gaps be per stretch?).
+
+## Gloom terminology (decision, 2026-10-24)
+Move the words away from "dark = bad". This is about terminology; the visuals may still get darker as gloom deepens.
+The theme is **gloom** in general, not cold or frost.
+
+- **The force:** gloom. Use "gloom spreads", not "darkness spreads".
+- **The three stages** (were light grey, grey, dark): **wistful, gloomy, dimmed**. "Glum" stays the name of the mood
+  from round 12 idea A, not a stage.
+- **People:** "dimmed people", not "dark people". The same for players' docs, playtest questions, the HUD and the
+  minimap legend.
+- **The player's out-of-spirit state is dim on purpose:** the gloom touches the player the same way it touches people,
+  with the same word and a matching look.
+- **Applies to:** new docs and plans from now on, player-facing text in the game, and the round 12 plan. Older sections
+  above stay as written (history). Code names such as `dark` and `TD_DARK_DRIFT_SPEED` can be renamed in a later build
+  round when convenient; not urgent. The locked art note "hunched gloomy dark people" in design/style_test/REVIEW_NOTES.md
+  reads as "hunched gloomy dimmed people" from now on.
