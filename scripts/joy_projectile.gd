@@ -19,6 +19,8 @@ const TRAIL_GROUP := "joy_trail"
 # Every impact effect left in the level (sound ring, splat, petal burst) is in this group, and tagged with its kind
 # in the "impact_kind" meta ("ring", "splat" or "petals"), so tests and the level can find them.
 const IMPACT_GROUP := "joy_impact"
+# Round 10: projectile effects are floor priority 3 (see FloorEffects and the inventory in config.gd).
+const FLOOR_PRIORITY := 3
 
 var element: int = Config.Element.MUSIC
 # How many trail pieces this projectile has left behind so far. It stops at Config.TD_TRAIL_MAX_PIECES.
@@ -212,12 +214,12 @@ func _splash(at: Vector3, direct: Person) -> void:
 			p.receive_joy(element, joy, _shooter_distance(p))
 
 
-# Adds an impact effect to the level at `at`, tags it (group and kind), so it outlives this projectile.
+# Adds an impact effect to the level at `at`, tags it (group and kind), so it outlives this projectile. It is a floor
+# effect, so the cap in FloorEffects applies.
 func _add_impact_node(node: Node3D, at: Vector3, kind: String) -> void:
 	node.add_to_group(IMPACT_GROUP)
 	node.set_meta("impact_kind", kind)
-	get_parent().add_child(node)
-	node.global_position = at
+	FloorEffects.add(get_parent(), node, kind, FLOOR_PRIORITY, at)
 
 
 # A flat, fading paint splat on the ground. It is added to the level so it outlives this projectile.
@@ -311,8 +313,7 @@ func _spawn_petal_burst(at: Vector3) -> void:
 func _spawn_bloom(at: Vector3) -> void:
 	var bloom := Bloom.new()
 	bloom.people = people
-	get_parent().add_child(bloom)
-	bloom.global_position = Vector3(at.x, 0.0, at.z)
+	FloorEffects.add(get_parent(), bloom, "bloom", FLOOR_PRIORITY, Vector3(at.x, 0.0, at.z))
 
 
 # Distance from where the player fired to a person, ignoring height (joy falls off with it).
@@ -381,8 +382,7 @@ func _trail_interval() -> float:
 func _add_trail_node(node: Node3D, at: Vector3) -> void:
 	node.add_to_group(TRAIL_GROUP)
 	node.set_meta("trail_element", element)
-	get_parent().add_child(node)
-	node.global_position = at
+	FloorEffects.add(get_parent(), node, "trail", FLOOR_PRIORITY, at)
 
 
 # Fades a trail piece to nothing over `seconds`, then frees it.

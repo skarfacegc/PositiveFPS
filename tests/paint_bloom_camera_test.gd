@@ -73,28 +73,29 @@ func test_paint_splash_ring_is_drawn_at_exactly_the_splash_radius() -> void:
 	assert_float(_impact_radius(td, "splash")).is_equal_approx(Config.TD_PAINT_SPLASH_RADIUS, 0.001)
 
 
-func test_bloom_has_a_darker_outline_at_exactly_its_radius() -> void:
+func test_bloom_has_no_outline_and_a_faint_fill() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	var bloom := Bloom.new()
 	td.add_child(bloom)
 	bloom.global_position = Vector3(-30, 0, 10)
 
-	var outline: MeshInstance3D = null
-	var fill: MeshInstance3D = null
+	# Round 10: no outline ring. The only disc is the fill, at the bloom's radius and at most TD_BLOOM_FILL_ALPHA opaque.
+	var discs := 0
+	var flowers := 0
 	for child: Node in bloom.get_children():
 		if child is MeshInstance3D and (child as MeshInstance3D).mesh is CylinderMesh:
 			var mesh := (child as MeshInstance3D).mesh as CylinderMesh
 			if is_equal_approx(mesh.top_radius, Config.TD_BLOOM_RADIUS):
-				outline = child as MeshInstance3D
-			elif is_equal_approx(mesh.top_radius, Config.TD_BLOOM_RADIUS - Config.TD_BLOOM_RING_WIDTH):
-				fill = child as MeshInstance3D
-	assert_object(outline).is_not_null()
-	assert_object(fill).is_not_null()
-	# The outline is the darker sage, and the fill sits above it so only the thin rim shows the outline colour.
-	var outline_col := (outline.material_override as StandardMaterial3D).albedo_color
-	assert_float(outline_col.r).is_equal_approx(Config.TD_BLOOM_RING_COLOR.r, 0.001)
-	assert_float(outline.position.y).is_less(fill.position.y)
+				discs += 1
+				var mat := (child as MeshInstance3D).material_override as StandardMaterial3D
+				assert_float(mat.albedo_color.a).is_less_equal(Config.TD_BLOOM_FILL_ALPHA + 0.001)
+		elif child is Node3D and not (child is MeshInstance3D):
+			flowers += 1
+	assert_int(discs).is_equal(1)
+	assert_int(flowers).is_equal(Config.TD_BLOOM_FLOWER_COUNT)
+	assert_bool(Config.TD_BLOOM_FLOWER_COUNT <= 4).is_true()
+	assert_int(Config.TD_BLOOM_PETALS).is_less_equal(4)
 
 
 func test_bloom_fades_as_one_piece_without_shrinking() -> void:
@@ -124,10 +125,11 @@ func test_camera_range_ring_fits_on_a_1280_by_720_screen() -> void:
 	var rect := td.get_viewport().get_visible_rect()
 	assert_vector(rect.size).is_equal(Vector2(1280, 720))
 
+	# Round 10: the whole auto-range ring (16 points) is on screen, from the orthographic camera.
 	var centre := td.player.global_position
 	var r := Config.TD_AUTO_RANGE
-	var offsets: Array[Vector3] = [Vector3(r, 0, 0), Vector3(-r, 0, 0), Vector3(0, 0, r), Vector3(0, 0, -r)]
-	for offset: Vector3 in offsets:
-		var spot := centre + offset
+	for i: int in range(16):
+		var a := TAU * float(i) / 16.0
+		var spot := centre + Vector3(cos(a) * r, 0, sin(a) * r)
 		assert_bool(td.camera.is_position_behind(spot)).is_false()
 		assert_bool(rect.has_point(td.camera.unproject_position(spot))).is_true()

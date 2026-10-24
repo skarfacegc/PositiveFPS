@@ -1,18 +1,16 @@
 class_name Bloom
 extends Node3D
 
-# A flower patch left where a nature projectile stopped. For TD_BLOOM_SECONDS, everyone standing inside its
-# radius gets Nature joy (no distance falloff) in pulses, then it fades out and frees itself.
-# Set people before adding it to the scene.
+# A flower patch left where a nature projectile stopped. For TD_BLOOM_SECONDS, everyone standing inside its radius
+# gets Nature joy (no distance falloff) in pulses, then it fades out and frees itself. Set people before adding it to
+# the scene.
 #
-# Round 8: the patch has a crisp, outlined edge. A thin darker sage disc of radius TD_BLOOM_RADIUS sits under a
-# translucent fill that stops TD_BLOOM_RING_WIDTH short of it, so the outline is exactly at TD_BLOOM_RADIUS and has no
-# soft rim. The whole patch fades together at the end (alpha only).
+# Round 10: the patch is calm. There is no outline ring: a faint fill (alpha at most TD_BLOOM_FILL_ALPHA) with a few
+# small flowers (TD_BLOOM_FLOWER_COUNT flowers of TD_BLOOM_PETALS petals each). It fades over the last
+# TD_BLOOM_FADE_FRACTION of its life, all at once (alpha only). Floor priority 3 (see FloorEffects).
 
 const PETAL_COLOR := Color(0.35, 0.7, 0.3)
 const CENTRE_COLOR := Color(1.0, 0.9, 0.3)
-const FLOWER_COUNT := 7
-const PETALS_PER_FLOWER := 5
 
 var people: Array[Person] = []
 
@@ -34,7 +32,8 @@ func _physics_process(delta: float) -> void:
 		_soak(_pulse)
 		_pulse = 0.0
 	var left := Config.TD_BLOOM_SECONDS - _age
-	_set_fade(clampf(left / Config.TD_BLOOM_FADE_SECONDS, 0.0, 1.0))
+	var fade_window := Config.TD_BLOOM_SECONDS * Config.TD_BLOOM_FADE_FRACTION
+	_set_fade(clampf(left / fade_window, 0.0, 1.0))
 	if _age >= Config.TD_BLOOM_SECONDS:
 		queue_free()
 
@@ -54,25 +53,21 @@ func _set_fade(factor: float) -> void:
 		_mats[i].albedo_color = Color(col.r, col.g, col.b, _base_alpha[i] * factor)
 
 
-# An outlined patch: the dark sage outline at the edge, a translucent fill inside it, and a few small flowers.
+# A faint patch: a translucent fill over the whole radius, and a few small flowers.
 func _build_patch() -> void:
-	var outline := _disc(Config.TD_BLOOM_RADIUS, Config.TD_BLOOM_RING_COLOR, 1.0, 0.0)
-	var fill := _disc(
-		Config.TD_BLOOM_RADIUS - Config.TD_BLOOM_RING_WIDTH, PETAL_COLOR, Config.TD_BLOOM_FILL_ALPHA, 0.01
-	)
-	add_child(outline)
-	add_child(fill)
+	add_child(_disc(Config.TD_BLOOM_RADIUS, PETAL_COLOR, Config.TD_BLOOM_FILL_ALPHA, 0.0))
 
 	var petal_mat := _track(PETAL_COLOR, 1.0)
 	var centre_mat := _track(CENTRE_COLOR, 1.0)
-	for i: int in range(FLOWER_COUNT):
-		var a := TAU * i / float(FLOWER_COUNT)
+	var flowers := Config.TD_BLOOM_FLOWER_COUNT
+	for i: int in range(flowers):
+		var a := TAU * i / float(flowers)
 		var r := Config.TD_BLOOM_RADIUS * (0.35 if i % 2 == 0 else 0.6)
 		var flower := Node3D.new()
 		flower.position = Vector3(cos(a) * r, 0.03, sin(a) * r)
 		add_child(flower)
-		for k: int in range(PETALS_PER_FLOWER):
-			var pa := TAU * k / float(PETALS_PER_FLOWER)
+		for k: int in range(Config.TD_BLOOM_PETALS):
+			var pa := TAU * k / float(Config.TD_BLOOM_PETALS)
 			var petal := MeshInstance3D.new()
 			var petal_mesh := CylinderMesh.new()
 			petal_mesh.top_radius = 0.12

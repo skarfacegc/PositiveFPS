@@ -14,6 +14,8 @@ var gloom: float = 0.0
 # The visible grey level (0 light, 1 grey, 2 dark). When it changes, a short moment plays.
 var level: int = 0
 var body_mat: StandardMaterial3D
+# The drawn parts of the person (scaled by Config.PERSON_VISUAL_SCALE). The collision and hit radius are not scaled.
+var visual: Node3D
 var label: Label3D
 var body: MeshInstance3D
 var wisp: CPUParticles3D
@@ -49,6 +51,11 @@ func _ready() -> void:
 	collision.position = Vector3(0, 0.9, 0)
 	add_child(collision)
 
+	# Round 10: everything drawn of this person sits under `visual`, scaled up. The collision above is not scaled.
+	visual = Node3D.new()
+	visual.scale = Vector3.ONE * Config.PERSON_VISUAL_SCALE
+	add_child(visual)
+
 	# The person's body: a capsule whose colour shows how grey they are.
 	body = MeshInstance3D.new()
 	var body_mesh := CapsuleMesh.new()
@@ -58,7 +65,7 @@ func _ready() -> void:
 	body.position = Vector3(0, 0.9, 0)
 	body_mat = StandardMaterial3D.new()
 	body.material_override = body_mat
-	add_child(body)
+	visual.add_child(body)
 
 	# The coloured marker above the head shows the affinity.
 	var marker := MeshInstance3D.new()
@@ -71,11 +78,11 @@ func _ready() -> void:
 	marker_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	marker_mat.albedo_color = Config.ELEMENT_COLORS[affinity]
 	marker.material_override = marker_mat
-	add_child(marker)
+	visual.add_child(marker)
 
 	# Shows the joy percentage, a warning, or a smiley.
 	label = Label3D.new()
-	label.position = Vector3(0, 2.5, 0)
+	label.position = Vector3(0, Config.PERSON_LABEL_HEIGHT, 0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.font_size = 48
 	label.pixel_size = 0.005 * ui_scale
@@ -105,7 +112,7 @@ func _ready() -> void:
 	wisp_mesh.material = wisp_mat
 	wisp.mesh = wisp_mesh
 	wisp.emitting = false
-	add_child(wisp)
+	visual.add_child(wisp)
 
 	# The grace ring: a bright warm disc on the ground under the person, hidden unless in grace.
 	grace_ring = MeshInstance3D.new()
@@ -251,7 +258,7 @@ func _puff(color: Color, count: int) -> void:
 	p.initial_velocity_min = 1.5
 	p.initial_velocity_max = 3.0
 	p.gravity = Vector3(0, -2, 0)
-	p.position = Vector3(0, 0.9, 0)
+	p.position = Vector3(0, 0.9 * Config.PERSON_VISUAL_SCALE, 0)
 	var m := SphereMesh.new()
 	m.radius = 0.06
 	m.height = 0.12

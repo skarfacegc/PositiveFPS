@@ -10,6 +10,8 @@ var rescued_label: Label
 var targeting_label: Label
 var alert_label: Label
 var debug_hint_label: Label
+# Round 10: the live floor-effect counts, shown under the F3 hint (see set_floor_text).
+var floor_label: Label
 var end_panel: ColorRect
 var end_label: Label
 var _alert_tween: Tween
@@ -86,6 +88,14 @@ func _ready() -> void:
 	debug_hint_label.visible = false
 	add_child(debug_hint_label)
 
+	floor_label = Label.new()
+	floor_label.add_theme_font_size_override("font_size", 18)
+	floor_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	floor_label.add_theme_constant_override("outline_size", 5)
+	floor_label.position = Vector2(20, 90)
+	floor_label.visible = false
+	add_child(floor_label)
+
 	# Relapse alert: a short orange message near the top that fades out (see show_alert).
 	alert_label = Label.new()
 	alert_label.position = Vector2(0, 200)
@@ -141,6 +151,12 @@ func set_rescued(n: int, total: int) -> void:
 # Shows the "[F3] debug" hint while the debug overlay is on.
 func set_debug_on(on: bool) -> void:
 	debug_hint_label.visible = on
+	floor_label.visible = on
+
+
+# Replaces the floor-effect counts line (round 10): the total against the cap, and each kind.
+func set_floor_text(text: String) -> void:
+	floor_label.text = text
 
 
 # Replaces the text of the F3 hint (cover and protection key, plus the border counts).

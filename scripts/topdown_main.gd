@@ -26,6 +26,9 @@ var ground: PaintedGround
 var player: TopDownPlayer
 var camera: Camera3D
 var hud: Hud
+# Round 10: the minimap (a circle, top-left) and the off-screen gap arrows (see minimap.gd and gap_arrows.gd).
+var minimap: Minimap
+var arrows: GapArrows
 var border: Border
 var landmark: Landmark
 var night: NightCycle
@@ -74,6 +77,8 @@ func _ready() -> void:
 	player.burst_fired.connect(border.shove)
 
 	camera = Camera3D.new()
+	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+	camera.size = Config.TD_CAMERA_ORTHO_SIZE
 	camera.current = true
 	add_child(camera)
 	player.camera = camera
@@ -84,6 +89,14 @@ func _ready() -> void:
 
 	hud = Hud.new()
 	add_child(hud)
+	# Round 10: the minimap (top-left circle, a fifth of the screen width) and the off-screen gap arrows, both on the HUD.
+	var screen_w := get_viewport().get_visible_rect().size.x
+	minimap = Minimap.new()
+	minimap.size = Vector2.ONE * floorf(Config.TD_MINIMAP_WIDTH_FRACTION * screen_w)
+	minimap.position = Vector2(16, 16)
+	hud.add_child(minimap)
+	arrows = GapArrows.new()
+	hud.add_child(arrows)
 	hud.set_hint("WASD move  |  Shift run  |  Click a person to lock on  |  G/Q joy burst  |  R restart  |  M menu")
 	hud.set_targeting(player.targeting_mode)
 	player.target_changed.connect(hud.set_target)
@@ -97,6 +110,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_update_camera()
 	_update_highlight(delta)
+	_update_readability(delta)
 	if not running:
 		return
 	night.update(delta)
@@ -141,6 +155,7 @@ func _set_debug(on: bool) -> void:
 
 
 func _update_debug_hint() -> void:
+	hud.set_floor_text(FloorEffects.summary(get_tree()))
 	hud.set_debug_text("[F3] debug: c = cover, p = protection.  " + border.debug_summary())
 
 
@@ -164,11 +179,36 @@ func _update_cover(delta: float) -> void:
 			p.protection = GloomSim.protection_for(p.cover)
 
 
-# The camera sits above and behind the player and always looks at them.
+# The camera follows the player from above and behind, looking at a point just north of them (round 10: orthographic, at
+# TD_CAMERA_PITCH_DEG degrees, so the player sits a little below the centre of the screen).
 func _update_camera() -> void:
-	var target: Vector3 = player.global_position
-	camera.global_position = target + Vector3(0, Config.TD_CAMERA_HEIGHT, Config.TD_CAMERA_BACK)
+	var target := _view_centre()
+	var pitch := deg_to_rad(Config.TD_CAMERA_PITCH_DEG)
+	var d := Config.TD_CAMERA_DISTANCE
+	camera.global_position = target + Vector3(0, d * sin(pitch), d * cos(pitch))
 	camera.look_at(target, Vector3.UP)
+
+
+# The point the camera looks at: the player plus TD_CAMERA_LOOK_OFFSET.
+func _view_centre() -> Vector3:
+	return player.global_position + Config.TD_CAMERA_LOOK_OFFSET
+
+
+# The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the view is
+# tilted, so the depth is stretched by 1 / sin(pitch)).
+func view_half_extents() -> Vector2:
+	var screen := get_viewport().get_visible_rect().size
+	var aspect := screen.x / screen.y
+	var pitch := deg_to_rad(Config.TD_CAMERA_PITCH_DEG)
+	return Vector2(Config.TD_CAMERA_ORTHO_SIZE * aspect * 0.5, Config.TD_CAMERA_ORTHO_SIZE * 0.5 / sin(pitch))
+
+
+# Each frame: the off-screen gap arrows. The minimap picture is refreshed about 10 times a second (see Minimap.tick).
+func _update_readability(delta: float) -> void:
+	var screen := get_viewport().get_visible_rect()
+	if minimap.tick(delta):
+		minimap.refresh_from(ground, border, people, player.global_position, _view_centre(), view_half_extents())
+	arrows.update_arrows(camera, screen, border.gap_midpoints(), minimap.get_global_rect(), border.pulse())
 
 
 # Builds the target highlight: a flat warm ring that is shown under the target, hidden when there is none.

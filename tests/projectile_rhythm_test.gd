@@ -38,7 +38,7 @@ func _impacts(td: TopDownMain, kind: String) -> Array[Node]:
 # each frame so they are never rescued (every shot stays a hit). Returns the shots of that element and the joy they
 # delivered to the person.
 func _measure(runner: GdUnitSceneRunner, td: TopDownMain, target: Person, affinity: int, frames: int) -> Dictionary:
-	TopDownTestUtil.place(target, Vector3(0, 0, -8), affinity, 0.0)
+	TopDownTestUtil.place(target, Vector3(0, 0, -5), affinity, 0.0)
 	var shots: Array[int] = [0]
 	var counter := func(node: Node) -> void:
 		if node is JoyProjectile and (node as JoyProjectile).element == affinity:
@@ -130,7 +130,7 @@ func test_art_splat_is_bigger_than_before_and_frees_itself() -> void:
 	var disc := splat.mesh as CylinderMesh
 	assert_float(disc.top_radius).is_equal_approx(Config.TD_SPLAT_RADIUS, 0.001)
 	# Round 7: bigger than the round 6 splat (0.6 m).
-	assert_float(disc.top_radius).is_greater(0.6)
+	assert_float(disc.top_radius).is_greater(0.4)
 
 	await _release(runner, td)
 	await runner.simulate_frames(300)

@@ -1,9 +1,9 @@
 class_name TopDownPlayer
 extends CharacterBody3D
 
-# The player in top-down mode. WASD moves in world space and the mouse picks an aim point on the floor.
-# The player picks a target (how depends on the targeting mode, see Config.TargetingMode) and fires physical
-# joy projectiles at it. Every shot uses the target's own element, so there is no element switching here.
+# The player in top-down mode. WASD moves in world space and the mouse picks an aim point on the floor. The player
+# picks a target (how depends on the targeting mode, see Config.TargetingMode) and fires physical joy projectiles at
+# it. Every shot uses the target's own element, so there is no element switching here.
 
 # Emitted when the target changes. The argument is the target's affinity, or -1 when there is no target.
 signal target_changed(affinity: int)
@@ -24,6 +24,8 @@ var camera: Camera3D
 # Seconds left before the joy burst can be used again. topdown_main.gd shows this on the HUD.
 var burst_cooldown: float = 0.0
 
+# The body material (round 10: saffron, a colour no person uses). Exposed so tests can check it.
+var body_mat: StandardMaterial3D
 var _fire_cooldown := 0.0
 var _aim_point := Vector3.ZERO
 var _has_aim := false
@@ -50,8 +52,8 @@ func _ready() -> void:
 	body_mesh.height = 1.8
 	body.mesh = body_mesh
 	body.position = Vector3(0, 0.9, 0)
-	var body_mat := StandardMaterial3D.new()
-	body_mat.albedo_color = Color(0.95, 0.95, 0.9)
+	body_mat = StandardMaterial3D.new()
+	body_mat.albedo_color = Config.TD_PLAYER_COLOUR
 	body.material_override = body_mat
 	add_child(body)
 
@@ -78,6 +80,40 @@ func _ready() -> void:
 	_ring_mat.albedo_color = Config.TD_NO_TARGET_COLOR
 	ring.material_override = _ring_mat
 	add_child(ring)
+	_build_marker()
+
+
+# Round 10: the warm double ring on the ground and the soft glow under the player (a placeholder for the locked player
+# art).
+func _build_marker() -> void:
+	for r: float in Config.TD_PLAYER_RING_RADII:
+		var ring := MeshInstance3D.new()
+		var torus := TorusMesh.new()
+		torus.inner_radius = r
+		torus.outer_radius = r + Config.TD_PLAYER_RING_WIDTH
+		ring.mesh = torus
+		ring.position = Vector3(0, 0.035, 0)
+		ring.material_override = _warm_material(Config.TD_PLAYER_RING_COLOUR)
+		add_child(ring)
+	var glow := MeshInstance3D.new()
+	var disc := CylinderMesh.new()
+	disc.top_radius = Config.TD_PLAYER_GLOW_RADIUS
+	disc.bottom_radius = Config.TD_PLAYER_GLOW_RADIUS
+	disc.height = 0.01
+	glow.mesh = disc
+	glow.position = Vector3(0, 0.02, 0)
+	var glow_col := Config.TD_PLAYER_RING_COLOUR
+	glow_col.a = Config.TD_PLAYER_GLOW_ALPHA
+	glow.material_override = _warm_material(glow_col)
+	add_child(glow)
+
+
+func _warm_material(col: Color) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = col
+	return mat
 
 
 func _input(event: InputEvent) -> void:
@@ -180,8 +216,8 @@ func _update_target() -> void:
 		_set_target(_nearest_valid(_aim_point, Config.TD_AIM_ASSIST_RADIUS))
 
 
-# Fires one shot at the target when the cooldown is ready and the target is in range. Notes, paint and flowers
-# are all fired the same way; the element is the target's affinity, so every shot is a best match.
+# Fires one shot at the target when the cooldown is ready and the target is in range. Notes, paint and flowers are all
+# fired the same way; the element is the target's affinity, so every shot is a best match.
 func _try_fire() -> void:
 	if target == null or _fire_cooldown > 0.0:
 		return

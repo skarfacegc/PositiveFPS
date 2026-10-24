@@ -219,7 +219,7 @@ func test_auto_prefers_a_rescued_person_about_to_relapse_over_a_grey_one() -> vo
 	TopDownTestUtil.send_everyone_away(td)
 	var rescued: Person = td.people[0]
 	var dark: Person = td.people[1]
-	TopDownTestUtil.place(rescued, Vector3(0, 0, -9), 0, 0.0)
+	TopDownTestUtil.place(rescued, Vector3(0, 0, -8), 0, 0.0)
 	TopDownTestUtil.place(dark, Vector3(4, 0, 0), 0, 0.9)
 	# Rescue one person, then drop their joy into the warning zone (below 85% of what a rescue needs).
 	rescued.receive_joy(rescued.affinity, Config.JOY_MAX * 2.0, 0.0)
@@ -239,7 +239,7 @@ func test_auto_prefers_the_darkest_person_when_nobody_is_rescued() -> void:
 	var near_grey: Person = td.people[0]
 	var far_dark: Person = td.people[1]
 	TopDownTestUtil.place(near_grey, Vector3(0, 0, -6), 0, 0.5)
-	TopDownTestUtil.place(far_dark, Vector3(-9, 0, 0), 0, 0.9)
+	TopDownTestUtil.place(far_dark, Vector3(-8, 0, 0), 0, 0.9)
 
 	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.AUTO)
 	await runner.simulate_frames(2)

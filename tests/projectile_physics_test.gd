@@ -118,7 +118,7 @@ func test_projectile_fired_at_a_target_behind_a_block_fizzles_on_the_block() -> 
 	# The block at (-20, -18) spans x -22..-18 and z -20..-16. The target stands just beyond it, to the north.
 	var target: Person = td.people[0]
 	TopDownTestUtil.place(target, Vector3(-20, 0, -21.5), 0, 0.0)
-	td.player.global_position = Vector3(-20, 0, -12.5)
+	td.player.global_position = Vector3(-20, 0, -14.0)
 	await runner.simulate_frames(2)
 
 	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)

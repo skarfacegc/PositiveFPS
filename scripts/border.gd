@@ -1,9 +1,9 @@
 class_name Border
 extends Node3D
 
-# The living border (round 9, organic push only since round 10). Rescued people organise themselves into a loop around a
-# centre (the smoothed centroid of the rescued). The loop has a radius per angle, pushed outward where each person was
-# rescued, and wrapped around blocks. The rules:
+# The living border (round 9, organic push only since round 10). Rescued people organise themselves into a loop around
+# a centre (the smoothed centroid of the rescued). The loop has a radius per angle, pushed outward where each person
+# was rescued, and wrapped around blocks. The rules:
 #   - the outermost rescued people are the border members, one per slot evenly spaced along the loop; the rest stand
 #     inside (inner members). A stretch between members that is longer than BORDER_MAX_GAP is a gap.
 #   - darkness outside cannot cross an intact stretch: it presses against the line and drains the nearest member.
@@ -39,10 +39,15 @@ var _ground: PaintedGround
 var _line_node: MeshInstance3D
 var _line_mesh: ImmediateMesh
 var _line_mat: StandardMaterial3D
+# Round 10: the gap glow (a soft coral band over each gap), drawn on its own mesh.
+var _glow_node: MeshInstance3D
+var _glow_mesh: ImmediateMesh
+var _glow_mat: StandardMaterial3D
 var _has_centre: bool = false
 # Rescued people whose outward push has not been applied yet (see on_rescue).
 var _pending_pushes: Array[Person] = []
-# Where each post stands on the loop (world positions), from the last update. They pull the centre (see _update_centre).
+# Where each post stands on the loop (world positions), from the last update. They pull the centre (see
+# _update_centre).
 var _post_points: Array[Vector3] = []
 # Organic: the radius per angle before smoothing, and the size factor that eases toward the target perimeter.
 var _raw_radii: Array[float] = []
@@ -72,6 +77,15 @@ func setup(ground: PaintedGround) -> void:
 	_line_node = MeshInstance3D.new()
 	_line_node.mesh = _line_mesh
 	add_child(_line_node)
+	_glow_mat = StandardMaterial3D.new()
+	_glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_glow_mat.vertex_color_use_as_albedo = true
+	_glow_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_glow_mesh = ImmediateMesh.new()
+	_glow_node = MeshInstance3D.new()
+	_glow_node.mesh = _glow_mesh
+	add_child(_glow_node)
 
 
 # Registers a block the border can beautify. `half` is the half-size of its footprint in x and z.
@@ -195,12 +209,33 @@ func clip_move(from: Vector3, to: Vector3) -> Vector3:
 # The colour of polygon segment `j` right now: intact gold, or a flickering grey and red when it is a gap.
 func segment_colour(j: int) -> Color:
 	if segment_is_gap(j):
-		return _gap_colour()
+		return Config.BORDER_GAP_COLOUR
 	return Config.BORDER_INTACT_COLOUR
 
 
 func segment_is_gap(j: int) -> bool:
 	return j >= 0 and j < _sample_gap.size() and _sample_gap[j]
+
+
+# The middle of each gap, in world coordinates (the points the off-screen gap arrows point at).
+func gap_midpoints() -> Array[Vector3]:
+	var out: Array[Vector3] = []
+	for k: int in range(segment_gap.size()):
+		if segment_gap[k]:
+			var mid := _point_at_arc((float(k) + 0.5) * spacing)
+			out.append(Vector3(mid.x, 0.0, mid.y))
+	return out
+
+
+# The gap pulse right now (see gap_pulse).
+func pulse() -> float:
+	return gap_pulse(_time)
+
+
+# The gap pulse at time `t`: 0 at its trough, 1 at its peak, once every BORDER_GAP_PULSE_SECONDS. It is a cosine, so
+# it is soft at both ends and never a hard edge.
+static func gap_pulse(t: float) -> float:
+	return 0.5 - 0.5 * cos(TAU * t / Config.BORDER_GAP_PULSE_SECONDS)
 
 
 func gap_count() -> int:
@@ -251,7 +286,8 @@ func debug_summary() -> String:
 	)
 
 
-# ---- Pure shape rules (static, so tests can check them directly) -----------------------------------------------------
+# ---- Pure shape rules (static, so tests can check them directly)
+# -----------------------------------------------------
 
 
 static func circle_polygon(c: Vector2, radius: float, samples: int) -> PackedVector2Array:
@@ -277,8 +313,7 @@ static func slot_count_for(loop_perimeter: float) -> int:
 
 
 # One gap flag per slot segment. A segment is a gap if the spacing is too wide, or it touches an empty slot. A segment
-# that
-# touches a post (`anchored`) is never a gap while the post stands.
+# that touches a post (`anchored`) is never a gap while the post stands.
 static func gap_flags(spacing_m: float, filled: Array[bool], anchored: Array[bool] = []) -> Array[bool]:
 	var out: Array[bool] = []
 	var m := filled.size()
@@ -295,11 +330,12 @@ static func is_inside(pts: PackedVector2Array, p: Vector2) -> bool:
 	return pts.size() >= 3 and Geometry2D.is_point_in_polygon(p, pts)
 
 
-# ---- Loop variants ---------------------------------------------------------------------------------------------------
+# ---- Loop variants
+# ---------------------------------------------------------------------------------------------------
 
 
-# Per angle, the smoothed radius times the size factor. A block on the ray that the radius reaches is wrapped:
-# the sample jumps to just beyond the far side of the block, so buildings end up inside the loop.
+# Per angle, the smoothed radius times the size factor. A block on the ray that the radius reaches is wrapped: the
+# sample jumps to just beyond the far side of the block, so buildings end up inside the loop.
 func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 	var smooth: Array[float] = _smoothed_radii()
 	var pts := PackedVector2Array()
@@ -332,7 +368,8 @@ func _smoothed_radii() -> Array[float]:
 	return out
 
 
-# The nearest block on the ray from `o` along `d` that lies in front of `o`: Vector2(entry, exit). entry is INF if none.
+# The nearest block on the ray from `o` along `d` that lies in front of `o`: Vector2(entry, exit). entry is INF if
+# none.
 func _first_block_along(o: Vector2, d: Vector2) -> Vector2:
 	var best := Vector2(INF, -INF)
 	for b: Building in buildings:
@@ -401,7 +438,8 @@ func _first_crossing(a2: Vector2, b2: Vector2) -> Variant:
 	return best
 
 
-# ---- Centre, members and slots ---------------------------------------------------------------------------------------
+# ---- Centre, members and slots
+# ---------------------------------------------------------------------------------------
 
 
 # The centre follows the centroid of the rescued people at BORDER_CENTRE_FOLLOW metres a second. It snaps to the first
@@ -409,8 +447,8 @@ func _first_crossing(a2: Vector2, b2: Vector2) -> Variant:
 func _update_centre(rescued: Array[Person], delta: float) -> void:
 	if rescued.is_empty():
 		return
-	# Round 10: a post pulls the centre like three rescued people (see BORDER_POST_WORTH), so the loop does not slide away
-	# from a landmark or a captured block that no member stands beside.
+	# Round 10: a post pulls the centre like three rescued people (see BORDER_POST_WORTH), so the loop does not slide
+	# away from a landmark or a captured block that no member stands beside.
 	var sum := Vector3.ZERO
 	for p: Person in rescued:
 		sum += Vector3(p.position.x, 0.0, p.position.z)
@@ -432,11 +470,9 @@ func _update_centre(rescued: Array[Person], delta: float) -> void:
 
 
 # Splits the rescued people into border members (the outermost, one per free slot) and inner members, works out the
-# slots
-# and the gaps. Round 10: beautified buildings on the line are posts. Each post claims BORDER_POST_WORTH consecutive
-# slots,
-# so the loop needs that many fewer people, and the segments beside a post are never gaps. Everyone gets a target
-# position (see _move_members).
+# slots and the gaps. Round 10: beautified buildings on the line are posts. Each post claims BORDER_POST_WORTH
+# consecutive slots, so the loop needs that many fewer people, and the segments beside a post are never gaps. Everyone
+# gets a target position (see _move_members).
 func _assign_members(rescued: Array[Person]) -> void:
 	members.clear()
 	inner.clear()
@@ -566,8 +602,7 @@ func required_members() -> int:
 
 
 # The beautified buildings the loop passes within BORDER_POST_REACH of. Each entry has the building and the arc length
-# of
-# the nearest loop point. At most as many as leave BORDER_MIN_PEOPLE slots for people.
+# of the nearest loop point. At most as many as leave BORDER_MIN_PEOPLE slots for people.
 func _find_posts(slots_total: int) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var cap := (slots_total - Config.BORDER_MIN_PEOPLE) / Config.BORDER_POST_WORTH
@@ -661,10 +696,8 @@ func _update_buildings(delta: float) -> void:
 
 
 # Dark people pressing on the border (outside, within BORDER_PRESS_RANGE of the line). On an intact stretch they are
-# pushed
-# outward at BORDER_PUSHBACK_SPEED and nothing is drained. At a gap they drain the nearest member, at the usual drain
-# rate
-# scaled by the night strength. Dark people inside are handled by GloomSim.
+# pushed outward at BORDER_PUSHBACK_SPEED and nothing is drained. At a gap they drain the nearest member, at the usual
+# drain rate scaled by the night strength. Dark people inside are handled by GloomSim.
 func _press_darkness(people: Array[Person], delta: float, strength: float) -> void:
 	if not active:
 		return
@@ -707,7 +740,8 @@ func _nearest_member(pos: Vector3) -> Person:
 	return best
 
 
-# The nearest point on the loop to `p2`: a Dictionary with "dist" (metres), "point" (Vector2) and "seg" (segment index).
+# The nearest point on the loop to `p2`: a Dictionary with "dist" (metres), "point" (Vector2) and "seg" (segment
+# index).
 func _nearest_on_loop(p2: Vector2) -> Dictionary:
 	var best := {"dist": INF, "point": p2, "seg": -1}
 	var n := polygon.size()
@@ -721,8 +755,8 @@ func _nearest_on_loop(p2: Vector2) -> Dictionary:
 
 
 # The joy burst shoves the border outward toward the player when they are within BORDER_SHOVE_RANGE of the line. It
-# uses the
-# same bump as a rescue, divided by the size factor so that it shows as about BORDER_SHOVE_AMOUNT metres on the line.
+# uses the same bump as a rescue, divided by the size factor so that it shows as about BORDER_SHOVE_AMOUNT metres on
+# the line.
 func shove(at: Vector3) -> void:
 	if not active:
 		return
@@ -747,29 +781,72 @@ func _update_ground() -> void:
 		_ground.set_region(PackedVector2Array())
 
 
-# ---- Drawing and debug -----------------------------------------------------------------------------------------------
+# ---- Drawing and debug
+# -----------------------------------------------------------------------------------------------
 
 
+# The intact stretches are drawn as gold lines. A gap is not drawn as a line: it glows (see _draw_gap_glow).
 func _draw_lines() -> void:
 	_line_mesh.clear_surfaces()
 	var n := polygon.size()
 	if not active or n < 3:
+		_glow_mesh.clear_surfaces()
 		return
-	_line_mesh.surface_begin(Mesh.PRIMITIVE_LINES, _line_mat)
+	var intact := 0
 	for j: int in range(n):
-		var colour := segment_colour(j)
+		if not segment_is_gap(j):
+			intact += 1
+	if intact > 0:
+		_line_mesh.surface_begin(Mesh.PRIMITIVE_LINES, _line_mat)
+		for j: int in range(n):
+			if segment_is_gap(j):
+				continue
+			var colour := segment_colour(j)
+			var a := polygon[j]
+			var b := polygon[(j + 1) % n]
+			_line_mesh.surface_set_color(colour)
+			_line_mesh.surface_add_vertex(Vector3(a.x, Config.BORDER_LINE_HEIGHT, a.y))
+			_line_mesh.surface_set_color(colour)
+			_line_mesh.surface_add_vertex(Vector3(b.x, Config.BORDER_LINE_HEIGHT, b.y))
+		_line_mesh.surface_end()
+	_draw_gap_glow()
+
+
+# Each gap is a coral band, BORDER_GAP_GLOW_WIDTH metres wide: strongest along the stretch and fading to nothing at
+# its two edges. Its alpha follows the gap pulse, so the whole glow breathes softly.
+func _draw_gap_glow() -> void:
+	_glow_mesh.clear_surfaces()
+	var n := polygon.size()
+	if not active or n < 3 or gap_count() == 0:
+		return
+	var alpha := lerpf(Config.BORDER_GAP_GLOW_ALPHA_MIN, Config.BORDER_GAP_GLOW_ALPHA_MAX, pulse())
+	var centre_col := Color(Config.BORDER_GAP_COLOUR.r, Config.BORDER_GAP_COLOUR.g, Config.BORDER_GAP_COLOUR.b, alpha)
+	var edge_col := Color(Config.BORDER_GAP_COLOUR.r, Config.BORDER_GAP_COLOUR.g, Config.BORDER_GAP_COLOUR.b, 0.0)
+	var half := Config.BORDER_GAP_GLOW_WIDTH * 0.5
+	_glow_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, _glow_mat)
+	for j: int in range(n):
+		if not segment_is_gap(j):
+			continue
 		var a := polygon[j]
 		var b := polygon[(j + 1) % n]
-		_line_mesh.surface_set_color(colour)
-		_line_mesh.surface_add_vertex(Vector3(a.x, Config.BORDER_LINE_HEIGHT, a.y))
-		_line_mesh.surface_set_color(colour)
-		_line_mesh.surface_add_vertex(Vector3(b.x, Config.BORDER_LINE_HEIGHT, b.y))
-	_line_mesh.surface_end()
+		var dir := b - a
+		if dir.length() < 0.0001:
+			continue
+		var nrm := Vector2(-dir.y, dir.x).normalized()
+		for side: float in [-1.0, 1.0]:
+			var off := nrm * half * side
+			_glow_vertex(a, centre_col)
+			_glow_vertex(b, centre_col)
+			_glow_vertex(b + off, edge_col)
+			_glow_vertex(a, centre_col)
+			_glow_vertex(b + off, edge_col)
+			_glow_vertex(a + off, edge_col)
+	_glow_mesh.surface_end()
 
 
-func _gap_colour() -> Color:
-	var wave := 0.5 + 0.5 * sin(_time * TAU * Config.BORDER_GAP_FLICKER_HZ)
-	return Config.BORDER_GAP_COLOUR.lerp(Config.BORDER_GAP_ALARM_COLOUR, wave)
+func _glow_vertex(p2: Vector2, col: Color) -> void:
+	_glow_mesh.surface_set_color(col)
+	_glow_mesh.surface_add_vertex(Vector3(p2.x, Config.BORDER_LINE_HEIGHT, p2.y))
 
 
 func _update_debug_labels() -> void:

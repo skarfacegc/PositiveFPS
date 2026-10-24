@@ -1,18 +1,18 @@
 class_name PaintedGround
 extends MultiMeshInstance3D
 
-# Painted ground: a square grid of flat tiles (1 m each) just above the floor, one colour per tile.
-# Tiles near rescued people take on that person's element colour, with soft edges.
-# Each tile also has a paint weight from 0 (unpainted) to 1 (fully painted). Top-down mode reads it as cover.
+# Painted ground: a square grid of flat tiles (1 m each) just above the floor, one colour per tile. Tiles near rescued
+# people take on that person's element colour, with soft edges. Each tile also has a paint weight from 0 (unpainted)
+# to 1 (fully painted). Top-down mode reads it as cover.
 #
 # Round 8: each tile remembers who painted it hardest (_top_owner) and the hardest paint from anyone else
-# (_other_weights). That lets average_weight_excluding leave a person's own paint out of their cover. With `erodes`
-# on (top-down), unrescued dark people take paint off the edge of the territory (see _erode).
+# (_other_weights). That lets average_weight_excluding leave a person's own paint out of their cover. With `erodes` on
+# (top-down), unrescued dark people take paint off the edge of the territory (see _erode).
 
 # True when darkness erodes paint (the top-down level turns it on).
 var erodes: bool = false
-# The radius of a rescued person's paint disc, in metres. Top-down uses the zone radius; the paint edge border
-# uses its own.
+# The radius of a rescued person's paint disc, in metres. Top-down uses the zone radius; the paint edge border uses
+# its own.
 var paint_radius: float = Config.ZONE_RADIUS
 # When the living border has a loop, tiles inside it are painted and tiles outside are not (see set_region). Without a
 # loop, rescued people paint discs as before.
@@ -83,8 +83,8 @@ func setup(
 	material_override = mat
 
 
-# Call every frame. Repaints the target colours every GROUND_UPDATE_INTERVAL seconds,
-# and moves each tile's colour and weight a little toward its target every frame of that update.
+# Call every frame. Repaints the target colours every GROUND_UPDATE_INTERVAL seconds, and moves each tile's colour and
+# weight a little toward its target every frame of that update.
 func update_paint(people: Array, delta: float) -> void:
 	_timer += delta
 	if _timer < Config.GROUND_UPDATE_INTERVAL:
@@ -101,6 +101,17 @@ func paint_weight_at(world_pos: Vector3) -> float:
 	if ix < 0 or iz < 0 or ix >= _size or iz >= _size:
 		return 0.0
 	return _weights[ix * _size + iz]
+
+
+# The colour the tile under `world_pos` is showing now (grey where it is unpainted). Used by the minimap. Positions
+# off the grid show grey.
+func paint_colour_at(world_pos: Vector3) -> Color:
+	var half := _size / 2.0
+	var ix := floori(world_pos.x + half)
+	var iz := floori(world_pos.z + half)
+	if ix < 0 or iz < 0 or ix >= _size or iz >= _size:
+		return Config.GROUND_GREY
+	return _colors[ix * _size + iz]
 
 
 # Sets the loop the border encloses (world x, z points). Fewer than three points turns the region off.
@@ -176,8 +187,8 @@ func _average(world_pos: Vector3, radius: float, owner_id: int) -> float:
 	return total / count
 
 
-# Works out each tile's target colour and target weight. Only tiles inside the square around each rescued person
-# are checked, so this stays fast on big maps. A tile keeps the most painted (nearest) person's colour.
+# Works out each tile's target colour and target weight. Only tiles inside the square around each rescued person are
+# checked, so this stays fast on big maps. A tile keeps the most painted (nearest) person's colour.
 func _paint(people: Array) -> void:
 	var count := _size * _size
 	for i: int in range(count):
@@ -240,8 +251,8 @@ func _paint_discs(people: Array, half: float) -> void:
 
 
 # Records one rescued person's paint strength `k` on tile `idx`. The strongest sets the tile's colour and target
-# weight; the strongest from anyone else is kept in _other_weights, so their paint can be left out later.
-# Each rescued person calls this at most once per tile in a paint update, so an owner never meets itself here.
+# weight; the strongest from anyone else is kept in _other_weights, so their paint can be left out later. Each rescued
+# person calls this at most once per tile in a paint update, so an owner never meets itself here.
 func _add_contribution(idx: int, owner: int, k: float, paint_col: Color) -> void:
 	if k > _target_weights[idx]:
 		_other_weights[idx] = _target_weights[idx]
@@ -252,8 +263,8 @@ func _add_contribution(idx: int, owner: int, k: float, paint_col: Color) -> void
 		_other_weights[idx] = k
 
 
-# Inside the loop every tile is wanted fully painted (warm); outside, none is. The slow spread and fade speeds make the
-# colour and weight lag behind the loop, as they do for paint discs.
+# Inside the loop every tile is wanted fully painted (warm); outside, none is. The slow spread and fade speeds make
+# the colour and weight lag behind the loop, as they do for paint discs.
 func _paint_region(half: float) -> void:
 	for ix: int in range(_size):
 		for iz: int in range(_size):
@@ -266,9 +277,9 @@ func _paint_region(half: float) -> void:
 				_targets[idx] = Config.BORDER_GROUND_COLOUR
 
 
-# Darkness erodes paint. Each unrescued dark person takes TD_ERODE_RATE weight per second off the
-# edge tiles within TD_ERODE_RADIUS of them, and an eroded tile is held for TD_ERODE_HOLD seconds (see _paint).
-# Deep interior tiles are immune. Tiles are checked before any are changed, so the order of people does not matter.
+# Darkness erodes paint. Each unrescued dark person takes TD_ERODE_RATE weight per second off the edge tiles within
+# TD_ERODE_RADIUS of them, and an eroded tile is held for TD_ERODE_HOLD seconds (see _paint). Deep interior tiles are
+# immune. Tiles are checked before any are changed, so the order of people does not matter.
 func _erode(people: Array) -> void:
 	var r := Config.TD_ERODE_RADIUS
 	var half := _size / 2.0

@@ -11,8 +11,8 @@ enum TargetingMode { LOCK_ON, HOVER_STICKY, AUTO }
 # Display names, in the same order as the Element enum.
 const ELEMENT_NAMES: Array[String] = ["Music", "Art", "Nature"]
 
-# Colours for each element, in the same order as the Element enum.
-# They are used for the person's floating marker, the projectiles, the HUD text and the painted ground.
+# Colours for each element, in the same order as the Element enum. They are used for the person's floating marker, the
+# projectiles, the HUD text and the painted ground.
 const ELEMENT_COLORS: Array[Color] = [Color(0.25, 0.5, 1.0), Color(1.0, 0.4, 0.7), Color(0.3, 0.85, 0.35)]
 
 # Joy needed for a person at light grey (darker levels need more, see LEVEL_JOY_MULT).
@@ -66,14 +66,15 @@ const GROUND_UPDATE_INTERVAL := 0.1  # Seconds between ground colour updates.
 # Show the Borderlands-style floating joy numbers when a joy projectile hits someone.
 const NUMBERS_ENABLED := true
 
-# ---- Territory game (scripts/topdown_*.gd, joy_projectile.gd, bloom.gd, painted_ground.gd). Names start with TD_. ----
+# ---- Territory game (scripts/topdown_*.gd, joy_projectile.gd, bloom.gd, painted_ground.gd). Names start with TD_.
+# ----
 
 # Side length of the top-down plaza, in metres. Walls go around the edge.
 const TD_PLAZA_SIZE := 70
 # How many people are in the top-down plaza.
 const TD_PEOPLE_COUNT := 60
-# Seed for every gameplay random number (top-down placement and wandering, cosmetic jitter). Gameplay code
-# uses its own seeded RandomNumberGenerator, never the global randf(), so a run is repeatable.
+# Seed for every gameplay random number (top-down placement and wandering, cosmetic jitter). Gameplay code uses its
+# own seeded RandomNumberGenerator, never the global randf(), so a run is repeatable.
 const RNG_SEED := 42
 # Cover (round 7): each person's cover is the average paint weight of the ground within TD_COVER_RADIUS metres. Their
 # protection is smoothstep(TD_COVER_EDGE, TD_COVER_FULL, cover): 0 at the edge of a painted area, 1 well inside it.
@@ -84,31 +85,37 @@ const TD_COVER_FULL := 0.85
 # (times their protection). That is about one grey level per ten seconds deep inside. It never adds joy or rescues.
 const TD_CONTAGION_THRESHOLD := 0.6
 const TD_CONTAGION_RATE := 0.034
-# Top-down ground: painting in and fading back are separate speeds (per ground update). Painting is quick, but
-# fading back is slow, so territory lags behind people and lingers after a relapse.
+# Top-down ground: painting in and fading back are separate speeds (per ground update). Painting is quick, but fading
+# back is slow, so territory lags behind people and lingers after a relapse.
 const TD_GROUND_SPREAD_SPEED := 0.05
 const TD_GROUND_FADE_SPEED := 0.012
-# Debug overlay (F3): height of the cover and protection labels above the ground, in metres (round 8: above joy labels).
+# Debug overlay (F3): height of the cover and protection labels above the ground, in metres (round 8: above joy
+# labels).
 const TD_DEBUG_LABEL_HEIGHT := 3.2
 # Round 8: the F3 labels are sized in world units, not with TD_UI_SCALE, so they stay readable at the camera distance.
 # Glyph height on screen is about font size times pixel size, in metres (0.86 m is about 24 px at 1280x720).
 const TD_DEBUG_FONT_SIZE := 80
 const TD_DEBUG_PIXEL_SIZE := 0.012
 
-# Camera height above the player, in metres (round 8: closer, was 24; 15 put the range ring's near edge off screen).
-const TD_CAMERA_HEIGHT := 18.0
-# How far behind the player the camera sits, in metres. The camera looks down at the player (round 8: was 12).
-const TD_CAMERA_BACK := 10.0
+# Round 10: an orthographic camera, size TD_CAMERA_ORTHO_SIZE (the view height in metres at the focus), tilted down at
+# TD_CAMERA_PITCH_DEG degrees. It sits TD_CAMERA_DISTANCE metres from its look point, which is the player plus
+# TD_CAMERA_LOOK_OFFSET (2.4 m north, so the player sits a little below the centre of the screen).
+const TD_CAMERA_ORTHO_SIZE := 14.5
+const TD_CAMERA_PITCH_DEG := 41.0
+const TD_CAMERA_DISTANCE := 20.0
+const TD_CAMERA_LOOK_OFFSET := Vector3(0, 0, -2.4)
 # Walking speed, in metres per second.
 const TD_MOVE_SPEED := 6.0
 # Speed while holding Shift, in metres per second.
 const TD_RUN_SPEED := 9.5
-# A person can only be targeted (and shot at) while this close to the player, in metres.
-const TD_AUTO_RANGE := 11.0
-# How the player picks a target. LOCK_ON: click a person to lock on. HOVER_STICKY: the person under the mouse
-# is picked when there is no target, and then stays the target. AUTO: the most urgent person in range.
-# The mode at the start of a top-down round. F2 cycles through the modes at runtime. Round 8: hover is the default
-# (playtest 7 preferred it).
+# A person can only be targeted (and shot at) while this close to the player, in metres. Round 10: 8.6 (was 11), the
+# largest range whose full ring still fits on a 1280x720 screen with the closer orthographic camera (see the camera
+# test).
+const TD_AUTO_RANGE := 8.6
+# How the player picks a target. LOCK_ON: click a person to lock on. HOVER_STICKY: the person under the mouse is
+# picked when there is no target, and then stays the target. AUTO: the most urgent person in range. The mode at the
+# start of a top-down round. F2 cycles through the modes at runtime. Round 8: hover is the default (playtest 7
+# preferred it).
 const TD_TARGETING_MODE := TargetingMode.HOVER_STICKY
 # Short names for each TargetingMode, in the same order (shown on the HUD).
 const TD_TARGETING_NAMES: Array[String] = ["Lock-on", "Hover", "Auto"]
@@ -120,12 +127,12 @@ const TD_LOCK_BREAK_RANGE := 14.0
 const TD_AIM_ASSIST_RADIUS := 3.5
 # Shots per second while there is a target in range.
 const TD_SHOTS_PER_SECOND := 5.0
-# Joy added by a Nature shot (before the element multiplier and distance falloff). Other elements scale this by
-# the inverse of their fire-rate multiplier (see TD_ELEMENT_FIRE_RATE_MULT), so every element delivers the same joy
-# per second. Round 7: 170 (was 135).
+# Joy added by a Nature shot (before the element multiplier and distance falloff). Other elements scale this by the
+# inverse of their fire-rate multiplier (see TD_ELEMENT_FIRE_RATE_MULT), so every element delivers the same joy per
+# second. Round 7: 170 (was 135).
 const TD_JOY_PER_SHOT := 170.0
-# Fire-rate multiplier per element (music, art, nature). Music fires twice as often as Nature, Art half as often.
-# Joy per shot is divided by this, so the joy per second is the same for each element.
+# Fire-rate multiplier per element (music, art, nature). Music fires twice as often as Nature, Art half as often. Joy
+# per shot is divided by this, so the joy per second is the same for each element.
 const TD_ELEMENT_FIRE_RATE_MULT: Array[float] = [2.0, 0.5, 1.0]
 # How long a joy projectile can fly before it fizzles, in seconds.
 const TD_PROJECTILE_LIFETIME := 1.6
@@ -136,8 +143,8 @@ const TD_LANDING_HEIGHT := 0.05
 # Music notes fly at this speed (metres per second) and turn toward their target at this rate (radians per second).
 const TD_NOTE_SPEED := 15.0
 const TD_NOTE_TURN_RATE := 6.0
-# Paint blobs are lobbed so they land on the target's position after this many seconds, under this gravity.
-# Round 7: slower and higher arc (was 0.55 s).
+# Paint blobs are lobbed so they land on the target's position after this many seconds, under this gravity. Round 7:
+# slower and higher arc (was 0.55 s).
 const TD_PAINT_FLIGHT_TIME := 0.75
 const TD_PAINT_GRAVITY := 18.0
 # On a paint impact, people within this many metres (ground distance) get this fraction of the joy. Round 8: 1.1 (was
@@ -146,7 +153,7 @@ const TD_PAINT_SPLASH_RADIUS := 1.1
 const TD_PAINT_SPLASH_FRACTION := 0.5
 # The brief splash ring: it fades out over TD_SPLASH_RING_SECONDS, and is this solid at the start.
 const TD_SPLASH_RING_SECONDS := 0.35
-const TD_SPLASH_RING_ALPHA := 0.35
+const TD_SPLASH_RING_ALPHA := 0.175
 # Flowers fly slower and turn more gently than notes (same units as above).
 const TD_FLOWER_SPEED := 9.0
 const TD_FLOWER_TURN_RATE := 2.0
@@ -154,17 +161,18 @@ const TD_FLOWER_TURN_RATE := 2.0
 const TD_BLOOM_SECONDS := 2.5
 # ...covers people within this radius of its centre, in metres...
 const TD_BLOOM_RADIUS := 1.3
-# Round 8: the patch has a crisp edge: a thin darker sage outline at exactly TD_BLOOM_RADIUS, a nearly solid fill inside
-# it (the fill stops TD_BLOOM_RING_WIDTH short of the outline), and no soft fade at the rim.
-const TD_BLOOM_RING_COLOR := Color(0.2, 0.34, 0.18)
-const TD_BLOOM_RING_WIDTH := 0.07
-const TD_BLOOM_FILL_ALPHA := 0.9
+# Round 10: the patch is subtle. No outline ring, a faint fill (alpha at most 0.25), at most 4 flowers of 4 petals
+# each.
+const TD_BLOOM_FILL_ALPHA := 0.25
+const TD_BLOOM_FLOWER_COUNT := 4
+const TD_BLOOM_PETALS := 4
 # ...gives them this much joy per second (element Nature, no distance falloff)...
 const TD_BLOOM_JOY_PER_SEC := 120.0
 # ...in pulses this long apart (joy is applied in pulses so each pulse shows one floating number)...
 const TD_BLOOM_PULSE_SECONDS := 0.25
-# ...and fades out over this many seconds at the end. Round 8: the whole patch fades together (alpha only, no shrink).
-const TD_BLOOM_FADE_SECONDS := 0.4
+# ...and fades out over the last TD_BLOOM_FADE_FRACTION of its life (round 10: was a fixed 0.4 s). The whole patch
+# fades together (alpha only, no shrink).
+const TD_BLOOM_FADE_FRACTION := 0.4
 # Colour of the element ring under the player when there is no target.
 const TD_NO_TARGET_COLOR := Color(0.92, 0.9, 0.82)
 # The target highlight: a ring at the target's feet, its radius, colour, and how far it pulses (scale change).
@@ -180,9 +188,9 @@ const TD_FLOWER_SPIN := 8.0
 # Flowers float: they bob up and down this many metres, this many radians a second (visual only).
 const TD_FLOWER_BOB := 0.12
 const TD_FLOWER_BOB_SPEED := 4.0
-# A Music hit (or landing) makes an expanding dusty-blue ring on the ground under the target (the "sound ring").
-# It grows from TD_SOUND_RING_START to TD_SOUND_RING_RADIUS metres over TD_SOUND_RING_SECONDS, then fades out.
-const TD_SOUND_RING_COLOR := Color(0.42, 0.58, 0.78, 0.8)
+# A Music hit (or landing) makes an expanding dusty-blue ring on the ground under the target (the "sound ring"). It
+# grows from TD_SOUND_RING_START to TD_SOUND_RING_RADIUS metres over TD_SOUND_RING_SECONDS, then fades out.
+const TD_SOUND_RING_COLOR := Color(0.42, 0.58, 0.78, 0.4)
 const TD_SOUND_RING_START := 0.3
 const TD_SOUND_RING_RADIUS := 1.4
 const TD_SOUND_RING_SECONDS := 0.35
@@ -192,11 +200,11 @@ const TD_PETAL_BURST_COUNT := 8
 const TD_PETAL_BURST_RANGE := 1.1
 const TD_PETAL_BURST_SECONDS := 0.6
 # Radius of the paint splat left by an Art projectile, in metres (round 8: smaller, was 1.0).
-const TD_SPLAT_RADIUS := 0.6
+const TD_SPLAT_RADIUS := 0.42
 # How solid the paint splat is (1 = solid, 0 = invisible).
 const TD_SPLAT_ALPHA := 0.6
 # Seconds for a paint splat to fade away.
-const TD_SPLAT_FADE_TIME := 2.5
+const TD_SPLAT_FADE_TIME := 0.8
 # Walking speed for wandering people, in metres per second.
 const TD_WANDER_SPEED := 0.8
 # Wandering people pick a new spot within this distance of where they are, in metres.
@@ -210,20 +218,20 @@ const TD_WANDER_TIME_MAX := 6.0
 const TD_DARK_DRIFT_SPEED := 0.8
 # Dark people stop drifting when this close to their rescued person, in metres.
 const TD_DARK_STOP_DISTANCE := 2.5
-# At most this many dark people may drift toward the same rescued person. Others pick the next-nearest rescued
-# person with a free slot, or wander. This stops the crowd piling up on one person.
+# At most this many dark people may drift toward the same rescued person. Others pick the next-nearest rescued person
+# with a free slot, or wander. This stops the crowd piling up on one person.
 const TD_MAX_PURSUERS_PER_TARGET := 2
 # Everyone steers away from people within this distance (metres). Dark and wandering people both do it.
 const TD_SEPARATION_RADIUS := 2.2
 # How strongly the separation push is added to a person's movement direction (before it is normalised).
 const TD_SEPARATION_STRENGTH := 1.2
-# Top-down joy drain is scaled by this. Dark people drain rescued joy at 0.4 of the round 6 rate (round 7).
-# It is also scaled by (1 - protection) of the rescued person (see GloomSim), so cover makes it smaller.
+# Top-down joy drain is scaled by this. Dark people drain rescued joy at 0.4 of the round 6 rate (round 7). It is also
+# scaled by (1 - protection) of the rescued person (see GloomSim), so cover makes it smaller.
 const TD_DRAIN_MULTIPLIER := 0.4
 # After a rescue, the person cannot be drained by nearby darkness for this many seconds (a warm halo shows it).
 const TD_RESCUE_GRACE_SECONDS := 4.0
-# The grace cue: a warm ring on the ground under a rescued person, pulsing in size, plus a soft glow on the body.
-# Both fade out over the last GRACE_FADE_SECONDS of the grace period.
+# The grace cue: a warm ring on the ground under a rescued person, pulsing in size, plus a soft glow on the body. Both
+# fade out over the last GRACE_FADE_SECONDS of the grace period.
 const GRACE_RING_COLOR := Color(1.0, 0.85, 0.45, 0.8)
 const GRACE_RING_RADIUS := 0.9  # Metres.
 # The ring pulses between 0.9 and 1.15 times its size (middle 1.025, swing 0.125), this many times a second.
@@ -233,33 +241,34 @@ const GRACE_RING_PULSE_HZ := 2.5
 const GRACE_GLOW_COLOR := Color(1.0, 0.85, 0.45)
 const GRACE_GLOW_ENERGY := 0.6  # Emission strength of the body glow at full strength.
 const GRACE_FADE_SECONDS := 1.0  # The ring and glow fade out over this much of the grace period, at its end.
-# Top-down projectiles (notes, paint, flowers) are drawn this many times bigger, so the element is easier to tell apart.
+# Top-down projectiles (notes, paint, flowers) are drawn this many times bigger, so the element is easier to tell
+# apart.
 const TD_PROJECTILE_VISUAL_SCALE := 1.5
-# Extra size per element on top of TD_PROJECTILE_VISUAL_SCALE (music, art, nature): notes are small and quick,
-# paint blobs are big and slow. Round 8: paint 1.3 (was 2.0), so it no longer reads as an area weapon.
+# Extra size per element on top of TD_PROJECTILE_VISUAL_SCALE (music, art, nature): notes are small and quick, paint
+# blobs are big and slow. Round 8: paint 1.3 (was 2.0), so it no longer reads as an area weapon.
 const TD_ELEMENT_VISUAL_SCALE: Array[float] = [0.8, 1.3, 1.0]
-# Trails: small pieces left in the level behind each projectile. They fade and free themselves.
-# Most trail pieces one projectile can leave behind (keeps many shots cheap).
+# Trails: small pieces left in the level behind each projectile. They fade and free themselves. Most trail pieces one
+# projectile can leave behind (keeps many shots cheap).
 const TD_TRAIL_MAX_PIECES := 12
 # Music note trail: a wavy ribbon of small dusty-blue dots. Each dot lives this many seconds...
 const TD_TRAIL_SECONDS := 0.35
 # ...and a new dot is left every this many seconds.
 const TD_TRAIL_INTERVAL := 0.04
 const TD_TRAIL_RADIUS := 0.09
-# Notes wave from side to side this many metres (the trail and the note together), this many radians a second.
-# Round 7: a more pronounced ribbon (was 0.3 m scaled by the visual size).
+# Notes wave from side to side this many metres (the trail and the note together), this many radians a second. Round
+# 7: a more pronounced ribbon (was 0.3 m scaled by the visual size).
 const TD_NOTE_RIBBON_WAVE := 0.6
 const TD_NOTE_WAVE_SPEED := 16.0
 const TD_TRAIL_COLOR := Color(0.42, 0.58, 0.78)
 # Art paint trail: warm rose or terracotta drips fall from the blob (a new drip every TD_DRIP_INTERVAL seconds).
 const TD_DRIP_COLOR := Color(0.8, 0.42, 0.34)
 const TD_DRIP_INTERVAL := 0.05
-const TD_DRIP_RADIUS := 0.09  # Heavier drips in round 7 (was 0.06).
+const TD_DRIP_RADIUS := 0.054  # Round 10: x0.6 (was 0.09).
 # A drip takes this long to fall to the ground, where it leaves a small splat dot.
 const TD_DRIP_FALL_SECONDS := 0.3
-const TD_SPLAT_DOT_RADIUS := 0.07
+const TD_SPLAT_DOT_RADIUS := 0.042
 # How long a splat dot takes to fade away, in seconds.
-const TD_SPLAT_DOT_FADE_SECONDS := 1.5
+const TD_SPLAT_DOT_FADE_SECONDS := 0.8
 # Nature flower trail: small petals shed every TD_PETAL_INTERVAL seconds. They alternate sage and pink.
 const TD_PETAL_COLORS: Array[Color] = [Color(0.62, 0.74, 0.58), Color(0.92, 0.66, 0.74)]
 const TD_PETAL_INTERVAL := 0.06
@@ -306,14 +315,52 @@ const TD_PURSUIT_SEARCH_RADIUS := 25.0
 # A dark person with no one to chase drifts to the nearest territory edge, and stops this close to it (metres).
 const TD_EDGE_REACH := 0.5
 
+# ---- Round 10: the floor. Every floor overlay, with its draw priority (lower number = read first):
+#   1  border line and gap glow (Border): always the clearest things on the floor.
+#   2  target and threat (target highlight, the player's element ring and warm ring, grace rings on rescued people).
+#   3  projectile effects, capped by TD_MAX_FLOOR_EFFECTS (oldest first): music sound rings, paint splats, splash rings,
+#      petal bursts, blooms (Bloom) and trail pieces (note dots, drips, drip splat dots, petals). The joy burst ring
+#      lasts 0.35 s and is not counted.
+#   4  territory paint: the painted ground tiles (PaintedGround), drawn quietest.
+# Impact puffs (1 s particle bursts) and the floating numbers are not floor overlays. The cap: when a new effect would
+# exceed TD_MAX_FLOOR_EFFECTS, the oldest priority-3 effect is freed first.
+const TD_MAX_FLOOR_EFFECTS := 40
+
+# Round 10: the readability visuals (placeholders for the locked style, design/style_test/REVIEW_NOTES.md). The
+# minimap: a circle top-left, TD_MINIMAP_WIDTH_FRACTION of the screen width, drawn from TD_MINIMAP_RESOLUTION pixels
+# and refreshed every TD_MINIMAP_REFRESH_SECONDS.
+const TD_MINIMAP_WIDTH_FRACTION := 0.2
+const TD_MINIMAP_RESOLUTION := 128
+const TD_MINIMAP_REFRESH_SECONDS := 0.1
+const TD_MINIMAP_FRAME_COLOUR := Color(0.93, 0.87, 0.72)
+const TD_MINIMAP_LINE_COLOUR := Color(1.0, 0.82, 0.4)
+const TD_MINIMAP_MEMBER_COLOUR := Color(0.99, 0.95, 0.85)
+const TD_MINIMAP_DARK_COLOUR := Color(0.1, 0.1, 0.12)
+const TD_MINIMAP_LANDMARK_COLOUR := Color(1.0, 0.85, 0.45)
+const TD_MINIMAP_PLAYER_COLOUR := Color(1.0, 0.7, 0.15)
+const TD_MINIMAP_VIEW_COLOUR := Color(1.0, 1.0, 1.0, 0.7)
+const TD_MINIMAP_WARM_COLOUR := Color(0.93, 0.84, 0.66)
+const TD_MINIMAP_GREY_COLOUR := Color(0.55, 0.55, 0.56)
+# The player marker: a saffron body no person uses, a warm double ring on the ground, and a soft glow under it.
+const TD_PLAYER_COLOUR := Color(1.0, 0.62, 0.12)
+const TD_PLAYER_RING_COLOUR := Color(1.0, 0.85, 0.5)
+const TD_PLAYER_RING_RADII: Array[float] = [1.2, 1.4]
+const TD_PLAYER_RING_WIDTH := 0.06
+const TD_PLAYER_GLOW_RADIUS := 1.9
+const TD_PLAYER_GLOW_ALPHA := 0.18
+# People are drawn this many times bigger (visual only: their collision and hit radius do not change), and their joy
+# label sits this high above the ground, in metres.
+const PERSON_VISUAL_SCALE := 1.5
+const PERSON_LABEL_HEIGHT := 3.9
+
 # ---- Round 9: the living border (scripts/border.gd, building.gd, landmark.gd, night_cycle.gd). ----
 
 # Rescued people needed before a border forms. Below this count the border collapses once it has formed.
 const BORDER_MIN_PEOPLE := 3
 # The centre (the smoothed centroid of rescued people) moves toward the target centroid at this speed, in m/s.
 const BORDER_CENTRE_FOLLOW := 0.5
-# Members stand this far apart along the border, in metres. The slot count is perimeter / this, rounded up.
-# Round 10: 3.0 (was 2.2), so growing is easier.
+# Members stand this far apart along the border, in metres. The slot count is perimeter / this, rounded up. Round 10:
+# 3.0 (was 2.2), so growing is easier.
 const BORDER_TARGET_SPACING := 3.0
 # Members walk to their slot at this speed, in metres per second.
 const BORDER_WALK_SPEED := 3.0
@@ -325,8 +372,8 @@ const BORDER_PRESS_RANGE := 1.5
 const BORDER_SAMPLES := 48
 # The border never shrinks below a circle of this radius, in metres.
 const BORDER_MIN_RADIUS := 3.0
-# Each rescue pushes the border outward at its angle, by this much at the peak (metres). Round 10: 2.4 (was 1.6), which
-# is about one member's spacing of perimeter (the Gaussian area is BORDER_PUSH x 1.25).
+# Each rescue pushes the border outward at its angle, by this much at the peak (metres). Round 10: 2.4 (was 1.6),
+# which is about one member's spacing of perimeter (the Gaussian area is BORDER_PUSH x 1.25).
 const BORDER_PUSH := 2.4
 # The push is spread over this many radians (a Gaussian), so the bump is smooth.
 const BORDER_PUSH_WIDTH := 0.5
@@ -355,9 +402,19 @@ const BORDER_LANDMARK_COLOUR := Color(0.78, 0.66, 0.6)
 const BORDER_BEACON_COLOUR := Color(1.0, 0.85, 0.45)
 # The border line: intact is warm gold, a gap flickers between grey and red.
 const BORDER_INTACT_COLOUR := Color(1.0, 0.82, 0.4)
-const BORDER_GAP_COLOUR := Color(0.6, 0.6, 0.62)
-const BORDER_GAP_ALARM_COLOUR := Color(0.9, 0.3, 0.25)
-const BORDER_GAP_FLICKER_HZ := 4.0
+# Round 10: a gap glows coral and pulses softly (p = 0.5 - 0.5 cos(2 pi t / 1.2)). The glow band is
+# BORDER_GAP_GLOW_WIDTH metres wide and fades between BORDER_GAP_GLOW_ALPHA_MIN and BORDER_GAP_GLOW_ALPHA_MAX with the
+# pulse. It is never a hard line.
+const BORDER_GAP_COLOUR := Color(0.95, 0.42, 0.36)
+const BORDER_GAP_PULSE_SECONDS := 1.2
+const BORDER_GAP_GLOW_WIDTH := 1.2
+const BORDER_GAP_GLOW_ALPHA_MIN := 0.15
+const BORDER_GAP_GLOW_ALPHA_MAX := 0.7
+# Off-screen gap arrows: a badge on the screen edge, this many pixels in from the edge, this big, and kept this far
+# (pixels) clear of the minimap circle.
+const OFFSCREEN_ARROW_MARGIN := 40.0
+const OFFSCREEN_ARROW_SIZE := 14.0
+const OFFSCREEN_ARROW_PAD := 16.0
 # How far above the ground the border line is drawn, in metres.
 const BORDER_LINE_HEIGHT := 0.08
 
@@ -419,9 +476,9 @@ static func gloom_level(g: float) -> int:
 	return 2
 
 
-# True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1
-# environment variable, a "--automated-test" user argument, or a headless display. In that mode the game
-# never captures the real OS mouse, so a test run can never grab a player's mouse.
+# True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 environment
+# variable, a "--automated-test" user argument, or a headless display. In that mode the game never captures the real
+# OS mouse, so a test run can never grab a player's mouse.
 static func is_automated_test() -> bool:
 	return (
 		OS.get_environment("POSITIVEFPS_TEST") == "1"
