@@ -32,6 +32,12 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
   Through a gap they can get in, and they drain the nearest border person at the full rate.
 - **Relapses open holes.** A border person who relapses steps out, and the others shuffle to close the gap. With too
   few people, the gaps stay open.
+- **Local gaps (round 12b).** A gap can open at one stretch. A border person drained below 75% of their joy **falters**:
+  they step back half a metre and the stretch on both sides of them glows as a gap. Gaps also open everywhere when the
+  loop is stretched too wide. Neighbours do not smooth a faltering stretch away at once: after 3 s a spare inside person
+  takes the place, if there is one. Shooting joy at the faltering person (they flicker and show "!") closes the gap.
+  Dimmed people prefer the newest, outermost part of the border, and they walk right up to the line to press it, so a
+  push on one person is a push on one stretch.
 - **Inside the border the land changes.** The ground is painted warm (it fills in slowly), and blocks inside are
   beautified after a few seconds. A grey person deep inside the border lightens instead of darkening.
 - **The landmark** is the taller block with a beacon, 18 m east and 16 m north of the plaza centre. Beautify it and hold
@@ -60,6 +66,22 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
 - **Recovering.** A dim player recovers 10 spirit a second, scaled by how deep inside the border they stand (30% at the
   line up to 100% a metre in), and only inside the border. Before a border exists, stand within 6 m of the landmark.
   At 30 spirit you are back to normal.
+
+## Reading the person: moods and sheltering (round 12b)
+
+Every wistful or gloomy person has one mood (dimmed people have none). The HUD shows the target's mood next to its
+element, and F3 labels it above the person.
+
+- **Guarded** (small dark crossed-arms bar, back to you): they turn slowly to keep their back to you. Joy only lands if
+  the shot arrives from their front or side (within 110 degrees of the way they face); from behind it glances off in a
+  small white puff. Run round them: they turn slower than you can circle.
+- **Skittish** (jittery): if you run (Shift) at them within 5 m, they back away for 1.5 s. Walking up does not scare them.
+- **Glum** (slumped, leaning forward): every 3 s they look up for 0.8 s (they straighten and a warm glint shows above
+  them). Joy that lands then counts triple.
+- **Sheltering:** no joy lands on a wistful or gloomy person while a dimmed person stands within 2 m of them (a grey puff
+  shows). Deal with the dimmed person first, or draw them away: they chase you when you are close.
+- **Stage changes are visible.** When someone sinks a stage (wistful, gloomy, dimmed) a grey-violet puff and ripple
+  plays, a warm one when they lift. The minimap flashes a violet ring where someone has just become dimmed.
 
 ## Controls
 

@@ -623,3 +623,60 @@ the new terms (gloom; wistful, gloomy, dimmed; "dimmed people"); code names such
 **Rough spots:** the styled player does not tint when dim; the styled smoke pool is dark on a dark night and reads
 mostly through the soot motes; the HUD spirit bar uses the default progress bar look; no sound cues yet.
 
+
+## Round 12b build
+Built from the round 12 plan: **A (moods and sheltering)**, **D (edge pressure)**, **E (noticeable gloom-stage changes)**,
+plus **local gaps** (the graphics checkpoint 1 finding that gaps were all-or-nothing). Placeholder looks only. Player-facing
+text uses wistful / gloomy / dimmed.
+
+**What was built**
+- **Moods** (`scripts/moods.gd`, `Person.mood`): every person gets one mood at the start from a seeded, shuffled bag (an even
+  split, 20 / 20 / 20 of 60); dimmed and rescued people have none. **Guarded** turns slowly to keep their back to the player
+  (0.8 rad/s) and joy only lands from within 110 degrees of their facing, otherwise it glances off (small white puff, no joy).
+  **Skittish** backs away at 2.5 m/s for 1.5 s when the player, within 5 m, approaches faster than walk speed x 1.1 (a run).
+  **Glum** looks up for 0.8 s every 3.0 s (seeded jitter +/-0.8); joy landing then counts x3. Tells: guarded = a small dark
+  crossed-arms bar and back turned; skittish = jitter; glum = hunched forward, straightening with a warm glint when looking up.
+  The HUD target line and the F3 label name the mood. Every kind of joy (shots, splashes, blooms, bursts) carries a source
+  point, so a burst or bloom is directional too.
+- **Sheltering:** no joy lands on a wistful or gloomy person while a dimmed person is within 2.0 m (grey puff). To make this
+  possible, dimmed people no longer take part in crowd separation with other people (otherwise the 2.2 m spacing pushed them
+  just outside the shelter radius at once).
+- **Edge pressure:** the organic border keeps a "last pushed" time per angle sample. A stretch's score is 0.6 x recency (1 just
+  advanced, 0 after 60 s) + 0.4 x how far out it is; a score of 1 is worth 12 m of walking when a dimmed person picks which
+  rescued person to go for (ties of protection within 0.05). Spacing and intact-drain numbers are unchanged.
+  **Judgement call:** a dimmed pursuer outside the border whose target is a border member now walks up to the line (stops 0.6 m
+  from the member) and is not pushed off by the members' separation. Before, they stopped 2.5 m from the member, outside the
+  press range, and pressed only for a moment; this is probably a large part of why growth felt too safe.
+- **Local gaps:** a border member drained below **75%** of their joy needed (the plan said 50%, but a person relapses at 50%,
+  so faltering needed a margin) falters: they step back 0.5 m and both neighbouring segments become a gap (`gap_flags` takes a
+  faltering list). Gaps still open everywhere when the spacing exceeds 3.5 m. A faltering member keeps their place for 3 s;
+  then a spare inside member replaces them, only if one exists (they stay on the bench while they falter). The loop settles
+  to about one slot per person, so spare inner members mostly exist when a post holds slots or the loop is small: usually
+  nobody is spare and the gap stays until the player re-joys the member (they flicker and show "!", so they are targetable).
+- **Gloom-stage changes:** sinking gives a grey-violet puff (28 particles) and a ripple ring, lifting a warm one; the minimap
+  shows a violet ring for 2.5 s where someone became dimmed.
+
+**Values** (`config.gd`, "Round 12b"): `GUARDED_ARC_DEG 110`, `GUARDED_TURN_SPEED 0.8`, `SKITTISH_RADIUS 5`,
+`SKITTISH_SPEED_LIMIT 7.59`, `SKITTISH_FLEE_SPEED 2.5`, `SKITTISH_FLEE_SECONDS 1.5`, `GLUM_LOOKUP_INTERVAL 3.0`,
+`GLUM_LOOKUP_JITTER 0.8`, `GLUM_LOOKUP_WINDOW 0.8`, `GLUM_LOOKUP_MULT 3`, `SHELTER_RADIUS 2.0`, `EDGE_RECENT_SECONDS 60`,
+`EDGE_RECENCY_WEIGHT 0.6`, `EDGE_PRESSURE_REACH 12`, `EDGE_PROTECTION_TIE 0.05`, `TD_DARK_PRESS_STOP 0.6`,
+`MEMBER_FALTER_FRACTION 0.75`, `MEMBER_FALTER_STEP_BACK 0.5`, `GAP_HEAL_DELAY 3.0`, `STAGE_PUFF_COUNT 28`,
+`STAGE_RIPPLE_SECONDS 0.7`, `MINIMAP_BLIP_SECONDS 2.5`.
+
+**Local-gap scenario** (`tests/local_gap_test.gd`): 20 rescued people on a settled, healthy border (no gap) at midnight; two
+dimmed people press one member. After about 340 frames (5.7 s) exactly one gap region opens (2 of 20 segments), at that
+member; with the pressers gone the gap stays through the heal delay; hover-firing at the member closes it. A
+border stretched too wide is still one open gap everywhere.
+
+**Playtest questions**
+- Are the moods readable at gameplay zoom, and fun? Does running round a guarded person feel good, or fiddly? Does a run at a
+  skittish person feel like a choice rather than a nuisance? Is the glum look-up (0.8 s) a satisfying window at 3x?
+- Does sheltering make you deal with dimmed people first (or lead them off), or does it just feel like shots that do nothing?
+- Do local gaps now happen, and do they feel defendable (the arrows, the flicker, the time before the member relapses)? Is
+  5-6 s to the first gap under two pressers too fast (the intact drain is slow, but the full gap drain follows at once)?
+- Are the gloom-stage changes noticeable now, and do the minimap blips help? (Sound cues are still to do.)
+
+**Rough spots:** the mood tells and ripples are placeholder shapes in both looks (the styled look lists them in F3); the
+guarded turn speed and the press stop distance are first guesses; dimmed people overlap rescued members when they have got
+through a gap; no gamepad exists yet, so no new action was added to the controls block; tests that make rescued people by
+hand must give them full joy now (a rescued person with little joy counts as faltering).
