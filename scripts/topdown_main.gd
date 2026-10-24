@@ -1,8 +1,10 @@
 class_name TopDownMain
 extends Node3D
 
-# Top-down mode: a bigger plaza seen from above. Aiming is mostly automatic;
-# you choose where to stand and which element to use.
+# The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a centre
+# (see border.gd). Darkness cannot cross an intact stretch of it. Inside the border the ground and the blocks are
+# beautified. The light goes from dusk to dawn (night.gd); the level ends at dawn, or earlier when the landmark is held
+# (win) or the border falls (lose).
 
 # Obstacle blocks are 4 x 2 x 4. Their centres are fixed, within +-25, and the middle stays clear.
 const BLOCK_SIZE := Vector3(4, 2, 4)
@@ -18,19 +20,26 @@ const BLOCK_POSITIONS: Array[Vector3] = [
 	Vector3(18, 1, 20),
 	Vector3(-6, 1, 24),
 ]
+const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
 
 var ground: PaintedGround
 var player: TopDownPlayer
 var camera: Camera3D
 var hud: Hud
+var border: Border
+var landmark: Landmark
+var night: NightCycle
 # The ring under the target's feet (see _update_highlight). Public so tests can check it.
 var highlight: MeshInstance3D
 var people: Array[Person] = []
-var time_left: float = Config.TD_ROUND_SECONDS
 var rescued_count: int = 0
 var running: bool = true
-# The F3 debug overlay: cover and protection labels above each person. Off by default.
+# The F3 debug overlay: cover and protection labels above each person, and the border labels. Off by default.
 var debug_on: bool = false
+var _sun: DirectionalLight3D
+var _env: Environment
+var _obstacles: Array[StaticBody3D] = []
+var _landmark_body: StaticBody3D
 var _rng := RandomNumberGenerator.new()
 # Wander state for each person: a Dictionary of {"target": Vector3, "timer": float}.
 var _wander: Dictionary = {}
@@ -42,12 +51,24 @@ var _cover_timer := 0.0
 
 func _ready() -> void:
 	Controls.setup()
+	night = NightCycle.new()
 	_setup_environment()
 	_build_level()
 
 	ground = PaintedGround.new()
 	add_child(ground)
 	ground.setup(Config.TD_PLAZA_SIZE, Config.TD_GROUND_SPREAD_SPEED, Config.TD_GROUND_FADE_SPEED, true)
+	ground.paint_radius = Config.BORDER_PAINT_RADIUS if _is_paint_edge() else Config.ZONE_RADIUS
+
+	border = Border.new()
+	add_child(border)
+	border.setup(ground, Config.border_variant)
+	for body: StaticBody3D in _obstacles:
+		var is_landmark := body == _landmark_body
+		border.register_building(body, Vector2(BLOCK_SIZE.x, BLOCK_SIZE.z) * 0.5, is_landmark)
+
+	landmark = Landmark.new()
+	add_child(landmark)
 
 	player = TopDownPlayer.new()
 	add_child(player)
@@ -70,6 +91,7 @@ func _ready() -> void:
 	player.targeting_changed.connect(hud.set_targeting)
 	hud.set_target(-1)
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)
+	hud.set_night_progress(0.0)
 
 
 func _process(delta: float) -> void:
@@ -77,18 +99,22 @@ func _process(delta: float) -> void:
 	_update_highlight(delta)
 	if not running:
 		return
-	time_left -= delta
-	hud.set_time(time_left)
+	night.update(delta)
+	var strength := night.strength()
+	hud.set_night_progress(night.progress())
+	_update_light()
+	border.update(people, delta, strength)
 	_update_people(delta)
 	_update_cover(delta)
-	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER)
+	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER, strength, border)
 	for p: Person in people:
 		p.tick(delta)
 	ground.update_paint(people, delta)
+	landmark.update(delta, border.landmark_beautified())
 	hud.set_burst(player.burst_cooldown)
-	if time_left <= 0.0:
-		time_left = 0.0
-		_end_round("Time's up!")
+	if debug_on:
+		_update_debug_hint()
+	_check_end()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -103,28 +129,39 @@ func _toggle_debug() -> void:
 	_set_debug(not debug_on)
 
 
-# Turns the F3 debug overlay on or off: a cover and protection label above each person, and a hint on the HUD.
+# Turns the F3 debug overlay on or off: cover and protection labels above each person, border labels on the line,
+# and a hint on the HUD.
 func _set_debug(on: bool) -> void:
 	debug_on = on
 	for p: Person in people:
 		p.set_debug_visible(on)
+	border.set_debug(on)
 	hud.set_debug_on(on)
+	_update_debug_hint()
 
 
-# Works out every person's cover and protection from the painted ground around them, every GROUND_UPDATE_INTERVAL.
-# Cover is the average paint weight within TD_COVER_RADIUS; protection is derived from it (see GloomSim).
-# Round 8: a rescued person's cover leaves out their own paint, so only other people's paint protects them.
+func _update_debug_hint() -> void:
+	hud.set_debug_text("[F3] debug: c = cover, p = protection.  " + border.debug_summary())
+
+
+# Works out every person's cover and protection every GROUND_UPDATE_INTERVAL. With a border, cover is how far inside
+# the loop a person is (see Border.cover_at). Before the border forms it is the paint around them (round 8 rules): a
+# rescued person's cover leaves out their own paint, so only other people's paint protects them.
 func _update_cover(delta: float) -> void:
 	_cover_timer += delta
 	if _cover_timer < Config.GROUND_UPDATE_INTERVAL:
 		return
 	_cover_timer = 0.0
 	for p: Person in people:
-		if p.is_rescued:
+		if border.active:
+			p.cover = border.cover_at(p.global_position)
+			p.protection = p.cover
+		elif p.is_rescued:
 			p.cover = ground.average_weight_excluding(p.global_position, Config.TD_COVER_RADIUS, p)
+			p.protection = GloomSim.protection_for(p.cover)
 		else:
 			p.cover = ground.average_weight(p.global_position, Config.TD_COVER_RADIUS)
-		p.protection = GloomSim.protection_for(p.cover)
+			p.protection = GloomSim.protection_for(p.cover)
 
 
 # The camera sits above and behind the player and always looks at them.
@@ -164,22 +201,33 @@ func _update_highlight(delta: float) -> void:
 	highlight.scale = Vector3(s, 1.0, s)
 
 
+func _is_paint_edge() -> bool:
+	return Config.border_variant == Config.BorderVariant.PAINT_EDGE
+
+
 func _setup_environment() -> void:
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.7, 0.72, 0.75)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.6, 0.6, 0.6)
-	env.ambient_light_energy = 0.6
+	_env = Environment.new()
+	_env.background_mode = Environment.BG_COLOR
+	_env.background_color = Color(0.7, 0.72, 0.75)
+	_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	_env.ambient_light_color = Color(0.6, 0.6, 0.6)
+	_env.ambient_light_energy = 0.6
 
 	var world_env := WorldEnvironment.new()
-	world_env.environment = env
+	world_env.environment = _env
 	add_child(world_env)
 
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-50, 30, 0)
-	sun.shadow_enabled = true
-	add_child(sun)
+	_sun = DirectionalLight3D.new()
+	_sun.rotation_degrees = Vector3(-50, 30, 0)
+	_sun.shadow_enabled = true
+	add_child(_sun)
+
+
+# Dusk to dawn: the sun and the ambient light follow the night (see NightCycle).
+func _update_light() -> void:
+	_sun.light_color = night.sun_color()
+	_sun.light_energy = night.sun_energy()
+	_env.ambient_light_color = night.ambient_color()
 
 
 func _build_level() -> void:
@@ -198,7 +246,19 @@ func _build_level() -> void:
 
 	# Obstacle blocks.
 	for pos: Vector3 in BLOCK_POSITIONS:
-		add_child(_make_box(BLOCK_SIZE, pos, Color(0.6, 0.6, 0.62)))
+		var block := _make_box(BLOCK_SIZE, pos, BLOCK_COLOUR)
+		add_child(block)
+		_obstacles.append(block)
+
+	# The landmark: a taller block (its base on the floor), away from the start.
+	var lm_pos := Config.BORDER_LANDMARK_POS
+	_landmark_body = _make_box(
+		Config.BORDER_LANDMARK_SIZE,
+		Vector3(lm_pos.x, Config.BORDER_LANDMARK_SIZE.y / 2.0, lm_pos.z),
+		Config.BORDER_LANDMARK_COLOUR
+	)
+	add_child(_landmark_body)
+	_obstacles.append(_landmark_body)
 
 
 # Creates a solid grey box with a collision shape and a matching mesh.
@@ -238,8 +298,8 @@ func _spawn_people() -> void:
 		p.ui_scale = Config.TD_UI_SCALE
 		p.grace_seconds = Config.TD_RESCUE_GRACE_SECONDS
 		add_child(p)
-		p.rescued.connect(_on_person_rescued)
-		p.relapsed.connect(_on_person_relapsed)
+		p.rescued.connect(_on_person_rescued.bind(p))
+		p.relapsed.connect(_on_person_relapsed.bind(p))
 		people.append(p)
 
 
@@ -266,18 +326,19 @@ func _spot_ok(p: Vector3, placed: Array[Vector3]) -> bool:
 	return true
 
 
-# True if `p` is inside any block's footprint, grown by `margin` metres.
+# True if `p` is inside any block's footprint (the landmark included), grown by `margin` metres.
 func _near_block(p: Vector3, margin: float) -> bool:
 	var reach := BLOCK_SIZE.x * 0.5 + margin
 	for block: Vector3 in BLOCK_POSITIONS:
 		if absf(p.x - block.x) < reach and absf(p.z - block.z) < reach:
 			return true
-	return false
+	var lm := Config.BORDER_LANDMARK_POS
+	return absf(p.x - lm.x) < reach and absf(p.z - lm.z) < reach
 
 
 # Moves every unrescued person for this frame. Dark people drift toward the rescued person they are assigned to
 # (see pursuit_assignments). A dark person with nobody to chase drifts to the nearest territory edge, and everyone
-# else wanders. Everyone also steers away from close neighbours (_separation).
+# else wanders. Everyone also steers away from close neighbours (_separation). Rescued people are moved by the border.
 func _update_people(delta: float) -> void:
 	var pursuit: Dictionary = pursuit_assignments(people)
 	for p: Person in people:
@@ -302,11 +363,10 @@ func _update_people(delta: float) -> void:
 			_steer(p, _wander_dir(p, delta), Config.TD_WANDER_SPEED, delta)
 
 
-# Works out which rescued person each dark person drifts toward (round 8: the weakest point). Each rescued person
-# takes at most TD_MAX_PURSUERS_PER_TARGET dark people. A dark person takes the rescued person with the lowest
-# protection within TD_PURSUIT_SEARCH_RADIUS (ties go to the nearer one). People are handled in array order, so the
-# result is the same on every run. Returns a Dictionary of dark Person -> rescued Person. A dark person with no
-# target is not in it (see _update_people).
+# Works out which rescued person each dark person drifts toward (the weakest point). Each rescued person takes at most
+# TD_MAX_PURSUERS_PER_TARGET dark people. A dark person takes the rescued person with the lowest protection within
+# TD_PURSUIT_SEARCH_RADIUS (ties go to the nearer one). People are handled in array order, so the result is the same on
+# every run. Returns a Dictionary of dark Person -> rescued Person. A dark person with no target is not in it.
 func pursuit_assignments(list: Array[Person]) -> Dictionary:
 	var rescued_list: Array[Person] = []
 	for p: Person in list:
@@ -410,6 +470,7 @@ func _new_wander_target(from: Vector3) -> Vector3:
 
 
 # Moves a person along a flat direction, keeping them inside the plaza and out of blocks, and turns them to face it.
+# A dark person outside the border cannot cross an intact stretch: its move stops at the line (see Border.clip_move).
 func _step(p: Person, dir: Vector3, speed: float, delta: float) -> void:
 	var move := dir * speed * delta
 	move.y = 0.0
@@ -417,6 +478,8 @@ func _step(p: Person, dir: Vector3, speed: float, delta: float) -> void:
 	var limit := Config.TD_PLAZA_SIZE / 2.0 - Config.TD_EDGE_MARGIN
 	next_pos.x = clampf(next_pos.x, -limit, limit)
 	next_pos.z = clampf(next_pos.z, -limit, limit)
+	if GloomSim.is_dark(p):
+		next_pos = border.clip_move(p.position, next_pos)
 	if _near_block(next_pos, Config.TD_BLOCK_CLEARANCE):
 		# Blocked: make a wanderer choose a new target next time.
 		if _wander.has(p):
@@ -431,17 +494,29 @@ func _flat_dist(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
 
 
-func _on_person_rescued() -> void:
+# A rescued person (`p`) was made: the border takes them in. The count goes up.
+func _on_person_rescued(p: Person) -> void:
 	rescued_count += 1
+	border.on_rescue(p)
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)
-	if rescued_count == Config.TD_PEOPLE_COUNT:
-		_end_round("Everyone's happy!")
 
 
-func _on_person_relapsed() -> void:
+# A rescued person (`p`) relapsed: they step out of the border, and the count goes down.
+func _on_person_relapsed(p: Person) -> void:
 	rescued_count -= 1
+	border.on_relapse(p)
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)
 	hud.show_alert("Someone lost their joy!")
+
+
+# The end conditions, in order: the border falling loses, holding the landmark wins, and dawn ends the level.
+func _check_end() -> void:
+	if border.formed and rescued_count < Config.BORDER_MIN_PEOPLE:
+		_end_round("The border fell")
+	elif landmark.is_held():
+		_end_round("The landmark is ours!")
+	elif night.is_over():
+		_end_round("Dawn")
 
 
 func _end_round(title: String) -> void:
@@ -449,5 +524,15 @@ func _end_round(title: String) -> void:
 		return
 	running = false
 	player.active = false
-	hud.set_time(time_left)
-	hud.show_end(Config.buildings_for(rescued_count, Config.TD_BUILDING_THRESHOLDS), title)
+	hud.set_night_progress(night.progress())
+	hud.show_end(title, _detail_text())
+
+
+# The lines on the end screen: the landmark, how much of the plaza is painted, the buildings and the rescued count.
+func _detail_text() -> String:
+	var held := "yes" if landmark.is_held() else "no"
+	var plaza := roundi(ground.beautified_fraction() * 100.0)
+	return (
+		"Landmark held: %s\nPlaza beautified: %d%%\nBuildings beautified: %d of %d\nPeople rescued: %d"
+		% [held, plaza, border.beautified_building_count(), border.buildings.size(), rescued_count]
+	)

@@ -239,39 +239,6 @@ func test_cover_and_protection_follow_the_painted_ground_in_the_level() -> void:
 	assert_bool(grey.is_rescued).is_false()
 
 
-func test_dark_person_deep_in_cover_steps_down_to_grey_then_light_and_is_never_rescued() -> void:
-	var s: Dictionary = await _start()
-	var runner: GdUnitSceneRunner = s["runner"]
-	var td: TopDownMain = s["td"]
-	TopDownTestUtil.send_everyone_away(td)
-	# Three rescued people in a triangle round the dark person keep them in the middle of the paint: they stand still
-	# there (the separation push cancels out), so the test measures contagion and not wandering.
-	var centre := Vector3(0, 0, -8)
-	var offsets: Array[Vector3] = [Vector3(1.5, 0, 0), Vector3(-0.75, 0, -1.3), Vector3(-0.75, 0, 1.3)]
-	for i: int in range(3):
-		var rescued: Person = td.people[i]
-		TopDownTestUtil.place(rescued, centre + offsets[i], 0, 0.0)
-		rescued.receive_joy(0, Config.JOY_MAX, 0.0)
-	# Round 8: the dark person starts grey and turns dark only once the paint is fully in. Darkness erodes paint that is
-	# still growing, so a dark person placed in fresh paint would eat it. Once it is established, it is immune.
-	var dark: Person = td.people[3]
-	TopDownTestUtil.place(dark, centre, 2, 0.5)
-	await runner.simulate_frames(360)
-	TopDownTestUtil.place(dark, centre, 2, 0.9)
-
-	# Twelve seconds: the dark person is deep in cover after the paint has spread in, and steps down to grey.
-	await runner.simulate_frames(720)
-	assert_float(dark.protection).is_greater(0.9)
-	assert_float(dark.gloom).is_less(Config.GLOOM_LEVEL_STEPS[1])
-	assert_bool(dark.is_rescued).is_false()
-	assert_float(dark.joy).is_equal(0.0)
-	# Twelve more seconds: light grey, and still not rescued.
-	await runner.simulate_frames(720)
-	assert_int(Config.gloom_level(dark.gloom)).is_equal(0)
-	assert_bool(dark.is_rescued).is_false()
-	assert_float(dark.joy).is_equal(0.0)
-
-
 func test_f3_toggles_the_cover_debug_labels_and_hint() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]

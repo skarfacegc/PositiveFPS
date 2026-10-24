@@ -10,7 +10,11 @@ extends RefCounted
 
 
 # `drain_multiplier` scales how fast dark people drain rescued joy (Config.TD_DRAIN_MULTIPLIER in the level).
-static func update(people: Array, delta: float, drain_multiplier: float = 1.0) -> void:
+# `strength` is the night strength (see NightCycle): it scales gloom growth, spread and drain. Darkness does not spread
+# across an intact stretch of the border (`border`, when it has a loop).
+static func update(
+	people: Array, delta: float, drain_multiplier: float = 1.0, strength: float = 1.0, border: Border = null
+) -> void:
 	var zones: Array = []
 	for p: Person in people:
 		if p.is_rescued:
@@ -22,7 +26,7 @@ static func update(people: Array, delta: float, drain_multiplier: float = 1.0) -
 		var nearest := Config.NO_ZONE_DISTANCE
 		if not zones.is_empty():
 			nearest = nearest_distance(p.global_position, zones)
-		_update_covered(p, nearest, delta)
+		_update_covered(p, nearest, delta, strength)
 		p.gloom = clampf(p.gloom, 0.0, 1.0)
 
 	for p: Person in people:
@@ -33,18 +37,20 @@ static func update(people: Array, delta: float, drain_multiplier: float = 1.0) -
 				continue
 			if flat_dist(p.global_position, q.global_position) > Config.SPREAD_RADIUS:
 				continue
+			if border != null and border.line_blocks(p.global_position, q.global_position):
+				continue
 			# A person's own protection scales what reaches them (1 deep inside painted ground, 0 at edges).
 			var exposure := 1.0 - q.protection
 			if q.is_rescued:
-				q.drain_joy(Config.SPREAD_DRAIN_RATE * delta * drain_multiplier * exposure)
+				q.drain_joy(Config.SPREAD_DRAIN_RATE * delta * drain_multiplier * strength * exposure)
 			else:
-				q.gloom = clampf(q.gloom + Config.SPREAD_GLOOM_RATE * delta * exposure, 0.0, 1.0)
+				q.gloom = clampf(q.gloom + Config.SPREAD_GLOOM_RATE * delta * strength * exposure, 0.0, 1.0)
 
 
 # Cover rules for one unrescued person. Growth is scaled by (1 - protection), so it only happens at the edges.
 # Contagion lowers gloom when the cover is high enough, scaled by protection. It never touches joy.
-static func _update_covered(p: Person, nearest: float, delta: float) -> void:
-	p.gloom += (Config.GLOOM_GROWTH + Config.GLOOM_GROWTH_PER_METER * nearest) * delta * (1.0 - p.protection)
+static func _update_covered(p: Person, nearest: float, delta: float, strength: float) -> void:
+	p.gloom += (Config.GLOOM_GROWTH + Config.GLOOM_GROWTH_PER_METER * nearest) * delta * strength * (1.0 - p.protection)
 	if p.cover >= Config.TD_CONTAGION_THRESHOLD:
 		p.gloom -= Config.TD_CONTAGION_RATE * delta * p.protection
 

@@ -34,10 +34,9 @@ func test_gloom_level_steps() -> void:
 	assert_int(Config.gloom_level(1.0)).is_equal(2)
 
 
-func test_buildings_top_down() -> void:
-	assert_int(Config.buildings_for(0, Config.TD_BUILDING_THRESHOLDS).size()).is_equal(0)
-	assert_array(Config.buildings_for(15, Config.TD_BUILDING_THRESHOLDS)).is_equal(["Cafe"])
-	assert_int(Config.buildings_for(60, Config.TD_BUILDING_THRESHOLDS).size()).is_equal(4)
+func test_border_variant_names_cover_the_three_shapes() -> void:
+	assert_int(Config.BORDER_VARIANT_NAMES.size()).is_equal(3)
+	assert_str(Config.BORDER_VARIANT_NAMES[1]).contains("Organic")
 
 
 func test_automated_test_flag_is_on_and_mouse_never_captured() -> void:

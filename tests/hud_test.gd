@@ -9,12 +9,14 @@ func _make_hud() -> Hud:
 	return hud
 
 
-func test_timer_text() -> void:
+func test_night_bar_shows_dusk_to_dawn_progress() -> void:
 	var hud: Hud = _make_hud()
-	hud.set_time(125.0)
-	assert_str(hud.timer_label.text).is_equal("2:05")
-	hud.set_time(-3.0)
-	assert_str(hud.timer_label.text).is_equal("0:00")
+	hud.set_night_progress(0.0)
+	assert_float(hud.night_bar.value).is_equal_approx(0.0, 0.001)
+	hud.set_night_progress(0.5)
+	assert_float(hud.night_bar.value).is_equal_approx(50.0, 0.001)
+	hud.set_night_progress(2.0)
+	assert_float(hud.night_bar.value).is_equal_approx(100.0, 0.001)
 
 
 func test_target_and_rescued_text() -> void:
@@ -49,15 +51,12 @@ func test_alert_starts_opaque() -> void:
 	assert_float(hud.alert_label.modulate.a).is_equal_approx(1.0, 0.001)
 
 
-func test_end_screen_with_and_without_buildings() -> void:
+func test_end_screen_shows_the_title_and_the_detail_lines() -> void:
 	var hud: Hud = _make_hud()
-	hud.show_end([], "Time's up!")
+	hud.show_end("Dawn", "Landmark held: no\nPlaza beautified: 40%")
 	assert_bool(hud.end_panel.visible).is_true()
-	assert_str(hud.end_label.text).contains("Time's up!")
-	assert_str(hud.end_label.text).contains("None yet")
-	hud.show_end(["Cafe", "Music Shop"], "Everyone's happy!")
-	assert_str(hud.end_label.text).contains("Music Shop")
-	assert_str(hud.end_label.text).not_contains("None yet")
+	assert_str(hud.end_label.text).contains("Dawn")
+	assert_str(hud.end_label.text).contains("Plaza beautified: 40%")
 
 
 func test_a_second_alert_restarts_the_fade() -> void:

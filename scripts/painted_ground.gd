@@ -11,6 +11,15 @@ extends MultiMeshInstance3D
 
 # True when darkness erodes paint (the top-down level turns it on).
 var erodes: bool = false
+# The radius of a rescued person's paint disc, in metres. Top-down uses the zone radius; the paint edge border
+# uses its own.
+var paint_radius: float = Config.ZONE_RADIUS
+# When the living border has a loop, tiles inside it are painted and tiles outside are not (see set_region). Without a
+# loop, rescued people paint discs as before.
+var region_active: bool = false
+var _region := PackedVector2Array()
+# Per tile: true when the tile's centre is inside the region (see _paint_region).
+var _in_region: Array[bool] = []
 
 var _size: int = 0
 var _colors: Array[Color] = []
@@ -65,6 +74,7 @@ func setup(
 			_top_owner.append(0)
 			_other_weights.append(0.0)
 			_hold.append(0.0)
+			_in_region.append(false)
 			i += 1
 	multimesh = mm
 
@@ -91,6 +101,21 @@ func paint_weight_at(world_pos: Vector3) -> float:
 	if ix < 0 or iz < 0 or ix >= _size or iz >= _size:
 		return 0.0
 	return _weights[ix * _size + iz]
+
+
+# Sets the loop the border encloses (world x, z points). Fewer than three points turns the region off.
+func set_region(poly: PackedVector2Array) -> void:
+	_region = poly
+	region_active = poly.size() >= 3
+
+
+# The share of tiles (0..1) that are at least half painted: the plaza's beautified fraction for the end screen.
+func beautified_fraction() -> float:
+	var n := 0
+	for w: float in _weights:
+		if w >= 0.5:
+			n += 1
+	return float(n) / float(_weights.size())
 
 
 # The average paint weight of the tiles whose centres are within `radius` metres of `world_pos` (flat distance).
@@ -162,25 +187,10 @@ func _paint(people: Array) -> void:
 		_other_weights[i] = 0.0
 
 	var half := _size / 2.0
-	var r := Config.ZONE_RADIUS
-	for p: Person in people:
-		if not p.is_rescued:
-			continue
-		var owner := p.get_instance_id()
-		var pos: Vector3 = p.global_position
-		var paint_col: Color = Config.ELEMENT_COLORS[p.affinity]
-		var x_min := clampi(floori(pos.x + half - r) - 1, 0, _size - 1)
-		var x_max := clampi(floori(pos.x + half + r) + 1, 0, _size - 1)
-		var z_min := clampi(floori(pos.z + half - r) - 1, 0, _size - 1)
-		var z_max := clampi(floori(pos.z + half + r) + 1, 0, _size - 1)
-		for ix: int in range(x_min, x_max + 1):
-			for iz: int in range(z_min, z_max + 1):
-				var c := Vector3(-half + 0.5 + ix, 0.0, -half + 0.5 + iz)
-				var d := Vector2(c.x - pos.x, c.z - pos.z).length()
-				if d > r:
-					continue
-				var k := 1.0 - smoothstep(r * 0.6, r, d)
-				_add_contribution(ix * _size + iz, owner, k, paint_col)
+	if region_active:
+		_paint_region(half)
+	else:
+		_paint_discs(people, half)
 
 	var interval := Config.GROUND_UPDATE_INTERVAL
 	for i: int in range(count):
@@ -206,6 +216,29 @@ func _paint(people: Array) -> void:
 	_rebuild_edge()
 
 
+# Each rescued person paints a soft disc of paint_radius (the strongest paint on a tile wins). Used with no loop.
+func _paint_discs(people: Array, half: float) -> void:
+	var r := paint_radius
+	for p: Person in people:
+		if not p.is_rescued:
+			continue
+		var owner := p.get_instance_id()
+		var pos: Vector3 = p.global_position
+		var paint_col: Color = Config.ELEMENT_COLORS[p.affinity]
+		var x_min := clampi(floori(pos.x + half - r) - 1, 0, _size - 1)
+		var x_max := clampi(floori(pos.x + half + r) + 1, 0, _size - 1)
+		var z_min := clampi(floori(pos.z + half - r) - 1, 0, _size - 1)
+		var z_max := clampi(floori(pos.z + half + r) + 1, 0, _size - 1)
+		for ix: int in range(x_min, x_max + 1):
+			for iz: int in range(z_min, z_max + 1):
+				var c := Vector3(-half + 0.5 + ix, 0.0, -half + 0.5 + iz)
+				var d := Vector2(c.x - pos.x, c.z - pos.z).length()
+				if d > r:
+					continue
+				var k := 1.0 - smoothstep(r * 0.6, r, d)
+				_add_contribution(ix * _size + iz, owner, k, paint_col)
+
+
 # Records one rescued person's paint strength `k` on tile `idx`. The strongest sets the tile's colour and target
 # weight; the strongest from anyone else is kept in _other_weights, so their paint can be left out later.
 # Each rescued person calls this at most once per tile in a paint update, so an owner never meets itself here.
@@ -217,6 +250,20 @@ func _add_contribution(idx: int, owner: int, k: float, paint_col: Color) -> void
 		_targets[idx] = Config.GROUND_GREY.lerp(paint_col, Config.GROUND_PAINT_STRENGTH * k)
 	elif k > _other_weights[idx]:
 		_other_weights[idx] = k
+
+
+# Inside the loop every tile is wanted fully painted (warm); outside, none is. The slow spread and fade speeds make the
+# colour and weight lag behind the loop, as they do for paint discs.
+func _paint_region(half: float) -> void:
+	for ix: int in range(_size):
+		for iz: int in range(_size):
+			var idx := ix * _size + iz
+			var c := Vector2(-half + 0.5 + ix, -half + 0.5 + iz)
+			var inside := Geometry2D.is_point_in_polygon(c, _region)
+			_in_region[idx] = inside
+			if inside:
+				_target_weights[idx] = 1.0
+				_targets[idx] = Config.BORDER_GROUND_COLOUR
 
 
 # Darkness erodes paint. Each unrescued dark person takes TD_ERODE_RATE weight per second off the
@@ -241,13 +288,20 @@ func _erode(people: Array) -> void:
 				if Vector2(c.x - pos.x, c.z - pos.z).length() > r:
 					continue
 				var idx := ix * _size + iz
-				if seen.has(idx) or _weights[idx] <= 0.0 or _is_interior(ix, iz):
+				if seen.has(idx) or _weights[idx] <= 0.0 or not _erodable(idx, ix, iz):
 					continue
 				seen[idx] = true
 				to_erode.append(idx)
 	for idx: int in to_erode:
 		_weights[idx] = maxf(0.0, _weights[idx] - Config.TD_ERODE_RATE * Config.GROUND_UPDATE_INTERVAL)
 		_hold[idx] = Config.TD_ERODE_HOLD
+
+
+# Inside a region only tiles in the region erode. Otherwise edge tiles erode (interior tiles are immune).
+func _erodable(idx: int, ix: int, iz: int) -> bool:
+	if region_active:
+		return _in_region[idx]
+	return not _is_interior(ix, iz)
 
 
 # A tile is interior when it and every neighbour inside the grid are at least TD_ERODE_EDGE_MAX painted.

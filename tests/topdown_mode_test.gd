@@ -117,22 +117,22 @@ func test_element_keys_and_wheel_do_nothing_in_top_down() -> void:
 	assert_object(player.target).is_null()
 
 
-func test_timer_expiry_shows_end_screen_with_buildings() -> void:
+# Round 9: dusk to dawn replaces the timer. Dawn ends the level, and the end screen says whether the landmark was held.
+func test_dawn_ends_the_level_with_the_dawn_screen() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	td.rescued_count = 15
-	td.hud.set_rescued(15, Config.TD_PEOPLE_COUNT)
-	td.time_left = 0.05
+	td.night.elapsed = Config.NIGHT_LENGTH - 0.05
 	await runner.simulate_frames(10)
 
 	assert_bool(td.running).is_false()
 	assert_bool(td.hud.end_panel.visible).is_true()
-	assert_str(td.hud.end_label.text).contains("Cafe")
-	assert_str(td.hud.end_label.text).not_contains("Music Shop")
+	assert_str(td.hud.end_label.text).contains("Dawn")
+	assert_str(td.hud.end_label.text).contains("Landmark held: no")
 
 
-func test_rescuing_everyone_by_locked_fire_shows_happy_end_screen() -> void:
+# Round 9: rescuing everyone no longer ends the level. Only dawn, the landmark, or the border falling does.
+func test_rescuing_everyone_by_locked_fire_does_not_end_the_level() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -154,8 +154,8 @@ func test_rescuing_everyone_by_locked_fire_shows_happy_end_screen() -> void:
 		frames += 1
 
 	assert_bool(target.is_rescued).is_true()
-	assert_bool(td.running).is_false()
-	assert_str(td.hud.end_label.text).contains("Everyone's happy!")
+	assert_bool(td.running).is_true()
+	assert_bool(td.hud.end_panel.visible).is_false()
 
 
 func test_crowd_wanders_and_paints_for_several_hundred_frames() -> void:

@@ -1,7 +1,8 @@
 class_name Hud
 extends CanvasLayer
 
-var timer_label: Label
+var night_label: Label
+var night_bar: ProgressBar
 var element_label: Label
 var burst_label: Label
 var hint_label: Label
@@ -15,16 +16,27 @@ var _alert_tween: Tween
 
 
 func _ready() -> void:
-	# Countdown at the top centre.
-	timer_label = Label.new()
-	timer_label.add_theme_font_size_override("font_size", 36)
-	timer_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	timer_label.offset_left = -150
-	timer_label.offset_right = 150
-	timer_label.offset_top = 10
-	timer_label.offset_bottom = 60
-	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	add_child(timer_label)
+	# Dusk to dawn: a label and a progress bar at the top centre (the level ends at dawn).
+	night_label = Label.new()
+	night_label.text = "Dusk → Dawn"
+	night_label.add_theme_font_size_override("font_size", 22)
+	night_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	night_label.offset_left = -200
+	night_label.offset_right = 200
+	night_label.offset_top = 4
+	night_label.offset_bottom = 34
+	night_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(night_label)
+	night_bar = ProgressBar.new()
+	night_bar.min_value = 0.0
+	night_bar.max_value = 100.0
+	night_bar.show_percentage = false
+	night_bar.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	night_bar.offset_left = -200
+	night_bar.offset_right = 200
+	night_bar.offset_top = 36
+	night_bar.offset_bottom = 56
+	add_child(night_bar)
 
 	# Target's element (or "No target"), bottom left.
 	element_label = Label.new()
@@ -101,10 +113,9 @@ func _ready() -> void:
 	end_panel.add_child(end_label)
 
 
-# Shows the time left as M:SS.
-func set_time(t: float) -> void:
-	var secs := int(maxf(t, 0.0))
-	timer_label.text = "%d:%02d" % [secs / 60, secs % 60]
+# Shows how far the night has gone: 0 at dusk, 1 at dawn.
+func set_night_progress(p: float) -> void:
+	night_bar.value = clampf(p, 0.0, 1.0) * 100.0
 
 
 # Top-down: shows the target's element in its colour, or "No target" in cream. Pass -1 for no target.
@@ -130,6 +141,11 @@ func set_rescued(n: int, total: int) -> void:
 # Shows the "[F3] debug" hint while the debug overlay is on.
 func set_debug_on(on: bool) -> void:
 	debug_hint_label.visible = on
+
+
+# Replaces the text of the F3 hint (cover and protection key, plus the border counts).
+func set_debug_text(text: String) -> void:
+	debug_hint_label.text = text
 
 
 # Replaces the controls hint text at the bottom of the screen.
@@ -159,14 +175,7 @@ func show_alert(text: String) -> void:
 	_alert_tween.tween_property(alert_label, "modulate:a", 0.0, 2.0)
 
 
-# Shows the end screen with the buildings that were unlocked.
-func show_end(buildings: Array, title: String) -> void:
-	var text := title + "\n\nBuildings restored:\n"
-	if buildings.is_empty():
-		text += "None yet — try again!"
-	else:
-		for b: String in buildings:
-			text += str(b) + "\n"
-	text += "\n\nPress R to play again"
-	end_label.text = text
+# Shows the end screen: a title, then the detail lines (landmark, beautified share, buildings, rescued).
+func show_end(title: String, detail: String) -> void:
+	end_label.text = title + "\n\n" + detail + "\n\nPress R to play again, M for the menu"
 	end_panel.visible = true

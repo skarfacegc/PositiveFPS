@@ -7,6 +7,8 @@ extends RefCounted
 enum Element { MUSIC, ART, NATURE }
 # Top-down targeting modes (see TD_TARGETING_MODE below).
 enum TargetingMode { LOCK_ON, HOVER_STICKY, AUTO }
+# The three border shapes, chosen on the menu before the level loads (see border.gd).
+enum BorderVariant { CIRCLE, ORGANIC, PAINT_EDGE }
 
 # Display names, in the same order as the Element enum.
 const ELEMENT_NAMES: Array[String] = ["Music", "Art", "Nature"]
@@ -72,13 +74,9 @@ const NUMBERS_ENABLED := true
 const TD_PLAZA_SIZE := 70
 # How many people are in the top-down plaza.
 const TD_PEOPLE_COUNT := 60
-# Length of a top-down round, in seconds.
-const TD_ROUND_SECONDS := 150.0
 # Seed for every gameplay random number (top-down placement and wandering, cosmetic jitter). Gameplay code
 # uses its own seeded RandomNumberGenerator, never the global randf(), so a run is repeatable.
 const RNG_SEED := 42
-# Buildings unlocked on the top-down end screen. Same format as BUILDING_THRESHOLDS.
-const TD_BUILDING_THRESHOLDS := [[15, "Cafe"], [30, "Music Shop"], [45, "Community Garden"], [60, "Plaza Fountain"]]
 # Cover (round 7): each person's cover is the average paint weight of the ground within TD_COVER_RADIUS metres. Their
 # protection is smoothstep(TD_COVER_EDGE, TD_COVER_FULL, cover): 0 at the edge of a painted area, 1 well inside it.
 const TD_COVER_RADIUS := 3.0
@@ -310,12 +308,77 @@ const TD_PURSUIT_SEARCH_RADIUS := 25.0
 # A dark person with no one to chase drifts to the nearest territory edge, and stops this close to it (metres).
 const TD_EDGE_REACH := 0.5
 
+# ---- Round 9: the living border (scripts/border.gd, building.gd, landmark.gd, night_cycle.gd). ----
+
+# The three border shapes, chosen on the menu before the level loads (see border.gd).
+const BORDER_VARIANT_NAMES: Array[String] = ["A — Circle", "B — Organic push (recommended)", "C — Paint edge"]
+# Rescued people needed before a border forms. Below this count the border collapses once it has formed.
+const BORDER_MIN_PEOPLE := 3
+# The centre (the smoothed centroid of rescued people) moves toward the target centroid at this speed, in m/s.
+const BORDER_CENTRE_FOLLOW := 0.5
+# Members stand this far apart along the border, in metres. The slot count is perimeter / this, rounded up.
+const BORDER_TARGET_SPACING := 2.2
+# Members walk to their slot at this speed, in metres per second.
+const BORDER_WALK_SPEED := 3.0
+# A stretch of border between two members longer than this is a gap: darkness can pass through it.
+const BORDER_MAX_GAP := 3.5
+# A dark person outside the border drains the nearest member within this distance, in metres.
+const BORDER_PRESS_RANGE := 1.5
+# The border loop has this many points (one per angle), and is drawn as line segments.
+const BORDER_SAMPLES := 48
+# Circle and organic border radii are kept between these, in metres.
+const BORDER_MIN_RADIUS := 3.0
+const BORDER_MAX_RADIUS := 30.0
+# Organic: each rescue pushes the border outward at its angle, by this much at the peak (metres).
+const BORDER_PUSH := 1.6
+# Organic: the push is spread over this many radians (a Gaussian), so the bump is smooth.
+const BORDER_PUSH_WIDTH := 0.5
+# Organic: the total size is eased toward the target perimeter over this many seconds.
+const BORDER_NORMALISE_SECONDS := 2.0
+# Paint edge: each rescued person paints a soft disc of this radius (metres). The border follows the painted region.
+const BORDER_PAINT_RADIUS := 4.0
+# Cover from the border: 0 on the line, 1 this many metres inside it (so a grey person there can be lightened).
+const BORDER_EDGE_BAND := 1.0
+# A member who relapses steps this far outward from the centre (metres).
+const BORDER_OUTWARD_STEP := 1.0
+# Inner members (rescued people beyond the slot count) stand in a spiral this much apart, in metres.
+const BORDER_INNER_SPACING := 0.7
+# A building is beautified after this many seconds with at least this fraction of its footprint inside the border.
+const BORDER_BUILDING_SECONDS := 3.0
+const BORDER_BUILDING_INSIDE := 0.7
+# The warm tint takes this long to fade in (and out), in seconds.
+const BORDER_TINT_SECONDS := 2.0
+# Beautified buildings go this warm colour. Mechanical blocks keep their grey.
+const BORDER_BUILDING_COLOUR := Color(0.92, 0.7, 0.55)
+# The ground inside the border goes this colour (warm cream), and outside it stays grey.
+const BORDER_GROUND_COLOUR := Color(0.93, 0.84, 0.66)
+# The landmark: one special block away from the start. Win when it is beautified and held this long (seconds).
+const BORDER_LANDMARK_POS := Vector3(18, 0, -16)
+const BORDER_LANDMARK_SIZE := Vector3(4, 3.5, 4)
+const BORDER_LANDMARK_HOLD := 10.0
+const BORDER_LANDMARK_COLOUR := Color(0.78, 0.66, 0.6)
+const BORDER_BEACON_COLOUR := Color(1.0, 0.85, 0.45)
+# The border line: intact is warm gold, a gap flickers between grey and red.
+const BORDER_INTACT_COLOUR := Color(1.0, 0.82, 0.4)
+const BORDER_GAP_COLOUR := Color(0.6, 0.6, 0.62)
+const BORDER_GAP_ALARM_COLOUR := Color(0.9, 0.3, 0.25)
+const BORDER_GAP_FLICKER_HZ := 4.0
+# How far above the ground the border line is drawn, in metres.
+const BORDER_LINE_HEIGHT := 0.08
+
+# Dusk to dawn: the level lasts NIGHT_LENGTH seconds. Grey strength is 1 at dusk and dawn and peaks at midnight.
+const NIGHT_LENGTH := 240.0
+const NIGHT_PEAK_EXTRA := 0.75
+
 # The matchups form a soft cycle:
 #   Music is strong against Art, Art is strong against Nature, Nature is strong against Music.
 # Matching the affinity gives MATCH_MULT. The element that loses to the affinity gives WEAK_MULT.
 
-
 # Returns how much a hit with `element` is multiplied when the person has `affinity`.
+# The border variant for the next level. The menu sets it. A static var, so it survives the scene change.
+static var border_variant: int = BorderVariant.ORGANIC
+
+
 static func multiplier(element: int, affinity: int) -> float:
 	if element == affinity:
 		return MATCH_MULT
@@ -343,22 +406,12 @@ static func gloom_level(g: float) -> int:
 	return 2
 
 
-# Returns the names of all buildings unlocked by `count` rescued people, from a thresholds list
-# (see TD_BUILDING_THRESHOLDS).
-static func buildings_for(count: int, thresholds: Array) -> Array:
-	var result: Array = []
-	for entry: Array in thresholds:
-		if entry[0] <= count:
-			result.append(entry[1])
-	return result
-
-
 # True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1
 # environment variable, a "--automated-test" user argument, or a headless display. In that mode the game
 # never captures the real OS mouse, so a test run can never grab a player's mouse.
 static func is_automated_test() -> bool:
-	if OS.get_environment("POSITIVEFPS_TEST") == "1":
-		return true
-	if "--automated-test" in OS.get_cmdline_user_args():
-		return true
-	return DisplayServer.get_name() == "headless"
+	return (
+		OS.get_environment("POSITIVEFPS_TEST") == "1"
+		or "--automated-test" in OS.get_cmdline_user_args()
+		or DisplayServer.get_name() == "headless"
+	)

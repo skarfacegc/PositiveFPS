@@ -56,7 +56,9 @@ func test_a_lone_rescued_person_gets_no_protection_from_their_own_paint() -> voi
 	assert_float(lone.protection).is_less(0.01)
 
 
-func test_other_rescued_people_nearby_protect_a_rescued_person() -> void:
+# Round 9: three rescued people form the border and stand on its line. Protection inside the line is depth, so a
+# member on the line has none. (Round 8 paint cover still applies before a border forms: see cover_test.gd.)
+func test_border_members_on_the_line_have_no_protection() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -72,8 +74,9 @@ func test_other_rescued_people_nearby_protect_a_rescued_person() -> void:
 	right.receive_joy(2, Config.JOY_MAX, 0.0)
 
 	await runner.simulate_frames(300)
-	assert_float(centre.protection).is_greater(0.5)
-	assert_float(centre.cover).is_greater(0.5)
+	assert_int(td.border.member_count).is_equal(3)
+	assert_float(centre.protection).is_less(0.1)
+	assert_float(centre.cover).is_less(0.1)
 
 
 func test_cover_excluding_own_paint_matches_others_paint_on_the_ground() -> void:
@@ -121,7 +124,8 @@ func test_a_lone_rescued_person_next_to_a_dark_person_relapses_within_a_bounded_
 	assert_int(frames).is_less(2400)
 
 
-func test_a_rescued_person_inside_a_group_next_to_a_dark_person_does_not_relapse() -> void:
+# Round 9: a dark person outside the border presses against its line. It cannot get inside, however long it stays.
+func test_a_dark_person_outside_the_border_cannot_get_inside_it() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -136,20 +140,15 @@ func test_a_rescued_person_inside_a_group_next_to_a_dark_person_does_not_relapse
 		TopDownTestUtil.place(p, spots[i], (i + 1) % 3, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
 		group.append(p)
-	# The dark person joins once the group's paint is in: darkness would otherwise erode the paint while it grows.
+	# The dark person joins once the group's border is in.
 	var dark: Person = td.people[4]
 	TopDownTestUtil.place(dark, Vector3(-25, 0, 25), 1, 0.0)
 	await runner.simulate_frames(360)
 	TopDownTestUtil.place(dark, Vector3(0, 0, -4), 1, 0.9)
 
 	await runner.simulate_frames(2400)
-	assert_bool(target.is_rescued).is_true()
-	assert_float(target.protection).is_greater(0.9)
-	assert_float(target.joy).is_greater(Config.JOY_MAX - 5.0)
-	assert_int(td.rescued_count).is_equal(group.size())
-
-
-# --- Darkness erodes paint -----------------------------------------------------------------------------------------
+	# The press drains a member, so the count may drop; the line is what matters here.
+	assert_bool(Border.is_inside(td.border.polygon, Vector2(dark.position.x, dark.position.z))).is_false()
 
 
 func test_a_dark_person_at_the_edge_erodes_the_edge_tiles_next_to_them() -> void:
@@ -226,35 +225,6 @@ func test_erosion_only_runs_when_the_ground_is_set_to_erode() -> void:
 
 
 # --- Weakest-point pursuit -----------------------------------------------------------------------------------------
-
-
-func test_a_dark_person_heads_for_the_isolated_rescued_person_not_the_group() -> void:
-	var s: Dictionary = await _start()
-	var runner: GdUnitSceneRunner = s["runner"]
-	var td: TopDownMain = s["td"]
-	TopDownTestUtil.send_everyone_away(td)
-	var isolated: Person = td.people[0]
-	TopDownTestUtil.place(isolated, Vector3(-14, 0, -8), 0, 0.0)
-	isolated.receive_joy(0, Config.JOY_MAX, 0.0)
-	var group_a: Person = td.people[1]
-	TopDownTestUtil.place(group_a, Vector3(12, 0, -8), 1, 0.0)
-	group_a.receive_joy(1, Config.JOY_MAX, 0.0)
-	var group_b: Person = td.people[2]
-	TopDownTestUtil.place(group_b, Vector3(12, 0, -6), 2, 0.0)
-	group_b.receive_joy(2, Config.JOY_MAX, 0.0)
-	var dark: Person = td.people[3]
-	TopDownTestUtil.place(dark, Vector3(0, 0, -8), 0, 0.9)
-
-	# Three seconds: the group's paint is in, so their protection is above the isolated person's (zero). Until then the
-	# dark person has no reason to prefer either side, and goes for the nearer group.
-	await runner.simulate_frames(180)
-	assert_float(group_a.protection).is_greater(0.0)
-	assert_float(isolated.protection).is_less(0.01)
-	var x_before := dark.global_position.x
-	await runner.simulate_frames(120)
-	var pursuit: Dictionary = td.pursuit_assignments(td.people)
-	assert_object(pursuit[dark]).is_same(isolated)
-	assert_float(dark.global_position.x).is_less(x_before - 0.5)
 
 
 func test_a_dark_person_with_nobody_to_chase_drifts_to_the_territory_edge() -> void:
