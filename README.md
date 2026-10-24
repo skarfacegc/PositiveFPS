@@ -127,3 +127,16 @@ snapshot, so stash unstaged edits if you need the staged version tested exactly.
 
 Test runs set `POSITIVEFPS_TEST=1` (or run headless). In that mode the game never captures the real mouse, so a
 test run cannot take over your mouse; the window title is also changed to say it is an automated test.
+
+## Cleaning up playtest worktrees
+
+Playtest builds run from detached git worktrees in a temp folder. Old ones leave stale entries under `.git/worktrees/`,
+and git warns about them on every commit. To remove them:
+
+- `python tools/cleanup_worktrees.py --dry-run` prints what would be removed, and changes nothing.
+- `python tools/cleanup_worktrees.py` lists the plan, asks "Proceed? [y/N]", then removes the worktrees and the stale entries.
+- `python tools/cleanup_worktrees.py --keep-latest` also keeps the most recently created worktree.
+
+The main worktree is never touched. A worktree that a running Godot game is using is skipped: close the game and run the
+script again. Add `-y` to skip the prompt. If you see "Permission denied", close any program using the folder (Godot,
+Explorer, editors) and pause OneDrive sync, then re-run.
