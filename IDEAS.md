@@ -203,3 +203,35 @@ purpose is now to capture ground.
 - **Win:** each area has a landmark building. Enclose it with the border and hold it to win; the level is lost if the
   border collapses.
 - **Prototype:** build a few border variants with a picker to compare (the user asked for options to try).
+
+## Round 9 build: the living border
+
+Built on the 2026-10-24 direction change. First person is retired (step 1). Top-down is the territory game (step 2). The
+menu picks one of three border shapes, so they can be compared in play.
+
+- **Three variants:** A circle (a ring sized from the rescued count), B organic push (recommended: each rescue pushes the
+  border out at its angle, and it wraps around blocks), C paint edge (the border follows the paint the rescued people
+  spread).
+- **Shared rules, all variants:** the centre is the rescued centroid. Border members stand evenly spaced on the loop, the
+  rest stand inside. A stretch over 3.5 m is a gap. Dark people outside press against solid stretches and drain the
+  nearest member. Inside the loop the ground fills in slowly and blocks are beautified after 3 s. Cover is depth inside
+  the loop.
+- **Dusk to dawn:** 240 s, with grey strength up to 1.75 at midnight. The light goes from warm dusk to dim blue to soft
+  dawn. The level ends at dawn, or earlier: the landmark held for 10 s wins, and the border falling loses.
+- **Tuning:** all values are in `scripts/config.gd` under the Round 9 block (`BORDER_` and `NIGHT_`).
+
+**Playtest 9: what to compare**
+- Which variant feels best (A, B or C), and why. B is recommended, but this is the question.
+- Does overextension (gaps) create good tension? Gaps only really appear in the paint edge variant and when the border is
+  thin. In the circle and organic variants the perimeter is kept near the people count times the spacing, so a bigger
+  border does not leave gaps by itself. Watch whether that feels too safe.
+- Is dusk to dawn better than the timer? Does the night pace feel right, and does midnight feel like pressure?
+- Is the landmark goal clear? Do players know it is the block with the beacon, and what holding it means?
+- Does the border read as a border (the gold line, the flicker on gaps, members walking to their places)?
+
+**Known rough spots (to check in play)**
+- Paint edge can make a tiny border while the paint is still spreading (the centroid of the rescued may sit between
+  painted patches). A small border can also leave members on the line with no room inside.
+- Organic wrapping can jump the loop out past a block, so a border can briefly bulge into a corridor.
+- The end screen counts beautified buildings and the painted share at the end, not the peak.
+

@@ -1,8 +1,9 @@
-# PositiveFPS — proof of concept
+# PositiveFPS: the living border
 
-A gentle first-person "shooter" where instead of hurting people, you spread joy.
-Twenty grey people are standing in a plaza. Shoot them with the right element to
-fill their joy meter, and they turn colourful and bounce. You have two minutes.
+A gentle top-down territory game. Dark people slowly take over a plaza, and you rescue people to bring joy back. The
+people you rescue form a living border that holds the darkness back and paints the land inside it. The level runs from
+dusk to dawn: the light fades, the grey gets stronger at midnight, and the level ends at dawn. (Round 9. The first person
+mode was retired.)
 
 ## How to run
 
@@ -12,63 +13,48 @@ fill their joy meter, and they turn colourful and bounce. You have two minutes.
 
 ## Modes
 
-The game opens a menu. Pick a mode:
+The game opens a menu. Pick a border variant with a button, or with keys 1, 2 and 3:
 
-- **1 = First person** (the original): aim with the mouse and fire beams.
-- **2 = Top-down**: a bigger plaza seen from above. You move and pick your target; joy flies at it as physical projectiles.
+- **1 = A, Circle**: the border is a ring around the centre, sized by how many people you have rescued.
+- **2 = B, Organic push (recommended)**: each rescue pushes the border outward where it happened, and the border wraps
+  around blocks it reaches.
+- **3 = C, Paint edge**: the border follows the painted region your rescued people spread.
 
-Press **M** at any time to go back to the menu.
+Press **M** at any time to go back to the menu. **R** restarts the level.
+
+## The living border
+
+- **The centre forms by itself.** It is the average position of the rescued people. There is no pre-placed heart.
+- **Three people make a border.** The rescued people stand evenly spaced along it (the outermost ones are the border;
+  the rest stand inside). A stretch longer than 3.5 m is a **gap**, drawn grey and red and flickering. Gaps let darkness
+  through.
+- **Darkness is held back.** Dark people outside the border cannot cross a solid (gold) stretch. They press on the line
+  and drain the nearest border person. Through a gap they can get in.
+- **Relapses open holes.** A border person who relapses steps out, and the others shuffle to close the gap. With too
+  few people, the gaps stay open.
+- **Inside the border the land changes.** The ground is painted warm (it fills in slowly), and blocks inside are
+  beautified after a few seconds. A grey person deep inside the border lightens instead of darkening.
+- **The landmark** is the taller block with a beacon, 18 m east and 16 m north of the plaza centre. Beautify it and hold
+  the border around it for 10 seconds to win.
+- **Losing**: if the border has formed and fewer than three people are rescued, the border falls.
+- **Dusk to dawn**: a bar at the top shows the night. The level ends at dawn. The end screen says whether the landmark
+  was held, how much of the plaza is painted, how many buildings are beautified, and how many people were rescued.
 
 ## Controls
 
-First person:
+- **WASD** move, **Shift** run.
+- **Click** a person to lock on (in lock-on mode). The default is **hover**: the person under the mouse becomes the
+  target. **F2** cycles the modes: lock-on, hover (default) and auto (the most urgent person in range).
+- Every shot uses the target's element, so it is always a best match. Music is quick and small, art is slow and big
+  (it splashes), nature is a floating flower that blooms where it lands.
+- **G** or **Q** joy burst: everyone close by gets a best-match hit (short cooldown).
+- **F3** toggles the debug overlay: cover (`c`) and protection (`p`) above each person, a label per border segment (its
+  spacing, and GAP where it is one), and the member, inner and night numbers at the top left. Off by default. If F3 does
+  nothing on your keyboard, the F-row may be set to media keys: try Fn+F3.
+- **R** restart, **M** back to the menu.
 
-- **WASD** move
-- **Mouse** look around
-- **Shift** run
-- **Space** jump
-- **Left click** spread joy (hold to keep firing)
-- **1 / 2 / 3** or **mouse wheel** switch element (Music, Art, Nature)
-- **Esc** free the mouse
-- **R** restart
-- **M** back to menu
-
-Top-down:
-
-- **WASD** move, **Shift** run
-- The camera sits close above and behind you, so about two lock-on ranges fit on screen.
-- **F2** cycles the targeting mode (shown top right):
-  - **Hover** (default): with no target, the person under the mouse becomes the target and stays one until they are
-    rescued or out of reach, even if you move the mouse. Your shots fly at them.
-  - **Lock-on**: **left click** a person to lock on. A warm ring under their feet marks the target, and your shots
-    fly at them while you hold the lock. Click empty ground to let go. The lock drops when they are rescued or you
-    walk more than 14 m away.
-  - **Auto**: no clicks. The most urgent person in range is shot at: someone about to relapse first, then the darkest.
-- No element switching in top-down: every shot uses the **target's** element, so it is always a best match. The ring
-  under you shows the target's element colour (cream with no target).
-- Shots are real projectiles and take a moment to arrive. Each element has its own rhythm, and all three give the same
-  joy per second. **Music** is small, quick notes (twice as many shots): they home in on the target, leave a wavy
-  dusty-blue ribbon, and ring the ground where they land. **Art** is a big, slow paint blob (half as many shots): it
-  lobs in a high arc, drips rose and terracotta on the way, and leaves a large splat and a splash on nearby people.
-  **Nature** is a floating flower at a steady pace: it sheds sage and pink petals, blooms where it lands, and bursts
-  petals.
-- A rescued person has a 4-second grace period: a warm ring pulses on the ground under them and they glow, until it
-  ends. Nearby darkness cannot drain them during it.
-- **Cover:** painted ground protects people standing in it, but only paint made by *other* rescued people. A rescued
-  person's own paint does not protect them, so someone on their own is at risk. Deep inside other people's paint,
-  darkness cannot reach people and grey people slowly lighten (joy contagion, which never rescues anyone on its own).
-- **Edges:** dark people eat away the edge of painted ground near them (deep inside paint is safe, and an eroded spot
-  does not grow back for a few seconds). A dark person goes for the weakest rescued person within reach, the one with
-  the least cover, or drifts to the nearest edge of the paint when nobody is in reach. Paint takes a few seconds to
-  spread in and lingers for a long time after someone relapses.
-- **F3** toggles a debug overlay: above each person, `c` is their cover (the paint around them) and `p` their
-  protection from it. A `[F3] debug` line shows at the top left while it is on. Off by default. If F3 does nothing
-  on your keyboard, the F-row may be set to media keys: try Fn+F3.
-- **G** or **Q** joy burst (short cooldown; boosts everyone nearby)
-- **R** restart, **M** back to menu
-
-Gamepad: not bound yet. Every gameplay action goes through the InputMap, and `scripts/controls.gd` lists the action
-a future gamepad mapping would use for each one.
+Gamepad: not bound yet. Every gameplay action goes through the InputMap, and `scripts/controls.gd` lists the action a
+future gamepad mapping would use for each one.
 
 ## Tuning
 
@@ -125,8 +111,7 @@ minutes. It prints a one-line summary (tests passed, line coverage, baseline OK)
 and commit again; never use `--no-verify`. Known limitation: the gate tests the working tree, not only the staged
 snapshot, so stash unstaged edits if you need the staged version tested exactly. Other commits skip the gate.
 
-Test runs set `POSITIVEFPS_TEST=1` (or run headless). In that mode the game never captures the real mouse, so a
-test run cannot take over your mouse; the window title is also changed to say it is an automated test.
+Test runs set `POSITIVEFPS_TEST=1` (or run headless), and the window title says it is an automated test.
 
 ## Cleaning up playtest worktrees
 
