@@ -36,6 +36,8 @@ expect gate "$(printf 'docs/notes.md\nscripts/x.gd')"
 expect none "$(printf 'readme.txt\n')"
 expect none ""
 
+python tools/test_gate.py || fail=1
+
 if [ "$fail" -eq 0 ]; then
 	echo "test_hook_paths: all cases pass"
 fi
