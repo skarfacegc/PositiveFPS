@@ -419,3 +419,34 @@ When implementation starts, give this focused attention as its own step, not a s
 
 **Open questions:** starting element (paint or player's pick); placeable stock and whether darkness erodes them; the
 story tone and the bigger aim.
+
+## Style pass approach: switchable looks (decision, 2026-10-24)
+Replaces the plan to port design/style_test into the game as a permanent replacement. The goal is to feel the game
+with the locked style periodically without paying its upkeep cost on every gameplay round.
+
+**Where the cost is:** the locked style is almost all code (toon, ground, glow, haze and post shaders, plus scene
+scripts), not heavy asset files, so load and test times barely change. The cost is upkeep: every new gameplay thing
+would need a styled look before a round could finish, agents would read and change more visual code each round, and
+visual bugs would mix with gameplay bugs in playtests.
+
+**The approach**
+1. **Split rules from looks.** Each object's script keeps its rules (for example `person.gd`: movement, rescue,
+   relapse). A separate visual piece reads that state and draws it. Today each script builds its own placeholder
+   shapes, so this is a one-off refactor.
+2. **Two looks:** placeholder (today's shapes) and styled (the shaders and models from design/style_test, per
+   REVIEW_NOTES.md).
+3. **Fallback:** in styled mode, anything without a styled look uses its placeholder. Gameplay rounds never have to
+   update the styled look.
+4. **Switch:** a menu toggle, plus a key (for example F4) to flip looks mid-game. Tests use the placeholder by default,
+   plus one check that styled mode loads and runs. Optionally, F3 counts what is still placeholder.
+
+**Round rhythm**
+- Gameplay rounds add placeholder visuals only, at today's speed.
+- Every few rounds, a **style round** gives new things their styled look, followed by a playtest in styled mode. Time
+  these before playtests where the look matters.
+
+**Setup cost:** one round: split the visuals out, then port the locked style for the main things on screen (ground,
+buildings, people, player, border, minimap). This is the already-planned style pass, made switchable.
+
+**Watch for:** the two looks drifting apart in readability (a gap that is obvious as a placeholder may be subtle when
+styled). Keep style rounds regular, and check readability of gaps, threats and the player in both modes.
