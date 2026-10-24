@@ -229,12 +229,14 @@ func test_cover_and_protection_follow_the_painted_ground_in_the_level() -> void:
 	TopDownTestUtil.place(grey, Vector3(1, 0, -8), 1, 0.5)
 	TopDownTestUtil.place(far, Vector3(-25, 0, 25), 2, 0.5)
 
-	# Five seconds: the rescued person's ground paints in, so the grey person next to them is deep inside. Round 11: the
-	# grey person wanders (0.92 m/s now, was 0.8), so in 5 s they walk to a new spot at the edge of the paint. Cover is
-	# still well above the contagion threshold there, so the thresholds are looser than round 10.
-	await runner.simulate_frames(300)
-	assert_float(grey.cover).is_greater(0.5)
-	assert_float(grey.protection).is_greater(0.2)
+	# Five seconds: the rescued person's ground paints in, so the grey person next to them is deep inside. The grey person
+	# wanders (0.92 m/s), so they are put back on their spot every ten frames: they stay deep inside the paint.
+	var spot := grey.global_position
+	for i: int in range(30):
+		await runner.simulate_frames(10)
+		grey.global_position = spot
+	assert_float(grey.cover).is_greater(0.75)
+	assert_float(grey.protection).is_greater(0.95)
 	assert_float(far.cover).is_less(0.01)
 	assert_float(far.protection).is_equal(0.0)
 	# Contagion has lightened the grey person (they are not rescued by it).
