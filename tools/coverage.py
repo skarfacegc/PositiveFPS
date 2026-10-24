@@ -6,6 +6,7 @@ Usage:
     python tools/coverage.py --check-baseline # also fail (exit 3) if coverage dropped versus coverage_baseline.json
     python tools/coverage.py --update-baseline                    # record the numbers (only if the tests pass)
     python tools/coverage.py --update-baseline --allow-decrease   # also accept lower numbers
+    python tools/coverage.py --check-determinism   # run twice, fail (exit 3) if any covered line differs
 
 What it does:
   1. Copies the project to <root>/.coverage_build (addons and tests are copied, not instrumented).
@@ -42,7 +43,9 @@ COVERAGE_DIR = os.path.join(ROOT, "coverage")
 FILES_DIR = os.path.join(COVERAGE_DIR, "files")
 REPORTS_DIR = os.path.join(ROOT, "reports")
 BASELINE = os.path.join(ROOT, "coverage_baseline.json")
-COPY_EXCLUDE = {".git", ".godot", ".coverage_build", "coverage", "reports"}
+HITS_DIR = os.path.join(BUILD, "cov_hits")
+# design/ (mock-ups, a nested Godot project) and .scratch/ are not part of the game or its tests.
+COPY_EXCLUDE = {".git", ".godot", ".coverage_build", "coverage", "reports", "design", ".scratch"}
 
 RATCHET_TOLERANCE = 0.5  # points: an existing file or the total may drop by at most this much
 NEW_FILE_MIN = 60.0  # points: a new file must reach at least this line coverage
@@ -51,11 +54,35 @@ FUNC_RE = re.compile(r"^(\t*)(static\s+)?func\s+(\w+)\s*\(")
 MATCH_HEADER_RE = re.compile(r"^match\b.*:$")
 CONTINUATION_KEYWORDS_RE = re.compile(r"^(elif|else)\b")
 
+# Each instrumented script gets its own static counter array (see COV_TAIL) and probes are inline statements
+# (`_cov_h[LINE] += 1`): about 11 times cheaper than a call into a shared dictionary, which made the instrumented
+# run 6x slower than the plain one. CovProbe only keeps the registry so the dump can find every script's array.
 COV_PROBE_GD = '''class_name CovProbe
 extends RefCounted
-static var hits := {}
-static func hit(key: String) -> void:
-\thits[key] = hits.get(key, 0) + 1
+static var regs := {}
+static func register(rel: String, arr: PackedInt32Array) -> void:
+\tregs[rel] = arr
+static func to_hits() -> Dictionary:
+\tvar out := {}
+\tfor rel: String in regs:
+\t\tvar arr: PackedInt32Array = regs[rel]
+\t\tfor line in arr.size():
+\t\t\tif arr[line] > 0:
+\t\t\t\tout["%s:%d" % [rel, line]] = arr[line]
+\treturn out
+'''
+
+# Appended to every instrumented script. Appending keeps the original line numbers.
+COV_TAIL = '''
+
+static var _cov_h: PackedInt32Array = _cov_make()
+
+
+static func _cov_make() -> PackedInt32Array:
+\tvar a := PackedInt32Array()
+\ta.resize(%d)
+\tCovProbe.register("%s", a)
+\treturn a
 '''
 
 COV_DUMP_GD = '''extends Node
@@ -64,10 +91,13 @@ COV_DUMP_GD = '''extends Node
 
 
 func _exit_tree() -> void:
-\tvar path := ProjectSettings.globalize_path("res://coverage_hits.json")
+\t# Each parallel test process writes its own file (tools/run_tests.py sets POSITIVEFPS_COV_OUT); coverage.py sums them.
+\tvar path := OS.get_environment("POSITIVEFPS_COV_OUT")
+\tif path == "":
+\t\tpath = ProjectSettings.globalize_path("res://coverage_hits.json")
 \tvar f := FileAccess.open(path, FileAccess.WRITE)
 \tif f != null:
-\t\tf.store_string(JSON.stringify(CovProbe.hits, "  "))
+\t\tf.store_string(JSON.stringify(CovProbe.to_hits(), "  "))
 \t\tf.close()
 '''
 
@@ -252,18 +282,18 @@ def instrument_lines(rel, raw_lines, result):
     """Returns the instrumented source text. Probe keys use the original 1-based line numbers."""
     out = []
     for idx, raw in enumerate(raw_lines):
-        probe_key = '"%s:%d"' % (rel, idx + 1)
+        probe = "_cov_h[%d] += 1" % (idx + 1)
         if idx in result["oneliners"]:
             header, body, body_indent = result["oneliners"][idx]
             out.append(header)
-            out.append("%sCovProbe.hit(%s)" % (body_indent, probe_key))
+            out.append(body_indent + probe)
             out.append(body_indent + body)
         elif idx in result["exec_map"]:
-            out.append("%sCovProbe.hit(%s)" % (indent_of(raw), probe_key))
+            out.append(indent_of(raw) + probe)
             out.append(raw)
         else:
             out.append(raw)
-    return "\n".join(out)
+    return "\n".join(out) + COV_TAIL % (len(raw_lines) + 2, rel)
 
 
 # ---------------------------------------------------------------------------
@@ -283,6 +313,10 @@ def copy_project():
             shutil.copytree(src, dst, ignore=shutil.ignore_patterns(*COPY_EXCLUDE))
         else:
             shutil.copy2(src, dst)
+    # Start from the repo's import cache, so the import step in the copy has little left to do (about 1.5 s saved).
+    godot_cache = os.path.join(ROOT, ".godot")
+    if os.path.isdir(godot_cache):
+        shutil.copytree(godot_cache, os.path.join(BUILD, ".godot"))
 
 
 def _clear_readonly(func, path, _exc):
@@ -343,6 +377,20 @@ def git_info():
         return short + (" + uncommitted changes" if dirty else "")
     except (OSError, subprocess.CalledProcessError):
         return "unknown"
+
+
+def merge_hits(hits_dir):
+    """Sums the hit counts of every hits_*.json (one per test process). Returns None if there is none."""
+    merged = None
+    for name in sorted(os.listdir(hits_dir)) if os.path.isdir(hits_dir) else []:
+        if not name.endswith(".json"):
+            continue
+        with open(os.path.join(hits_dir, name), encoding="utf-8") as fh:
+            part = json.load(fh)
+        merged = merged if merged is not None else {}
+        for key, count in part.items():
+            merged[key] = merged.get(key, 0) + count
+    return merged
 
 
 def pct(hit, total):
@@ -622,6 +670,63 @@ def write_reports(stats, results, uninstr, files, hits, git, stamp):
 # Main
 # ---------------------------------------------------------------------------
 
+def measure_once(workers):
+    """Copies, instruments and runs the suite once. Returns (code, results, stats, hits), or None on a setup error."""
+    copy_project()
+    files, _uninstr = instrument_build()
+    write_probe_files()
+    os.makedirs(HITS_DIR, exist_ok=True)
+    code, results, _report_dir = run_tests.run_suite(BUILD, report_root=REPORTS_DIR, workers=workers, cov_dir=HITS_DIR)
+    hits = merge_hits(HITS_DIR)
+    if results is None or hits is None:
+        return None
+    return code, results, build_stats(files, hits, results), hits
+
+
+def check_determinism(workers):
+    """Runs the instrumented suite twice and compares the per-file line coverage and the exact set of lines hit.
+
+    Use it once at the end of a round (it costs two coverage runs), before `--update-baseline`.
+    """
+    runs = []
+    for n in (1, 2):
+        print("== Determinism run %d of 2" % n)
+        try:
+            run = measure_once(workers)
+        except (RuntimeError, OSError) as err:
+            print("ERROR: " + str(err), file=sys.stderr)
+            return 2
+        if run is None:
+            print("ERROR: a run wrote no results or hits.", file=sys.stderr)
+            return 2
+        runs.append(run)
+    (code_a, res_a, stats_a, hits_a), (code_b, res_b, stats_b, hits_b) = runs
+    problems = []
+    if code_a != 0 or code_b != 0 or any(not r["ok"] for r in res_a + res_b):
+        problems.append("a test failed in one of the runs")
+    if [(r["file"], r["name"], r["ok"]) for r in res_a] != [(r["file"], r["name"], r["ok"]) for r in res_b]:
+        problems.append("the two runs ran or passed different tests")
+    for rel in sorted(set(stats_a["line_files"]) | set(stats_b["line_files"])):
+        a, b = stats_a["line_files"].get(rel), stats_b["line_files"].get(rel)
+        if a != b:
+            problems.append("%s: line coverage %s vs %s" % (rel, a, b))
+    lines_a = {k for k, v in hits_a.items() if v > 0}
+    lines_b = {k for k, v in hits_b.items() if v > 0}
+    for key in sorted(lines_a ^ lines_b)[:20]:
+        problems.append("line %s was hit in only one run" % key)
+    count_diffs = sum(1 for k in lines_a & lines_b if hits_a[k] != hits_b[k])
+    print("")
+    print("Determinism: %d tests, line coverage %.1f%% and %.1f%%, %d lines hit; %d lines differ in hit count"
+          " (informational)" % (len(res_a), stats_a["line_overall"], stats_b["line_overall"], len(lines_a), count_diffs))
+    if problems:
+        print("DETERMINISM CHECK FAILED:")
+        for line in problems:
+            print("  - " + line)
+        return 3
+    print("Determinism OK: both runs hit exactly the same lines.")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description="Line and function coverage for the PositiveFPS scripts.")
     gate = parser.add_mutually_exclusive_group()
@@ -629,11 +734,20 @@ def main():
                       help="fail (exit 3) if coverage dropped versus coverage_baseline.json")
     gate.add_argument("--update-baseline", action="store_true",
                       help="write the current numbers to coverage_baseline.json (only if the tests pass)")
+    parser.add_argument("--check-determinism", action="store_true",
+                        help="run the instrumented suite twice and fail (exit 3) if the covered lines differ")
     parser.add_argument("--allow-decrease", action="store_true",
                         help="with --update-baseline: accept numbers lower than the baseline")
+    parser.add_argument("--workers", type=int, default=None,
+                        help="test processes to run at once (default: tools/run_tests.py WORKERS_DEFAULT)")
     args = parser.parse_args()
     if args.allow_decrease and not args.update_baseline:
         parser.error("--allow-decrease only applies with --update-baseline")
+
+    if args.check_determinism:
+        if args.check_baseline or args.update_baseline:
+            parser.error("--check-determinism cannot be combined with the baseline options")
+        return check_determinism(args.workers)
 
     print("== Copying project to %s" % BUILD)
     copy_project()
@@ -644,9 +758,11 @@ def main():
     print("   %d executable lines in %d files, %d functions not measurable"
           % (total_lines, len(files), len(uninstr)))
 
+    os.makedirs(HITS_DIR, exist_ok=True)
     print("== Running the test suite (headless) against the instrumented copy")
     try:
-        code, results, _report_dir = run_tests.run_suite(BUILD, report_root=REPORTS_DIR)
+        code, results, _report_dir = run_tests.run_suite(BUILD, report_root=REPORTS_DIR, workers=args.workers,
+                                                         cov_dir=HITS_DIR)
     except (RuntimeError, OSError) as err:
         print("ERROR: " + str(err), file=sys.stderr)
         return 2
@@ -654,12 +770,10 @@ def main():
         print("ERROR: no test results were written; see the Godot output above.", file=sys.stderr)
         return 2
 
-    hits_path = os.path.join(BUILD, "coverage_hits.json")
-    if not os.path.exists(hits_path):
-        print("ERROR: coverage_hits.json was not written by the coverage autoload.", file=sys.stderr)
+    hits = merge_hits(HITS_DIR)
+    if hits is None:
+        print("ERROR: no hits file was written by the coverage autoload.", file=sys.stderr)
         return 2
-    with open(hits_path, encoding="utf-8") as fh:
-        hits = json.load(fh)
 
     stats = build_stats(files, hits, results)
     git = git_info()
