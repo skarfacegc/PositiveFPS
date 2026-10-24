@@ -95,13 +95,20 @@ Setup (once per clone):
 
 Commands:
 
-- Run the tests: `python tools/run_tests.py`. It runs headless against this project and writes HTML and
-  JUnit reports to `reports/`. Exit code 1 means a test failed.
+- Run the tests: `python tools/run_tests.py` (about 25 s). It runs headless against this project, with the suites split
+  over parallel Godot processes (`--workers N`; `--workers 1` runs everything in one process), and writes HTML and
+  JUnit reports to `reports/`. Exit code 1 means a test failed. Slow tests get a process of their own; their
+  durations live in `tools/test_weights.json` (refresh with `--update-weights`). Every suite must be independent of the
+  others (the level tests start with `TopDownTestUtil.level_runner(self)`).
 - Test runs use a fixed timestep (`--fixed-fps 60`, `TEST_FIXED_FPS` in `tools/run_tests.py`) and one seed
   (`Config.RNG_SEED`), so repeated runs give the same coverage.
 - Lint and format: `python tools/lint.py` checks formatting (gdformat, 120 columns) and lint (gdlint, settings in
   `gdlintrc`) over `scripts/` and `tests/`. `python tools/lint.py --fix` reformats the files first, then lints.
-- Tests and coverage: `python tools/coverage.py`. It copies the project to `.coverage_build/`, instruments
+- The gate: `python tools/gate.py` runs exactly what the pre-commit hook runs (lint, then all tests). `--full` adds
+  line coverage and the ratchet (the tests run instrumented, so they are not run twice), `--no-cache` ignores the
+  result cache. A pass is cached, keyed on a sha256 of the working tree (`.git/positivefps-gate-cache.json`): running
+  it again on identical code returns in about a second.
+- Tests and coverage: `python tools/coverage.py` (about 30 s). It copies the project to `.coverage_build/`, instruments
   every executable line in `scripts/`, runs the tests there, and writes `coverage/index.html` (open it in a
   browser: a per-file table, then an annotated copy of each script with green lines that ran and red lines that
   never ran), plus `coverage/summary.txt` and `coverage/coverage.json`. Line coverage is the headline number;
@@ -110,14 +117,22 @@ Commands:
   - `python tools/coverage.py --check-baseline` fails (exit 3) if the total or any existing file drops by more
     than 0.5 points, or a new file is under 60%.
   - `python tools/coverage.py --update-baseline` records the current numbers. It only works if all tests pass,
-    and refuses any decrease unless you add `--allow-decrease`.
+    and refuses any decrease unless you add `--allow-decrease`. One run is enough.
+  - `python tools/coverage.py --check-determinism` runs the instrumented suite twice and fails (exit 3) if the set of
+    lines hit differs. Run it once at the end of a round, before the baseline commit.
 - The Godot executable comes from the `GODOT` environment variable, or the default path in `tools/run_tests.py`.
 
 Pre-commit gate: once the hooks are enabled, a commit that changes `*.gd`, `*.tscn`, `*.tres`, `project.godot`,
-`tools/` or `tests/` runs `tools/lint.py` and `tools/coverage.py --check-baseline` first. That takes about two
-minutes. It prints a one-line summary (tests passed, line coverage, baseline OK) or the failure. Fix the cause
-and commit again; never use `--no-verify`. Known limitation: the gate tests the working tree, not only the staged
-snapshot, so stash unstaged edits if you need the staged version tested exactly. Other commits skip the gate.
+`tools/` or `tests/` runs `python tools/gate.py --hook`: lint, then the whole test suite (about 27 s; 1 s if the
+working tree already passed). It prints a one-line summary or the failure. Fix the cause and commit again; never use
+`--no-verify`. Known limitation: the gate tests the working tree, not only the staged snapshot, so stash unstaged
+edits if you need the staged version tested exactly. Commits that only touch `design/` or Markdown skip the gate.
+
+Coverage tier: the instrumented run costs about 30% more than the plain run, so the coverage ratchet is not part of
+every commit. It runs in the hook only when `coverage_baseline.json` is staged. **Agents must finish every round with
+`python tools/gate.py --full`, then `python tools/coverage.py --check-determinism`, and commit the baseline**
+(`python tools/coverage.py --update-baseline`) so a drop in coverage cannot hide between rounds. Timings:
+`tools/BUILD_TIMINGS.md`. Agent briefing: `ARCHITECTURE.md`.
 
 Test runs set `POSITIVEFPS_TEST=1` (or run headless), and the window title says it is an automated test.
 

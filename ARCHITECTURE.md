@@ -1,0 +1,96 @@
+# ARCHITECTURE (for agents)
+
+PositiveFPS is a gentle top-down territory game in Godot 4.7 (GDScript, strict typing). Dark people slowly take over a
+plaza; the player rescues them with joy projectiles, and the rescued form a living border that holds the darkness back
+and paints the land inside. One night (dusk to dawn) per level; hold the landmark to win. Player docs: `README.md`.
+Ideas and decisions: `IDEAS.md`. Nothing here describes gameplay changes; it describes where things live.
+
+## Scenes
+- `menu.tscn` (`scripts/menu.gd`): title and one Play button (Enter, 1, or click) -> loads `topdown.tscn`.
+- `topdown.tscn`: only a `TopDownMain` root. **Everything else is built in code** in `TopDownMain._ready()`.
+
+## Script map (`scripts/*.gd`)
+| Script (`class_name`) | Owns | Key public API | Config used |
+|---|---|---|---|
+| `topdown_main.gd` (`TopDownMain`) | The level: plaza, blocks, people, camera, light, win/lose, wiring of all systems | `people`, `border`, `ground`, `player`, `hud`, `minimap`, `night`, `running`, `rescued_count`; `pursuit_assignments()`, `view_half_extents()` | `TD_PLAZA_SIZE`, `TD_PEOPLE_COUNT`, `TD_CAMERA_*`, `TD_MINIMAP_*`, `TD_DARK_*`, `TD_WANDER_*`, `TD_SPAWN_*`, `TD_COVER_*`, `RNG_SEED` |
+| `topdown_player.gd` (`TopDownPlayer`) | WASD movement, aiming, targeting modes, firing, joy burst | signals `target_changed`, `targeting_changed`, `debug_toggled`, `burst_fired`; `target`, `targeting_mode`, `burst_cooldown` | `TD_PLAYER_*`, `TD_TARGETING_*`, `TD_ELEMENT_*`, `TD_BURST_*`, `TD_HIGHLIGHT_*` |
+| `person.gd` (`Person`) | One person: affinity, joy, gloom, rescued state, grace, visuals, floating numbers | `receive_joy()`, `drain_joy()`, `tick()`, `joy_needed()`, `chest_position()`, fields `gloom`, `joy`, `cover`, `protection`, `is_rescued`; signals `rescued`, `relapsed` | `JOY_*`, `PERSON_*`, `GRACE_*`, `GLOOM_*` |
+| `gloom_sim.gd` (`GloomSim`) | Static rules: darkening, spreading, draining, protection | `update(people, delta, drain_mult, strength, border)`, `is_dark()`, `protection_for()` | `GLOOM_*`, `SPREAD_*`, `TD_DRAIN_MULTIPLIER` |
+| `border.gd` (`Border`) | The living border: loop polygon, members, gaps, posts, push-back, building capture | `update()`, `on_rescue()`, `on_relapse()`, `cover_at()`, `clip_move()`, `shove()`, `polygon`, `members`, `active`, `segment_is_gap()`, `gap_midpoints()`, `landmark_beautified()`; statics `is_inside()`, `gap_flags()`, `slot_count_for()` | `BORDER_*` |
+| `building.gd` (`Building`) | One block the border can beautify; lantern + ring if it is a post | `update(delta, inside_fraction)`, `set_post()`, `beautified` | `BORDER_BUILDING_SECONDS`, `BORDER_TINT_SECONDS` |
+| `landmark.gd` (`Landmark`) | The beacon block's hold ring and win timer | `update(delta, beautified)`, `progress()`, `is_held()` | `BORDER_LANDMARK_*` |
+| `painted_ground.gd` (`PaintedGround`) | 1 m tile grid: paint weight and colour (a MultiMesh), erosion by dark people | `update_paint()`, `paint_weight_at()`, `paint_colour_at()`, `set_region()`, `average_weight(_excluding)()`, `beautified_fraction()` | `TD_GROUND_*`, `TD_PAINT_*`, `TD_ERODE_*`, `GROUND_*` |
+| `night_cycle.gd` (`NightCycle`) | Dusk to dawn clock, grey strength, sun and ambient keyframes | `update()`, `progress()`, `strength()`, `is_over()`, `elapsed` | `NIGHT_*` (length, peak, calm opening) |
+| `joy_projectile.gd` (`JoyProjectile`) | A shot: music (homing note), art (lobbed blob), nature (flower); impact effects | `launch_velocity()` (static); set `element`, `velocity`, `target`, `people` before `add_child` | `TD_PROJECTILE_*`, `TD_NOTE_*`, `TD_SPLAT_*`, `TD_FLOWER_*`, `TD_PETAL_*`, `TD_TRAIL_*` |
+| `bloom.gd` (`Bloom`) | Nature flower patch: pulsed joy to people inside, then fades | set `people` before adding | `TD_BLOOM_*` |
+| `floor_effects.gd` (`FloorEffects`) | Registry and cap for transient floor overlays (rings, splats, blooms) | `add()`, `live()`, `enforce_cap()`, `summary()` | `TD_MAX_FLOOR_EFFECTS` and the priority inventory |
+| `hud.gd` (`Hud`) | Labels: target element, rescued count, night bar, burst bar, alerts, end screen, debug text | `set_*()`, `show_alert()`, `show_end()` | (few; mostly literals in `hud.gd`) |
+| `minimap.gd` (`Minimap`) | Round minimap: data model (`border_pts`, `member_pts`, `dark_pts`, ...) then a 128 px image | `tick(delta)`, `refresh_from(...)`, `radius()` | `TD_MINIMAP_*` |
+| `gap_arrows.gd` (`GapArrows`) | Coral screen-edge arrows toward off-screen gaps | `update_arrows()`, static `off_screen_arrows()` | `OFFSCREEN_*` |
+| `controls.gd` (`Controls`) | Registers every InputMap action (no raw keys elsewhere) | `setup()` | none |
+| `config.gd` (`Config`) | All tuning constants and tiny pure helpers | `multiplier()`, `falloff()`, `gloom_level()`, `is_automated_test()` | n/a |
+
+## Where tuning lives (`scripts/config.gd`)
+Top: element enum, joy numbers, person look. `TD_*` block ("Territory game", ~line 69): plaza, people, gloom, drain, wander,
+camera, player, projectiles, blooms, ground, HUD, minimap. "Round 10: the floor" (~318): the floor-overlay priority
+inventory and cap. "Round 9: the living border" (~356): `BORDER_*`, landmark, night. "Round 10: easier growth" (~425):
+calm opening and friendlier numbers. The matchup table and helpers are at the bottom. Rule: no magic numbers in other scripts.
+
+## Data flow per frame (`TopDownMain._process`)
+1. `_update_camera`, `_update_highlight`, `_update_readability` (minimap refresh about every 0.1 s, gap arrows) run even when ended.
+2. If `running`: `night.update` -> HUD night bar and light.
+3. `border.update(people, delta, strength)`: members, gaps, push-back, building capture, loop polygon, ground region.
+4. `_update_people`: steer unrescued people (pursue weakest rescued, edge-seek if dark, else wander).
+5. `_update_cover` (every `GROUND_UPDATE_INTERVAL`): `Person.cover` and `protection` from the border depth or the paint.
+6. `GloomSim.update`: darken, spread, drain. Then `Person.tick` for each person.
+7. `ground.update_paint` (paint spreads around rescued people, fades, erodes at the edge), `landmark.update`, HUD burst bar, `_check_end`.
+Player physics (`TopDownPlayer._physics_process`) and projectile physics run on the 60 Hz physics tick, separately.
+
+## Tests (`tests/*_test.gd`, gdUnit4 v6.2.2)
+- **Input-driven**: level tests use `TopDownTestUtil.level_runner(self)` (sets the 1280x720 window, loads `topdown.tscn`) and
+  drive real key and mouse events with `scene_runner` (`simulate_key_pressed`, `simulate_mouse_move`, `simulate_frames`).
+  Pure rules (border geometry, gloom, config) are called directly with no scene.
+- **Helpers** in `tests/topdown_test_util.gd`: `send_everyone_away`, `place`, `screen_of`, `projectiles`, `blooms`,
+  `select_mode` (real F2 presses), `clear_spot`, `leave_loaded_scene`. Suites must be independent: each builds its own scene
+  and never relies on another suite having run (they run in separate Godot processes).
+- **Determinism**: every run uses `--fixed-fps 60` and `Config.RNG_SEED`; there is no wall-clock in game logic. Never use
+  `simulate_frames(n, ms)` with a delay: it waits real timers.
+- **Test mode**: `POSITIVEFPS_TEST=1` or headless -> `Config.is_automated_test()` is true; the game never captures the real OS mouse.
+  The window title says it is a test. The level test util switches the minimap's automatic redraw off (8 ms per redraw);
+  `readability_test.gd` and the landmark test cover it.
+- **Speed**: `tools/run_tests.py` splits suites (and slow tests, listed in `tools/test_weights.json`) over parallel Godot
+  processes. Refresh the weights with `python tools/run_tests.py --update-weights` when tests change a lot.
+
+## Known gotchas
+- gdUnit delivers a key press **twice** to the root scene's `_unhandled_input`; handlers must tolerate it (`menu.gd` guards its Play action).
+- `Input.action_press()` does not reach `_unhandled_input`; tests send real `InputEvent`s through the scene runner.
+- `MultiMesh` colour readback is zero in headless mode: test `PaintedGround.paint_colour_at()` or weights, not pixels.
+- The nested `design/style_test` project has its own `project.godot`; Godot ignores it. `design/` is never committed by agents or gated.
+- Windows long paths: keep temp copies in short paths (coverage copies to `.coverage_build/`, excluding `design/`).
+- The console is cp1252: `tools/run_tests.py` and `gate.py` reconfigure stdout to UTF-8; keep non-ASCII out of `print` elsewhere.
+- The gdUnit CLI shrinks the window to 64x64; set `get_window().size` before loading a scene that lays out at `_ready`.
+- Strict typing: warnings are errors (`project.godot`). Type every `for` variable; avoid iterating arrays that may hold freed nodes.
+- Coverage ignores lambda bodies passed as multi-line arguments; hoist them into a `var` to measure them.
+
+## Quality gate and tools
+- `python tools/gate.py` = lint + all tests (parallel, about 25 s). `--full` = lint + tests with line coverage + ratchet (about 35 s).
+  `--no-cache` ignores the result cache. The pre-commit hook runs `gate.py --hook`: the same, upgraded to `--full` when
+  `coverage_baseline.json` is staged. A passing result is cached by a sha256 of the working tree (`.git/positivefps-gate-cache.json`).
+- **Every round must end with `python tools/gate.py --full`, then `python tools/coverage.py --check-determinism`, then a baseline
+  commit** (`python tools/coverage.py --update-baseline`). The hook alone does not run the coverage ratchet.
+- Other tools: `lint.py [--fix]`, `coverage.py`, `cleanup_worktrees.py`, `install_hooks.py`. Timing history: `tools/BUILD_TIMINGS.md`.
+
+## Agent workflow rules
+- Godot runs headless only; never open the editor GUI. Console exe path: `tools/run_tests.py` (`GODOT` env var overrides).
+- Commit with explicit paths (`git add <files>`), never `git add -A`; never stage `design/`; never `--no-verify` or amend; never push.
+- Never kill processes you did not start. Never lower `coverage_baseline.json`. Scratch work goes in `.scratch/` (gitignored); delete it.
+- Run long commands in the foreground (they take under a minute now). Finish a round with the full gate, not just the hook.
+
+## How to brief an agent (files to read first)
+- **Border / territory**: `scripts/border.gd`, `building.gd`, `landmark.gd`, `painted_ground.gd`; tests `border_*_test.gd`, `edge_pressure_test.gd`, `cover_test.gd`; config `BORDER_*`.
+- **People / gloom / night**: `person.gd`, `gloom_sim.gd`, `night_cycle.gd`, `topdown_main.gd` (`_update_people`, `pursuit_assignments`); tests `person_test`, `gloom_sim_test`, `night_cycle_test`, `topdown_crowd_test`.
+- **Projectiles / blooms / floor effects**: `joy_projectile.gd`, `bloom.gd`, `floor_effects.gd`; tests `projectile_*_test.gd`, `floor_test`, `paint_bloom_camera_test`.
+- **Targeting / input**: `topdown_player.gd`, `controls.gd`; tests `targeting_test`, `topdown_mode_test`, `grace_cue_test`.
+- **HUD / minimap / camera**: `hud.gd`, `minimap.gd`, `gap_arrows.gd`, `topdown_main.gd` (`_update_camera`, `view_half_extents`); tests `hud_test`, `readability_test`, `debug_overlay_test`, `menu_test`.
+- **Tooling**: `tools/gate.py`, `run_tests.py`, `coverage.py`, `lint.py`, `.githooks/pre-commit`, `tools/COVERAGE_TOOL_NOTES.md`.
+- Always also read: this file, the config section you touch, and `tests/topdown_test_util.gd` before writing a level test.

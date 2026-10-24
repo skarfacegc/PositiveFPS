@@ -42,6 +42,14 @@ t_ratchet`.
 - **gdlint `class-definitions-order`** wants `var` declarations in the order signals, enums, consts, then public and
   private vars. Moving a var is safe; only the order changes.
 
+- **Probe cost dominates the instrumented run.** A call into a shared dictionary (`CovProbe.hit("file:line")`) costs
+  about 210 ns; an inline `_cov_h[LINE] += 1` on a static array declared in the instrumented script itself costs about
+  18 ns (a static array reached through another class costs 56 ns, the call with an int key 95 ns). Per-script arrays
+  are registered with `CovProbe.register` from a static initializer and summed at exit.
+- **Parallel test processes** each write their own hits file (`POSITIVEFPS_COV_OUT`); `merge_hits` sums them.
+- **A test that passed only because of suite order** is invisible in one long process: one level test needed the
+  1280x720 window that an earlier suite set. Running each suite in its own process found it.
+
 ## Before extracting
 - [ ] Prior-art search: existing Godot 4 coverage add-ons, and gdUnit4/GUT roadmaps (contributing upstream may be better).
 - [ ] Line coverage, then maybe branch coverage.
@@ -87,3 +95,18 @@ t_ratchet`.
   Found and fixed: `run_tests.py` and `coverage.py` could not print Godot's em dashes on a cp1252 Windows console, so an
   `--update-baseline` run died halfway. Both now reconfigure stdout and stderr to UTF-8 (`errors="replace"`) when
   `run_tests.py` loads, so no `PYTHONIOENCODING` workaround is needed.
+- 2026-10-24: Tooling round (timings in `tools/BUILD_TIMINGS.md`). Instrumented run 483 s -> 30 s, plain suite 75.6 s -> 22.5 s.
+  - Probes are inline per-script array increments (see Lessons); the copy skips `design/` and `.scratch/` and starts
+    from the repo's `.godot` import cache.
+  - Test suites run in parallel Godot processes (`tools/run_tests.py`); coverage sums the per-process hits. Per-file
+    line and function coverage were identical before and after (99.0%, 2411 of 2436 lines).
+  - `--check-determinism` runs the instrumented suite twice and compares the exact set of lines hit (and reports the
+    hit counts that differ; with the fixed 1/60 s step they were identical). It replaces "two identical runs before
+    every `--update-baseline`": one run normally, the determinism check once at the end of a round.
+  - Tiering decision: instrumented 30.1 s against plain 23.1 s is +30%, not under the 30% rule. The hook (via
+    `tools/gate.py --hook`) runs lint and the plain suite; the ratchet runs when `coverage_baseline.json` is staged or
+    with `gate.py --full`, and every round must end with `--full`.
+  - `tools/gate.py` caches a passing result keyed on a sha256 of the working tree (scripts, tests, tools, scenes,
+    resources, project.godot, gdlintrc, the gdUnit4 version and the baseline; not `design/` or Markdown).
+  - Hit counts for a line now come from per-process arrays indexed by the original line number, so the JSON format
+    (`"scripts/x.gd:LINE": count`) and the reports are unchanged.
