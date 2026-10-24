@@ -184,3 +184,22 @@ targeting.
 - **Open for round 9:** does the inward erosion feel right, or should the dark person's 2 m reach be smaller?
 - **Next:** round 9 is the style pass that brings `design/style_test` into the game (pixel-diorama rendering, earthy joy
   palette, the cold-to-warm transformation).
+
+## Direction change: the living border (2026-10-24, after playing round 8)
+The ground control is the unique part and a promising core loop, so the game focuses there. Rescuing people stays, but its
+purpose is now to capture ground.
+- **First person is dropped.** Top-down evolves into the territory game.
+- **The living border:** rescued people organise themselves into a border around a centre. The centre forms on its own
+  from wherever your first rescued people gather; there's no pre-placed heart. The border expands as you rescue more people.
+- **Shape:** organic, pushed outward where you work, wrapping around buildings and obstacles.
+- **Border people:** hold back darkness (dark people can't cross an intact stretch; they press against it) and fill gaps
+  (when one relapses, neighbours shuffle along to close the hole).
+- **Inside the border:** the land is gradually beautified, ground and buildings alike.
+- **Tension:**
+  - **Overextension:** a bigger area means a longer border, so the same people stand further apart. Thin stretches leak
+    darkness. Every expansion is a risk.
+  - **Dusk to dawn** replaces the plain timer: the light fades toward night (grey grows stronger), and the level ends at
+    dawn. Grey waves were considered but not chosen for now.
+- **Win:** each area has a landmark building. Enclose it with the border and hold it to win; the level is lost if the
+  border collapses.
+- **Prototype:** build a few border variants with a picker to compare (the user asked for options to try).
