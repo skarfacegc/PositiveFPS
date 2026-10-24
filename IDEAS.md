@@ -479,3 +479,50 @@ Playtest questions for round 11:
 - Growth risk: is it risky enough again? Does a lone press on the intact line feel like a threat, or does it still feel
   harmless?
 - Night: does 3 minutes feel like the right length for the calm opening and the midnight push?
+
+## Round 11 playtest and round 12 plan (2026-10-24)
+Feedback: super close, but missing something. The capture side is decent; the "combat" loop is too simple (move
+around and point at things). Pace feels right. Zoom, 10 m auto range and labels are good. The 3-minute night feels
+right. Growth is still too safe. Grey-level changes (light grey, grey, dark) go unnoticed; they should be more
+pronounced. (Whether grey to dark feels slower wasn't noticed either way.)
+
+Three combat ideas were discussed: (1) read the person, (2) elements combine on the ground, (3) dance with the dark.
+Chosen: **1 and 3 together, plus going dim**, as one version. Idea 2 is kept for later; it fits element unlocks in the
+progression tree.
+
+**A. Read the person (idea 1)**
+- Grey people get readable moods, all three in the first try:
+  - **Guarded:** turns away from the player; joy lands only from the front or side.
+  - **Skittish:** backs off if the player runs at them; approach at a walk.
+  - **Glum:** slumps, with short look-up moments; shots in that moment count three times.
+- **Sheltering:** joy doesn't land on a grey person while a dark person stands close. Deal with the dark person first or
+  draw them away.
+- The auto-element and hover targeting stay.
+
+**B. Dance with the dark (idea 3)**
+- Dark people reach for the player with a clear wind-up. A grab drains **spirit**, and fire slows as spirit drops.
+- **Twirl:** a short dash with a cooldown. Twirling through a grab at the last moment gives a small joy burst.
+- **Spirit is a spendable resource:** rescues fill it, and the joy burst (G) costs it. The user likes collecting a
+  spendable resource and wants to expand it later (future: more things to spend it on).
+
+**C. Going dim (instead of dying)**
+- At zero spirit the player goes **dim**: half walk speed, no joy, colour drains toward grey. The twirl still works.
+- Dark people **ignore a dim player** and go back to pressing the border.
+- **Recovery:** inside a captured area, faster the deeper inside the border you are. Before any border exists, stand
+  near the landmark to recover.
+- While the player is dim, the border loses ground **x1.5** faster (the troupe loses heart). The border visibly dims or
+  flickers so the cause is clear.
+
+**D. Growth risk: pressure at the edges**
+- Dark people gather more at the far edge of the border, so the newest ground is the riskiest. Spacing and intact
+  drain numbers are unchanged for now; retune after playing with going dim.
+
+**E. Noticeable grey-level changes**
+- A short cold puff or ripple when someone darkens, and a warm one when they lighten.
+- A brief blip on the minimap when someone turns dark.
+
+**Deferred:** checking balance with one starting element waits for the level goals and progression work (every
+element is still available until then).
+
+**Build note:** round 12 should start from the switchable-looks work if that lands first; new things get placeholder
+visuals only. Round 12 is large; consider splitting it (for example C + B first, then A, D and E).
