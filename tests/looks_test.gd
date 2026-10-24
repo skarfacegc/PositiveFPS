@@ -354,3 +354,56 @@ func test_the_landmark_ring_grows_in_the_styled_look() -> void:
 	lm.update(5.0, true)
 	assert_bool(look._glow.visible).is_true()
 	assert_str(look._label.text).contains("50%")
+
+
+# Round 12a: the dimmed person's aura and the grab cue exist in the styled look too; the styled minimap shows warm
+# territory wherever the placeholder minimap does.
+func test_styled_dimmed_people_have_a_smoke_aura_and_the_grab_cue_leans_the_other_way() -> void:
+	Looks.set_mode(Looks.Mode.STYLED)
+	var dimmed: Person = auto_free(Person.new())
+	dimmed.gloom = 0.95
+	add_child(dimmed)
+	dimmed.tick(0.016)
+	assert_bool(dimmed.look.is_styled()).is_true()
+	assert_bool(dimmed.look.has_aura()).is_true()
+	assert_bool(dimmed.look.aura.visible).is_false()  # the placeholder haze stays hidden; the styled smoke is drawn
+	var parts: Dictionary = (dimmed.look as PersonLookStyled)._parts[PersonLook.Kind.DARK]
+	assert_bool(parts.has("haze")).is_true()
+	var grey: Person = auto_free(Person.new())
+	add_child(grey)
+	grey.tick(0.016)
+	assert_bool(grey.look.has_aura()).is_false()
+	dimmed.grab_frac = 0.8
+	dimmed.tick(0.016)
+	assert_bool(dimmed.look.grab_ring.visible).is_true()
+	assert_float(dimmed.look.visual.rotation.x).is_less(-0.1)
+
+
+func test_the_styled_minimap_shows_warm_territory_like_the_placeholder_one() -> void:
+	var s: Dictionary = await _start()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	await _rescue_ring(runner, td, 8)
+	await runner.simulate_frames(200)
+	var placeholder := MinimapLookPlaceholder.new()
+	var styled := MinimapLookStyled.new()
+	var warm_points := 0
+	for ix: int in range(-24, 24, 2):
+		for iz: int in range(-24, 24, 2):
+			var at := Vector3(float(ix) + 0.5, 0.0, float(iz) + 0.5)
+			var weight := td.ground.paint_weight_at(at)
+			var p_col := placeholder.ground_colour(td.ground, Vector2(at.x, at.z), 3, 5)
+			var s_col := styled.ground_colour(td.ground, Vector2(at.x, at.z), 3, 5)
+			var styled_warm := s_col.r > s_col.b
+			var grey_col := Config.GROUND_GREY
+			var placeholder_warm := (
+				absf(p_col.r - grey_col.r) + absf(p_col.g - grey_col.g) + absf(p_col.b - grey_col.b) > 0.03
+			)
+			if weight >= 0.2:
+				warm_points += 1
+				assert_bool(styled_warm).is_true()
+				assert_bool(placeholder_warm).is_true()
+			elif weight <= 0.0:
+				assert_bool(styled_warm).is_false()
+	assert_int(warm_points).is_greater(20)
+	await TopDownTestUtil.leave_loaded_scene(td)

@@ -17,13 +17,22 @@ func is_styled() -> bool:
 	return true
 
 
+# Warm territory shows as soon as a tile has any paint, like the placeholder minimap (which shows the tile's colour,
+# grey toward warm). Round 12a fixed a port that waited for half paint, so slowly filling ground looked unclaimed. The
+# warm share of the blend is warm_amount(), the same model the placeholder's colour follows.
 func ground_colour(ground: PaintedGround, w: Vector2, px: int, py: int) -> Color:
 	var weight := 0.0 if ground == null else ground.paint_weight_at(Vector3(w.x, 0.0, w.y))
 	var checker := ((px * 7 + py * 13) % 11) < 2
-	if weight >= 0.5:
-		var warm := WARM_B if checker else WARM_A
-		return warm.darkened(0.08) if weight < 0.7 else warm
-	return GREY_B if checker else GREY_A
+	var grey := GREY_B if checker else GREY_A
+	var warm := WARM_B if checker else WARM_A
+	return grey.lerp(warm, warm_amount(weight))
+
+
+# How warm a tile of paint `weight` is drawn (0 grey .. 1 fully warm): any paint shows, and it is fully warm by 0.6.
+static func warm_amount(weight: float) -> float:
+	if weight <= 0.0:
+		return 0.0
+	return clampf(0.25 + weight / 0.6 * 0.75, 0.0, 1.0)
 
 
 func building_colour(warm: bool) -> Color:

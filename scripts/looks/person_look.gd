@@ -23,7 +23,14 @@ var frac: float = 0.0
 var warning: bool = false
 var danger: float = 0.0
 var wave: float = 0.0
+# Round 12a (placeholder, shared by both looks): the warning ring that grows at a grabber's feet toward the player, and
+# the soft dark haze under a dimmed person (the styled look draws its own, see has_aura).
+var grab_ring: MeshInstance3D
+var aura: MeshInstance3D
 var _grace_mat: StandardMaterial3D
+# +1 leans the body back as the rules say; the styled bodies face the other way and flip it.
+var _lean_sign: float = 1.0
+var _grab_mat: StandardMaterial3D
 # Seeded random numbers for purely cosmetic jitter (floating number positions), so runs repeat.
 var _fx_rng := RandomNumberGenerator.new()
 
@@ -61,6 +68,8 @@ func setup(person: Person) -> void:
 	grace_ring.material_override = _grace_mat
 	grace_ring.visible = false
 	add_child(grace_ring)
+	_build_grab_ring()
+	_build_aura()
 	_fx_rng.seed = Config.RNG_SEED
 
 
@@ -74,6 +83,7 @@ func sync() -> void:
 	if subject == null or label == null:
 		return
 	_update_grace_cue()
+	_update_grab_cue()
 	var need := subject.joy_needed()
 	frac = clampf(subject.joy / need, 0.0, 1.0)
 	warning = false
@@ -105,6 +115,8 @@ func sync() -> void:
 			label.text = "" if subject.joy <= 0.0 else str(int(frac * 100)) + "%"
 			label.modulate = Color.WHITE
 	_sync_body()
+	if aura != null:
+		aura.visible = kind == Kind.DARK and not has_styled_aura()
 
 
 # A little bounce: up and down twice (a rescue).
@@ -210,6 +222,76 @@ func show_number(value: float, mult: float) -> void:
 		t.tween_property(lbl, "position:x", lbl.position.x + _fx_rng.randf_range(-0.3, 0.3), 0.7)
 		t.tween_property(lbl, "modulate:a", 0.0, 0.3).set_delay(0.4)
 		t.tween_callback(lbl.queue_free).set_delay(0.7)
+
+
+# True when the look draws the dimmed-person aura itself (the styled look), so the placeholder haze stays hidden.
+func has_styled_aura() -> bool:
+	return false
+
+
+# True when a dimmed person is showing a smoke or haze aura, in either look.
+func has_aura() -> bool:
+	return kind == Kind.DARK and (has_styled_aura() or (aura != null and aura.visible))
+
+
+func _build_aura() -> void:
+	aura = MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = Config.DIM_AURA_RADIUS
+	mesh.bottom_radius = Config.DIM_AURA_RADIUS
+	mesh.height = 0.01
+	aura.mesh = mesh
+	aura.position = Vector3(0, 0.025, 0)
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Config.DIM_AURA_COLOUR
+	aura.material_override = mat
+	aura.visible = false
+	add_child(aura)
+
+
+func _build_grab_ring() -> void:
+	grab_ring = MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 1.0
+	mesh.bottom_radius = 1.0
+	mesh.height = 0.02
+	grab_ring.mesh = mesh
+	_grab_mat = StandardMaterial3D.new()
+	_grab_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_grab_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_grab_mat.albedo_color = Config.GRAB_RING_COLOUR
+	grab_ring.material_override = _grab_mat
+	grab_ring.visible = false
+	add_child(grab_ring)
+	# The ring is a loose placeholder in the styled look too (see Looks.note_placeholder).
+	if is_styled():
+		Looks.note_placeholder(grab_ring, "grab warning ring")
+
+
+# The grab cue (round 12a): during the wind-up the body leans back and a red ring grows at the feet toward the player;
+# in the lunge the body snaps forward. Nothing shows when the person is not grabbing.
+func _update_grab_cue() -> void:
+	var grabbing := subject.grab_frac > 0.0 or subject.grab_lunging
+	grab_ring.visible = grabbing
+	var lean := 0.0
+	if subject.grab_lunging:
+		lean = -Config.GRAB_LEAN
+	elif subject.grab_frac > 0.0:
+		lean = Config.GRAB_LEAN * subject.grab_frac
+	visual.rotation.x = lean * _lean_sign
+	if not grabbing:
+		return
+	var frac := 1.0 if subject.grab_lunging else subject.grab_frac
+	var radius := lerpf(0.2, Config.GRAB_HIT_RANGE, frac)
+	grab_ring.scale = Vector3(radius, 1.0, radius)
+	# The ring is placed in the person's own frame, which is turned to face the player, so "toward" is local forward.
+	var local := subject.global_transform.basis.inverse() * subject.grab_toward
+	grab_ring.position = Vector3(local.x, 0.05, local.z) * (Config.GRAB_HIT_RANGE * 0.5 * frac)
+	var col := Config.GRAB_RING_COLOUR
+	col.a = lerpf(0.25, 0.7, frac)
+	_grab_mat.albedo_color = col
 
 
 # Builds the body under `visual`. Overridden by each look.

@@ -38,8 +38,10 @@ func refresh() -> void:
 	_gap_glow_mat.set_shader_parameter("strength", 0.12 + 0.6 * pulse)
 	var poly := subject.polygon
 	var live := subject.active and poly.size() >= 3
-	_haze.visible = live
-	_gold_motes.visible = live
+	# Round 12a: a dim player makes the border flicker; the haze and motes drop out in the dark half of the flicker.
+	var lit := subject.flicker() > 0.5 * (1.0 + Config.DIM_FLICKER_MIN)
+	_haze.visible = live and lit
+	_gold_motes.visible = live and lit
 	_gap_motes.visible = live
 	if not live:
 		for g: MeshInstance3D in _glows:

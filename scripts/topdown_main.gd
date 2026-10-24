@@ -21,7 +21,7 @@ const BLOCK_POSITIONS: Array[Vector3] = [
 	Vector3(-6, 1, 24),
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
-const HINT := "WASD move | Shift run | Click a person to lock on | G/Q joy burst | R restart | M menu | [F4] look"
+const HINT := "WASD move | Shift run | Space twirl | Click to lock on | G/Q burst | R restart | M menu | [F4] look"
 
 var ground: PaintedGround
 var player: TopDownPlayer
@@ -32,6 +32,8 @@ var minimap: Minimap
 var arrows: GapArrows
 var border: Border
 var landmark: Landmark
+# Round 12a: the grabs of dimmed people (see grabs.gd).
+var grabs: Grabs
 var night: NightCycle
 # The looks that are not owned by one object: the floor and walls, and the camera / post-process pipeline (see
 # scripts/looks). F4 flips the look in place with toggle_look().
@@ -83,9 +85,15 @@ func _ready() -> void:
 	landmark = Landmark.new()
 	add_child(landmark)
 
+	grabs = Grabs.new()
+	add_child(grabs)
+
 	player = TopDownPlayer.new()
 	add_child(player)
 	player.burst_fired.connect(border.shove)
+	player.dim_changed.connect(_on_player_dim_changed)
+	grabs.grab_landed.connect(_on_grab_landed)
+	grabs.grab_avoided.connect(_on_grab_avoided)
 
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -116,6 +124,7 @@ func _ready() -> void:
 	hud.set_target(-1)
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)
 	hud.set_night_progress(0.0)
+	_update_spirit_hud()
 	_note_shared_placeholders()
 	pipeline.apply(self)
 
@@ -133,12 +142,14 @@ func _process(delta: float) -> void:
 	border.update(people, delta, strength)
 	_update_people(delta)
 	_update_cover(delta)
-	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER, strength, border)
+	_update_dim(delta)
+	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER * border.loss_mult, strength, border)
+	grabs.update(people, player, delta)
 	for p: Person in people:
 		p.tick(delta)
 	ground.update_paint(people, delta)
 	landmark.update(delta, border.landmark_beautified())
-	hud.set_burst(player.burst_cooldown)
+	_update_spirit_hud()
 	if debug_on:
 		_update_debug_hint()
 	_check_end()
@@ -239,6 +250,52 @@ func _update_cover(delta: float) -> void:
 		else:
 			p.cover = ground.average_weight(p.global_position, Config.TD_COVER_RADIUS)
 			p.protection = GloomSim.protection_for(p.cover)
+
+
+# Round 12a: a dim player recovers spirit only inside the border (or near the landmark before a border exists), and a
+# dim player makes the border and the paint lose ground faster.
+func _update_dim(delta: float) -> void:
+	border.set_player_dim(player.is_dim)
+	ground.loss_mult = border.loss_mult
+	if player.is_dim:
+		player.add_spirit(dim_recovery_rate() * delta)
+
+
+# Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
+# DIM_RECOVER_DEPTH times the depth protection) inside the border, nothing outside it. Before any border exists, the
+# full rate within LANDMARK_RECOVER_RADIUS of the landmark.
+func dim_recovery_rate() -> float:
+	var pos := player.global_position
+	if border.active:
+		if not Border.is_inside(border.polygon, Vector2(pos.x, pos.z)):
+			return 0.0
+		var depth := border.cover_at(pos)
+		return Config.DIM_RECOVER_RATE * (Config.DIM_RECOVER_BASE + Config.DIM_RECOVER_DEPTH * depth)
+	if _flat_dist(pos, Config.BORDER_LANDMARK_POS) <= Config.LANDMARK_RECOVER_RADIUS:
+		return Config.DIM_RECOVER_RATE
+	return 0.0
+
+
+func _update_spirit_hud() -> void:
+	hud.set_spirit(player.spirit, player.is_dim)
+	hud.set_burst(player.burst_cooldown, player.has_burst_spirit())
+	hud.set_twirl(player.twirl_cooldown)
+
+
+func _on_player_dim_changed(dim: bool) -> void:
+	if dim:
+		hud.show_alert("You went dim! Get inside the border to recover")
+	else:
+		hud.show_alert("Your spirit is back")
+
+
+func _on_grab_landed(_p: Person) -> void:
+	hud.show_alert("Grabbed! -%d spirit" % roundi(Config.GRAB_SPIRIT_DRAIN))
+
+
+func _on_grab_avoided(_p: Person, perfect: bool) -> void:
+	if perfect:
+		hud.show_alert("Perfect twirl!")
 
 
 # The camera follows the player from above and behind, looking at a point just north of them (round 10: orthographic, at
@@ -438,7 +495,16 @@ func _update_people(delta: float) -> void:
 	for p: Person in people:
 		if p.is_rescued:
 			continue
-		if pursuit.has(p):
+		if grabs.is_grabbing(p):
+			continue  # A grabber stands still through the wind-up and the lunge.
+		if _reaches_for_player(p):
+			var to_player: Vector3 = player.global_position - p.global_position
+			to_player.y = 0.0
+			var toward := Vector3.ZERO
+			if to_player.length() > Config.GRAB_RANGE * 0.8:
+				toward = to_player.normalized()
+			_steer(p, toward, Config.TD_DARK_DRIFT_SPEED, delta)
+		elif pursuit.has(p):
 			var target_p: Person = pursuit[p]
 			var to: Vector3 = target_p.global_position - p.global_position
 			to.y = 0.0
@@ -455,6 +521,14 @@ func _update_people(delta: float) -> void:
 			_steer(p, edge_desired, Config.TD_DARK_DRIFT_SPEED, delta)
 		else:
 			_steer(p, _wander_dir(p, delta), Config.TD_WANDER_SPEED, delta)
+
+
+# Round 12a: a dimmed person who notices a player that is not dim (within GRAB_NOTICE_RANGE) drifts toward them to grab.
+# Dimmed people ignore a dim player and go back to pressing the border.
+func _reaches_for_player(p: Person) -> bool:
+	if not GloomSim.is_dark(p) or player.is_dim or not player.active:
+		return false
+	return _flat_dist(p.global_position, player.global_position) <= Config.GRAB_NOTICE_RANGE
 
 
 # Works out which rescued person each dark person drifts toward (the weakest point). Each rescued person takes at most
@@ -593,6 +667,7 @@ func _on_person_rescued(p: Person) -> void:
 	rescued_count += 1
 	border.on_rescue(p)
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)
+	player.add_spirit(Config.SPIRIT_PER_RESCUE)
 
 
 # A rescued person (`p`) relapsed: they step out of the border, and the count goes down.

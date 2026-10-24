@@ -448,6 +448,53 @@ const BORDER_INTACT_DRAIN_FRACTION := 0.25
 const BORDER_SHOVE_RANGE := 4.0
 const BORDER_SHOVE_AMOUNT := 1.5
 
+# ---- Round 12a: spirit, going dim, grabs and the twirl
+# Spirit is the player's spendable resource (0..SPIRIT_MAX). Rescues fill it, the joy burst spends it, a grab drains it.
+const SPIRIT_MAX := 100.0
+const SPIRIT_START := 50.0
+const SPIRIT_PER_RESCUE := 20.0
+const BURST_SPIRIT_COST := 30.0
+# Joy fire rate: full at this fraction of spirit or more, then down linearly to SPIRIT_MIN_FIRE_FRACTION at 0+.
+const SPIRIT_FULL_FIRE_FRACTION := 0.5
+const SPIRIT_MIN_FIRE_FRACTION := 0.4
+# Going dim (spirit 0): half walk speed, no joy. Recovery only inside the border, or near the landmark before a border.
+const DIM_MOVE_MULT := 0.5
+const DIM_RECOVER_RATE := 10.0  # Spirit per second, times (DIM_RECOVER_BASE + DIM_RECOVER_DEPTH * depth protection).
+const DIM_RECOVER_BASE := 0.3
+const DIM_RECOVER_DEPTH := 0.7
+const LANDMARK_RECOVER_RADIUS := 6.0
+const DIM_EXIT_SPIRIT := 30.0
+# While the player is dim the border loses ground this much faster, and its line flickers.
+const DIM_LOSS_MULT := 1.5
+const DIM_FLICKER_SECONDS := 0.5
+const DIM_FLICKER_MIN := 0.2
+const DIM_PLAYER_GREY := Color(0.5, 0.5, 0.52)
+# Dimmed people reach for a player who is not dim. They notice the player from this far (metres).
+const GRAB_NOTICE_RANGE := 7.0
+const GRAB_RANGE := 2.0
+const GRAB_HIT_RANGE := 1.3
+const GRAB_WINDUP := 0.7
+const GRAB_LUNGE_TIME := 0.15
+# The lunge carries the grabber toward where the player stood when it began, by at most this far and never closer than
+# GRAB_LUNGE_STOP. The grab lands if the player is within GRAB_HIT_RANGE of the grabber at the end of the lunge.
+const GRAB_LUNGE_DISTANCE := 1.0
+const GRAB_LUNGE_STOP := 0.7
+const GRAB_COOLDOWN := 2.5
+const GRAB_SPIRIT_DRAIN := 25.0
+const GRAB_LEAN := 0.5  # Radians the grabber leans back at the end of the wind-up.
+const GRAB_RING_COLOUR := Color(0.85, 0.2, 0.25, 0.5)
+# The twirl (Space): a short dash with a cooldown. Twirling within TWIRL_PERFECT_WINDOW before a grab would land avoids
+# it and gives a small joy burst (radius and half the normal joy, no spirit cost).
+const TWIRL_DISTANCE := 3.0
+const TWIRL_TIME := 0.2
+const TWIRL_COOLDOWN := 1.5
+const TWIRL_PERFECT_WINDOW := 0.25
+const TWIRL_BURST_RADIUS := 2.5
+const TWIRL_BURST_JOY_FRACTION := 0.5
+# The dimmed-person haze of the placeholder look (a soft dark disc on the ground), radius in metres.
+const DIM_AURA_RADIUS := 1.7
+const DIM_AURA_COLOUR := Color(0.05, 0.05, 0.08, 0.38)
+
 # The matchups form a soft cycle:
 #   Music is strong against Art, Art is strong against Nature, Nature is strong against Music.
 # Matching the affinity gives MATCH_MULT. The element that loses to the affinity gives WEAK_MULT.

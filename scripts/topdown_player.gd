@@ -13,6 +13,8 @@ signal targeting_changed(mode: int)
 signal debug_toggled
 # Emitted when the joy burst is used, with the player's position (the border shoves toward it).
 signal burst_fired(at: Vector3)
+# Emitted when the player goes dim (spirit reached 0) and when they leave it again.
+signal dim_changed(is_dim: bool)
 
 var targeting_mode: int = Config.TD_TARGETING_MODE
 # The person being shot at, or null. Kept between frames in lock-on and hover modes.
@@ -23,12 +25,22 @@ var people: Array[Person] = []
 var camera: Camera3D
 # Seconds left before the joy burst can be used again. topdown_main.gd shows this on the HUD.
 var burst_cooldown: float = 0.0
+# Round 12a: spirit (0..SPIRIT_MAX) and the dim state (spirit hit 0; it ends at DIM_EXIT_SPIRIT).
+var spirit: float = Config.SPIRIT_START
+var is_dim: bool = false
+# The twirl: seconds until it can be used again, seconds of dash left, seconds since the last one began (large when
+# there has not been one), and where it began.
+var twirl_cooldown: float = 0.0
+var twirl_left: float = 0.0
+var twirl_age: float = 99.0
+var twirl_from := Vector3.ZERO
 
 # The look: draws the body and the ring under the feet from this state (see scripts/looks/player_look.gd).
 var look: PlayerLook
 # Turns a window mouse position into the camera's own view coordinates. Empty (the default) when the camera renders
 # at window size. The styled look renders the 3D view smaller (see ViewPipeline.window_to_view) and sets this.
 var mouse_mapper: Callable = Callable()
+var _twirl_dir := Vector3.ZERO
 var _fire_cooldown := 0.0
 var _aim_point := Vector3.ZERO
 var _has_aim := false
@@ -78,8 +90,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_cycle_targeting()
 	elif event.is_action_pressed("fire") and targeting_mode == Config.TargetingMode.LOCK_ON:
 		_click_lock()
-	elif event.is_action_pressed("burst") and burst_cooldown <= 0.0:
+	elif event.is_action_pressed("burst") and can_burst():
 		_burst()
+	elif event.is_action_pressed("twirl"):
+		_twirl()
 	elif event.is_action_pressed("toggle_debug"):
 		debug_toggled.emit()
 
@@ -89,6 +103,9 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= 9.8 * delta
 	if burst_cooldown > 0.0:
 		burst_cooldown -= delta
+	twirl_age += delta
+	if twirl_cooldown > 0.0:
+		twirl_cooldown = maxf(0.0, twirl_cooldown - delta)
 
 	if not active:
 		velocity.x = 0.0
@@ -101,8 +118,17 @@ func _physics_process(delta: float) -> void:
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var dir := Vector3(input_dir.x, 0.0, input_dir.y)
 	var speed: float = Config.TD_RUN_SPEED if Input.is_action_pressed("run") else Config.TD_MOVE_SPEED
+	if is_dim:
+		speed *= Config.DIM_MOVE_MULT
 	velocity.x = dir.x * speed
 	velocity.z = dir.z * speed
+	if twirl_left > 0.0:
+		# The dash replaces walking: TWIRL_DISTANCE metres over TWIRL_TIME seconds (the last step may be shorter).
+		var step := minf(delta, twirl_left)
+		var dash := _twirl_dir * (Config.TWIRL_DISTANCE / Config.TWIRL_TIME) * (step / delta)
+		velocity.x = dash.x
+		velocity.z = dash.z
+		twirl_left -= step
 	move_and_slide()
 
 	_face_aim()
@@ -168,12 +194,14 @@ func _update_target() -> void:
 # Fires one shot at the target when the cooldown is ready and the target is in range. Notes, paint and flowers are all
 # fired the same way; the element is the target's affinity, so every shot is a best match.
 func _try_fire() -> void:
-	if target == null or _fire_cooldown > 0.0:
+	if is_dim or target == null or _fire_cooldown > 0.0:
 		return
 	if not _in_auto_range(target):
 		return
 	# Round 7: the fire rate depends on the target's element (music fast, art slow). Joy per second is the same.
-	_fire_cooldown = 1.0 / (Config.TD_SHOTS_PER_SECOND * Config.TD_ELEMENT_FIRE_RATE_MULT[target.affinity])
+	_fire_cooldown = (
+		1.0 / (Config.TD_SHOTS_PER_SECOND * Config.TD_ELEMENT_FIRE_RATE_MULT[target.affinity] * fire_rate_mult())
+	)
 	var start := global_position + Vector3(0, 1.2, 0)
 	var pr := JoyProjectile.new()
 	pr.element = target.affinity
@@ -248,9 +276,94 @@ func _more_urgent(a: Person, b: Person) -> bool:
 	return _flat_dist(global_position, a.global_position) < _flat_dist(global_position, b.global_position)
 
 
-# Joy burst: everyone close by gets a best-match hit, then a ring expands from the player's feet.
+# ---- Spirit (round 12a)
+# --------------------------------------------------------------------------------------------------------------
+
+
+# The joy fire rate factor from spirit: 1 at SPIRIT_FULL_FIRE_FRACTION of spirit or more, then linearly down to
+# SPIRIT_MIN_FIRE_FRACTION at (just above) zero.
+func fire_rate_mult() -> float:
+	var frac := spirit / Config.SPIRIT_MAX
+	if frac >= Config.SPIRIT_FULL_FIRE_FRACTION:
+		return 1.0
+	return lerpf(Config.SPIRIT_MIN_FIRE_FRACTION, 1.0, frac / Config.SPIRIT_FULL_FIRE_FRACTION)
+
+
+# True when the burst is ready, the player is not dim and spirit covers its cost.
+func can_burst() -> bool:
+	return burst_cooldown <= 0.0 and has_burst_spirit()
+
+
+# True when spirit covers the burst (and the player is not dim).
+func has_burst_spirit() -> bool:
+	return not is_dim and spirit >= Config.BURST_SPIRIT_COST
+
+
+func add_spirit(amount: float) -> void:
+	_set_spirit(spirit + amount)
+
+
+func lose_spirit(amount: float) -> void:
+	_set_spirit(spirit - amount)
+
+
+# 0 when not dim, up to 1 at spirit 0: how grey the player is drawn.
+func dim_level() -> float:
+	if not is_dim:
+		return 0.0
+	return 1.0 - clampf(spirit / Config.DIM_EXIT_SPIRIT, 0.0, 1.0)
+
+
+# Sets spirit (clamped) and updates the dim state: dim at 0, back to normal at DIM_EXIT_SPIRIT.
+func _set_spirit(value: float) -> void:
+	spirit = clampf(value, 0.0, Config.SPIRIT_MAX)
+	var was_dim := is_dim
+	if spirit <= 0.0:
+		is_dim = true
+	elif is_dim and spirit >= Config.DIM_EXIT_SPIRIT:
+		is_dim = false
+	if is_dim != was_dim:
+		dim_changed.emit(is_dim)
+		if look != null:
+			look.sync()
+
+
+# ---- Twirl (round 12a)
+# --------------------------------------------------------------------------------------------------------------
+
+
+func is_twirling() -> bool:
+	return twirl_left > 0.0
+
+
+# Space: dash TWIRL_DISTANCE metres in the move direction (or the facing direction when standing still).
+func _twirl() -> void:
+	if twirl_cooldown > 0.0 or twirl_left > 0.0:
+		return
+	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var dir := Vector3(input_dir.x, 0.0, input_dir.y)
+	if dir.length() < 0.01:
+		dir = -global_transform.basis.z
+		dir.y = 0.0
+	_twirl_dir = dir.normalized()
+	twirl_from = global_position
+	twirl_left = Config.TWIRL_TIME
+	twirl_age = 0.0
+	twirl_cooldown = Config.TWIRL_COOLDOWN
+
+
+# The small joy burst of a perfect twirl: radius TWIRL_BURST_RADIUS, a fraction of the normal burst joy, free.
+func mini_burst() -> void:
+	for p: Person in people:
+		if _flat_dist(global_position, p.global_position) <= Config.TWIRL_BURST_RADIUS:
+			p.receive_joy(p.affinity, Config.TD_BURST_JOY * Config.TWIRL_BURST_JOY_FRACTION, 0.0)
+	look.play_burst(Config.TWIRL_BURST_RADIUS, Config.TD_BURST_TIME)
+
+
+# Joy burst: everyone close by gets a best-match hit, then a ring expands from the player's feet. It costs spirit.
 func _burst() -> void:
 	burst_cooldown = Config.TD_BURST_COOLDOWN
+	lose_spirit(Config.BURST_SPIRIT_COST)
 	for p: Person in people:
 		if _flat_dist(global_position, p.global_position) <= Config.TD_BURST_RADIUS:
 			p.receive_joy(p.affinity, Config.TD_BURST_JOY, 0.0)

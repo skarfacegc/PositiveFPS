@@ -134,7 +134,7 @@ static func build_dark(root: Node3D, parts: Dictionary) -> void:
 	var skin := StyleKit.mat(StyleKit.hexc("#9d958d"))
 	var cap := StyleKit.mat(StyleKit.hexc("#20222a"))
 	var boots := StyleKit.mat(StyleKit.hexc("#1d1f25"))
-	var soot_mat := StyleKit.mat(StyleKit.hexc("#565b67"))
+	var soot_mat := StyleKit.mat(StyleKit.hexc("#6a707d"))
 	for sx: float in [-0.13, 0.13]:
 		StyleKit.box(root, Vector3(0.2, 0.3, 0.26), Vector3(sx, 0.15, 0.0), boots)
 	# long coat skirt
@@ -164,27 +164,29 @@ static func build_dark(root: Node3D, parts: Dictionary) -> void:
 	# drifting soot motes + smoky haze on the ground
 	var soot := Node3D.new()
 	root.add_child(soot)
-	for k: int in range(9):
+	for k: int in range(18):
 		var ang := k * 2.4
-		var r := 0.45 + 0.35 * fmod(k * 0.37, 1.0)
+		var r := 0.45 + 0.5 * fmod(k * 0.37, 1.0)
 		StyleKit.sph(
 			soot,
-			0.05 + 0.04 * fmod(k * 0.53, 1.0),
-			Vector3(cos(ang) * r, 0.5 + 0.28 * k, sin(ang) * r),
+			0.06 + 0.05 * fmod(k * 0.53, 1.0),
+			Vector3(cos(ang) * r, 0.4 + 0.15 * k, sin(ang) * r),
 			soot_mat,
 			Vector3.ONE,
 			4,
 			false
 		)
-	var haze := StyleKit.glow_plane(root, smoke_material(), 3.4, Vector3(0, 0.05, 0))
+	# Round 12a: a bigger, denser smoke pool and more soot, so a dimmed person stands apart from wistful and gloomy ones.
+	var haze := StyleKit.glow_plane(root, smoke_material(), 5.0, Vector3(0, 0.05, 0))
 	haze.name = "Smoke"
 	parts["soot"] = soot
+	parts["haze"] = haze
 
 
 # The dark smoke haze under a dark person (one dithered dark glow, shared).
 static func smoke_material() -> ShaderMaterial:
 	if _smoke == null:
-		_smoke = StyleKit.glow_mat(Color(0.07, 0.07, 0.1), 0.45)
+		_smoke = StyleKit.glow_mat(Color(0.05, 0.05, 0.08), 0.85)
 	return _smoke
 
 

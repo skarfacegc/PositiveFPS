@@ -121,8 +121,10 @@ func test_g_and_q_burst_only_when_ready() -> void:
 	# Pressing Q during the cooldown must not restart it: the cooldown keeps running down.
 	assert_float(player.burst_cooldown).is_less(before_q)
 
-	# Once the cooldown is ready (set directly, so the test does not wait 8 s), Q bursts again.
+	# Once the cooldown is ready (set directly, so the test does not wait 8 s), Q bursts again. Round 12a: it costs
+	# spirit, so the player is topped up first.
 	player.burst_cooldown = 0.0
+	player.add_spirit(Config.SPIRIT_MAX)
 	runner.simulate_key_pressed(KEY_Q)
 	await runner.simulate_frames(2)
 	assert_float(player.burst_cooldown).is_greater(Config.TD_BURST_COOLDOWN - 0.5)

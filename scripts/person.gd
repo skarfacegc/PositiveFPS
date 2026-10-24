@@ -31,6 +31,11 @@ var debug_label: Label3D
 var grace_time: float = 0.0
 # Seconds left to show the sad face after a relapse.
 var sad_left: float = 0.0
+# Round 12a: the grab cue, set by Grabs. grab_frac is the wind-up progress (0 when not grabbing, up to 1),
+# `grab_lunging` is true for the short lunge after it, and `grab_toward` is the flat direction to the player.
+var grab_frac: float = 0.0
+var grab_lunging: bool = false
+var grab_toward := Vector3.FORWARD
 # Seconds since this person was last hit by a joy projectile.
 var _since_hit: float = 99.0
 

@@ -67,3 +67,25 @@ func test_a_second_alert_restarts_the_fade() -> void:
 	hud.show_alert("Second")
 	assert_str(hud.alert_label.text).is_equal("Second")
 	assert_float(hud.alert_label.modulate.a).is_equal_approx(1.0, 0.001)
+
+
+func test_spirit_bar_and_label_show_spirit_and_dim() -> void:
+	var hud: Hud = _make_hud()
+	hud.set_spirit(65.0, false)
+	assert_bool(hud.spirit_bar.visible).is_true()
+	assert_float(hud.spirit_bar.value).is_equal_approx(65.0, 0.001)
+	assert_str(hud.spirit_label.text).is_equal("Spirit 65 / 100")
+	hud.set_spirit(0.0, true)
+	assert_str(hud.spirit_label.text).contains("DIM")
+
+
+func test_twirl_text_and_the_burst_needing_spirit() -> void:
+	var hud: Hud = _make_hud()
+	hud.set_twirl(0.0)
+	assert_str(hud.twirl_label.text).is_equal("Twirl [Space]: READY")
+	hud.set_twirl(0.9)
+	assert_str(hud.twirl_label.text).is_equal("Twirl [Space]: 0.9s")
+	hud.set_burst(0.0, false)
+	assert_str(hud.burst_label.text).is_equal("Joy burst [G]: needs 30 spirit")
+	hud.set_burst(0.0, true)
+	assert_str(hud.burst_label.text).is_equal("Joy burst [G]: READY")

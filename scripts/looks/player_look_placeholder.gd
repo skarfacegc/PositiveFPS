@@ -10,6 +10,8 @@ var _ring_mat: StandardMaterial3D
 
 
 func sync() -> void:
+	# Round 12a: a dim player's colour drains toward grey (see TopDownPlayer.dim_level).
+	body_mat.albedo_color = Config.TD_PLAYER_COLOUR.lerp(Config.DIM_PLAYER_GREY, subject.dim_level())
 	# The ring under the player is the target's element colour, or cream with no target.
 	if subject.target == null:
 		_ring_mat.albedo_color = Config.TD_NO_TARGET_COLOR

@@ -43,8 +43,14 @@ func play_slump(scale_y: float, duration: float) -> void:
 
 
 func _build_body() -> void:
-	# The styled bodies face +z; people face -z in the game.
+	# The styled bodies face +z; people face -z in the game (so the grab lean is flipped).
 	visual.rotation.y = PI
+	_lean_sign = -1.0
+
+
+# The dimmed person's smoke pool and soot are part of the dark body (see StylePeople.build_dark).
+func has_styled_aura() -> bool:
+	return shown_kind() == Kind.DARK and _parts[Kind.DARK].has("haze")
 
 
 func _sync_body() -> void:

@@ -12,6 +12,8 @@ extends Node3D
 
 # True when darkness erodes paint (the top-down level turns it on).
 var erodes: bool = false
+# Round 12a: how much faster paint erodes and fades back (1 normally, DIM_LOSS_MULT while the player is dim).
+var loss_mult: float = 1.0
 # The look: draws the tiles from the weights and colours below.
 var look: GroundLook
 # The radius of a rescued person's paint disc, in metres. Top-down uses the zone radius; the paint edge border uses
@@ -209,7 +211,7 @@ func _paint(people: Array) -> void:
 
 	for i: int in range(count):
 		# Painting in uses the spread speed; fading back uses the fade speed.
-		var rate := _spread_speed if _target_weights[i] > _weights[i] else _fade_speed
+		var rate := _spread_speed if _target_weights[i] > _weights[i] else minf(1.0, _fade_speed * loss_mult)
 		_weights[i] = lerpf(_weights[i], _target_weights[i], rate)
 		_colors[i] = _colors[i].lerp(_targets[i], rate)
 	look.refresh(_colors, _weights)
@@ -293,7 +295,7 @@ func _erode(people: Array) -> void:
 				seen[idx] = true
 				to_erode.append(idx)
 	for idx: int in to_erode:
-		_weights[idx] = maxf(0.0, _weights[idx] - Config.TD_ERODE_RATE * Config.GROUND_UPDATE_INTERVAL)
+		_weights[idx] = maxf(0.0, _weights[idx] - Config.TD_ERODE_RATE * loss_mult * Config.GROUND_UPDATE_INTERVAL)
 		_hold[idx] = Config.TD_ERODE_HOLD
 
 

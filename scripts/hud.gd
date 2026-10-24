@@ -5,6 +5,10 @@ var night_label: Label
 var night_bar: ProgressBar
 var element_label: Label
 var burst_label: Label
+# Round 12a: spirit (a label and a bar above the burst indicator) and the twirl cooldown (beside the burst indicator).
+var spirit_label: Label
+var spirit_bar: ProgressBar
+var twirl_label: Label
 var hint_label: Label
 var rescued_label: Label
 var targeting_label: Label
@@ -52,6 +56,29 @@ func _ready() -> void:
 	burst_label.position = Vector2(20, 606)
 	burst_label.visible = false
 	add_child(burst_label)
+
+	# Spirit: a label and a bar just above the burst indicator (see set_spirit).
+	spirit_label = Label.new()
+	spirit_label.add_theme_font_size_override("font_size", 20)
+	spirit_label.position = Vector2(20, 548)
+	spirit_label.visible = false
+	add_child(spirit_label)
+	spirit_bar = ProgressBar.new()
+	spirit_bar.min_value = 0.0
+	spirit_bar.max_value = Config.SPIRIT_MAX
+	spirit_bar.show_percentage = false
+	spirit_bar.position = Vector2(20, 578)
+	spirit_bar.size = Vector2(260, 14)
+	spirit_bar.custom_minimum_size = Vector2(260, 14)
+	spirit_bar.visible = false
+	add_child(spirit_bar)
+
+	# Twirl cooldown, beside the burst indicator (see set_twirl).
+	twirl_label = Label.new()
+	twirl_label.add_theme_font_size_override("font_size", 22)
+	twirl_label.position = Vector2(420, 606)
+	twirl_label.visible = false
+	add_child(twirl_label)
 
 	# Controls hint under the element label (set by the level, see set_hint).
 	hint_label = Label.new()
@@ -169,10 +196,40 @@ func set_hint(text: String) -> void:
 	hint_label.text = text
 
 
-# Shows the joy burst cooldown: READY in green when it can be used, otherwise the seconds left in grey.
-func set_burst(cooldown_left: float) -> void:
-	burst_label.visible = true
+# Shows the player's spirit and whether they are dim (the bar and the label go grey).
+func set_spirit(spirit: float, is_dim: bool) -> void:
+	spirit_label.visible = true
+	spirit_bar.visible = true
+	spirit_bar.value = spirit
+	if is_dim:
+		spirit_label.text = (
+			"DIM: spirit %d / %d (recover inside the border)" % [roundi(spirit), roundi(Config.SPIRIT_MAX)]
+		)
+		spirit_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+	else:
+		spirit_label.text = "Spirit %d / %d" % [roundi(spirit), roundi(Config.SPIRIT_MAX)]
+		spirit_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.5))
+
+
+# Shows the twirl cooldown: READY in green, otherwise the seconds left in grey.
+func set_twirl(cooldown_left: float) -> void:
+	twirl_label.visible = true
 	if cooldown_left <= 0.0:
+		twirl_label.text = "Twirl [Space]: READY"
+		twirl_label.add_theme_color_override("font_color", Color(0.6, 1, 0.6))
+	else:
+		twirl_label.text = "Twirl [Space]: %.1fs" % cooldown_left
+		twirl_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+
+
+# Shows the joy burst cooldown: READY in green when it can be used, otherwise the seconds left in grey. `has_spirit`
+# false (round 12a) shows that the burst needs spirit instead.
+func set_burst(cooldown_left: float, has_spirit: bool = true) -> void:
+	burst_label.visible = true
+	if not has_spirit:
+		burst_label.text = "Joy burst [G]: needs %d spirit" % roundi(Config.BURST_SPIRIT_COST)
+		burst_label.add_theme_color_override("font_color", Color(0.9, 0.5, 0.4))
+	elif cooldown_left <= 0.0:
 		burst_label.text = "Joy burst [G]: READY"
 		burst_label.add_theme_color_override("font_color", Color(0.6, 1, 0.6))
 	else:

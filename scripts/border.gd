@@ -35,6 +35,10 @@ var inner: Array[Person] = []
 var segment_gap: Array[bool] = []
 var buildings: Array[Building] = []
 var landmark_building: Building = null
+# Round 12a: how much faster the border loses ground (1 normally, DIM_LOSS_MULT while the player is dim), and whether
+# the line should flicker to show it. Set by set_player_dim().
+var loss_mult: float = 1.0
+var player_dim: bool = false
 
 # The look: draws the line, the haze and the gap glow from the state above (see scripts/looks/border_look.gd).
 var look: BorderLook
@@ -229,6 +233,20 @@ func gap_midpoints() -> Array[Vector3]:
 # The gap pulse right now (see gap_pulse).
 func pulse() -> float:
 	return gap_pulse(_time)
+
+
+# Round 12a: a dim player makes the troupe lose heart. The border loses ground DIM_LOSS_MULT times faster and flickers.
+func set_player_dim(dim: bool) -> void:
+	player_dim = dim
+	loss_mult = Config.DIM_LOSS_MULT if dim else 1.0
+
+
+# How bright the line and haze are drawn: 1 normally, pulsing between DIM_FLICKER_MIN and 1 while the player is dim.
+func flicker() -> float:
+	if not player_dim:
+		return 1.0
+	var wave := 0.5 + 0.5 * sin(TAU * _time / Config.DIM_FLICKER_SECONDS)
+	return lerpf(Config.DIM_FLICKER_MIN, 1.0, wave)
 
 
 # The gap pulse at time `t`: 0 at its trough, 1 at its peak, once every BORDER_GAP_PULSE_SECONDS. It is a cosine, so
@@ -701,7 +719,7 @@ func _update_buildings(delta: float) -> void:
 func _press_darkness(people: Array[Person], delta: float, strength: float) -> void:
 	if not active:
 		return
-	var rate := Config.SPREAD_DRAIN_RATE * Config.TD_DRAIN_MULTIPLIER * strength * delta
+	var rate := Config.SPREAD_DRAIN_RATE * Config.TD_DRAIN_MULTIPLIER * strength * delta * loss_mult
 	for p: Person in people:
 		if p.is_rescued or not GloomSim.is_dark(p):
 			continue

@@ -65,15 +65,21 @@ func test_the_styled_minimap_shades_painted_ground_warm() -> void:
 	var ground: PaintedGround = auto_free(PaintedGround.new())
 	add_child(ground)
 	ground.setup(10)
-	ground._weights[0] = 0.6
+	ground._weights[0] = 0.1
 	ground._weights[1] = 0.9
 	var look := MinimapLookStyled.new()
 	var spot_a := Vector3(-4.5, 0.0, -4.5)
 	var spot_b := Vector3(-4.5, 0.0, -3.5)
 	var a := look.ground_colour(ground, Vector2(spot_a.x, spot_a.z), 1, 1)
 	var b := look.ground_colour(ground, Vector2(spot_b.x, spot_b.z), 1, 1)
-	assert_bool(a.is_equal_approx(MinimapLookStyled.WARM_A.darkened(0.08))).is_true()
+	# Round 12a: any paint shows warm (a little paint is a blend toward warm, a lot is fully warm).
+	var grey := MinimapLookStyled.GREY_A
+	assert_bool(a.is_equal_approx(grey)).is_false()
+	assert_bool(a.is_equal_approx(grey.lerp(MinimapLookStyled.WARM_A, MinimapLookStyled.warm_amount(0.1)))).is_true()
 	assert_bool(b.is_equal_approx(MinimapLookStyled.WARM_A)).is_true()
+	assert_float(MinimapLookStyled.warm_amount(0.0)).is_equal(0.0)
+	assert_float(MinimapLookStyled.warm_amount(0.9)).is_equal(1.0)
+	assert_bool(MinimapLookStyled.warm_amount(0.05) < MinimapLookStyled.warm_amount(0.3)).is_true()
 
 
 func test_the_other_building_models_build() -> void:

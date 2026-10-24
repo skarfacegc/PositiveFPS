@@ -17,6 +17,8 @@ func refresh() -> void:
 	if not subject.active or n < 3:
 		_glow_mesh.clear_surfaces()
 		return
+	# Round 12a: a dim player makes the line flicker (see Border.flicker).
+	var flick := subject.flicker()
 	var intact := 0
 	for j: int in range(n):
 		if not subject.segment_is_gap(j):
@@ -27,6 +29,7 @@ func refresh() -> void:
 			if subject.segment_is_gap(j):
 				continue
 			var colour := subject.segment_colour(j)
+			colour.a = flick
 			var a := poly[j]
 			var b := poly[(j + 1) % n]
 			_line_mesh.surface_set_color(colour)
@@ -41,6 +44,7 @@ func _build() -> void:
 	_line_mat = StandardMaterial3D.new()
 	_line_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_line_mat.vertex_color_use_as_albedo = true
+	_line_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_line_mesh = ImmediateMesh.new()
 	var line_node := MeshInstance3D.new()
 	line_node.mesh = _line_mesh
@@ -66,6 +70,7 @@ func _draw_gap_glow() -> void:
 	if not subject.active or n < 3 or subject.gap_count() == 0:
 		return
 	var alpha := lerpf(Config.BORDER_GAP_GLOW_ALPHA_MIN, Config.BORDER_GAP_GLOW_ALPHA_MAX, subject.pulse())
+	alpha *= subject.flicker()
 	var centre_col := Color(Config.BORDER_GAP_COLOUR.r, Config.BORDER_GAP_COLOUR.g, Config.BORDER_GAP_COLOUR.b, alpha)
 	var edge_col := Color(Config.BORDER_GAP_COLOUR.r, Config.BORDER_GAP_COLOUR.g, Config.BORDER_GAP_COLOUR.b, 0.0)
 	var half := Config.BORDER_GAP_GLOW_WIDTH * 0.5

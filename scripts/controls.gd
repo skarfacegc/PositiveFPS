@@ -19,6 +19,8 @@ static func setup() -> void:
 	_add_action("play", [_key(KEY_1), _key(KEY_ENTER)])
 	# Joy burst: G is the grenade-style key by convention, Q is a second option.
 	_add_action("burst", [_key(KEY_G), _key(KEY_Q)])
+	# Twirl: a short dash with a cooldown (round 12a), also usable while dim.
+	_add_action("twirl", [_key(KEY_SPACE)])
 	# Cycles the targeting mode (lock-on, hover, auto).
 	_add_action("cycle_targeting", [_key(KEY_F2)])
 	# Shows cover and protection above each person, and a hint in the HUD (off by default).
@@ -34,6 +36,7 @@ static func setup() -> void:
 #   move_forward, move_back, move_left, move_right  -> left stick
 #   run                                             -> left stick click
 #   burst                                           -> top face button
+#   twirl                                           -> bottom face button
 #   fire (lock on to a person)                      -> right trigger
 #   cycle_targeting                                 -> left shoulder button
 #   restart, menu                                   -> start or back
