@@ -75,10 +75,10 @@ static func to_hits() -> Dictionary:
 # Appended to every instrumented script. Appending keeps the original line numbers.
 COV_TAIL = '''
 
-static var _cov_h: PackedInt32Array = _cov_make()
+static var @NAME@: PackedInt32Array = @MAKE@()
 
 
-static func _cov_make() -> PackedInt32Array:
+static func @MAKE@() -> PackedInt32Array:
 \tvar a := PackedInt32Array()
 \ta.resize(%d)
 \tCovProbe.register("%s", a)
@@ -278,11 +278,16 @@ def analyze_script(rel, raw_lines):
     }
 
 
+def cov_name(rel):
+    """A counter name unique to the script (a script and the script it extends must not share a static name)."""
+    return "_cov_h_" + re.sub(r"\W", "_", rel)
+
+
 def instrument_lines(rel, raw_lines, result):
     """Returns the instrumented source text. Probe keys use the original 1-based line numbers."""
     out = []
     for idx, raw in enumerate(raw_lines):
-        probe = "_cov_h[%d] += 1" % (idx + 1)
+        probe = "%s[%d] += 1" % (cov_name(rel), idx + 1)
         if idx in result["oneliners"]:
             header, body, body_indent = result["oneliners"][idx]
             out.append(header)
@@ -293,7 +298,9 @@ def instrument_lines(rel, raw_lines, result):
             out.append(raw)
         else:
             out.append(raw)
-    return "\n".join(out) + COV_TAIL % (len(raw_lines) + 2, rel)
+    name = cov_name(rel)
+    tail = COV_TAIL.replace("@NAME@", name).replace("@MAKE@", name + "_make")
+    return chr(10).join(out) + tail % (len(raw_lines) + 2, rel)
 
 
 # ---------------------------------------------------------------------------

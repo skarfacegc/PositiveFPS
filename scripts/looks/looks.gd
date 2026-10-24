@@ -4,7 +4,9 @@ extends RefCounted
 # The look switch. Every main thing on screen has a rules script (person.gd, border.gd, ...) and a look: a separate
 # script that reads the rules' public state and draws it. There are two looks: PLACEHOLDER (plain shapes, the default
 # and the one the tests use) and STYLED (the locked art style from design/style_test). Anything without a styled
-# look falls back to its placeholder look and is counted (see note_placeholder).
+# look falls back to its placeholder look and is counted (see note_placeholder). Every kind below has a styled look;
+# what is still placeholder (projectiles, blooms, the target highlight, the burst ring, HUD text, labels) registers
+# itself with note_placeholder.
 # The mode is static, so it survives a scene reload and the menu choice lasts for the session.
 
 enum Mode { PLACEHOLDER, STYLED }
@@ -80,32 +82,32 @@ static func _live_fallbacks() -> Array[Dictionary]:
 
 
 static func person_look() -> PersonLook:
-	return PersonLookPlaceholder.new()
+	return PersonLookStyled.new() if is_styled() else PersonLookPlaceholder.new()
 
 
 static func player_look() -> PlayerLook:
-	return PlayerLookPlaceholder.new()
+	return PlayerLookStyled.new() if is_styled() else PlayerLookPlaceholder.new()
 
 
 static func building_look() -> BuildingLook:
-	return BuildingLookPlaceholder.new()
+	return BuildingLookStyled.new() if is_styled() else BuildingLookPlaceholder.new()
 
 
 static func landmark_look() -> LandmarkLook:
-	return LandmarkLookPlaceholder.new()
+	return LandmarkLookStyled.new() if is_styled() else LandmarkLookPlaceholder.new()
 
 
 static func ground_look() -> GroundLook:
-	return GroundLookPlaceholder.new()
+	return GroundLookStyled.new() if is_styled() else GroundLookPlaceholder.new()
 
 
 static func border_look() -> BorderLook:
-	return BorderLookPlaceholder.new()
+	return BorderLookStyled.new() if is_styled() else BorderLookPlaceholder.new()
 
 
 static func minimap_look() -> MinimapLook:
-	return MinimapLookPlaceholder.new()
+	return MinimapLookStyled.new() if is_styled() else MinimapLookPlaceholder.new()
 
 
 static func plaza_look() -> PlazaLook:
-	return PlazaLookPlaceholder.new()
+	return PlazaLookStyled.new() if is_styled() else PlazaLookPlaceholder.new()

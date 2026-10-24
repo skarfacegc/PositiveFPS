@@ -386,6 +386,7 @@ func _spawn_people() -> void:
 
 		var p: Person = Person.new()
 		p.affinity = i % 3
+		p.look_seed = i
 		p.gloom = _rng.randf_range(Config.GLOOM_START_MIN, Config.GLOOM_START_MAX)
 		p.position = pos
 		p.ui_scale = Config.TD_UI_SCALE

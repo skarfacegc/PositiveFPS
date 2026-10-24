@@ -6,6 +6,8 @@ extends Control
 const TOP_DOWN_SCENE := "res://topdown.tscn"
 const HINT := "Enter or 1 to play.  In game: R restart, M menu, F2 targeting, F3 debug"
 
+# The look toggle (Placeholder / Styled). The choice lasts for the session (see Looks.mode).
+var look_button: Button
 # Set once Play is pressed, so a key and a click in the same frame start the level only once.
 var _starting: bool = false
 
@@ -31,12 +33,26 @@ func _ready() -> void:
 	var play := _make_button("Play")
 	play.pressed.connect(_start)
 	box.add_child(play)
+	look_button = _make_button(look_text())
+	look_button.pressed.connect(_toggle_look)
+	box.add_child(look_button)
 	box.add_child(_make_label(HINT, 18))
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("play"):
 		_start()
+
+
+# The text of the look button.
+func look_text() -> String:
+	return "Look: %s" % Looks.mode_name()
+
+
+# Flips the look for the next level (and the rest of the session).
+func _toggle_look() -> void:
+	Looks.toggle()
+	look_button.text = look_text()
 
 
 # Starts the level.

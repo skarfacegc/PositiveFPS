@@ -5,6 +5,8 @@ signal rescued
 signal relapsed
 
 var affinity: int = 0
+# A small number that picks cosmetic variety (the pose and outfit variant a styled look draws). Set by the level.
+var look_seed: int = 0
 var joy: float = 0.0
 var is_rescued: bool = false
 # Scales the joy label and floating numbers. Top-down mode sets this higher, because the camera is far away.

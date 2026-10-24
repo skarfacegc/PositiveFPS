@@ -43,9 +43,14 @@ func view_colour() -> Color:
 	return Color.WHITE
 
 
-# The outline round markers. Alpha 0 means none.
-func halo_colour() -> Color:
+# The outline round a marker of this kind ("member", "dark" or "player"). Alpha 0 means none.
+func halo_colour(_kind: String) -> Color:
 	return Color(0, 0, 0, 0)
+
+
+# Draws behind the picture (a backing disc), on `ctl`.
+func draw_back(_ctl: Control) -> void:
+	pass
 
 
 # Draws the frame round the picture, over it, on `ctl` (a square Control; the circle fills it).

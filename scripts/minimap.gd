@@ -117,6 +117,7 @@ func refresh_from(
 
 
 func _draw() -> void:
+	look.draw_back(self)
 	draw_texture_rect(_texture, Rect2(Vector2.ZERO, size), false)
 	look.draw_frame(self)
 
@@ -138,11 +139,11 @@ func _render() -> void:
 	for j: int in range(n):
 		_line(border_pts[j], border_pts[(j + 1) % n], look.line_colour(gap_flags[j]))
 	for m: Vector2 in member_pts:
-		_marker(m, 1.6, look.member_colour())
+		_marker(m, 1.6, look.member_colour(), "member")
 	for d: Vector2 in dark_pts:
-		_marker(d, 1.3, look.dark_colour())
+		_marker(d, 1.3, look.dark_colour(), "dark")
 	_star(landmark_pos, look.landmark_colour())
-	_marker(player_pos, 2.2, look.player_colour())
+	_marker(player_pos, 2.2, look.player_colour(), "player")
 	for k: int in range(view_pts.size()):
 		_line(view_pts[k], view_pts[(k + 1) % view_pts.size()], look.view_colour())
 	_texture.update(_image)
@@ -153,8 +154,8 @@ func _ground_colour(w: Vector2, px: int, py: int) -> Color:
 
 
 # A round marker, with the look's outline round it when it has one.
-func _marker(w: Vector2, radius_px: float, col: Color) -> void:
-	var halo := look.halo_colour()
+func _marker(w: Vector2, radius_px: float, col: Color, kind: String) -> void:
+	var halo := look.halo_colour(kind)
 	if halo.a > 0.0:
 		_disc(w, radius_px + 0.9, halo)
 	_disc(w, radius_px, col)

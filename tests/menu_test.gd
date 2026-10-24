@@ -45,12 +45,25 @@ func _leave_loaded_scene() -> void:
 	await get_tree().process_frame
 
 
-func test_menu_has_one_play_button_and_no_variant_choices() -> void:
+func test_menu_has_a_play_button_and_a_look_toggle_and_no_variant_choices() -> void:
 	var runner: GdUnitSceneRunner = await _start_menu()
 	var buttons: Array = []
 	_find_buttons(runner.scene(), buttons)
-	assert_int(buttons.size()).is_equal(1)
+	assert_int(buttons.size()).is_equal(2)
 	assert_str(buttons[0].text).is_equal("Play")
+	assert_str(buttons[1].text).is_equal("Look: Placeholder")
+
+
+func test_the_look_button_flips_the_look_and_remembers_it() -> void:
+	var runner: GdUnitSceneRunner = await _start_menu()
+	var menu := runner.scene() as Control
+	var button: Button = menu.get("look_button")
+	button.pressed.emit()
+	assert_int(Looks.mode).is_equal(Looks.Mode.STYLED)
+	assert_str(button.text).is_equal("Look: Styled")
+	button.pressed.emit()
+	assert_int(Looks.mode).is_equal(Looks.Mode.PLACEHOLDER)
+	assert_str(button.text).is_equal("Look: Placeholder")
 
 
 func test_hint_line_names_the_keys() -> void:
