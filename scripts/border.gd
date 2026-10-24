@@ -60,6 +60,13 @@ var _arc: Array[float] = []
 var _targets: Dictionary = {}
 var _time: float = 0.0
 var _strength: float = 1.0
+# Round 12b: per angle sample, the time the raw radius was last pushed outward (a rescue or a shove), so dimmed people
+# can prefer the newest stretch (see edge_pressure).
+var _pushed_at: Array[float] = []
+# Round 12b, local gaps: seconds each border member has been faltering (drained below MEMBER_FALTER_FRACTION), and the
+# faltering members a spare inner member has taken the place of (they stay inner while they falter).
+var _falter_age: Dictionary = {}
+var _benched: Dictionary = {}
 var _debug_on: bool = false
 var _debug_labels: Array[Label3D] = []
 
@@ -68,8 +75,10 @@ var _debug_labels: Array[Label3D] = []
 func setup(ground: PaintedGround) -> void:
 	_ground = ground
 	_raw_radii.clear()
+	_pushed_at.clear()
 	for i: int in range(Config.BORDER_SAMPLES):
 		_raw_radii.append(Config.BORDER_MIN_RADIUS)
+		_pushed_at.append(-1.0e9)
 	_make_look()
 
 
@@ -119,6 +128,7 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 			rescued.append(p)
 	_update_centre(rescued, delta)
 	_apply_pending_pushes()
+	_update_falter(rescued, delta)
 	var n := rescued.size()
 	active = n >= Config.BORDER_MIN_PEOPLE
 	if active:
@@ -164,7 +174,10 @@ func _push_at(ang: float, amount: float) -> void:
 	for i: int in range(Config.BORDER_SAMPLES):
 		var a := TAU * float(i) / float(Config.BORDER_SAMPLES)
 		var d := wrapf(a - ang, -PI, PI)
-		_raw_radii[i] += amount * exp(-d * d / (2.0 * Config.BORDER_PUSH_WIDTH * Config.BORDER_PUSH_WIDTH))
+		var bump := exp(-d * d / (2.0 * Config.BORDER_PUSH_WIDTH * Config.BORDER_PUSH_WIDTH))
+		_raw_radii[i] += amount * bump
+		if bump >= 0.5 and i < _pushed_at.size():
+			_pushed_at[i] = _time
 
 
 # A member relapsed: they step out from the centre and leave the border (the slots reshuffle on the next update).
@@ -255,6 +268,41 @@ static func gap_pulse(t: float) -> float:
 	return 0.5 - 0.5 * cos(TAU * t / Config.BORDER_GAP_PULSE_SECONDS)
 
 
+# Round 12b: how much a dimmed person wants to press at the border member standing at `pos`, 0 to 1. It mixes how
+# recently that stretch advanced (EDGE_RECENCY_WEIGHT; 1 just pushed, 0 after EDGE_RECENT_SECONDS) with how far out it
+# is compared with the rest of the loop. 0 when there is no border.
+func edge_pressure(pos: Vector3) -> float:
+	if not active or _raw_radii.is_empty():
+		return 0.0
+	var n := _raw_radii.size()
+	var to := Vector2(pos.x - centre.x, pos.z - centre.z)
+	var i := posmod(roundi(atan2(to.y, to.x) / TAU * float(n)), n)
+	var recency := clampf(1.0 - (_time - _pushed_at[i]) / Config.EDGE_RECENT_SECONDS, 0.0, 1.0)
+	var lo: float = _raw_radii.min()
+	var hi: float = _raw_radii.max()
+	var outer := 0.5
+	if hi - lo > 0.01:
+		outer = (_raw_radii[i] - lo) / (hi - lo)
+	return Config.EDGE_RECENCY_WEIGHT * recency + (1.0 - Config.EDGE_RECENCY_WEIGHT) * outer
+
+
+# How many separate gaps the loop has: runs of neighbouring gap segments count once (a whole open loop counts as one).
+func gap_region_count() -> int:
+	var m := segment_gap.size()
+	var runs := 0
+	for k: int in range(m):
+		if segment_gap[k] and not segment_gap[(k + m - 1) % m]:
+			runs += 1
+	if runs == 0 and gap_count() > 0:
+		return 1
+	return runs
+
+
+# True when `p` is a border member who is faltering right now.
+func is_faltering(p: Person) -> bool:
+	return members.has(p) and p.is_faltering()
+
+
 func gap_count() -> int:
 	var n := 0
 	for g: bool in segment_gap:
@@ -331,11 +379,15 @@ static func slot_count_for(loop_perimeter: float) -> int:
 
 # One gap flag per slot segment. A segment is a gap if the spacing is too wide, or it touches an empty slot. A segment
 # that touches a post (`anchored`) is never a gap while the post stands.
-static func gap_flags(spacing_m: float, filled: Array[bool], anchored: Array[bool] = []) -> Array[bool]:
+static func gap_flags(
+	spacing_m: float, filled: Array[bool], anchored: Array[bool] = [], faltering: Array[bool] = []
+) -> Array[bool]:
 	var out: Array[bool] = []
 	var m := filled.size()
 	for k: int in range(m):
 		var gap := spacing_m > Config.BORDER_MAX_GAP or not filled[k] or not filled[(k + 1) % m]
+		if faltering.size() == m and (faltering[k] or faltering[(k + 1) % m]):
+			gap = true
 		if anchored.size() == m and (anchored[k] or anchored[(k + 1) % m]):
 			gap = false
 		out.append(gap)
@@ -529,9 +581,11 @@ func _assign_members(rescued: Array[Person]) -> void:
 	spacing = perimeter / float(k_total)
 	var slot_taken: Array[bool] = []
 	var post_slot: Array[bool] = []
+	var slot_faltering: Array[bool] = []
 	for k: int in range(k_total):
 		slot_taken.append(false)
 		post_slot.append(false)
+		slot_faltering.append(false)
 	var placed := 0
 	for entry: Dictionary in posts:
 		var b: Building = entry["building"]
@@ -553,22 +607,26 @@ func _assign_members(rescued: Array[Person]) -> void:
 	var slots: Array[Vector2] = []
 	for k: int in range(k_total):
 		slots.append(_point_at_arc(float(k) * spacing))
-	# The outermost m rescued people are border members; the rest are inner members.
+	# The outermost m rescued people are border members; the rest are inner members. Round 12b: a faltering member keeps
+	# their place for GAP_HEAL_DELAY seconds (so the gap they open is not smoothed away at once), then a spare inner
+	# member takes it, if there is one (see _bench_replaced).
+	_bench_replaced(rescued, m)
 	var remaining: Array[Person] = []
-	for p: Person in rescued:
-		remaining.append(p)
 	var border_list: Array[Person] = []
-	for k: int in range(m):
-		var best_i := 0
-		var best_d := -1.0
-		for i: int in range(remaining.size()):
-			var d := Vector2(remaining[i].position.x - centre.x, remaining[i].position.z - centre.z).length()
-			if d > best_d:
-				best_d = d
-				best_i = i
-		border_list.append(remaining[best_i])
-		remaining.remove_at(best_i)
+	var benched_list: Array[Person] = []
+	for p: Person in rescued:
+		if _benched.has(p):
+			benched_list.append(p)
+		elif _falter_age.has(p) and border_list.size() < m:
+			border_list.append(p)  # Kept in place: it goes first, so it claims its own slot.
+		else:
+			remaining.append(p)
+	while border_list.size() < m and not remaining.is_empty():
+		border_list.append(_take_outermost(remaining))
+	while border_list.size() < m and not benched_list.is_empty():
+		border_list.append(benched_list.pop_front())
 	inner = remaining
+	inner.append_array(benched_list)
 
 	# Greedy assignment: each border member takes the nearest free slot, in the order they were chosen. There are always
 	# at least m free slots, because the posts were counted out of the slot total.
@@ -584,7 +642,14 @@ func _assign_members(rescued: Array[Person]) -> void:
 				best_d2 = d2
 				best_k = k
 		slot_taken[best_k] = true
-		_targets[p] = Vector3(slots[best_k].x, 0.0, slots[best_k].y)
+		var slot_at := slots[best_k]
+		if p.is_faltering():
+			# A faltering member steps back toward the centre and leaves a gap on both sides.
+			slot_faltering[best_k] = true
+			var inward := Vector2(centre.x, centre.z) - slot_at
+			if inward.length() > 0.01:
+				slot_at += inward.normalized() * Config.MEMBER_FALTER_STEP_BACK
+		_targets[p] = Vector3(slot_at.x, 0.0, slot_at.y)
 		members.append(p)
 
 	var spiral_cap := 0.6 * _mean_radius()
@@ -598,10 +663,56 @@ func _assign_members(rescued: Array[Person]) -> void:
 	var anchored: Array[bool] = []
 	for k: int in range(k_total):
 		anchored.append(post_slot[k] or post_slot[(k + 1) % k_total])
-	segment_gap = gap_flags(spacing, slot_taken, anchored)
+	segment_gap = gap_flags(spacing, slot_taken, anchored, slot_faltering)
 	for j: int in range(n):
 		var k := mini(k_total - 1, floori(_arc[j] / spacing))
 		_sample_gap[j] = segment_gap[k]
+
+
+# Removes and returns the person farthest from the centre.
+func _take_outermost(list: Array[Person]) -> Person:
+	var best_i := 0
+	var best_d := -1.0
+	for i: int in range(list.size()):
+		var d := Vector2(list[i].position.x - centre.x, list[i].position.z - centre.z).length()
+		if d > best_d:
+			best_d = d
+			best_i = i
+	var out := list[best_i]
+	list.remove_at(best_i)
+	return out
+
+
+# Round 12b: tracks how long each border member has been faltering. A member who recovers is forgotten; one who has
+# faltered for GAP_HEAL_DELAY seconds is replaced by a spare inner member (see _bench_replaced).
+func _update_falter(rescued: Array[Person], delta: float) -> void:
+	var ages: Dictionary = {}
+	for p: Person in rescued:
+		if not p.is_faltering():
+			_benched.erase(p)
+		elif _benched.has(p):
+			ages[p] = _falter_age.get(p, 0.0)
+		elif members.has(p):
+			ages[p] = _falter_age.get(p, 0.0) + delta
+	_falter_age = ages
+	for p: Person in _benched.keys():
+		if not is_instance_valid(p) or not p.is_rescued:
+			_benched.erase(p)
+
+
+# Benches members who have faltered for GAP_HEAL_DELAY, one spare inner member each: there must be rescued people
+# beyond the `m` the loop needs (otherwise nobody can step in and the gap stays until the member is helped).
+func _bench_replaced(rescued: Array[Person], m: int) -> void:
+	var spare := rescued.size() - m - _benched.size()
+	for p: Person in rescued:
+		if spare <= 0:
+			return
+		if _benched.has(p) or not _falter_age.has(p):
+			continue
+		var age: float = _falter_age[p]
+		if age >= Config.GAP_HEAL_DELAY:
+			_benched[p] = true
+			spare -= 1
 
 
 # True when slot `s` and the BORDER_POST_WORTH slots after it are all free (see _assign_members).

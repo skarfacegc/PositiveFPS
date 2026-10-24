@@ -25,6 +25,8 @@ var view_pts := PackedVector2Array()
 # Buildings: each block's footprint (world rectangle) and whether it is beautified (warm).
 var building_rects: Array[Rect2] = []
 var building_warm: Array[bool] = []
+# Round 12b: brief blips where someone just became dimmed: each is {"pos": Vector2, "left": seconds}.
+var blips: Array[Dictionary] = []
 
 # The look: the palette and the frame (see scripts/looks/minimap_look.gd). The picture itself is built here.
 var look: MinimapLook
@@ -63,6 +65,11 @@ func radius() -> float:
 # Advances the refresh timer by `delta`. Returns true when the picture should be rebuilt now (about 10 times a
 # second).
 func tick(delta: float) -> bool:
+	for i: int in range(blips.size() - 1, -1, -1):
+		var left: float = blips[i]["left"] - delta
+		blips[i]["left"] = left
+		if left <= 0.0:
+			blips.remove_at(i)
 	_timer += delta
 	if _timer < Config.TD_MINIMAP_REFRESH_SECONDS:
 		return false
@@ -112,6 +119,11 @@ func refresh_from(
 	_render()
 
 
+# Round 12b: a blip at a world point (x, z) for MINIMAP_BLIP_SECONDS, drawn as a ring (someone became dimmed).
+func add_blip(world: Vector2) -> void:
+	blips.append({"pos": world, "left": Config.MINIMAP_BLIP_SECONDS})
+
+
 # ---- Drawing
 # -------------------------------------------------------------------------------------------------------------
 
@@ -142,6 +154,10 @@ func _render() -> void:
 		_marker(m, 1.6, look.member_colour(), "member")
 	for d: Vector2 in dark_pts:
 		_marker(d, 1.3, look.dark_colour(), "dark")
+	for b: Dictionary in blips:
+		var at: Vector2 = b["pos"]
+		var left: float = b["left"]
+		_ring(at, 2.0 + 3.0 * (1.0 - left / Config.MINIMAP_BLIP_SECONDS), Config.MINIMAP_BLIP_COLOUR)
 	_star(landmark_pos, look.landmark_colour())
 	_marker(player_pos, 2.2, look.player_colour(), "player")
 	for k: int in range(view_pts.size()):
@@ -202,6 +218,15 @@ func _disc(w: Vector2, radius_px: float, col: Color) -> void:
 	for py: int in range(floori(c.y - radius_px), ceili(c.y + radius_px) + 1):
 		for px: int in range(floori(c.x - radius_px), ceili(c.x + radius_px) + 1):
 			if Vector2(px + 0.5, py + 0.5).distance_to(c) <= radius_px:
+				_put(px, py, col)
+
+
+# A one-pixel ring of `radius_px` pixels.
+func _ring(w: Vector2, radius_px: float, col: Color) -> void:
+	var c := _to_px(w)
+	for py: int in range(floori(c.y - radius_px) - 1, ceili(c.y + radius_px) + 2):
+		for px: int in range(floori(c.x - radius_px) - 1, ceili(c.x + radius_px) + 2):
+			if absf(Vector2(px + 0.5, py + 0.5).distance_to(c) - radius_px) <= 0.7:
 				_put(px, py, col)
 
 

@@ -19,6 +19,9 @@ var floor_label: Label
 var end_panel: ColorRect
 var end_label: Label
 var _alert_tween: Tween
+# Round 12b: the target's element and mood, kept so either can change the label alone.
+var _target_affinity: int = -1
+var _target_mood: String = ""
 
 
 func _ready() -> void:
@@ -157,12 +160,27 @@ func set_night_progress(p: float) -> void:
 
 # Top-down: shows the target's element in its colour, or "No target" in cream. Pass -1 for no target.
 func set_target(affinity: int) -> void:
-	if affinity < 0:
+	_target_affinity = affinity
+	_refresh_target()
+
+
+# Round 12b: the target's mood ("guarded", "skittish", "glum" or "" for none) after the element name.
+func set_target_mood(mood: String) -> void:
+	if mood == _target_mood:
+		return
+	_target_mood = mood
+	_refresh_target()
+
+
+func _refresh_target() -> void:
+	if _target_affinity < 0:
 		element_label.text = "No target"
 		element_label.add_theme_color_override("font_color", Config.TD_NO_TARGET_COLOR)
 	else:
-		element_label.text = "Target: " + Config.ELEMENT_NAMES[affinity]
-		element_label.add_theme_color_override("font_color", Config.ELEMENT_COLORS[affinity])
+		element_label.text = "Target: " + Config.ELEMENT_NAMES[_target_affinity]
+		if _target_mood != "":
+			element_label.text += " (" + _target_mood + ")"
+		element_label.add_theme_color_override("font_color", Config.ELEMENT_COLORS[_target_affinity])
 
 
 # Top-down: shows the targeting mode (see Config.TargetingMode) in the top right.

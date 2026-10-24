@@ -30,6 +30,7 @@ static func level_runner(suite: GdUnitTestSuite, minimap_refresh: bool = false) 
 # Parks every person far away, so only the people a test places can take part.
 static func send_everyone_away(td: TopDownMain) -> void:
 	for p: Person in td.people:
+		p.mood = Person.Mood.NONE
 		p.global_position = FAR
 
 
@@ -38,6 +39,8 @@ static func place(p: Person, spot: Vector3, affinity: int, gloom: float) -> void
 	p.affinity = affinity
 	p.gloom = gloom
 	p.joy = 0.0
+	# Round 12b: placed people have no mood unless a test gives them one, so older tests see plain people.
+	p.mood = Person.Mood.NONE
 	p.global_position = Vector3(spot.x, 0.0, spot.z)
 
 

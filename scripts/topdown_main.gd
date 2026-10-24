@@ -34,6 +34,8 @@ var border: Border
 var landmark: Landmark
 # Round 12a: the grabs of dimmed people (see grabs.gd).
 var grabs: Grabs
+# Round 12b: the moods of wistful and gloomy people and the sheltering of dimmed people (see moods.gd).
+var moods: Moods
 var night: NightCycle
 # The looks that are not owned by one object: the floor and walls, and the camera / post-process pipeline (see
 # scripts/looks). F4 flips the look in place with toggle_look().
@@ -87,6 +89,8 @@ func _ready() -> void:
 
 	grabs = Grabs.new()
 	add_child(grabs)
+	moods = Moods.new()
+	add_child(moods)
 
 	player = TopDownPlayer.new()
 	add_child(player)
@@ -103,6 +107,7 @@ func _ready() -> void:
 	player.camera = camera
 
 	_spawn_people()
+	Moods.assign(people, Config.RNG_SEED + 3)
 	player.people = people
 	_build_highlight()
 
@@ -141,6 +146,7 @@ func _process(delta: float) -> void:
 	_update_light()
 	border.update(people, delta, strength)
 	_update_people(delta)
+	moods.update(people, player, delta)
 	_update_cover(delta)
 	_update_dim(delta)
 	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER * border.loss_mult, strength, border)
@@ -150,6 +156,7 @@ func _process(delta: float) -> void:
 	ground.update_paint(people, delta)
 	landmark.update(delta, border.landmark_beautified())
 	_update_spirit_hud()
+	_update_target_mood()
 	if debug_on:
 		_update_debug_hint()
 	_check_end()
@@ -274,6 +281,15 @@ func dim_recovery_rate() -> float:
 	if _flat_dist(pos, Config.BORDER_LANDMARK_POS) <= Config.LANDMARK_RECOVER_RADIUS:
 		return Config.DIM_RECOVER_RATE
 	return 0.0
+
+
+# Round 12b: the target's mood next to its element on the HUD ("Target: Music (guarded)").
+func _update_target_mood() -> void:
+	var t: Person = player.target
+	var mood_text := ""
+	if is_instance_valid(t):
+		mood_text = Person.mood_name(t.active_mood())
+	hud.set_target_mood(mood_text)
 
 
 func _update_spirit_hud() -> void:
@@ -451,6 +467,7 @@ func _spawn_people() -> void:
 		add_child(p)
 		p.rescued.connect(_on_person_rescued.bind(p))
 		p.relapsed.connect(_on_person_relapsed.bind(p))
+		p.stage_changed.connect(_on_stage_changed.bind(p))
 		people.append(p)
 
 
@@ -497,6 +514,9 @@ func _update_people(delta: float) -> void:
 			continue
 		if grabs.is_grabbing(p):
 			continue  # A grabber stands still through the wind-up and the lunge.
+		if moods.is_fleeing(p):
+			_step(p, moods.flee_dir(p), Config.SKITTISH_FLEE_SPEED, delta)  # Round 12b: a scared skittish person backs away.
+			continue
 		if _reaches_for_player(p):
 			var to_player: Vector3 = player.global_position - p.global_position
 			to_player.y = 0.0
@@ -509,7 +529,7 @@ func _update_people(delta: float) -> void:
 			var to: Vector3 = target_p.global_position - p.global_position
 			to.y = 0.0
 			var desired := Vector3.ZERO
-			if to.length() > Config.TD_DARK_STOP_DISTANCE:
+			if to.length() > _stop_distance(p, target_p):
 				desired = to.normalized()
 			_steer(p, desired, Config.TD_DARK_DRIFT_SPEED, delta)
 		elif GloomSim.is_dark(p) and ground.has_edge():
@@ -521,6 +541,15 @@ func _update_people(delta: float) -> void:
 			_steer(p, edge_desired, Config.TD_DARK_DRIFT_SPEED, delta)
 		else:
 			_steer(p, _wander_dir(p, delta), Config.TD_WANDER_SPEED, delta)
+
+
+# How close a pursuing dimmed person walks to their target: right up to the line when they are outside the border and
+# the target is a border member (they press it, Round 12b), otherwise TD_DARK_STOP_DISTANCE.
+func _stop_distance(p: Person, target_p: Person) -> float:
+	if border.active and border.members.has(target_p):
+		if not Border.is_inside(border.polygon, Vector2(p.position.x, p.position.z)):
+			return Config.TD_DARK_PRESS_STOP
+	return Config.TD_DARK_STOP_DISTANCE
 
 
 # Round 12a: a dimmed person who notices a player that is not dim (within GRAB_NOTICE_RANGE) drifts toward them to grab.
@@ -557,7 +586,7 @@ func pursuit_assignments(list: Array[Person]) -> Dictionary:
 # still has a free pursuer slot (see pursuit_assignments). Ties go to the nearest. Null if there is none.
 func _weakest_with_slot(pos: Vector3, rescued_list: Array[Person], slots: Dictionary) -> Person:
 	var best: Person = null
-	var best_d := INF
+	var best_u := -INF
 	for r: Person in rescued_list:
 		var used: int = slots.get(r, 0)
 		if used >= Config.TD_MAX_PURSUERS_PER_TARGET:
@@ -565,9 +594,15 @@ func _weakest_with_slot(pos: Vector3, rescued_list: Array[Person], slots: Dictio
 		var d := _flat_dist(pos, r.global_position)
 		if d > Config.TD_PURSUIT_SEARCH_RADIUS:
 			continue
-		if best == null or r.protection < best.protection or (r.protection == best.protection and d < best_d):
+		# Round 12b, edge pressure: among equally exposed people the newest and outermost stretch of the border is
+		# worth EDGE_PRESSURE_REACH metres of walking; with no border this is plain distance.
+		var u := border.edge_pressure(r.global_position) * Config.EDGE_PRESSURE_REACH - d
+		if best == null or r.protection < best.protection - Config.EDGE_PROTECTION_TIE:
 			best = r
-			best_d = d
+			best_u = u
+		elif absf(r.protection - best.protection) <= Config.EDGE_PROTECTION_TIE and u > best_u:
+			best = r
+			best_u = u
 	return best
 
 
@@ -617,10 +652,22 @@ func _separation(p: Person) -> Vector3:
 		var d := diff.length()
 		if d >= Config.TD_SEPARATION_RADIUS:
 			continue
+		if _may_loom(p, q):
+			continue
 		if d < 0.001:
 			diff = Vector3.RIGHT if my_index < i else Vector3.LEFT
 		push += diff.normalized()
 	return push
+
+
+# Round 12b: a dimmed person and a wistful or gloomy one do not push each other apart, so a dimmed person can stand
+# close enough (within SHELTER_RADIUS) to shelter someone. (Otherwise the crowd spacing, 2.2 m, would always undo it.)
+# A dimmed person is not pushed off by a rescued member either, so they can walk up to the line and press it (the line
+# itself, not the crowd spacing, holds them back; see _stop_distance).
+func _may_loom(a: Person, b: Person) -> bool:
+	if a.is_rescued or b.is_rescued:
+		return GloomSim.is_dark(a) or GloomSim.is_dark(b)
+	return GloomSim.is_dark(a) != GloomSim.is_dark(b)
 
 
 # Picks a random spot within TD_WANDER_RANGE of `from`, inside the plaza and clear of blocks.
@@ -654,12 +701,19 @@ func _step(p: Person, dir: Vector3, speed: float, delta: float) -> void:
 			_wander[p]["timer"] = 0.0
 		return
 	p.position = next_pos
-	p.look_at(next_pos + Vector3(dir.x, 0.0, dir.z), Vector3.UP)
+	if p.active_mood() != Person.Mood.GUARDED:  # A guarded person keeps their back to the player (see Moods).
+		p.look_at(next_pos + Vector3(dir.x, 0.0, dir.z), Vector3.UP)
 
 
 # Distance between two points, ignoring height.
 func _flat_dist(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
+
+
+# Round 12b: someone sank or lifted a stage. The minimap shows a brief blip where a person became dimmed.
+func _on_stage_changed(_from_level: int, to_level: int, p: Person) -> void:
+	if to_level >= 2 and not p.is_rescued:
+		minimap.add_blip(Vector2(p.position.x, p.position.z))
 
 
 # A rescued person (`p`) was made: the border takes them in. The count goes up.

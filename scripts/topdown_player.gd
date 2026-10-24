@@ -356,7 +356,7 @@ func _twirl() -> void:
 func mini_burst() -> void:
 	for p: Person in people:
 		if _flat_dist(global_position, p.global_position) <= Config.TWIRL_BURST_RADIUS:
-			p.receive_joy(p.affinity, Config.TD_BURST_JOY * Config.TWIRL_BURST_JOY_FRACTION, 0.0)
+			p.receive_joy(p.affinity, Config.TD_BURST_JOY * Config.TWIRL_BURST_JOY_FRACTION, 0.0, global_position)
 	look.play_burst(Config.TWIRL_BURST_RADIUS, Config.TD_BURST_TIME)
 
 
@@ -366,7 +366,7 @@ func _burst() -> void:
 	lose_spirit(Config.BURST_SPIRIT_COST)
 	for p: Person in people:
 		if _flat_dist(global_position, p.global_position) <= Config.TD_BURST_RADIUS:
-			p.receive_joy(p.affinity, Config.TD_BURST_JOY, 0.0)
+			p.receive_joy(p.affinity, Config.TD_BURST_JOY, 0.0, global_position)
 	_spawn_burst_ring()
 	burst_fired.emit(global_position)
 

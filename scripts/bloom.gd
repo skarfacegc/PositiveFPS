@@ -43,7 +43,7 @@ func _soak(seconds: float) -> void:
 	var amount := Config.TD_BLOOM_JOY_PER_SEC * seconds
 	for p: Person in people:
 		if GloomSim.flat_dist(global_position, p.global_position) <= Config.TD_BLOOM_RADIUS:
-			p.receive_joy(Config.Element.NATURE, amount, 0.0)
+			p.receive_joy(Config.Element.NATURE, amount, 0.0, global_position)
 
 
 # Scales the alpha of every material in the patch by `factor` (1 is fully visible, 0 is gone).

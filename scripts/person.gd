@@ -3,6 +3,12 @@ extends StaticBody3D
 
 signal rescued
 signal relapsed
+# The visible stage changed (0 wistful, 1 gloomy, 2 dimmed): sank when `to_level` is higher, lifted when lower.
+signal stage_changed(from_level: int, to_level: int)
+
+# Round 12b: the mood of an unrescued wistful or gloomy person (see scripts/moods.gd). Dimmed and rescued people act
+# as if they had none (active_mood).
+enum Mood { NONE, GUARDED, SKITTISH, GLUM }
 
 var affinity: int = 0
 # A small number that picks cosmetic variety (the pose and outfit variant a styled look draws). Set by the level.
@@ -36,6 +42,17 @@ var sad_left: float = 0.0
 var grab_frac: float = 0.0
 var grab_lunging: bool = false
 var grab_toward := Vector3.FORWARD
+# Round 12b: the mood, set at the start by Moods.assign. `glum_up` is true while a glum person is looking up (joy counts
+# triple), `sheltered` while a dimmed person stands within SHELTER_RADIUS (joy glances off), `flee_left` the seconds a
+# scared skittish person still backs away, `flee_from` the flat point they back away from. `glance_count` counts the
+# shots that glanced off (for tests and the debug label). `mood_phase` is a cosmetic clock for the look.
+var mood: int = Mood.NONE
+var glum_up: bool = false
+var sheltered: bool = false
+var flee_left: float = 0.0
+var flee_from := Vector3.ZERO
+var glance_count: int = 0
+var mood_phase: float = 0.0
 # Seconds since this person was last hit by a joy projectile.
 var _since_hit: float = 99.0
 
@@ -77,13 +94,59 @@ func is_warning() -> bool:
 	return is_rescued and joy < joy_needed() * Config.WARN_FRACTION
 
 
+# Round 12b: a rescued person drained below MEMBER_FALTER_FRACTION of their joy needed. A border member who falters
+# steps back and opens a gap on both sides of them (see Border).
+func is_faltering() -> bool:
+	return is_rescued and joy < joy_needed() * Config.MEMBER_FALTER_FRACTION
+
+
 # Where a joy projectile should land: a little above the feet, at chest height.
 func chest_position() -> Vector3:
 	return global_position + Vector3(0, 1.0, 0)
 
 
-# Called when a joy projectile (or a burst) hits this person. Works on rescued people too (top-up).
-func receive_joy(element: int, amount: float, distance: float) -> void:
+# The mood that counts right now: none for rescued and dimmed people.
+func active_mood() -> int:
+	if is_rescued or Config.gloom_level(gloom) >= 2:
+		return Mood.NONE
+	return mood
+
+
+static func mood_name(m: int) -> String:
+	return ["", "guarded", "skittish", "glum"][clampi(m, 0, 3)]
+
+
+# The flat direction this person faces (their local forward, -Z).
+func facing_dir() -> Vector3:
+	var f := -global_transform.basis.z
+	f.y = 0.0
+	return f.normalized() if f.length() > 0.001 else Vector3.FORWARD
+
+
+# True when joy coming from `from` (a world point) would arrive at this person's front or side: the angle between
+# their facing and the direction to `from` is at most GUARDED_ARC_DEG. A point on the person counts as the front.
+func is_open_to(from: Vector3) -> bool:
+	var to := from - global_position
+	to.y = 0.0
+	if to.length() < 0.01:
+		return true
+	return rad_to_deg(facing_dir().angle_to(to.normalized())) <= Config.GUARDED_ARC_DEG
+
+
+# Called when a joy projectile (or a burst) hits this person. Works on rescued people too (top-up). `from` is where the
+# joy comes from (the shooter, or the centre of a burst or bloom); Vector3.INF means no direction. Round 12b: an
+# unrescued person can turn the joy away (sheltered by a dimmed person, or guarded and shot from behind: it glances off
+# with a small puff and gives no joy), and a glum person looking up counts it triple.
+func receive_joy(element: int, amount: float, distance: float, from: Vector3 = Vector3.INF) -> void:
+	if not is_rescued:
+		if sheltered:
+			_glance(Config.SHELTER_COLOUR)
+			return
+		if active_mood() == Mood.GUARDED and from != Vector3.INF and not is_open_to(from):
+			_glance(Config.GLANCE_COLOUR)
+			return
+		if active_mood() == Mood.GLUM and glum_up:
+			amount *= Config.GLUM_LOOKUP_MULT
 	var mult := Config.multiplier(element, affinity)
 	var gain := amount * mult * Config.falloff(distance)
 	joy = minf(joy + gain, joy_needed())
@@ -96,6 +159,12 @@ func receive_joy(element: int, amount: float, distance: float) -> void:
 		_rescue()
 	else:
 		_update_visuals()
+
+
+# Joy glanced off: a small puff, no joy.
+func _glance(colour: Color) -> void:
+	glance_count += 1
+	_fx_puff(colour, 8)
 
 
 # Called every frame by topdown_main.gd: handles joy fading, level changes and visuals.
@@ -162,12 +231,17 @@ func _check_level() -> void:
 	var new_level := Config.gloom_level(gloom)
 	if new_level == level:
 		return
-	if new_level > level:
-		_fx_slump(0.8, 0.35)
-		_fx_puff(Color(0.15, 0.15, 0.18), 20)
-	else:
-		_fx_puff(Color(0.95, 0.95, 0.95), 10)
+	var old_level := level
 	level = new_level
+	# Round 12b: a clear moment. Sinking is a grey-violet puff and ripple (not icy), lifting is a warm one.
+	if new_level > old_level:
+		_fx_slump(0.8, 0.35)
+		_fx_puff(Config.STAGE_SINK_COLOUR, Config.STAGE_PUFF_COUNT)
+		_fx_ripple(Config.STAGE_SINK_COLOUR)
+	else:
+		_fx_puff(Config.STAGE_LIFT_COLOUR, Config.STAGE_PUFF_COUNT)
+		_fx_ripple(Config.STAGE_LIFT_COLOUR)
+	stage_changed.emit(old_level, new_level)
 
 
 # A squash and spring back of the body, and a puff of particles. Both are drawn by the look.
@@ -179,6 +253,11 @@ func _fx_slump(scale_y: float, duration: float) -> void:
 func _fx_puff(color: Color, count: int) -> void:
 	if look != null:
 		look.play_puff(color, count)
+
+
+func _fx_ripple(color: Color) -> void:
+	if look != null:
+		look.play_ripple(color)
 
 
 # Tells the look to redraw from the current state.
@@ -209,3 +288,6 @@ func _update_debug_label() -> void:
 	if debug_label == null or not debug_label.visible:
 		return
 	debug_label.text = "c %d%%  p %d%%" % [roundi(cover * 100.0), roundi(protection * 100.0)]
+	var m := active_mood()
+	if m != Mood.NONE:
+		debug_label.text += "  " + mood_name(m)

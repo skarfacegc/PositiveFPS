@@ -27,6 +27,10 @@ var wave: float = 0.0
 # the soft dark haze under a dimmed person (the styled look draws its own, see has_aura).
 var grab_ring: MeshInstance3D
 var aura: MeshInstance3D
+# Round 12b (placeholder in both looks): the mood tells. A guarded person shows a small crossed-arms bar, a glum person
+# a warm glint when they look up, and a skittish person jitters (see _update_mood_cue).
+var arms_bar: MeshInstance3D
+var glint: MeshInstance3D
 var _grace_mat: StandardMaterial3D
 # +1 leans the body back as the rules say; the styled bodies face the other way and flip it.
 var _lean_sign: float = 1.0
@@ -70,6 +74,7 @@ func setup(person: Person) -> void:
 	add_child(grace_ring)
 	_build_grab_ring()
 	_build_aura()
+	_build_mood_parts()
 	_fx_rng.seed = Config.RNG_SEED
 
 
@@ -84,6 +89,7 @@ func sync() -> void:
 		return
 	_update_grace_cue()
 	_update_grab_cue()
+	_update_mood_cue()
 	var need := subject.joy_needed()
 	frac = clampf(subject.joy / need, 0.0, 1.0)
 	warning = false
@@ -292,6 +298,74 @@ func _update_grab_cue() -> void:
 	var col := Config.GRAB_RING_COLOUR
 	col.a = lerpf(0.25, 0.7, frac)
 	_grab_mat.albedo_color = col
+
+
+# Round 12b: the mood tells, drawn over the body in both looks. Guarded: the crossed-arms bar. Skittish: a small
+# sideways jitter of the whole body. Glum: hunched forward, and while they look up the body straightens and a warm
+# glint shows above the head. Nothing shows for rescued or dimmed people (they have no mood).
+func _update_mood_cue() -> void:
+	var mood := subject.active_mood()
+	arms_bar.visible = mood == Person.Mood.GUARDED
+	glint.visible = mood == Person.Mood.GLUM and subject.glum_up
+	if mood == Person.Mood.SKITTISH:
+		visual.position.x = sin(subject.mood_phase * 38.0) * Config.SKITTISH_JITTER
+	else:
+		visual.position.x = 0.0
+	if mood == Person.Mood.GLUM:
+		visual.rotation.x = 0.0 if subject.glum_up else 0.45 * _lean_sign
+
+
+func _build_mood_parts() -> void:
+	arms_bar = MeshInstance3D.new()
+	var bar := BoxMesh.new()
+	bar.size = Vector3(1.2, 0.16, 0.5)
+	arms_bar.mesh = bar
+	arms_bar.position = Vector3(0, 1.15, 0)
+	var arms_mat := StandardMaterial3D.new()
+	arms_mat.albedo_color = Config.MOOD_ARMS_COLOUR
+	arms_bar.material_override = arms_mat
+	arms_bar.visible = false
+	visual.add_child(arms_bar)
+	glint = MeshInstance3D.new()
+	var spark := SphereMesh.new()
+	spark.radius = 0.2
+	spark.height = 0.4
+	glint.mesh = spark
+	glint.position = Vector3(0, 2.7, 0)
+	var glint_mat := StandardMaterial3D.new()
+	glint_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glint_mat.albedo_color = Config.GLUM_GLINT_COLOUR
+	glint.material_override = glint_mat
+	glint.visible = false
+	visual.add_child(glint)
+	if is_styled():
+		Looks.note_placeholder(arms_bar, "guarded arms bar")
+		Looks.note_placeholder(glint, "glum look-up glint")
+
+
+# Round 12b: a flat ring that spreads out from the feet and fades (the stage-change ripple). Placeholder in both looks.
+func play_ripple(color: Color) -> void:
+	var ring := MeshInstance3D.new()
+	var mesh := TorusMesh.new()
+	mesh.inner_radius = 0.9
+	mesh.outer_radius = 1.0
+	ring.mesh = mesh
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(color.r, color.g, color.b, 0.8)
+	ring.material_override = mat
+	ring.position = Vector3(0, 0.06, 0)
+	ring.scale = Vector3.ONE * 0.3
+	ring.add_to_group("stage_ripple")
+	add_child(ring)
+	if is_styled():
+		Looks.note_placeholder(ring, "stage ripple")
+	var t := create_tween()
+	t.set_parallel(true)
+	t.tween_property(ring, "scale", Vector3.ONE * Config.STAGE_RIPPLE_RADIUS, Config.STAGE_RIPPLE_SECONDS)
+	t.tween_property(mat, "albedo_color:a", 0.0, Config.STAGE_RIPPLE_SECONDS)
+	t.chain().tween_callback(ring.queue_free)
 
 
 # Builds the body under `visual`. Overridden by each look.

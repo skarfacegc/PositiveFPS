@@ -82,6 +82,7 @@ func test_darkness_outside_an_intact_line_cannot_drain_someone_inside() -> void:
 		add_child(m)
 		m.position = Vector3(cos(a) * 5.0, 0.0, sin(a) * 5.0)
 		m.is_rescued = true
+		m.joy = Config.JOY_MAX  # Round 12b: a member with little joy falters and opens a gap.
 		ring.append(m)
 	border._assign_members(ring)
 	var inside: Person = auto_free(Person.new())

@@ -16,6 +16,7 @@ func _person_at(pos: Vector3) -> Person:
 	var p: Person = auto_free(Person.new())
 	p.position = pos
 	p.is_rescued = true
+	p.joy = Config.JOY_MAX  # Round 12b: a rescued person with little joy falters and opens a gap.
 	return p
 
 

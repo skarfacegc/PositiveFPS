@@ -178,7 +178,7 @@ func _shot_joy() -> float:
 
 # A direct hit: the person gets the joy, then the element's own impact happens where the projectile is.
 func _impact(direct: Person) -> void:
-	direct.receive_joy(element, _shot_joy(), _shooter_distance(direct))
+	direct.receive_joy(element, _shot_joy(), _shooter_distance(direct), shooter_pos)
 	_element_impact(global_position, direct)
 
 
@@ -211,7 +211,7 @@ func _splash(at: Vector3, direct: Person) -> void:
 		if not is_instance_valid(p) or p == direct:
 			continue
 		if GloomSim.flat_dist(at, p.global_position) <= Config.TD_PAINT_SPLASH_RADIUS:
-			p.receive_joy(element, joy, _shooter_distance(p))
+			p.receive_joy(element, joy, _shooter_distance(p), shooter_pos)
 
 
 # Adds an impact effect to the level at `at`, tags it (group and kind), so it outlives this projectile. It is a floor

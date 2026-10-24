@@ -495,6 +495,62 @@ const TWIRL_BURST_JOY_FRACTION := 0.5
 const DIM_AURA_RADIUS := 1.7
 const DIM_AURA_COLOUR := Color(0.05, 0.05, 0.08, 0.38)
 
+# ---- Round 12b: moods, sheltering, edge pressure, local gaps, noticeable stage changes
+# Every unrescued wistful or gloomy person has one mood (dimmed people have none). See scripts/moods.gd.
+# Guarded: faces away from the player, turning at GUARDED_TURN_SPEED radians a second. Joy only lands when the angle
+# between their facing and the direction to the shooter is at most GUARDED_ARC_DEG; otherwise it glances off.
+const GUARDED_ARC_DEG := 110.0
+const GUARDED_TURN_SPEED := 0.8
+const GLANCE_COLOUR := Color(0.9, 0.9, 0.95)
+# Skittish: a player closer than SKITTISH_RADIUS who moves faster than SKITTISH_SPEED_LIMIT (walk speed x 1.1, so a
+# run) scares them into backing away at SKITTISH_FLEE_SPEED for SKITTISH_FLEE_SECONDS. Walking up does not.
+const SKITTISH_RADIUS := 5.0
+const SKITTISH_SPEED_LIMIT := TD_MOVE_SPEED * 1.1
+const SKITTISH_FLEE_SPEED := 2.5
+const SKITTISH_FLEE_SECONDS := 1.5
+# Glum: slumped, but every GLUM_LOOKUP_INTERVAL seconds (plus or minus GLUM_LOOKUP_JITTER, seeded) they look up for
+# GLUM_LOOKUP_WINDOW seconds. Joy that lands in that window counts GLUM_LOOKUP_MULT times.
+const GLUM_LOOKUP_INTERVAL := 3.0
+const GLUM_LOOKUP_JITTER := 0.8
+const GLUM_LOOKUP_WINDOW := 0.8
+const GLUM_LOOKUP_MULT := 3.0
+const GLUM_GLINT_COLOUR := Color(1.0, 0.85, 0.45)
+# Sheltering: joy does not land on a wistful or gloomy person while a dimmed person is this close (metres).
+const SHELTER_RADIUS := 2.0
+const SHELTER_COLOUR := Color(0.45, 0.45, 0.5)
+# Placeholder mood tells: the crossed-arms bar of a guarded person, and the jitter of a skittish one (metres).
+const MOOD_ARMS_COLOUR := Color(0.25, 0.2, 0.3)
+const SKITTISH_JITTER := 0.05
+const GLUM_SLUMP_SCALE := 0.8
+# Edge pressure: dimmed people prefer the newest and outermost stretch of the border. A stretch's score is
+# EDGE_RECENCY_WEIGHT x how recently it advanced (1 just pushed, 0 after EDGE_RECENT_SECONDS) plus the rest x how far
+# out it is (0 innermost, 1 outermost). A score of 1 is worth EDGE_PRESSURE_REACH metres of walking.
+const EDGE_RECENT_SECONDS := 60.0
+const EDGE_RECENCY_WEIGHT := 0.6
+const EDGE_PRESSURE_REACH := 12.0
+# A dimmed person outside the border whose target is a border member walks up to the line (stopping this far from the
+# member, which the line itself holds them short of), so they really press it. (Before they stopped 2.5 m from the
+# member, beyond BORDER_PRESS_RANGE of the line, and pressed only for a moment.)
+const TD_DARK_PRESS_STOP := 0.6
+# Protection values closer than this count as equal when a dimmed person picks a target.
+const EDGE_PROTECTION_TIE := 0.05
+# Local gaps: a border member drained below MEMBER_FALTER_FRACTION of their joy needed falters (steps back
+# MEMBER_FALTER_STEP_BACK metres) and opens a gap on both sides of them. (The plan said 0.5, but a person relapses at
+# RELAPSE_FRACTION 0.5, so faltering starts higher.) Spare inner members only take a faltering member's place after
+# GAP_HEAL_DELAY seconds.
+const MEMBER_FALTER_FRACTION := 0.75
+const MEMBER_FALTER_STEP_BACK := 0.5
+const GAP_HEAL_DELAY := 3.0
+# Noticeable stage changes: a grey-violet (gloomy, not icy) puff and ripple when someone sinks a stage, a warm one when
+# they lift. The minimap shows a blip for BLIP_SECONDS when someone becomes dimmed.
+const STAGE_SINK_COLOUR := Color(0.42, 0.34, 0.55)
+const STAGE_LIFT_COLOUR := Color(1.0, 0.82, 0.45)
+const STAGE_PUFF_COUNT := 28
+const STAGE_RIPPLE_RADIUS := 1.8
+const STAGE_RIPPLE_SECONDS := 0.7
+const MINIMAP_BLIP_SECONDS := 2.5
+const MINIMAP_BLIP_COLOUR := Color(0.7, 0.5, 0.95)
+
 # The matchups form a soft cycle:
 #   Music is strong against Art, Art is strong against Nature, Nature is strong against Music.
 # Matching the affinity gives MATCH_MULT. The element that loses to the affinity gives WEAK_MULT.
