@@ -1,14 +1,13 @@
 extends Control
 
-# The start menu: pick one of three border variants (see Config.BorderVariant). Keys 1, 2 and 3 pick too. The choice is
-# stored in Config.border_variant before the level loads.
+# The start menu: a title, one Play button and a hint line. Play is the button, key 1 or Enter (the "play" action).
+# Round 10 retired the Circle and Paint edge border variants, so there is nothing to pick.
 
 const TOP_DOWN_SCENE := "res://topdown.tscn"
-const DESCRIPTIONS: Array[String] = [
-	"A simple ring around the centre, sized by how many people you have rescued.",
-	"The border bulges out where you rescue people, and wraps around buildings. Recommended.",
-	"The border follows the painted region your rescued people spread.",
-]
+const HINT := "Enter or 1 to play.  In game: R restart, M menu, F2 targeting, F3 debug"
+
+# Set once Play is pressed, so a key and a click in the same frame start the level only once.
+var _starting: bool = false
 
 
 func _ready() -> void:
@@ -25,34 +24,26 @@ func _ready() -> void:
 	add_child(center)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 18)
 	center.add_child(box)
 
 	box.add_child(_make_label("PositiveFPS", 48))
-	box.add_child(_make_label("Pick a border to try", 24))
-
-	for i: int in range(Config.BORDER_VARIANT_NAMES.size()):
-		var btn := _make_button(Config.BORDER_VARIANT_NAMES[i])
-		btn.pressed.connect(_start.bind(i))
-		box.add_child(btn)
-		box.add_child(_make_label(DESCRIPTIONS[i], 16))
-
-	box.add_child(_make_label("In game: R restart, M menu, F2 targeting, F3 debug", 18))
+	var play := _make_button("Play")
+	play.pressed.connect(_start)
+	box.add_child(play)
+	box.add_child(_make_label(HINT, 18))
 
 
-# Keys 1, 2 and 3 pick a variant.
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("choice_1"):
-		_start(Config.BorderVariant.CIRCLE)
-	elif event.is_action_pressed("choice_2"):
-		_start(Config.BorderVariant.ORGANIC)
-	elif event.is_action_pressed("choice_3"):
-		_start(Config.BorderVariant.PAINT_EDGE)
+	if event.is_action_pressed("play"):
+		_start()
 
 
-# Stores the chosen variant and starts the level.
-func _start(variant: int) -> void:
-	Config.border_variant = variant
+# Starts the level.
+func _start() -> void:
+	if _starting:
+		return
+	_starting = true
 	get_tree().change_scene_to_file(TOP_DOWN_SCENE)
 
 

@@ -34,11 +34,6 @@ func test_gloom_level_steps() -> void:
 	assert_int(Config.gloom_level(1.0)).is_equal(2)
 
 
-func test_border_variant_names_cover_the_three_shapes() -> void:
-	assert_int(Config.BORDER_VARIANT_NAMES.size()).is_equal(3)
-	assert_str(Config.BORDER_VARIANT_NAMES[1]).contains("Organic")
-
-
 func test_automated_test_flag_is_on_and_mouse_never_captured() -> void:
 	assert_bool(Config.is_automated_test()).is_true()
 	# Whatever the scenes do, the real OS mouse must not be captured by a test run.

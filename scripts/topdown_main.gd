@@ -58,11 +58,10 @@ func _ready() -> void:
 	ground = PaintedGround.new()
 	add_child(ground)
 	ground.setup(Config.TD_PLAZA_SIZE, Config.TD_GROUND_SPREAD_SPEED, Config.TD_GROUND_FADE_SPEED, true)
-	ground.paint_radius = Config.BORDER_PAINT_RADIUS if _is_paint_edge() else Config.ZONE_RADIUS
 
 	border = Border.new()
 	add_child(border)
-	border.setup(ground, Config.border_variant)
+	border.setup(ground)
 	for body: StaticBody3D in _obstacles:
 		var is_landmark := body == _landmark_body
 		border.register_building(body, Vector2(BLOCK_SIZE.x, BLOCK_SIZE.z) * 0.5, is_landmark)
@@ -199,10 +198,6 @@ func _update_highlight(delta: float) -> void:
 	highlight.global_position = Vector3(t.global_position.x, 0.03, t.global_position.z)
 	var s := 1.0 + Config.TD_HIGHLIGHT_PULSE * sin(_pulse_time * Config.TD_HIGHLIGHT_PULSE_SPEED)
 	highlight.scale = Vector3(s, 1.0, s)
-
-
-func _is_paint_edge() -> bool:
-	return Config.border_variant == Config.BorderVariant.PAINT_EDGE
 
 
 func _setup_environment() -> void:

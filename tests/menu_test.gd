@@ -1,10 +1,11 @@
 extends GdUnitTestSuite
 
-# Menu (menu.tscn), driven by real input: keys 1, 2 and 3, and clicks on the buttons. Each choice starts the level with
-# that border variant (Config.border_variant).
+# Menu (menu.tscn), driven by real input: the Play button (a click), key 1 and Enter. Each one starts the level.
+# Round 10: the border variant picker is gone, so the menu has one button and no variant choices.
 
 const MENU := "res://menu.tscn"
 const TOP_DOWN := "res://topdown.tscn"
+const HINT := "Enter or 1 to play.  In game: R restart, M menu, F2 targeting, F3 debug"
 
 
 # The gdUnit4 CLI shrinks the window to 64x64, and the menu lays out against that size. Give the window and
@@ -44,21 +45,12 @@ func _leave_loaded_scene() -> void:
 	await get_tree().process_frame
 
 
-func test_menu_has_three_variant_buttons_each_with_a_description() -> void:
+func test_menu_has_one_play_button_and_no_variant_choices() -> void:
 	var runner: GdUnitSceneRunner = await _start_menu()
 	var buttons: Array = []
 	_find_buttons(runner.scene(), buttons)
-	assert_int(buttons.size()).is_equal(3)
-	assert_str(buttons[0].text).is_equal("A — Circle")
-	assert_str(buttons[1].text).is_equal("B — Organic push (recommended)")
-	assert_str(buttons[2].text).is_equal("C — Paint edge")
-	var labels: Array = []
-	_find_labels(runner.scene(), labels)
-	var descriptions := 0
-	for lbl: Label in labels:
-		if lbl.text.length() > 30 and not lbl.text.contains("In game"):
-			descriptions += 1
-	assert_int(descriptions).is_equal(3)
+	assert_int(buttons.size()).is_equal(1)
+	assert_str(buttons[0].text).is_equal("Play")
 
 
 func test_hint_line_names_the_keys() -> void:
@@ -67,49 +59,44 @@ func test_hint_line_names_the_keys() -> void:
 	_find_labels(runner.scene(), labels)
 	var found := false
 	for lbl: Label in labels:
-		if lbl.text == "In game: R restart, M menu, F2 targeting, F3 debug":
+		if lbl.text == HINT:
 			found = true
 	assert_bool(found).is_true()
 
 
-func test_key_1_starts_the_circle_variant() -> void:
+func test_key_1_starts_the_level() -> void:
 	var runner: GdUnitSceneRunner = await _start_menu()
 	runner.simulate_key_pressed(KEY_1)
 	await runner.simulate_frames(10)
 	assert_str(_current_scene_path()).is_equal(TOP_DOWN)
-	assert_int(Config.border_variant).is_equal(Config.BorderVariant.CIRCLE)
 	await _leave_loaded_scene()
 
 
-func test_key_2_starts_the_organic_variant() -> void:
+func test_enter_starts_the_level() -> void:
 	var runner: GdUnitSceneRunner = await _start_menu()
-	runner.simulate_key_pressed(KEY_2)
+	runner.simulate_key_pressed(KEY_ENTER)
 	await runner.simulate_frames(10)
 	assert_str(_current_scene_path()).is_equal(TOP_DOWN)
-	assert_int(Config.border_variant).is_equal(Config.BorderVariant.ORGANIC)
 	await _leave_loaded_scene()
 
 
-func test_key_3_starts_the_paint_edge_variant() -> void:
-	var runner: GdUnitSceneRunner = await _start_menu()
-	runner.simulate_key_pressed(KEY_3)
-	await runner.simulate_frames(10)
-	assert_str(_current_scene_path()).is_equal(TOP_DOWN)
-	assert_int(Config.border_variant).is_equal(Config.BorderVariant.PAINT_EDGE)
-	var td: TopDownMain = get_tree().current_scene as TopDownMain
-	assert_int(td.border.variant).is_equal(Config.BorderVariant.PAINT_EDGE)
-	await _leave_loaded_scene()
-
-
-func test_clicking_the_third_button_starts_the_paint_edge_variant() -> void:
+func test_clicking_play_starts_the_level() -> void:
 	var runner: GdUnitSceneRunner = await _start_menu()
 	var buttons: Array = []
 	_find_buttons(runner.scene(), buttons)
-	var third: Button = buttons[2]
-	runner.simulate_mouse_move(third.get_global_rect().get_center())
+	var play: Button = buttons[0]
+	runner.simulate_mouse_move(play.get_global_rect().get_center())
 	await runner.simulate_frames(2)
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 	await runner.simulate_frames(10)
 	assert_str(_current_scene_path()).is_equal(TOP_DOWN)
-	assert_int(Config.border_variant).is_equal(Config.BorderVariant.PAINT_EDGE)
+	await _leave_loaded_scene()
+
+
+func test_a_second_start_in_the_same_frame_is_ignored() -> void:
+	var runner: GdUnitSceneRunner = await _start_menu()
+	runner.simulate_key_pressed(KEY_1)
+	runner.simulate_key_pressed(KEY_ENTER)
+	await runner.simulate_frames(10)
+	assert_str(_current_scene_path()).is_equal(TOP_DOWN)
 	await _leave_loaded_scene()

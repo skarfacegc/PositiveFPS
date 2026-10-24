@@ -15,10 +15,8 @@ static func setup() -> void:
 	_add_action("run", [_key(KEY_SHIFT)])
 	# Left click: lock on to a person (lock-on mode). Read as "fire" in the level.
 	_add_action("fire", [_mouse(MOUSE_BUTTON_LEFT)])
-	# Menu: keys 1, 2 and 3 pick a menu entry.
-	_add_action("choice_1", [_key(KEY_1)])
-	_add_action("choice_2", [_key(KEY_2)])
-	_add_action("choice_3", [_key(KEY_3)])
+	# Menu: Play, with key 1 or Enter.
+	_add_action("play", [_key(KEY_1), _key(KEY_ENTER)])
 	# Joy burst: G is the grenade-style key by convention, Q is a second option.
 	_add_action("burst", [_key(KEY_G), _key(KEY_Q)])
 	# Cycles the targeting mode (lock-on, hover, auto).

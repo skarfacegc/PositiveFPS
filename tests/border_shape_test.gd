@@ -1,13 +1,7 @@
 extends GdUnitTestSuite
 
-# Pure border rules (round 9): the circle radius, the slot count, gap flags and the loop helpers. No scene is loaded.
-
-
-func test_circle_radius_follows_the_count_and_is_clamped() -> void:
-	# n x spacing / (2 pi), clamped between BORDER_MIN_RADIUS and BORDER_MAX_RADIUS.
-	assert_float(Border.circle_radius_for(20)).is_equal_approx(20.0 * Config.BORDER_TARGET_SPACING / TAU, 0.0001)
-	assert_float(Border.circle_radius_for(1)).is_equal(Config.BORDER_MIN_RADIUS)
-	assert_float(Border.circle_radius_for(500)).is_equal(Config.BORDER_MAX_RADIUS)
+# Pure border rules (round 9, organic push only from round 10): the slot count, gap flags and the loop helpers, plus the
+# organic bump and wrap. The loop is set directly where a scene is not needed. No scene is loaded.
 
 
 func test_circle_polygon_has_the_samples_on_the_circle() -> void:
@@ -66,7 +60,7 @@ func test_a_ray_hits_a_box_in_front_of_the_centre() -> void:
 func test_darkness_outside_an_intact_line_cannot_drain_someone_inside() -> void:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
-	border.setup(null, Config.BorderVariant.CIRCLE)
+	border.setup(null)
 	border.polygon = Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
 	border.active = true
 	var ring: Array[Person] = []
@@ -93,3 +87,91 @@ func test_darkness_outside_an_intact_line_cannot_drain_someone_inside() -> void:
 	# The same pair with no border in the way is drained.
 	GloomSim.update(people, 0.5, Config.TD_DRAIN_MULTIPLIER, 1.0)
 	assert_float(inside.joy).is_less(before)
+
+
+# --- Organic push and wrap (scene-free: the border is built directly) -----------------------------------------------
+
+
+func _organic_border() -> Border:
+	var border: Border = auto_free(Border.new())
+	add_child(border)
+	border.setup(null)
+	return border
+
+
+# A rescued person standing at `pos` (the border only counts rescued people).
+func _person_at(pos: Vector3) -> Person:
+	var p: Person = auto_free(Person.new())
+	p.position = pos
+	p.is_rescued = true
+	return p
+
+
+func test_rescue_pushes_the_border_outward_at_its_angle() -> void:
+	var border := _organic_border()
+	border._has_centre = true
+	border.centre = Vector3.ZERO
+	var before_at_rescue: float = border._raw_radii[0]
+	var before_opposite: float = border._raw_radii[24]
+	var rescued := _person_at(Vector3(5.0, 0.0, 0.0))
+	border.on_rescue(rescued)
+	var people: Array[Person] = [rescued]
+	border.update(people, 0.0, 1.0)
+	# The peak push is BORDER_PUSH at the rescue angle (angle 0 is index 0) and almost nothing half a turn away.
+	assert_float(border._raw_radii[0]).is_equal_approx(before_at_rescue + Config.BORDER_PUSH, 0.001)
+	assert_float(border._raw_radii[24]).is_less(before_opposite + 0.01)
+	assert_float(border._raw_radii[1]).is_greater(border._raw_radii[24])
+
+
+func test_organic_border_wraps_a_block_it_reaches_so_the_block_is_enclosed() -> void:
+	var border := _organic_border()
+	border._has_centre = true
+	border.centre = Vector3.ZERO
+	# A block footprint from x = 5 to x = 7 on the +x side. The loop reaches 5.5 m, which is past its near face.
+	var body: StaticBody3D = auto_free(StaticBody3D.new())
+	body.position = Vector3(6.0, 0.0, 0.0)
+	var mesh_inst := MeshInstance3D.new()
+	mesh_inst.material_override = StandardMaterial3D.new()
+	body.add_child(mesh_inst)
+	add_child(body)
+	border.register_building(body, Vector2(1.0, 1.0), false)
+	for i: int in range(Config.BORDER_SAMPLES):
+		border._raw_radii[i] = 5.5
+	var pts: PackedVector2Array = border._organic_polygon(Vector2.ZERO, 3, 0.0)
+	# Sample 0 points at the block: it is pushed out to just beyond the far face (x = 7), so the block is inside.
+	assert_float(pts[0].x).is_greater(7.0)
+	assert_bool(Geometry2D.is_point_in_polygon(Vector2(6.0, 0.0), pts)).is_true()
+
+
+func test_a_rescue_standing_on_the_centre_waits_until_the_centre_moves_off_it() -> void:
+	var border := _organic_border()
+	var alone := _person_at(Vector3.ZERO)
+	border.on_rescue(alone)
+	var people: Array[Person] = [alone]
+	border.update(people, 0.0, 1.0)
+	# The lone first person is the centre, so there is no direction to push in yet: no push, and it stays pending.
+	assert_float(border._raw_radii[0]).is_equal_approx(Config.BORDER_MIN_RADIUS, 0.001)
+	assert_int(border._pending_pushes.size()).is_equal(1)
+
+
+func test_a_rescue_that_relapses_before_its_push_is_applied_gets_no_push() -> void:
+	var border := _organic_border()
+	border._has_centre = true
+	border.centre = Vector3.ZERO
+	var p := _person_at(Vector3(5.0, 0.0, 0.0))
+	border.on_rescue(p)
+	p.is_rescued = false
+	var people: Array[Person] = [p]
+	border.update(people, 0.0, 1.0)
+	assert_float(border._raw_radii[0]).is_equal_approx(Config.BORDER_MIN_RADIUS, 0.001)
+	assert_int(border._pending_pushes.size()).is_equal(0)
+
+
+func test_no_cover_without_a_loop_and_the_debug_labels_hide_again() -> void:
+	var border := _organic_border()
+	assert_float(border.cover_at(Vector3.ZERO)).is_equal(0.0)
+	border.active = true
+	border.polygon = Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
+	border.set_debug(true)
+	border.set_debug(false)
+	assert_int(border.visible_debug_label_count()).is_equal(0)

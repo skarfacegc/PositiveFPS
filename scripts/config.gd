@@ -7,8 +7,6 @@ extends RefCounted
 enum Element { MUSIC, ART, NATURE }
 # Top-down targeting modes (see TD_TARGETING_MODE below).
 enum TargetingMode { LOCK_ON, HOVER_STICKY, AUTO }
-# The three border shapes, chosen on the menu before the level loads (see border.gd).
-enum BorderVariant { CIRCLE, ORGANIC, PAINT_EDGE }
 
 # Display names, in the same order as the Element enum.
 const ELEMENT_NAMES: Array[String] = ["Music", "Art", "Nature"]
@@ -310,8 +308,6 @@ const TD_EDGE_REACH := 0.5
 
 # ---- Round 9: the living border (scripts/border.gd, building.gd, landmark.gd, night_cycle.gd). ----
 
-# The three border shapes, chosen on the menu before the level loads (see border.gd).
-const BORDER_VARIANT_NAMES: Array[String] = ["A — Circle", "B — Organic push (recommended)", "C — Paint edge"]
 # Rescued people needed before a border forms. Below this count the border collapses once it has formed.
 const BORDER_MIN_PEOPLE := 3
 # The centre (the smoothed centroid of rescued people) moves toward the target centroid at this speed, in m/s.
@@ -326,17 +322,14 @@ const BORDER_MAX_GAP := 3.5
 const BORDER_PRESS_RANGE := 1.5
 # The border loop has this many points (one per angle), and is drawn as line segments.
 const BORDER_SAMPLES := 48
-# Circle and organic border radii are kept between these, in metres.
+# The border never shrinks below a circle of this radius, in metres.
 const BORDER_MIN_RADIUS := 3.0
-const BORDER_MAX_RADIUS := 30.0
-# Organic: each rescue pushes the border outward at its angle, by this much at the peak (metres).
+# Each rescue pushes the border outward at its angle, by this much at the peak (metres).
 const BORDER_PUSH := 1.6
-# Organic: the push is spread over this many radians (a Gaussian), so the bump is smooth.
+# The push is spread over this many radians (a Gaussian), so the bump is smooth.
 const BORDER_PUSH_WIDTH := 0.5
-# Organic: the total size is eased toward the target perimeter over this many seconds.
+# The total size is eased toward the target perimeter over this many seconds.
 const BORDER_NORMALISE_SECONDS := 2.0
-# Paint edge: each rescued person paints a soft disc of this radius (metres). The border follows the painted region.
-const BORDER_PAINT_RADIUS := 4.0
 # Cover from the border: 0 on the line, 1 this many metres inside it (so a grey person there can be lightened).
 const BORDER_EDGE_BAND := 1.0
 # A member who relapses steps this far outward from the centre (metres).
@@ -374,11 +367,8 @@ const NIGHT_PEAK_EXTRA := 0.75
 #   Music is strong against Art, Art is strong against Nature, Nature is strong against Music.
 # Matching the affinity gives MATCH_MULT. The element that loses to the affinity gives WEAK_MULT.
 
+
 # Returns how much a hit with `element` is multiplied when the person has `affinity`.
-# The border variant for the next level. The menu sets it. A static var, so it survives the scene change.
-static var border_variant: int = BorderVariant.ORGANIC
-
-
 static func multiplier(element: int, affinity: int) -> float:
 	if element == affinity:
 		return MATCH_MULT

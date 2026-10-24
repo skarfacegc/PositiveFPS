@@ -1,12 +1,9 @@
 class_name Border
 extends Node3D
 
-# The living border (round 9). Rescued people organise themselves into a loop around a centre (the smoothed centroid of
-# the rescued). The loop is built per variant (Config.BorderVariant):
-#   CIRCLE: a circle sized from the rescued count.
-#   ORGANIC: a radius per angle, pushed outward where each person was rescued, and wrapped around blocks.
-#   PAINT_EDGE: the edge of the painted region around the rescued people.
-# The rules after that are shared by all variants:
+# The living border (round 9, organic push only since round 10). Rescued people organise themselves into a loop around a
+# centre (the smoothed centroid of the rescued). The loop has a radius per angle, pushed outward where each person was
+# rescued, and wrapped around blocks. The rules:
 #   - the outermost rescued people are the border members, one per slot evenly spaced along the loop; the rest stand
 #     inside (inner members). A stretch between members that is longer than BORDER_MAX_GAP is a gap.
 #   - darkness outside cannot cross an intact stretch: it presses against the line and drains the nearest member.
@@ -17,7 +14,6 @@ extends Node3D
 # Inner members are placed on a golden-angle spiral, so they spread out without a random number.
 const GOLDEN_ANGLE := 2.39996323
 
-var variant: int = Config.BorderVariant.ORGANIC
 var centre := Vector3.ZERO
 # True once at least BORDER_MIN_PEOPLE are rescued. Below that there is no loop.
 var active: bool = false
@@ -42,6 +38,8 @@ var _line_node: MeshInstance3D
 var _line_mesh: ImmediateMesh
 var _line_mat: StandardMaterial3D
 var _has_centre: bool = false
+# Rescued people whose outward push has not been applied yet (see on_rescue).
+var _pending_pushes: Array[Person] = []
 # Organic: the radius per angle before smoothing, and the size factor that eases toward the target perimeter.
 var _raw_radii: Array[float] = []
 var _scale: float = 1.0
@@ -57,10 +55,9 @@ var _debug_on: bool = false
 var _debug_labels: Array[Label3D] = []
 
 
-# Gets the border ready: the ground it paints, the variant to build, and the line it draws.
-func setup(ground: PaintedGround, chosen_variant: int) -> void:
+# Gets the border ready: the ground it paints and the line it draws.
+func setup(ground: PaintedGround) -> void:
 	_ground = ground
-	variant = chosen_variant
 	_raw_radii.clear()
 	for i: int in range(Config.BORDER_SAMPLES):
 		_raw_radii.append(Config.BORDER_MIN_RADIUS)
@@ -99,11 +96,12 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 		if p.is_rescued:
 			rescued.append(p)
 	_update_centre(rescued, delta)
+	_apply_pending_pushes()
 	var n := rescued.size()
 	active = n >= Config.BORDER_MIN_PEOPLE
 	if active:
 		formed = true
-		polygon = _build_polygon(n, delta)
+		polygon = _organic_polygon(Vector2(centre.x, centre.z), n, delta)
 	else:
 		polygon = PackedVector2Array()
 	_assign_members(rescued)
@@ -116,19 +114,35 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 		_update_debug_labels()
 
 
-# A rescued person was made. Organic borders push outward at the angle they were rescued from.
+# A rescued person was made. The border pushes outward at the angle they were rescued from. The push is applied on the
+# next update, once the centre is known (see _apply_pending_pushes).
 func on_rescue(p: Person) -> void:
-	if variant != Config.BorderVariant.ORGANIC:
-		return
-	# The centre snaps to the rescued centroid on the next update (see _update_centre). Before that, the push is
-	# measured from the person's own spot, so the first rescue does not pick the centre for the whole border.
-	var origin := centre if _has_centre else Vector3(p.position.x, 0.0, p.position.z)
-	var to := Vector2(p.position.x - origin.x, p.position.z - origin.z)
-	var ang := atan2(to.y, to.x)
+	_pending_pushes.append(p)
+
+
+# Applies the outward push of every rescue still waiting for one, at the angle from the centre to that person. Before
+# this fix a push was measured from the person's own spot when no centre existed yet, so the first rescues (and any
+# made in the same frame) all pushed toward angle 0, and the loop then drifted east. A person standing exactly on the
+# centre waits until the centre has moved off them, so no push is ever aimed at an arbitrary angle.
+func _apply_pending_pushes() -> void:
+	var waiting: Array[Person] = []
+	for p: Person in _pending_pushes:
+		if not p.is_rescued:
+			continue
+		var to := Vector2(p.position.x - centre.x, p.position.z - centre.z)
+		if to.length() < 0.05:
+			waiting.append(p)
+			continue
+		_push_at(atan2(to.y, to.x), Config.BORDER_PUSH)
+	_pending_pushes = waiting
+
+
+# Adds a Gaussian bump of `amount` metres to the raw radius at angle `ang` (the same bump for a rescue and a shove).
+func _push_at(ang: float, amount: float) -> void:
 	for i: int in range(Config.BORDER_SAMPLES):
 		var a := TAU * float(i) / float(Config.BORDER_SAMPLES)
 		var d := wrapf(a - ang, -PI, PI)
-		_raw_radii[i] += Config.BORDER_PUSH * exp(-d * d / (2.0 * Config.BORDER_PUSH_WIDTH * Config.BORDER_PUSH_WIDTH))
+		_raw_radii[i] += amount * exp(-d * d / (2.0 * Config.BORDER_PUSH_WIDTH * Config.BORDER_PUSH_WIDTH))
 
 
 # A member relapsed: they step out from the centre and leave the border (the slots reshuffle on the next update).
@@ -227,17 +241,12 @@ func debug_summary() -> String:
 	if not active:
 		return "border: none yet"
 	return (
-		"border %s, members %d, inner %d, spacing %.1f m, gaps %d, night x%.2f"
-		% [Config.BORDER_VARIANT_NAMES[variant], member_count, inner_count, spacing, gap_count(), _strength]
+		"border, members %d, inner %d, spacing %.1f m, gaps %d, night x%.2f"
+		% [member_count, inner_count, spacing, gap_count(), _strength]
 	)
 
 
 # ---- Pure shape rules (static, so tests can check them directly) -----------------------------------------------------
-
-
-# The radius of a circle border for `n` rescued people: their count times the spacing, as a circle, within the limits.
-static func circle_radius_for(n: int) -> float:
-	return clampf(float(n) * Config.BORDER_TARGET_SPACING / TAU, Config.BORDER_MIN_RADIUS, Config.BORDER_MAX_RADIUS)
 
 
 static func circle_polygon(c: Vector2, radius: float, samples: int) -> PackedVector2Array:
@@ -280,16 +289,7 @@ static func is_inside(pts: PackedVector2Array, p: Vector2) -> bool:
 # ---- Loop variants ---------------------------------------------------------------------------------------------------
 
 
-func _build_polygon(n: int, delta: float) -> PackedVector2Array:
-	var c2 := Vector2(centre.x, centre.z)
-	if variant == Config.BorderVariant.CIRCLE:
-		return circle_polygon(c2, circle_radius_for(n), Config.BORDER_SAMPLES)
-	if variant == Config.BorderVariant.PAINT_EDGE:
-		return _paint_edge_polygon(c2)
-	return _organic_polygon(c2, n, delta)
-
-
-# Organic: per angle, the smoothed radius times the size factor. A block on the ray that the radius reaches is wrapped:
+# Per angle, the smoothed radius times the size factor. A block on the ray that the radius reaches is wrapped:
 # the sample jumps to just beyond the far side of the block, so buildings end up inside the loop.
 func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 	var smooth: Array[float] = _smoothed_radii()
@@ -312,27 +312,7 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 	return pts
 
 
-# Paint edge: along each angle, the farthest point that is still in the painted region (weight above one half).
-func _paint_edge_polygon(c2: Vector2) -> PackedVector2Array:
-	var pts := PackedVector2Array()
-	for i: int in range(Config.BORDER_SAMPLES):
-		var a := TAU * float(i) / float(Config.BORDER_SAMPLES)
-		var dir := Vector2(cos(a), sin(a))
-		var t_last := 0.5
-		var t := 0.5
-		while t <= Config.BORDER_MAX_RADIUS:
-			var w := 0.0
-			if _ground != null:
-				w = _ground.paint_weight_at(Vector3(c2.x + dir.x * t, 0.0, c2.y + dir.y * t))
-			if w <= 0.5:
-				break
-			t_last = t
-			t += 0.5
-		pts.append(c2 + dir * t_last)
-	return pts
-
-
-# Organic: the radius per angle after a small circular blur (so one bump does not look like a spike).
+# The radius per angle after a small circular blur (so one bump does not look like a spike).
 func _smoothed_radii() -> Array[float]:
 	var out: Array[float] = []
 	var n := _raw_radii.size()
@@ -611,7 +591,7 @@ func _drain_darkness(people: Array[Person], delta: float, strength: float) -> vo
 func _update_ground() -> void:
 	if _ground == null:
 		return
-	if active and variant != Config.BorderVariant.PAINT_EDGE:
+	if active:
 		_ground.set_region(polygon)
 	else:
 		_ground.set_region(PackedVector2Array())

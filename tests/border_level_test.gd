@@ -5,8 +5,7 @@ extends GdUnitTestSuite
 # rescue and the F3 key go through real input, as a player would. Unit-level checks use the Border and Building classes.
 
 
-func _start(variant: int) -> Dictionary:
-	Config.border_variant = variant
+func _start() -> Dictionary:
 	var runner: GdUnitSceneRunner = scene_runner(TopDownTestUtil.SCENE)
 	await runner.simulate_frames(10)
 	var td: TopDownMain = runner.scene()
@@ -52,7 +51,7 @@ func _click_to_lock(runner: GdUnitSceneRunner, td: TopDownMain, person: Person) 
 func _bare_border(loop: PackedVector2Array) -> Border:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
-	border.setup(null, Config.BorderVariant.CIRCLE)
+	border.setup(null)
 	border.polygon = loop
 	border.active = true
 	return border
@@ -72,14 +71,8 @@ func _people(count: int) -> Array[Person]:
 # --- Forming, centre and slots ------------------------------------------------------------------------------
 
 
-func test_the_menu_variant_is_the_variant_of_the_level() -> void:
-	var s: Dictionary = await _start(Config.BorderVariant.CIRCLE)
-	var td: TopDownMain = s["td"]
-	assert_int(td.border.variant).is_equal(Config.BorderVariant.CIRCLE)
-
-
 func test_no_border_until_three_are_rescued() -> void:
-	var s: Dictionary = await _start(Config.BorderVariant.CIRCLE)
+	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	_rescue_ring(td, Vector3(0, 0, 0), 2.0, 2)
 	var runner: GdUnitSceneRunner = s["runner"]
@@ -90,7 +83,7 @@ func test_no_border_until_three_are_rescued() -> void:
 
 
 func test_border_forms_after_three_rescues_and_the_centre_is_their_centroid() -> void:
-	var s: Dictionary = await _start(Config.BorderVariant.CIRCLE)
+	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	var made := _rescue_ring(td, Vector3(4, 0, -4), 2.0, 3)
@@ -104,7 +97,7 @@ func test_border_forms_after_three_rescues_and_the_centre_is_their_centroid() ->
 
 
 func test_members_walk_to_their_slots_and_the_loop_is_closed() -> void:
-	var s: Dictionary = await _start(Config.BorderVariant.CIRCLE)
+	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	_rescue_ring(td, Vector3(0, 0, 0), 4.0, 6)
@@ -119,7 +112,7 @@ func test_members_walk_to_their_slots_and_the_loop_is_closed() -> void:
 
 
 func test_three_locked_rescues_by_real_clicks_form_the_border() -> void:
-	var s: Dictionary = await _start(Config.BorderVariant.CIRCLE)
+	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	var spots: Array[Vector3] = [Vector3(-3, 0, -6), Vector3(0, 0, -7), Vector3(3, 0, -6)]
@@ -240,7 +233,7 @@ func test_a_dark_person_inside_the_loop_is_not_held() -> void:
 
 
 func test_a_relapsed_member_leaves_and_the_others_reshuffle() -> void:
-	var s: Dictionary = await _start(Config.BorderVariant.CIRCLE)
+	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	var made := _rescue_ring(td, Vector3(0, 0, 0), 4.0, 5)
@@ -257,7 +250,7 @@ func test_a_relapsed_member_leaves_and_the_others_reshuffle() -> void:
 
 func test_too_few_people_for_the_loop_leave_gaps_and_the_gaps_persist() -> void:
 	# Four people on the smallest circle (radius 3, perimeter 18.85) are 4.7 m apart: over the limit, so gaps.
-	var s: Dictionary = await _start(Config.BorderVariant.CIRCLE)
+	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	var made := _rescue_ring(td, Vector3(0, 0, 0), 4.0, 4)
@@ -273,7 +266,7 @@ func test_too_few_people_for_the_loop_leave_gaps_and_the_gaps_persist() -> void:
 
 
 func test_losing_the_border_by_relapse_below_three_ends_the_level() -> void:
-	var s: Dictionary = await _start(Config.BorderVariant.CIRCLE)
+	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	var made := _rescue_ring(td, Vector3(0, 0, 0), 3.0, 3)
@@ -359,7 +352,7 @@ func test_landmark_hold_grows_then_resets_when_not_beautified() -> void:
 func test_the_landmark_is_held_and_the_level_is_won() -> void:
 	# Three people around the landmark enclose it (the loop is a radius-3 circle around its centre). After three seconds
 	# inside it is beautified, and the hold runs for BORDER_LANDMARK_HOLD seconds.
-	var s: Dictionary = await _start(Config.BorderVariant.CIRCLE)
+	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	_rescue_ring(td, Config.BORDER_LANDMARK_POS, 2.5, 3)
@@ -382,11 +375,10 @@ func test_f3_from_the_menu_shows_the_border_labels() -> void:
 	var menu: GdUnitSceneRunner = scene_runner("res://menu.tscn")
 	(menu.scene() as Control).size = Vector2(1280, 720)
 	await menu.simulate_frames(10)
-	menu.simulate_key_pressed(KEY_2)
+	menu.simulate_key_pressed(KEY_1)
 	await menu.simulate_frames(10)
 	var td: TopDownMain = get_tree().current_scene as TopDownMain
 	assert_object(td).is_not_null()
-	assert_int(td.border.variant).is_equal(Config.BorderVariant.ORGANIC)
 	TopDownTestUtil.send_everyone_away(td)
 	_rescue_ring(td, Vector3(0, 0, 0), 3.0, 3)
 	await menu.simulate_frames(20)
