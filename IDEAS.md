@@ -339,3 +339,17 @@ calm-opening night curve. The Round 10 border tests are in `tests/border_growth_
 **Rough spots to watch in play:** a three-person loop is lopsided and can still wander a little while it settles; the
 burst shove shrinks the rest of a loop slightly; a post's slots can be shifted by its neighbours, leaving a rare empty slot
 (a gap beside it).
+
+## Round 10 playtest and draft round 11 plan (2026-10-24)
+Feedback: the best round yet. Wants a little more zoomed out and a little faster (player and enemy movement, overall
+pace). Turning fully dark is a little fast; light grey to grey feels good. Growth is now too easy. Border posts and the
+calmer floor landed. The calm opening went unnoticed (keep as is). Minimap and arrows were unclear: gaps weren't obvious
+on the minimap and the edge arrows went unnoticed.
+
+Draft round 11 (to be re-evaluated after the build-speed tooling round):
+- Pace: player movement about +15%, dark and grey people a bit faster; night 4 → about 3 minutes.
+- Darkening: grey → dark slower; light grey → grey unchanged.
+- Camera: about 15% further out; auto-fire range back to about 10 m.
+- Risk back: border spacing 3.0 → about 2.6 m; intact push-back weaker, and a small drain even when intact.
+- Gaps: much clearer gap markers on the minimap; bigger, more noticeable pulsing edge arrows.
+- Unchanged: calm opening, border posts, floor effects.
