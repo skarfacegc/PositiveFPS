@@ -4,7 +4,7 @@
 # For commits that touch code (*.gd, *.tscn, *.tres, project.godot, tools/*, tests/*):
 #   1. python tools/lint.py                  (gdformat --check and gdlint)
 #   2. python tools/coverage.py --check-baseline   (full gdUnit4 run + line coverage ratchet, about 2 minutes)
-# Other commits are not checked.
+# Other commits are not checked. Commits that only touch design/ or Markdown docs skip the gate (tools/hook_paths.sh).
 #
 # Known limitation: lint and tests run on the working tree, not on the staged snapshot. Unstaged edits
 # therefore count too. Stash them first if you need the staged version tested exactly.
@@ -14,8 +14,15 @@
 cd "$(git rev-parse --show-toplevel)" || exit 1
 PYTHON="${PYTHON:-python}"
 
-if ! git diff --cached --name-only --diff-filter=ACMR |
-    grep -Eq '(\.gd|\.tscn|\.tres)$|^project\.godot$|^(tools|tests)/'; then
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+. tools/hook_paths.sh
+if printf '%s
+' "$staged" | is_docs_only; then
+  echo "pre-commit: design/docs-only change, skipping tests"
+  exit 0
+fi
+if ! printf '%s
+' "$staged" | needs_gate; then
   echo "pre-commit: no code changes, skipping tests"
   exit 0
 fi
