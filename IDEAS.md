@@ -240,6 +240,10 @@ menu picks one of three border shapes, so they can be compared in play.
 Playtest 9 feedback: the living border is good and just needs balance; it was too hard to grow the control zone. Green
 circles (most likely nature blooms) were distracting, especially with all the other floor detail.
 
+**Variants decided:** Organic push (variant B) is the one. Circle and Paint edge are retired in round 10 (menu becomes a
+simple Play). They remain in git history at commit `0e9d19b` (scripts/border.gd, tests/border_variant_test.gd); bring
+one back if Organic push proves hard to tune.
+
 **A. Make growing easier (suggestions 2 + 3)**
 - More ground per rescue: border spacing per person 2.2 m to about 3.0 m, and a bigger outward push where you rescue
   (organic variant).
@@ -269,7 +273,7 @@ pass)
 **D. Tooling**
 - The pre-commit hook skips the test gate for commits that only touch design/.
 
-**Open questions for the playtest:** which border variant felt best? Is the calm opening long enough? Do border posts
+**Open questions for the playtest:** Is the calm opening long enough? Do border posts
 make buildings feel worth capturing?
 
 **After round 10:** the full style pass (port design/style_test into the game).
