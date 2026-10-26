@@ -17,7 +17,7 @@ mode was retired.)
 - **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered · ! = faltering. The night
   introduces them one at a time, with a short one-time prompt each.
 - **Keys:** WASD move · Shift run · Space twirl (dodge a grab) · G or Q joy burst · Mouse point at people (F2 changes
-  targeting) · F3 debug · F4 switch look · R restart · M menu
+  targeting) · Mouse wheel zoom · F3 debug · F4 switch look · R restart · M menu
 
 ## How to run
 
@@ -92,8 +92,12 @@ element, and F3 labels it above the person.
 - **Skittish** (jittery): if you run (Shift) at them within 5 m, they back away for 1.5 s. Walking up does not scare them.
 - **Glum** (slumped, leaning forward): every 3 s they look up for 0.8 s (they straighten and a warm glint shows above
   them). Joy that lands then counts triple.
-- **Sheltering:** no joy lands on a wistful or gloomy person while a dimmed person stands within 2 m of them (a grey puff
-  shows). Deal with the dimmed person first, or draw them away: they chase you when you are close.
+- **Sheltering:** a dimmed person shelters the single nearest wistful or gloomy person within 2 m of them: no joy lands
+  on that one (a grey puff shows, and an umbrella and tether mark the pair). Others nearby still take joy. Deal with the
+  dimmed person first, or draw them away: they chase you when you are close.
+- **Dimmed people can be helped too, just slower** (they need about 1.6 times the joy of a wistful person). A dimmed
+  person hit by joy shows a progress ring. Dimmed people sink one at a time through the night, at least a few seconds
+  apart.
 - **Stage changes are visible.** When someone sinks a stage (wistful, gloomy, dimmed) a grey-violet puff and ripple
   plays, a warm one when they lift. The minimap flashes a violet ring where someone has just become dimmed.
 
@@ -110,6 +114,7 @@ element, and F3 labels it above the person.
   spacing, and GAP where it is one), and the member, inner, post and night numbers at the top left, and the live floor-effect counts (for example
   `floor fx 12/40: ring 2, splat 3`, against the cap of 40). Off by default. If F3 does
   nothing on your keyboard, the F-row may be set to media keys: try Fn+F3.
+- **Mouse wheel** zooms the view in and out (a closer or wider look at the plaza; the labels keep their size on screen).
 - **R** restart, **M** back to the menu.
 
 **On screen (round 10):** the camera is orthographic and looks down at the plaza. A circular **minimap** sits top-left

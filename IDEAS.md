@@ -839,3 +839,61 @@ Round 14 (balance):
   too. It takes longer"), and need about 1.6x a wistful person's joy instead of 2x.
 - **Midnight surge:** people sink to dimmed one at a time, with a minimum gap between them, never in a wave.
 - **Mouse-wheel zoom** between close and wide; the default is a little further out than now.
+
+## Round 14 build (balance)
+Built from the round 13 playtest and the round 14 plan: **balance and the wheel, no new mechanics or visuals**. The styled
+look was NOT updated and no checkpoint screenshots were refreshed. The new things are the rules (sheltering, the dimmed
+joy, the stagger), one new screen overlay (the dimmed progress ring, which reuses the falter ring's shape and colours),
+one short prompt, and the wheel zoom.
+
+**What changed**
+- **Sheltering, one person each:** a dimmed person shelters only the single nearest wistful or gloomy person within 2 m
+  (ties go to the earlier person in the level). The umbrella and the tether follow that one person. Others nearby take
+  joy normally (`Moods._assign_wards`, `Person.shelter_ward`).
+- **Dimmed people are the counter:**
+  - Joy needed for a dimmed person is 1.6 times a wistful one's (was 2.0). Wistful and gloomy are unchanged.
+  - Joy that lands on a dimmed person shows their progress ring (the falter ring's track and fill), for 1.5 s after the last
+    hit, fading out. The ring follows them and drops when they are no longer dimmed.
+  - One-time prompt, "Dimmed folk can be helped too — it takes longer", the first time a dimmed person is in view or the
+    first time joy lands on one, whichever comes first. Off under tests (the intro flag).
+  - Hover targeting and auto (darkest first) already picked dimmed people: checked with input in the new tests.
+  - Grabs, the twirl and the border are unchanged (no grab values this round).
+- **Midnight surge, staggered:** a person may sink to dimmed only if 6.0 s have passed since the last one sank (asked
+  through `Person.dim_gate` when they cross the line, so the gate is decided at the moment of sinking). Everyone
+  else who is ready waits just under the dimmed line and asks again each frame, so the first in array order goes. The calm opening rule
+  from round 13b is kept (nobody sinks before `NIGHT_CALM_FRACTION`).
+- **Mouse-wheel zoom:** wheel up zooms in, wheel down zooms out (actions `zoom_in` and `zoom_out`, one notch per frame).
+  The view height goes from 14.0 m (close) to 26.0 m (wide), 1.5 m a notch, eased. The default is 19.5 m (was 18). Labels
+  scale with the zoom (their size on screen is the same at every zoom) and the look offset scales too, so the player keeps
+  the same place on screen. The wheel does nothing else in top-down (the old element switching is gone).
+
+**Values** (`config.gd`, "Round 14"): `LEVEL_JOY_MULT [1.0, 1.5, 1.6]`, `DIM_ARRIVAL_MIN_GAP 6.0`, `DIM_RING_SECONDS 1.5`,
+`TD_CAMERA_ORTHO_SIZE 19.5`, `TD_CAMERA_LOOK_OFFSET (0, 0, -2.82)`, `TD_UI_SCALE 2.5675`, `TD_ZOOM_MIN 14`,
+`TD_ZOOM_MAX 26`, `TD_ZOOM_STEP 1.5`, `TD_ZOOM_EASE 8`, `DIM_WAIT_GLOOM 0.669999` (a refused person waits just under the
+dimmed line). Unchanged: `SHELTER_RADIUS 2`, `INTRO_DIM_CAP 0.669`, all grab values.
+
+**Tests:** 329 (314 before). Input-driven: `shelter_nearest_test` (the nearest one is sheltered and the other takes joy from
+hover-fire; the tether and umbrella follow one person; a farther ward takes over when the nearest leaves), `dimmed_help_test`
+(the progress ring from hover-fire and its fade; hover and auto targeting pick the dimmed person; the prompt shows once; it
+shows once even after joy), `stagger_test` (six people ready at midnight, sinks at least 6 s apart; waiting people sit at
+the top of the band; the gate opens for the next in array order), `zoom_test` (real wheel events: one notch eases, the
+zoom clamps at both ends, the player stays at the same screen spot, labels keep their screen size, the wheel does not
+change target or joy). Changed: 2.0 to 1.6 in `person_test`; `intro_test` (the dimmed-help prompt is queued first);
+`local_gap_test` (the press test opens the gate and keeps others light); `topdown_crowd_test` (two dimmed people
+placed together: the gate opens between them); `paint_bloom_camera_test` and `world_scale_test` (default 19.5: the
+ring-fit bound moved from about 11 m to about 12 m, so the miss check now uses 13 m); `topdown_mode_test` (the wheel no longer means nothing; the
+test now says so); `menu_test` (the zoom actions are listed). No pass threshold was loosened; the camera tests moved with the new default zoom.
+
+**Playtest questions**
+- Can you now counter the midnight dimmed? Is the dimmed ring clear enough to tell that joy is working, and is 1.6 times
+  the joy the right size of a fight?
+- Is sheltering a fair puzzle now (one person per dimmed person): can you see whose umbrella you are looking at, and does
+  the tether say which one?
+- Did you help dimmed folk, and did the prompt tell you in time? Did you know they can be helped at all before it showed?
+- Is the 6 s gap between sinks right: too slow to feel like a surge, or still a wave?
+- Is the zoom range right (14 close to 26 wide, default 19.5)? Do you zoom at all, and do the labels stay readable?
+
+**Rough spots:** nothing was seen in a real window (headless only). At the closest zoom (14 m) the 10 m auto-range ring is
+larger than the screen, which is fine (targeting still works; you just see less of the ring). The dimmed ring and the
+falter ring both use screen pixels, so a crowd of rings can overlap. The wander drifts people about a metre or so during a
+test, so the tests that need exact spots re-place people or call the rule directly.
