@@ -680,3 +680,29 @@ border stretched too wide is still one open gap everywhere.
 guarded turn speed and the press stop distance are first guesses; dimmed people overlap rescued members when they have got
 through a gap; no gamepad exists yet, so no new action was added to the controls block; tests that make rescued people by
 hand must give them full joy now (a rescued person with little joy counts as faltering).
+
+## Round 12 playtest and round 13 plan (2026-10-26)
+Feedback: closer, but still something missing. Gaps were seen but unclear: who to fix, whether it's urgent, and whether
+fixing was working. Spirit was unclear. Moods couldn't be told apart, and it wasn't clear why some people could be hit
+and others not (the guarded "squares"). "There's something there that can work, but the communication needs
+improvement, and not just with words." The captured area may also be too small to get a real sense of the border; more
+spacing is wanted, even if the level is less dense.
+
+**Round 13a: world scale-up** (built first, because the communication visuals depend on distances)
+- Plaza 70 m → about 100 m, with the same 60 people (less dense). Buildings and the landmark spread out to match.
+- Border spacing 2.6 → about 3.9 m, max gap 3.5 → about 5.3 m, push per rescue 2.4 → about 3.6 m, and the other
+  border/cover distances scaled the same way so the rules behave the same at a bigger size.
+- Camera slightly further out (about 18); the minimap covers the rest.
+- Expect a balance pass after playing (walking distances, grab and press timing).
+
+**Round 13b: communication** (no new mechanics)
+- Gaps: faltering border people get a pulsing marker and "!" icon; visible gloom leaking in through an open gap, with
+  urgency growing the longer it stays open (marker and minimap arrow intensify); a progress ring as you re-joy them.
+- Spirit: a bigger meter at the bottom centre with burst-cost and dim-threshold ticks; a flash and +/- number when you
+  gain, spend or lose spirit.
+- Moods: icons over heads (shield = guarded, dashing feet = skittish, cloud = glum that brightens on look-up,
+  umbrella = sheltered); a faint tether from the dimmed person to the person they shelter, which breaks visibly when
+  you lure them away; blocked joy bounces off with a spark and flashes the reason's icon.
+- Layered introduction through the night: dusk = rescuing and growing only; then dimmed people arrive (one-time prompt
+  at the first gap); then moods appear one type at a time, each with a one-time visual prompt.
+- Placeholder looks; icons and meters are screen overlays, so they work in both looks.
