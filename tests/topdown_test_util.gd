@@ -5,7 +5,7 @@ extends RefCounted
 
 const SCENE := "res://topdown.tscn"
 # Where people are parked while a test is not using them: far from the player and out of the way.
-const FAR := Vector3(30, 0, -30)
+const FAR := Vector3(30, 0, -30) * Config.WORLD_SCALE  # Round 13a: scaled with the plaza (still inside the walls).
 # The window size every level test runs at. The gdUnit4 CLI shrinks the window to 64x64, which puts the player and the
 # test spots off screen, so a suite must not rely on another suite having set the size first (suites run in separate
 # processes in tools/run_tests.py).

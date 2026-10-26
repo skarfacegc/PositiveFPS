@@ -45,13 +45,14 @@ func _ring_people(n: int, r: float) -> Array[Person]:
 
 func test_a_beautified_building_on_the_line_is_a_post_that_needs_three_fewer_members() -> void:
 	var border := _organic_border()
-	border.polygon = Border.circle_polygon(Vector2.ZERO, 6.0, Config.BORDER_SAMPLES)
+	border.polygon = Border.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
 	border.active = true
-	var rescued := _ring_people(20, 6.0)
-	_block(border, Vector2(5.5, 0.0), Vector2(0.5, 0.5), false)
+	var rescued := _ring_people(20, 6.0 * Config.WORLD_SCALE)
+	_block(border, Vector2(5.5 * Config.WORLD_SCALE, 0.0), Vector2(0.5, 0.5), false)
 	border._assign_members(rescued)
 	assert_int(border.post_count).is_equal(0)
-	# Round 11: spacing 2.6, so a radius 6 loop (37.7 m) holds 15 slots (was 13 at 3.0 m).
+	# Round 11: spacing 2.6, so a radius 6 loop (37.7 m) holds 15 slots (was 13 at 3.0 m). Round 13a: the same loop
+	# scaled by WORLD_SCALE holds the same 15 slots.
 	assert_int(border.member_count).is_equal(15)
 	# The same block, now beautified and on the line: it is a post, and the loop needs three fewer members.
 	border.buildings[0].beautified = true
@@ -66,25 +67,25 @@ func test_a_beautified_building_on_the_line_is_a_post_that_needs_three_fewer_mem
 
 func test_a_block_far_from_the_line_is_not_a_post() -> void:
 	var border := _organic_border()
-	border.polygon = Border.circle_polygon(Vector2.ZERO, 6.0, Config.BORDER_SAMPLES)
+	border.polygon = Border.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
 	border.active = true
 	_block(border, Vector2(0.0, 0.0), Vector2(0.5, 0.5), true)
-	border._assign_members(_ring_people(20, 6.0))
+	border._assign_members(_ring_people(20, 6.0 * Config.WORLD_SCALE))
 	assert_int(border.post_count).is_equal(0)
 
 
 func test_the_landmark_counts_as_a_post_once_beautified() -> void:
 	var border := _organic_border()
-	border.polygon = Border.circle_polygon(Vector2.ZERO, 6.0, Config.BORDER_SAMPLES)
+	border.polygon = Border.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
 	border.active = true
-	_block(border, Vector2(5.5, 0.0), Vector2(0.5, 0.5), true, true)
-	border._assign_members(_ring_people(20, 6.0))
+	_block(border, Vector2(5.5 * Config.WORLD_SCALE, 0.0), Vector2(0.5, 0.5), true, true)
+	border._assign_members(_ring_people(20, 6.0 * Config.WORLD_SCALE))
 	assert_int(border.post_count).is_equal(1)
 
 
 func test_a_segment_beside_a_post_is_never_a_gap() -> void:
-	# Five slots at spacing 5 m are all gaps, except the two beside the anchored slot.
-	var flags := Border.gap_flags(5.0, [true, true, true, true], [false, true, false, false])
+	# Five slots at spacing 5 m (times WORLD_SCALE) are all gaps, except the two beside the anchored slot.
+	var flags := Border.gap_flags(5.0 * Config.WORLD_SCALE, [true, true, true, true], [false, true, false, false])
 	assert_array(flags).is_equal([false, false, true, true])
 
 
@@ -159,13 +160,13 @@ func test_shove_bulges_the_line_toward_a_player_within_range_and_ignores_one_far
 
 
 func test_the_loop_keeps_the_perimeter_at_two_point_six_metres_per_person_once_it_settles() -> void:
-	# Round 11: ten people at 2.6 m each is a perimeter of about 26 m (was about 30 m at 3.0 m).
+	# Round 11: ten people at 2.6 m each is a perimeter of about 26 m. Round 13a: times WORLD_SCALE.
 	var border := _organic_border()
 	border._has_centre = true
 	border.centre = Vector3.ZERO
-	var rescued := _ring_people(10, 4.0)
+	var rescued := _ring_people(10, 4.0 * Config.WORLD_SCALE)
 	border.update(rescued, 1.0 / 60.0, 1.0)
 	for i: int in range(300):
 		border.update(rescued, 1.0 / 60.0, 1.0)
-	assert_float(border.perimeter).is_greater(24.5)
-	assert_float(border.perimeter).is_less(27.5)
+	assert_float(border.perimeter).is_greater(24.5 * Config.WORLD_SCALE)
+	assert_float(border.perimeter).is_less(27.5 * Config.WORLD_SCALE)

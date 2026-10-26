@@ -135,14 +135,16 @@ func test_three_locked_rescues_by_real_clicks_form_the_border() -> void:
 
 
 func test_slot_and_inner_counts_follow_the_formula() -> void:
-	# A circle of radius 3 (perimeter about 18.85) has 8 slots at 2.6 m (round 11; was 7 at 3.0 m). Twelve people: eight
-	# border members, four inner.
-	var loop := Border.circle_polygon(Vector2.ZERO, 3.0, Config.BORDER_SAMPLES)
+	# Round 13a: all sizes here are times WORLD_SCALE, so the counts are the same. A circle of radius 3 (perimeter
+	# about 18.85) has 8 slots at 2.6 m (round 11). Twelve people: eight border members, four inner.
+	var loop := Border.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
 	var border := _bare_border(loop)
 	var people := _people(12)
 	var rescued: Array[Person] = []
 	for i: int in range(12):
-		people[i].position = Vector3(cos(float(i)) * 3.0, 0.0, sin(float(i)) * 3.0)
+		people[i].position = Vector3(
+			cos(float(i)) * 3.0 * Config.WORLD_SCALE, 0.0, sin(float(i)) * 3.0 * Config.WORLD_SCALE
+		)
 		rescued.append(people[i])
 	border._assign_members(rescued)
 	assert_int(border.member_count).is_equal(8)
@@ -153,11 +155,13 @@ func test_slot_and_inner_counts_follow_the_formula() -> void:
 
 func test_fewer_people_than_slots_spread_out_and_leave_gaps() -> void:
 	# Four people on a radius 3 loop: all four are border members, spaced about 4.7 m apart (over the 3.5 m limit).
-	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 3.0, Config.BORDER_SAMPLES))
+	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES))
 	var people := _people(4)
 	var rescued: Array[Person] = []
 	for i: int in range(4):
-		people[i].position = Vector3(cos(float(i)) * 3.0, 0.0, sin(float(i)) * 3.0)
+		people[i].position = Vector3(
+			cos(float(i)) * 3.0 * Config.WORLD_SCALE, 0.0, sin(float(i)) * 3.0 * Config.WORLD_SCALE
+		)
 		rescued.append(people[i])
 	border._assign_members(rescued)
 	assert_int(border.member_count).is_equal(4)
@@ -167,21 +171,25 @@ func test_fewer_people_than_slots_spread_out_and_leave_gaps() -> void:
 
 
 func test_gaps_are_drawn_in_their_own_colour() -> void:
-	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 3.0, Config.BORDER_SAMPLES))
+	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES))
 	var people := _people(4)
 	var rescued: Array[Person] = []
 	for i: int in range(4):
-		people[i].position = Vector3(cos(float(i)) * 3.0, 0.0, sin(float(i)) * 3.0)
+		people[i].position = Vector3(
+			cos(float(i)) * 3.0 * Config.WORLD_SCALE, 0.0, sin(float(i)) * 3.0 * Config.WORLD_SCALE
+		)
 		rescued.append(people[i])
 	border._assign_members(rescued)
 	assert_bool(border.segment_is_gap(0)).is_true()
 	assert_bool(border.segment_colour(0).is_equal_approx(Config.BORDER_INTACT_COLOUR)).is_false()
 
-	var intact := _bare_border(Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
+	var intact := _bare_border(Border.circle_polygon(Vector2.ZERO, 5.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES))
 	var more := _people(14)
 	var more_rescued: Array[Person] = []
 	for i: int in range(14):
-		more[i].position = Vector3(cos(float(i)) * 5.0, 0.0, sin(float(i)) * 5.0)
+		more[i].position = Vector3(
+			cos(float(i)) * 5.0 * Config.WORLD_SCALE, 0.0, sin(float(i)) * 5.0 * Config.WORLD_SCALE
+		)
 		more_rescued.append(more[i])
 	intact._assign_members(more_rescued)
 	assert_bool(intact.segment_is_gap(0)).is_false()

@@ -15,16 +15,17 @@ func test_circle_polygon_has_the_samples_on_the_circle() -> void:
 func test_slot_count_is_the_perimeter_over_the_spacing_rounded_up() -> void:
 	assert_int(Border.slot_count_for(Config.BORDER_TARGET_SPACING * 9.0)).is_equal(9)
 	assert_int(Border.slot_count_for(Config.BORDER_TARGET_SPACING * 9.0 + 0.5)).is_equal(10)
-	assert_float(Config.BORDER_PUSH).is_equal(2.4)
+	assert_float(Config.BORDER_PUSH).is_equal_approx(2.4 * Config.WORLD_SCALE, 0.0001)
 
 
+# Round 13a: spacing 2.6 x WORLD_SCALE on a radius 6 x WORLD_SCALE loop, so the counts are unchanged.
 # Round 11: spacing 2.6 (was 3.0). A radius 6 loop (perimeter 37.7 m) holds 15 slots at 2.6 m (13 at the old 3.0), and
 # the slots still fit the loop: 15 x 2.6 is 39 m, just over the perimeter.
 func test_round_eleven_spacing_is_two_point_six_metres_on_a_radius_six_loop() -> void:
-	assert_float(Config.BORDER_TARGET_SPACING).is_equal(2.6)
-	var loop := Border.circle_polygon(Vector2.ZERO, 6.0, Config.BORDER_SAMPLES)
+	assert_float(Config.BORDER_TARGET_SPACING).is_equal_approx(2.6 * Config.WORLD_SCALE, 0.0001)
+	var loop := Border.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
 	var perimeter := Border.perimeter_of(loop)
-	assert_float(perimeter).is_equal_approx(TAU * 6.0, 0.05)
+	assert_float(perimeter).is_equal_approx(TAU * 6.0 * Config.WORLD_SCALE, 0.1)
 	assert_int(Border.slot_count_for(perimeter)).is_equal(15)
 	assert_float(perimeter / float(Border.slot_count_for(perimeter))).is_less_equal(Config.BORDER_TARGET_SPACING)
 

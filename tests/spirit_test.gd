@@ -220,10 +220,10 @@ func test_recovery_inside_the_border_grows_with_depth_and_stops_outside_it() -> 
 	var deep := td.dim_recovery_rate()
 	assert_float(deep).is_equal_approx(Config.DIM_RECOVER_RATE, 0.01)
 
-	# Half a metre inside the line: depth protection 0.5.
+	# Half the edge band inside the line: depth protection 0.5 (round 13a: the band is 1 m x WORLD_SCALE).
 	var edge := Vector2(td.border.polygon[0].x, td.border.polygon[0].y)
 	var inward := (Vector2(centre.x, centre.z) - edge).normalized()
-	var shallow_pt := edge + inward * 0.5
+	var shallow_pt := edge + inward * (0.5 * Config.BORDER_EDGE_BAND)
 	td.player.global_position = Vector3(shallow_pt.x, 0.0, shallow_pt.y)
 	var shallow := td.dim_recovery_rate()
 	var expected := Config.DIM_RECOVER_RATE * (Config.DIM_RECOVER_BASE + Config.DIM_RECOVER_DEPTH * 0.5)

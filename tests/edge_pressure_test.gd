@@ -186,11 +186,12 @@ func test_a_dark_person_deep_inside_the_paint_erodes_nothing_within_reach() -> v
 func test_an_eroded_tile_does_not_regrow_for_the_hold_time() -> void:
 	var g := _ground(40, true)
 	var lone := _person(0, Vector3.ZERO, 0.0, true)
-	var dark := _person(1, Vector3(4.0, 0.0, 0.0), 0.9)
+	# Round 13a: the paint disc is bigger, so the dark person stands at the edge of it (4 m x WORLD_SCALE).
+	var dark := _person(1, Vector3(5.7, 0.0, 0.0), 0.9)
 	var people: Array = [lone, dark]
 	_paint_updates(g, people, 100)
 	_paint_updates(g, people, 30)
-	var tile := Vector3(4.5, 0.0, 0.5)
+	var tile := Vector3(6.5, 0.0, 0.5)
 	var eroded := g.paint_weight_at(tile)
 	assert_float(eroded).is_less(0.01)
 
@@ -235,11 +236,12 @@ func test_a_dark_person_with_nobody_to_chase_drifts_to_the_territory_edge() -> v
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)
 	var rescued: Person = td.people[0]
-	TopDownTestUtil.place(rescued, Vector3(-26, 0, -26), 0, 0.0)
+	TopDownTestUtil.place(rescued, Vector3(-26, 0, -26) * Config.WORLD_SCALE, 0, 0.0)
 	rescued.receive_joy(0, Config.JOY_MAX, 0.0)
 	var dark: Person = td.people[1]
-	# About 70 m from the rescued person, well outside the pursuit search radius.
-	TopDownTestUtil.place(dark, Vector3(26, 0, 26), 0, 0.9)
+	# About 105 m from the rescued person (round 13a: scaled spots, clear of the scaled blocks), well outside the pursuit
+	# search radius.
+	TopDownTestUtil.place(dark, Vector3(26, 0, 26) * Config.WORLD_SCALE, 0, 0.9)
 
 	await runner.simulate_frames(150)
 	assert_bool(td.ground.has_edge()).is_true()

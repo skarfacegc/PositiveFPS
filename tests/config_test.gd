@@ -28,10 +28,11 @@ func test_falloff_curve() -> void:
 # Round 11 pace: walk and run are 15% faster than round 10 (6.0 and 9.5). Wandering and dark drift are 15% faster
 # than 0.8. The values are rounded, so the check allows a little slack.
 func test_round_eleven_pace_is_about_fifteen_percent_faster() -> void:
-	assert_float(Config.TD_MOVE_SPEED).is_equal_approx(6.0 * 1.15, 0.05)
-	assert_float(Config.TD_RUN_SPEED).is_equal_approx(9.5 * 1.15, 0.05)
+	# Round 13a: the player's walk and run, and the dark drift, are a further 10% faster for the bigger world.
+	assert_float(Config.TD_MOVE_SPEED).is_equal_approx(6.0 * 1.15 * 1.1, 0.05)
+	assert_float(Config.TD_RUN_SPEED).is_equal_approx(9.5 * 1.15 * 1.1, 0.05)
 	assert_float(Config.TD_WANDER_SPEED).is_equal_approx(0.8 * 1.15, 0.01)
-	assert_float(Config.TD_DARK_DRIFT_SPEED).is_equal_approx(0.8 * 1.15, 0.01)
+	assert_float(Config.TD_DARK_DRIFT_SPEED).is_equal_approx(0.8 * 1.15 * 1.1, 0.01)
 
 
 func test_gloom_level_steps() -> void:

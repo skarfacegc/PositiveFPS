@@ -221,10 +221,10 @@ func _post_border() -> Dictionary:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
-	border.polygon = Border.circle_polygon(Vector2.ZERO, 6.0, Config.BORDER_SAMPLES)
+	border.polygon = Border.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
 	border.active = true
 	var body: StaticBody3D = auto_free(StaticBody3D.new())
-	body.position = Vector3(5.5, 0.0, 0.0)
+	body.position = Vector3(5.5 * Config.WORLD_SCALE, 0.0, 0.0)
 	add_child(body)
 	border.register_building(body, Vector2(0.5, 0.5), false)
 	border.buildings[0].beautified = true
@@ -234,7 +234,7 @@ func _post_border() -> Dictionary:
 		var p: Person = auto_free(Person.new())
 		p.is_rescued = true
 		p.joy = Config.JOY_MAX
-		p.position = Vector3(cos(a) * 6.0, 0.0, sin(a) * 6.0)
+		p.position = Vector3(cos(a) * 6.0 * Config.WORLD_SCALE, 0.0, sin(a) * 6.0 * Config.WORLD_SCALE)
 		rescued.append(p)
 	border._assign_members(rescued)
 	assert_int(border.member_count).is_equal(12)

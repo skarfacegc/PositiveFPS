@@ -8,6 +8,8 @@ func test_rescued_person_paints_nearby_tiles_and_leaves_far_corner_grey() -> voi
 	var ground: PaintedGround = auto_free(PaintedGround.new())
 	add_child(ground)
 	ground.setup(10)
+	# Round 13a: the default paint radius is now 6 x WORLD_SCALE; this test is about a 6 m disc.
+	ground.paint_radius = 6.0
 
 	var p: Person = auto_free(Person.new())
 	p.affinity = 0

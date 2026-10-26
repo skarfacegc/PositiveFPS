@@ -8,6 +8,15 @@ enum Element { MUSIC, ART, NATURE }
 # Top-down targeting modes (see TD_TARGETING_MODE below).
 enum TargetingMode { LOCK_ON, HOVER_STICKY, AUTO }
 
+# ---- Round 13a: world scale. The plaza went from 70 m to 100 m across (WORLD_SCALE), with the same 60 people.
+# THE RULE: a constant is multiplied by WORLD_SCALE if it is about TERRITORY (how big a land the rules cover: plaza,
+# block and landmark positions, spawn margins and spacing, border spacing / gap / push / radii / bands / steps, cover,
+# erosion, colour-zone and contagion radii, search and edge-pressure reach). It is left alone if it is about
+# INTERACTION or a BODY (person and block sizes, projectile ranges and speeds, TD_AUTO_RANGE, GRAB_*, SHELTER_RADIUS,
+# SKITTISH_RADIUS, hit and click radii, burst radius, press range). A per-metre rate is divided by WORLD_SCALE so the
+# same fraction of the way across the land gives the same rate. Speeds are tuned by hand (player, dark drift +10%).
+const WORLD_SCALE := 100.0 / 70.0
+
 # Display names, in the same order as the Element enum.
 const ELEMENT_NAMES: Array[String] = ["Music", "Art", "Nature"]
 
@@ -32,13 +41,14 @@ const FALLOFF_MIN := 0.25  # Strength at or beyond FALLOFF_FAR (25%).
 const GLOOM_START_MIN := 0.0  # Random starting gloom for each person, lowest...
 const GLOOM_START_MAX := 0.5  # ...and highest.
 const GLOOM_GROWTH := 0.006  # Gloom gained per second by an unrescued person, base rate.
-const GLOOM_GROWTH_PER_METER := 0.0008  # Extra gloom per second for each metre from the nearest colour zone.
+# Extra gloom per second for each metre from the nearest colour zone (round 13a: divided by WORLD_SCALE).
+const GLOOM_GROWTH_PER_METER := 0.0008 / WORLD_SCALE
 # Round 11: growth is multiplied by this while the person is at grey (level 1), so the grey -> dark step is slower.
 # Light grey -> grey is unchanged (1.0 is the old rate). Applies to growth only, not spread or contagion.
 const GLOOM_DARK_STEP_MULT := 0.65
-const NO_ZONE_DISTANCE := 20.0  # Gloom growth distance when nobody is rescued yet (no colour zones).
-const ZONE_RADIUS := 6.0  # Each rescued person creates a colour zone of this radius (metres).
-const SPREAD_RADIUS := 6.0  # How far darkness spreads from a dark person (metres).
+const NO_ZONE_DISTANCE := 20.0 * WORLD_SCALE  # Gloom growth distance when nobody is rescued yet (no colour zones).
+const ZONE_RADIUS := 6.0 * WORLD_SCALE  # Each rescued person creates a colour zone of this radius (metres).
+const SPREAD_RADIUS := 6.0 * WORLD_SCALE  # How far darkness spreads from a dark person (metres).
 const SPREAD_GLOOM_RATE := 0.03  # Gloom per second given to nearby unrescued people by a dark person.
 const SPREAD_DRAIN_RATE := 60.0  # Joy per second drained from nearby rescued people by a dark person.
 
@@ -73,7 +83,7 @@ const NUMBERS_ENABLED := true
 # ----
 
 # Side length of the top-down plaza, in metres. Walls go around the edge.
-const TD_PLAZA_SIZE := 70
+const TD_PLAZA_SIZE := 100  # Round 13a: 70 x WORLD_SCALE.
 # How many people are in the top-down plaza.
 const TD_PEOPLE_COUNT := 60
 # Seed for every gameplay random number (top-down placement and wandering, cosmetic jitter). Gameplay code uses its
@@ -81,7 +91,7 @@ const TD_PEOPLE_COUNT := 60
 const RNG_SEED := 42
 # Cover (round 7): each person's cover is the average paint weight of the ground within TD_COVER_RADIUS metres. Their
 # protection is smoothstep(TD_COVER_EDGE, TD_COVER_FULL, cover): 0 at the edge of a painted area, 1 well inside it.
-const TD_COVER_RADIUS := 3.0
+const TD_COVER_RADIUS := 3.0 * WORLD_SCALE
 const TD_COVER_EDGE := 0.35
 const TD_COVER_FULL := 0.85
 # Joy contagion: with at least this much cover, an unrescued person's gloom drops by TD_CONTAGION_RATE per second
@@ -103,14 +113,14 @@ const TD_DEBUG_PIXEL_SIZE := 0.012
 # Round 10: an orthographic camera, size TD_CAMERA_ORTHO_SIZE (the view height in metres at the focus), tilted down at
 # TD_CAMERA_PITCH_DEG degrees. It sits TD_CAMERA_DISTANCE metres from its look point, which is the player plus
 # TD_CAMERA_LOOK_OFFSET (2.4 m north, so the player sits a little below the centre of the screen).
-const TD_CAMERA_ORTHO_SIZE := 16.7
+const TD_CAMERA_ORTHO_SIZE := 18.0  # Round 13a: 16.7 -> 18 (the world is bigger; the minimap covers the rest).
 const TD_CAMERA_PITCH_DEG := 41.0
 const TD_CAMERA_DISTANCE := 20.0
-const TD_CAMERA_LOOK_OFFSET := Vector3(0, 0, -2.4)
+const TD_CAMERA_LOOK_OFFSET := Vector3(0, 0, -2.6)  # Round 13a: -2.4 x 18 / 16.7, same screen position.
 # Walking speed, in metres per second.
-const TD_MOVE_SPEED := 6.9
+const TD_MOVE_SPEED := 7.6  # Round 13a: +10% (6.9) to offset the longer walks.
 # Speed while holding Shift, in metres per second. Round 11: walk and run are about 15% faster than round 10 (6.0, 9.5).
-const TD_RUN_SPEED := 10.9
+const TD_RUN_SPEED := 12.0  # Round 13a: +10% (10.9).
 # A person can only be targeted (and shot at) while this close to the player, in metres. Round 11: 10.0 (was 8.6), the
 # largest round value whose full ring still fits on a 1280x720 screen with the zoomed-out camera (see the camera test).
 const TD_AUTO_RANGE := 10.0
@@ -217,7 +227,8 @@ const TD_WANDER_REACH := 0.5
 const TD_WANDER_TIME_MIN := 3.0
 const TD_WANDER_TIME_MAX := 6.0
 # Dark people drift toward a rescued person at this speed, in metres per second (round 6: slowed from 1.3).
-const TD_DARK_DRIFT_SPEED := 0.92  # Round 11: about 15% faster than round 10 (0.8), with the wander speed.
+# Round 11: 0.92 (15% faster than round 10's 0.8). Round 13a: +10% again.
+const TD_DARK_DRIFT_SPEED := 1.01
 # Dark people stop drifting when this close to their rescued person, in metres.
 const TD_DARK_STOP_DISTANCE := 2.5
 # At most this many dark people may drift toward the same rescued person. Others pick the next-nearest rescued person
@@ -281,11 +292,11 @@ const TD_PETAL_SIZE := Vector2(0.16, 0.12)
 # People stay this far inside the plaza walls, in metres.
 const TD_EDGE_MARGIN := 2.0
 # People are placed at least this far from the plaza edge, in metres.
-const TD_SPAWN_EDGE := 3.0
+const TD_SPAWN_EDGE := 3.0 * WORLD_SCALE
 # People are never placed closer than this to the centre (where the player starts), in metres.
-const TD_SPAWN_CENTRE_CLEAR := 5.0
+const TD_SPAWN_CENTRE_CLEAR := 5.0 * WORLD_SCALE
 # Minimum distance between two people when placing them, in metres.
-const TD_SPAWN_SPACING := 2.5
+const TD_SPAWN_SPACING := 2.5 * WORLD_SCALE
 # Distance kept beyond an obstacle block's edge, for spawning and walking, in metres.
 const TD_BLOCK_CLEARANCE := 1.5
 # Seconds before the joy burst can be used again.
@@ -298,7 +309,7 @@ const TD_BURST_JOY := 350.0
 const TD_BURST_TIME := 0.35
 # Size multiplier for floating numbers and labels in top-down mode. Round 8: 1.9 (was 2.5), to match the closer camera
 # so the labels keep about the same size on screen.
-const TD_UI_SCALE := 2.2  # Round 11: 1.9 x the zoom-out (16.7 / 14.5), so the labels keep their size on screen.
+const TD_UI_SCALE := 2.37  # Round 11: 1.9 x the zoom-out (16.7 / 14.5), so the labels keep their size on screen.
 
 # Round 8: own paint does not protect. A rescued person's cover leaves out the paint made by their own soft circle
 # (see PaintedGround.average_weight_excluding). Unrescued people still use the full cover.
@@ -306,14 +317,14 @@ const TD_UI_SCALE := 2.2  # Round 11: 1.9 x the zoom-out (16.7 / 14.5), so the l
 # Round 8: darkness erodes paint at the edge of territory. Each unrescued dark person takes TD_ERODE_RATE weight per
 # second off the edge tiles within TD_ERODE_RADIUS. A tile is edge unless it and all its neighbours are at least
 # TD_ERODE_EDGE_MAX (deep interior tiles are immune). An eroded tile cannot regrow for TD_ERODE_HOLD seconds.
-const TD_ERODE_RADIUS := 2.0
+const TD_ERODE_RADIUS := 2.0 * WORLD_SCALE
 const TD_ERODE_RATE := 0.25
 const TD_ERODE_EDGE_MAX := 0.9
 const TD_ERODE_HOLD := 3.0
 # The territory edge (for dark people with no one to chase) is painted tiles with weight in (TD_EDGE_MIN, EDGE_MAX).
 const TD_EDGE_MIN := 0.05
 # Dark people chase the weakest rescued person (lowest protection, ties to the nearest) within this many metres.
-const TD_PURSUIT_SEARCH_RADIUS := 25.0
+const TD_PURSUIT_SEARCH_RADIUS := 25.0 * WORLD_SCALE
 # A dark person with no one to chase drifts to the nearest territory edge, and stops this close to it (metres).
 const TD_EDGE_REACH := 0.5
 
@@ -363,30 +374,30 @@ const BORDER_MIN_PEOPLE := 3
 const BORDER_CENTRE_FOLLOW := 0.5
 # Members stand this far apart along the border, in metres. The slot count is perimeter / this, rounded up. Round 10:
 # 3.0 (was 2.2), so growing is easier.
-const BORDER_TARGET_SPACING := 2.6
+const BORDER_TARGET_SPACING := 2.6 * WORLD_SCALE
 # Members walk to their slot at this speed, in metres per second.
 const BORDER_WALK_SPEED := 3.0
 # A stretch of border between two members longer than this is a gap: darkness can pass through it.
-const BORDER_MAX_GAP := 3.5
+const BORDER_MAX_GAP := 3.5 * WORLD_SCALE
 # A dark person outside the border drains the nearest member within this distance, in metres.
 const BORDER_PRESS_RANGE := 1.5
 # The border loop has this many points (one per angle), and is drawn as line segments.
 const BORDER_SAMPLES := 48
 # The border never shrinks below a circle of this radius, in metres.
-const BORDER_MIN_RADIUS := 3.0
+const BORDER_MIN_RADIUS := 3.0 * WORLD_SCALE
 # Each rescue pushes the border outward at its angle, by this much at the peak (metres). Round 10: 2.4 (was 1.6),
 # which is about one member's spacing of perimeter (the Gaussian area is BORDER_PUSH x 1.25).
-const BORDER_PUSH := 2.4
+const BORDER_PUSH := 2.4 * WORLD_SCALE
 # The push is spread over this many radians (a Gaussian), so the bump is smooth.
 const BORDER_PUSH_WIDTH := 0.5
 # The total size is eased toward the target perimeter over this many seconds.
 const BORDER_NORMALISE_SECONDS := 2.0
 # Cover from the border: 0 on the line, 1 this many metres inside it (so a grey person there can be lightened).
-const BORDER_EDGE_BAND := 1.0
+const BORDER_EDGE_BAND := 1.0 * WORLD_SCALE
 # A member who relapses steps this far outward from the centre (metres).
-const BORDER_OUTWARD_STEP := 1.0
+const BORDER_OUTWARD_STEP := 1.0 * WORLD_SCALE
 # Inner members (rescued people beyond the slot count) stand in a spiral this much apart, in metres.
-const BORDER_INNER_SPACING := 0.7
+const BORDER_INNER_SPACING := 0.7 * WORLD_SCALE
 # A building is beautified after this many seconds with at least this fraction of its footprint inside the border.
 const BORDER_BUILDING_SECONDS := 3.0
 const BORDER_BUILDING_INSIDE := 0.7
@@ -397,7 +408,7 @@ const BORDER_BUILDING_COLOUR := Color(0.92, 0.7, 0.55)
 # The ground inside the border goes this colour (warm cream), and outside it stays grey.
 const BORDER_GROUND_COLOUR := Color(0.93, 0.84, 0.66)
 # The landmark: one special block away from the start. Win when it is beautified and held this long (seconds).
-const BORDER_LANDMARK_POS := Vector3(18, 0, -16)
+const BORDER_LANDMARK_POS := Vector3(18, 0, -16) * WORLD_SCALE
 const BORDER_LANDMARK_SIZE := Vector3(4, 3.5, 4)
 const BORDER_LANDMARK_HOLD := 10.0
 const BORDER_LANDMARK_COLOUR := Color(0.78, 0.66, 0.6)
@@ -431,7 +442,7 @@ const NIGHT_PEAK_EXTRA := 0.75
 const NIGHT_CALM_FRACTION := 0.25
 const NIGHT_CALM_STRENGTH := 0.2
 # A beautified building whose footprint is this close to the loop (metres) is a border post.
-const BORDER_POST_REACH := 2.0
+const BORDER_POST_REACH := 2.0 * WORLD_SCALE
 # A post holds this many members' worth of perimeter, so the loop needs that many fewer people.
 const BORDER_POST_WORTH := 3
 # Post visuals (placeholder): a warm lantern on the block, and a golden ring around its base.
@@ -446,7 +457,7 @@ const BORDER_PUSHBACK_SPEED := 0.35
 const BORDER_INTACT_DRAIN_FRACTION := 0.25
 # The joy burst shoves the border outward toward the player when they are this close to it (metres), by this much.
 const BORDER_SHOVE_RANGE := 4.0
-const BORDER_SHOVE_AMOUNT := 1.5
+const BORDER_SHOVE_AMOUNT := 1.5 * WORLD_SCALE
 
 # ---- Round 12a: spirit, going dim, grabs and the twirl
 # Spirit is the player's spendable resource (0..SPIRIT_MAX). Rescues fill it, the joy burst spends it, a grab drains it.
@@ -527,7 +538,7 @@ const GLUM_SLUMP_SCALE := 0.8
 # out it is (0 innermost, 1 outermost). A score of 1 is worth EDGE_PRESSURE_REACH metres of walking.
 const EDGE_RECENT_SECONDS := 60.0
 const EDGE_RECENCY_WEIGHT := 0.6
-const EDGE_PRESSURE_REACH := 12.0
+const EDGE_PRESSURE_REACH := 12.0 * WORLD_SCALE
 # A dimmed person outside the border whose target is a border member walks up to the line (stopping this far from the
 # member, which the line itself holds them short of), so they really press it. (Before they stopped 2.5 m from the
 # member, beyond BORDER_PRESS_RANGE of the line, and pressed only for a moment.)

@@ -6,19 +6,20 @@ extends Node3D
 # beautified. The light goes from dusk to dawn (night.gd); the level ends at dawn, or earlier when the landmark is held
 # (win) or the border falls (lose).
 
-# Obstacle blocks are 4 x 2 x 4. Their centres are fixed, within +-25, and the middle stays clear.
+# Obstacle blocks are 4 x 2 x 4. Their centres are fixed (round 13a: the round 12 spots times Config.WORLD_SCALE,
+# within +-36), and the middle stays clear.
 const BLOCK_SIZE := Vector3(4, 2, 4)
 const BLOCK_POSITIONS: Array[Vector3] = [
-	Vector3(-20, 1, -18),
-	Vector3(-6, 1, -22),
-	Vector3(12, 1, -20),
-	Vector3(22, 1, -12),
-	Vector3(-22, 1, -2),
-	Vector3(20, 1, 4),
-	Vector3(-14, 1, 12),
-	Vector3(4, 1, 14),
-	Vector3(18, 1, 20),
-	Vector3(-6, 1, 24),
+	Vector3(-20, 0, -18) * Config.WORLD_SCALE + Vector3(0, 1, 0),
+	Vector3(-6, 0, -22) * Config.WORLD_SCALE + Vector3(0, 1, 0),
+	Vector3(12, 0, -20) * Config.WORLD_SCALE + Vector3(0, 1, 0),
+	Vector3(22, 0, -12) * Config.WORLD_SCALE + Vector3(0, 1, 0),
+	Vector3(-22, 0, -2) * Config.WORLD_SCALE + Vector3(0, 1, 0),
+	Vector3(20, 0, 4) * Config.WORLD_SCALE + Vector3(0, 1, 0),
+	Vector3(-14, 0, 12) * Config.WORLD_SCALE + Vector3(0, 1, 0),
+	Vector3(4, 0, 14) * Config.WORLD_SCALE + Vector3(0, 1, 0),
+	Vector3(18, 0, 20) * Config.WORLD_SCALE + Vector3(0, 1, 0),
+	Vector3(-6, 0, 24) * Config.WORLD_SCALE + Vector3(0, 1, 0),
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
 const HINT := "WASD move | Shift run | Space twirl | Click to lock on | G/Q burst | R restart | M menu | [F4] look"
