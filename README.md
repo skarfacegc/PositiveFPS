@@ -14,6 +14,8 @@ mode was retired.)
 - **The gloom:** Dimmed people press on your border and reach for you. Where they push, border folk falter and gaps
   open. Re-joy a faltering person to close the gap.
 - **Spirit:** Helping people fills it; a joy burst costs some. At zero you go dim. Recover inside your border.
+- **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered · ! = faltering. The night
+  introduces them one at a time, with a short one-time prompt each.
 - **Keys:** WASD move · Shift run · Space twirl (dodge a grab) · G or Q joy burst · Mouse point at people (F2 changes
   targeting) · F3 debug · F4 switch look · R restart · M menu
 

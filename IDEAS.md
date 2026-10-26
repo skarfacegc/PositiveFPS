@@ -748,3 +748,82 @@ recovery depth (band is 1.43 m), pace test (+10%), camera test (18 m view, 12 m 
 - Are dark people arriving too slowly (drift 1.01 across a bigger plaza)? Is the night (180 s) still enough to win?
 - Do grabs and presses feel rarer, since the people are less dense?
 - Is the minimap still enough to find gaps and the landmark at this size?
+
+## Round 13b build (communication)
+Built from the round 13 plan: **no new mechanics**, only ways of showing what the rules already do. Everything new is a
+screen-space overlay (so it appears in both looks and stays readable at any zoom) or a placeholder-look shape; the styled
+look was NOT updated and no checkpoint screenshots were refreshed. Player-facing words are kept to short one-time prompts.
+
+**What was built**
+- **Menu note:** a small line under the Look button, "Styled look: visual test only — not the current game." It shows
+  only while the styled look is selected.
+- **Gaps: who, how urgent, how far along** (`FeedbackLayer`, `Border`):
+  - A faltering rescued person gets a pulsing flattened ring at their feet and a "!" badge above the head.
+  - **Urgency** 0 to 1 over `GAP_URGENCY_SECONDS` (8 s) of a gap staying open (`Border.gap_urgencies()`, ages carried by
+    matching each gap to the nearest one of last frame within 6 m) and of a person staying faltering
+    (`Border.falter_urgency()`). It speeds the marker pulse (1.0 to 3.2 Hz), brightens it, and grows the badge. The minimap
+    gets a marker on every gap that grows and whitens with urgency (and a ring above 0.5); the off-screen arrows get bigger,
+    brighter at their dimmest and pulse faster (`GapArrows.arrow_colour`).
+  - **Leak:** grey-violet motes drift from each open gap toward the border centre (about 8 alive per gap, denser and faster
+    with urgency, 120 at most; seeded, so runs repeat).
+  - **Progress:** a ring around the person fills with their joy toward the falter line as you re-joy them. At the line a
+    short "closed" flash (expanding ring, glow, and warm bars from the neighbouring gap midpoints to them) seals the gap.
+- **Spirit** (`SpiritMeter`, over the HUD's bar): 360 px wide at the bottom centre; a tick with a small burst glyph above
+  the bar at the burst cost (30) and a tick with a small moon below it at the dim exit (30; the two values are equal today,
+  so the ticks line up and sit on opposite sides). The burst tick goes red while the burst is unaffordable; the moon pulses
+  while you are dim. A flash and a floating number at the meter, plus a ring round the player, on gain (rescue, "+20", gold,
+  ring expands), spend (burst, "-30", violet, ring contracts) and loss (grab, "-25", red, ring expands). The twirl cooldown
+  is a small ring beside the meter (fills as it comes back, a green dot when ready). The old text label sits to the left
+  of the bar ("Spirit 65 / 100"; "DIM  spirit 12 / 100" while dim); the twirl text moved above the burst text.
+- **Moods and blocked joy:**
+  - Icons over heads (original shapes drawn in code: `MoodIcons`): shield = guarded, running feet with speed lines =
+    skittish, cloud = glum (lifts, enlarges and turns warm gold while they look up), umbrella = sheltered (beside the mood
+    icon if they have both). Dimmed and rescued people have none. The crossed-arms square of the guarded placeholder is gone.
+  - **Tether:** a faint violet line from each dimmed person to each person they shelter. When it breaks (the dimmed person
+    leaves `SHELTER_RADIUS`) it snaps: the two halves pull apart with a small spark star.
+  - **Blocked hit:** `Person.joy_blocked(reason)` (guarded from behind, sheltered) gives a bounce-off spark star at the chest
+    and makes the reason's icon flash white and grow to 1.8x for 0.55 s.
+- **Layered introduction through the night** (`Intro`, `PromptBar`, driven by `NightCycle.progress()`):
+  - Until `NIGHT_CALM_FRACTION` (0.25) nobody may sink to dimmed (gloom is held at 0.669, so the people who would be dimmed
+    wait as gloomy; no pressing, grabbing or sheltering) and every mood is dormant (`Person.mood_unlocked`).
+  - Then the cap lifts and the waiting people sink with the usual stage-change puff. The first time a person is faltering
+    after that: "A gap! Help the faltering one (!) to close it." (placed near that person if they are on screen).
+  - Moods switch on one at a time at `MOOD_INTRO_FRACTIONS`: guarded 0.35, skittish 0.5, glum 0.65. The first time each is
+    seen on screen (or, for guarded and sheltered, the first time joy is blocked by it) a prompt with its icon shows:
+    "Guarded — reach them from the front", "Skittish — walk, don't run", "Glum — help when they look up", "Sheltered —
+    draw the dimmed one away".
+  - First time spirit drops below the burst cost: "Spirit low — rescue people to refill"; first time you go dim: "You're
+    dim — rest inside your border".
+  - Prompts are a small rounded bar above the spirit meter, 4 s with 0.5 s fades, one at a time (a queue), each once per level.
+- **The flag:** `Config.intro_on()` is on in the game and OFF under automated tests (tests use `Config.intro_override`), so existing scenario tests
+  keep their behaviour; the intro tests switch it on and `after_test` resets it.
+
+**Values** (`config.gd`, "Round 13b"): `GAP_URGENCY_SECONDS 8`, `GAP_TRACK_RADIUS 6`, marker radius 26 px, progress ring
+34 px, badge 26 px, pulse 1.0 to 3.2 Hz, `FALTER_CLOSED_SECONDS 0.8`, `LEAK_MOTES_PER_GAP 8`, `LEAK_MOTES_MAX 120`,
+`LEAK_SPEED 1.6`, `LEAK_LIFE_SECONDS 1.8`, `MOOD_ICON_SIZE 26`, `BLOCK_FLASH_SECONDS 0.55`, `BLOCK_SPARK_SECONDS 0.4`,
+`TETHER_SNAP_SECONDS 0.45`, `SPIRIT_METER_WIDTH 360`, `SPIRIT_MOMENT_SECONDS 1.1`, `MOOD_INTRO_FRACTIONS [0, 0.35, 0.5,
+0.65]`, `PROMPT_SECONDS 4`, `PROMPT_FADE_SECONDS 0.5`, `INTRO_DIM_CAP 0.669`.
+
+**Tests:** 314 (285 before). `feedback_test.gd` (marker and "!" appear on falter and clear on recovery; urgency rises;
+progress ring and closed flash by hover-fire input; leak motes while open and gone after; minimap marker and arrow
+urgency; meter size and tick positions; rescue gain moment by hover-fire, burst moment by G, grab loss moment by scenario,
+twirl arc by Space; icons per mood; glum look-up lift; tether and snap; blocked spark and icon flash for guarded from
+behind and sheltered by hover-fire), `intro_test.gd` (dusk holds dimmed back and moods dormant; dimmed emerge after the calm
+opening; moods at their fractions; the gap prompt once; moods, blocked-joy, glum, sheltered, spirit-low and dim prompts;
+the queue; flag off keeps the old behaviour) and a menu note test. The moods test for the guarded tell now checks the
+shield icon.
+
+**Playtest questions**
+- Do you now know **who** to fix and **how urgent** it is (marker, "!", leak, arrows, minimap)? Is the progress ring clear
+  enough that you can tell the re-joy is working? Is 8 s to full urgency about right?
+- Is **spirit** readable now: the burst and dim ticks, the numbers, the twirl ring? Do you notice the moments (+20, -30, -25)?
+- Can you **tell moods apart** at gameplay zoom, and see **why joy was blocked** (spark, flashing icon, tether)? Are the
+  icons too big, too small, too many over a crowd?
+- Does the **layered introduction** teach without nagging: is dusk too quiet, are the fractions right (dimmed at 25%, moods
+  at 35 / 50 / 65%), are the prompts short and timely, is 4 s long enough to read?
+
+**Rough spots:** nothing was seen in a real window (headless only): sizes, colours and overlap with the old labels are
+untested by eye. The ring, badge and icons all scale with screen pixels, not zoom, so a crowd of icons may stack. The
+gap prompt is tied to a faltering person (a gap from spacing alone, with nobody faltering, shows no prompt). The burst and
+dim-exit ticks coincide (both 30). The mood prompt on first sight can fire for someone at the screen edge. The styled look
+shows all of this (overlays) but the leak motes and the placeholder shapes are not restyled.
