@@ -130,7 +130,8 @@ func test_g_and_q_burst_only_when_ready() -> void:
 	assert_float(player.burst_cooldown).is_greater(Config.TD_BURST_COOLDOWN - 0.5)
 
 
-func test_element_keys_and_wheel_do_nothing_in_top_down() -> void:
+# Round 14: the mouse wheel now zooms (see zoom_test.gd), but it still never changes the element or the target.
+func test_element_keys_and_the_wheel_never_change_the_element_or_target() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -142,6 +143,7 @@ func test_element_keys_and_wheel_do_nothing_in_top_down() -> void:
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_WHEEL_DOWN)
 	await runner.simulate_frames(2)
 	assert_str(td.hud.element_label.text).is_equal("No target")
+	assert_object(player.target).is_null()
 	(
 		assert_bool(
 			(player.look as PlayerLookPlaceholder)._ring_mat.albedo_color.is_equal_approx(Config.TD_NO_TARGET_COLOR)

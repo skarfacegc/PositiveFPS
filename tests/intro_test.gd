@@ -205,8 +205,9 @@ func test_the_glum_and_sheltered_prompts_have_their_icons() -> void:
 	TopDownTestUtil.place(td.people[2], Vector3(6.8, 0, -8), 1, 0.95)
 	await runner.simulate_frames(12)
 	assert_bool(wistful.sheltered).is_true()
-	assert_array(td.intro.queue).is_equal([Intro.Prompt.SHELTERED])
-	await runner.simulate_frames(int(Config.PROMPT_SECONDS * 60.0))
+	# Round 14: the dimmed person in view also queues the dimmed-help prompt, ahead of the sheltered one.
+	assert_array(td.intro.queue).is_equal([Intro.Prompt.DIM_HELP, Intro.Prompt.SHELTERED])
+	await runner.simulate_frames(int(Config.PROMPT_SECONDS * 60.0 * 2.0))
 	assert_int(td.intro.current).is_equal(Intro.Prompt.SHELTERED)
 	assert_int(td.prompts.icon).is_equal(MoodIcons.Kind.UMBRELLA)
 	assert_str(td.prompts.text).contains("draw the dimmed one away")

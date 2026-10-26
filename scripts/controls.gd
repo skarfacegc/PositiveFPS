@@ -27,6 +27,9 @@ static func setup() -> void:
 	_add_action("toggle_debug", [_key(KEY_F3)])
 	# Flips between the placeholder and the styled look (graphics checkpoint 1).
 	_add_action("toggle_look", [_key(KEY_F4)])
+	# Round 14: the mouse wheel zooms the top-down camera (wheel up zooms in, wheel down zooms out).
+	_add_action("zoom_in", [_mouse(MOUSE_BUTTON_WHEEL_UP)])
+	_add_action("zoom_out", [_mouse(MOUSE_BUTTON_WHEEL_DOWN)])
 	_add_action("restart", [_key(KEY_R)])
 	_add_action("menu", [_key(KEY_M)])
 
@@ -40,6 +43,7 @@ static func setup() -> void:
 #   fire (lock on to a person)                      -> right trigger
 #   cycle_targeting                                 -> left shoulder button
 #   restart, menu                                   -> start or back
+#   zoom_in, zoom_out (mouse wheel)                 -> d-pad up / down
 # Aiming uses the mouse position on the floor, so a gamepad would also need a right-stick aim point.
 
 

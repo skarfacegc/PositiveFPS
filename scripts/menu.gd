@@ -18,7 +18,7 @@ const HOW_TO_PLAY_TEXT := (
 	+ "[b]Spirit:[/b] Helping people fills it; a joy burst costs some. At zero you go dim. Recover inside your border.\n"
 	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered · ! faltering.\n"
 	+ "[b]Keys:[/b] WASD move · Shift run · Space twirl (dodge a grab) · G or Q joy burst · Mouse point at people "
-	+ "(F2 changes targeting) · F3 debug · F4 switch look · R restart · M menu"
+	+ "(F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look · R restart · M menu"
 )
 
 # The look toggle (Placeholder / Styled). The choice lasts for the session (see Looks.mode).

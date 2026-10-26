@@ -49,6 +49,13 @@ static func screen_of(td: TopDownMain, spot: Vector3) -> Vector2:
 	return td.world_to_screen(Vector3(spot.x, 0.0, spot.z))
 
 
+# Round 14: the midnight stagger lets one person sink to dimmed at a time (see TopDownMain._try_dim_sink). A test
+# that places several dimmed people in one go opens that gate first, so each one may sink at once (stagger_test.gd
+# checks the gate itself).
+static func open_dim_gate(td: TopDownMain) -> void:
+	td._last_dim_sink = -INF
+
+
 # Every joy projectile currently in the level.
 static func projectiles(td: TopDownMain) -> Array[JoyProjectile]:
 	var out: Array[JoyProjectile] = []

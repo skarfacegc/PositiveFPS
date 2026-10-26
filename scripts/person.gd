@@ -7,6 +7,9 @@ signal relapsed
 signal stage_changed(from_level: int, to_level: int)
 # Round 13b: joy was turned away. `reason` is a Block value (the cause, so the screen can flash its icon).
 signal joy_blocked(reason: int)
+# Round 14: joy landed on an unrescued person (after the guard and sheltering checks). The level uses it to show a
+# dimmed person's progress ring and the one-time dimmed prompt.
+signal joy_landed
 
 # Round 12b: the mood of an unrescued wistful or gloomy person (see scripts/moods.gd). Dimmed and rescued people act
 # as if they had none (active_mood).
@@ -53,6 +56,12 @@ var grab_toward := Vector3.FORWARD
 var mood: int = Mood.NONE
 var glum_up: bool = false
 var sheltered: bool = false
+# Round 14: the one wistful or gloomy person a dimmed person shelters (the nearest within SHELTER_RADIUS), or null.
+# Set by Moods; the tether and the umbrella follow this one person only.
+var shelter_ward: Person = null
+# Round 14: asked before this person sinks to dimmed (returns true to let them). Set by the level; invalid for a Person
+# built by hand (tests), who then sink freely.
+var dim_gate := Callable()
 var flee_left: float = 0.0
 var flee_from := Vector3.ZERO
 var glance_count: int = 0
@@ -88,6 +97,15 @@ func rebuild_look() -> void:
 	add_child(look)
 	look.setup(self)
 	_update_visuals()
+
+
+# Round 14: the label scale (the zoom, see TopDownMain._update_camera). Redraws the label only when the value changes.
+func set_ui_scale(value: float) -> void:
+	if value == ui_scale:
+		return
+	ui_scale = value
+	if look != null:
+		look.rescale()
 
 
 # The joy this person needs to be rescued. Darker levels need more.
@@ -159,6 +177,8 @@ func receive_joy(element: int, amount: float, distance: float, from: Vector3 = V
 	var gain := amount * mult * Config.falloff(distance)
 	joy = minf(joy + gain, joy_needed())
 	_since_hit = 0.0
+	if not is_rescued:
+		joy_landed.emit()
 	if Config.NUMBERS_ENABLED and look != null:
 		look.show_number(gain, mult)
 	if is_rescued:
@@ -237,6 +257,13 @@ func _relapse() -> void:
 # Fires a moment when the visible grey level changes: darker is a slump and dark puff, lighter is a sparkle.
 func _check_level() -> void:
 	var new_level := Config.gloom_level(gloom)
+	if new_level == level:
+		return
+	# Round 14: sinking to dimmed needs the midnight gate (see TopDownMain._try_dim_sink). Refused, the person waits at the
+	# top of the gloomy band (gloomy, just under the dimmed threshold) and asks again on the next frame.
+	if new_level >= 2 and level < 2 and dim_gate.is_valid() and not dim_gate.call():
+		gloom = Config.DIM_WAIT_GLOOM
+		new_level = 1
 	if new_level == level:
 		return
 	var old_level := level

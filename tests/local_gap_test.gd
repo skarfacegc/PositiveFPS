@@ -137,6 +137,12 @@ func test_a_dimmed_person_outside_the_border_walks_up_to_the_line_and_presses_it
 	var td: TopDownMain = s["td"]
 	var m: Person = td.border.members[3]
 	var dimmed := td.people[20]
+	# Round 14: the midnight stagger lets one person sink at a time, and the others here would sink too (and take the
+	# gate). Everyone else starts light, and the gate is open for this one dimmed person.
+	for p: Person in td.people:
+		if p != dimmed and not p.is_rescued:
+			p.gloom = 0.0
+	TopDownTestUtil.open_dim_gate(td)
 	TopDownTestUtil.place(dimmed, m.position + _outward(td, m) * 4.0, 1, 0.95)
 	await runner.simulate_frames(480)
 	var near: Dictionary = td.border._nearest_on_loop(Vector2(dimmed.position.x, dimmed.position.z))
@@ -166,13 +172,14 @@ func test_a_focused_push_opens_one_local_gap_and_re_joying_the_member_closes_it(
 	TopDownTestUtil.place(td.people[20], target.position + out * 1.2, 1, 0.95)
 	TopDownTestUtil.place(td.people[21], target.position + out * 1.2 + side * 0.6, 2, 0.95)
 
-	# Within about 15 seconds the member falters: exactly one stretch opens, not the whole border.
+	# Round 14: the second presser sinks only DIM_ARRIVAL_MIN_GAP (6 s) after the first (the midnight stagger), so the
+	# member falters later than before. Exactly one stretch opens, not the whole border, within about 25 seconds.
 	var frames := 0
-	while border.gap_region_count() == 0 and frames < 1200:
+	while border.gap_region_count() == 0 and frames < 2400:
 		await runner.simulate_frames(1)
 		frames += 1
 	assert_int(border.gap_region_count()).is_equal(1)
-	assert_int(frames).is_less(900)
+	assert_int(frames).is_less(1500)
 	assert_int(border.gap_count()).is_between(1, 3)
 	assert_int(border.gap_count()).is_less(border.segment_gap.size() / 2)
 	var faltering: Person = null

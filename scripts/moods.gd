@@ -9,8 +9,9 @@ extends Node
 #             they back away at SKITTISH_FLEE_SPEED for SKITTISH_FLEE_SECONDS (the level moves them, see is_fleeing).
 #   Glum: every GLUM_LOOKUP_INTERVAL seconds (plus or minus a seeded jitter) they look up for GLUM_LOOKUP_WINDOW
 #         seconds; joy landing then counts GLUM_LOOKUP_MULT times (Person.glum_up).
-#   Sheltering: no joy lands on a wistful or gloomy person while a dimmed person is within SHELTER_RADIUS of them
-#         (Person.sheltered).
+#   Sheltering (round 14): each dimmed person shelters only the single nearest wistful or gloomy person within
+#         SHELTER_RADIUS (ties go to the earlier person in the level's array). No joy lands on that person
+#         (Person.sheltered); the dimmed person's Person.shelter_ward is that one person, which the tether follows.
 # Dimmed and rescued people have no active mood (Person.active_mood).
 
 # Seeded, so the look-up rhythm repeats from run to run.
@@ -43,15 +44,16 @@ static func assign(people: Array[Person], seed_value: int) -> void:
 
 # Advances every mood by `delta`: sheltering flags, the guarded turn, the skittish scare and the glum look-ups.
 func update(people: Array[Person], player: TopDownPlayer, delta: float) -> void:
-	var shelterers: Array[Person] = []
+	var dimmed: Array[Person] = []
 	for p: Person in people:
+		if p.sheltered or p.shelter_ward != null:
+			p.sheltered = false
+			p.shelter_ward = null
 		if GloomSim.is_dark(p):
-			shelterers.append(p)
-	for p: Person in people:
+			dimmed.append(p)
 		if p.is_rescued:
 			_clear(p)
 			continue
-		p.sheltered = _is_sheltered(p, shelterers)
 		p.mood_phase += delta
 		match p.active_mood():
 			Person.Mood.GUARDED:
@@ -62,6 +64,7 @@ func update(people: Array[Person], player: TopDownPlayer, delta: float) -> void:
 				_look_up(p, delta)
 			_:
 				_clear(p)
+	_assign_wards(dimmed, people)
 
 
 # True while `p` is backing away from the player (the level moves them, see TopDownMain._update_people).
@@ -85,13 +88,29 @@ func _clear(p: Person) -> void:
 	_lookup_left.erase(p)
 
 
-func _is_sheltered(p: Person, shelterers: Array[Person]) -> bool:
-	if Config.gloom_level(p.gloom) >= 2:
-		return false
-	for q: Person in shelterers:
-		if q != p and GloomSim.flat_dist(p.global_position, q.global_position) <= Config.SHELTER_RADIUS:
-			return true
-	return false
+# Round 14: every dimmed person picks the nearest wistful or gloomy person within SHELTER_RADIUS as their ward, and only
+# that person is sheltered. `dimmed` is the dimmed people this frame; the flags were cleared in update().
+func _assign_wards(dimmed: Array[Person], people: Array[Person]) -> void:
+	for q: Person in dimmed:
+		var ward := _nearest_ward(q, people)
+		q.shelter_ward = ward
+		if ward != null:
+			ward.sheltered = true
+
+
+# The nearest unrescued, not dimmed person (other than `q`) within SHELTER_RADIUS of `q`, or null. A strictly nearer
+# person wins, so ties keep the earlier one in array order.
+func _nearest_ward(q: Person, people: Array[Person]) -> Person:
+	var best: Person = null
+	var best_d := Config.SHELTER_RADIUS
+	for p: Person in people:
+		if p == q or p.is_rescued or Config.gloom_level(p.gloom) >= 2:
+			continue
+		var d := GloomSim.flat_dist(p.global_position, q.global_position)
+		if d <= best_d and (best == null or d < best_d):
+			best = p
+			best_d = d
+	return best
 
 
 # Guarded: turn slowly so the back stays toward the player.

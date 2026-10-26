@@ -10,6 +10,7 @@ extends Control
 #   - Mood icons over heads (shield, feet, cloud, umbrella), a faint tether from a dimmed person to each person they
 #     shelter (it snaps when they leave), and the bounce-off spark with the reason's icon flashing when joy is blocked.
 #   - A pulse ring round the player when spirit is gained, spent or lost (see SpiritMeter for the meter itself).
+#   - Round 14: a dimmed person hit by joy shows the same progress ring (filling toward rescue) for DIM_RING_SECONDS.
 # The lists below are the data model, so tests can check what is shown without reading pixels.
 
 # Faltering people: {"person", "urgency", "progress", "feet", "head"} (screen positions in pixels).
@@ -27,6 +28,9 @@ var sparks: Array[Dictionary] = []
 var closes: Array[Dictionary] = []
 # Pulse rings round the player: {"kind": SpiritMeter.Moment, "left": float}.
 var player_pulses: Array[Dictionary] = []
+# Round 14: progress rings on dimmed people hit by joy: {"person", "progress" (0 to 1 toward rescue), "left", "feet",
+# "head"} (screen positions in pixels). A ring is dropped when the person stops being dimmed.
+var dim_rings: Array[Dictionary] = []
 # How many times joy was blocked (for tests and the debug line).
 var blocked_count: int = 0
 var main: TopDownMain
@@ -63,6 +67,7 @@ func tick(delta: float) -> void:
 		_update_leak(_pending)
 		_update_icons(_pending)
 		_update_tethers()
+		_update_dim_rings()
 		_pending = 0.0
 	var busy := not (
 		markers.is_empty()
@@ -73,6 +78,7 @@ func tick(delta: float) -> void:
 		and sparks.is_empty()
 		and closes.is_empty()
 		and player_pulses.is_empty()
+		and dim_rings.is_empty()
 	)
 	if busy or _was_busy:
 		queue_redraw()
@@ -94,6 +100,17 @@ func on_blocked(p: Person, reason: int) -> void:
 # A spirit moment (SpiritMeter.Moment): a ring pulses round the player.
 func pulse_player(kind: int) -> void:
 	player_pulses.append({"kind": kind, "left": 0.5})
+
+
+# Round 14: joy landed on dimmed person `p`: their progress ring shows (or stays, refreshed) for DIM_RING_SECONDS.
+func on_dim_joy(p: Person) -> void:
+	for d: Dictionary in dim_rings:
+		if d["person"] == p:
+			d["left"] = Config.DIM_RING_SECONDS
+			return
+	dim_rings.append(
+		{"person": p, "progress": 0.0, "left": Config.DIM_RING_SECONDS, "feet": Vector2.ZERO, "head": Vector2.ZERO}
+	)
 
 
 # True while the icon flash of `p` is showing (0 to 1, 1 just after joy was blocked).
@@ -217,6 +234,19 @@ func _new_mote(gap: Vector3, urgency: float) -> Dictionary:
 	return {"pos": start, "vel": vel, "age": 0.0, "life": Config.LEAK_LIFE_SECONDS * _rng.randf_range(0.8, 1.2)}
 
 
+# Round 14: each dimmed person's ring follows them and fills with their joy toward the rescue line.
+func _update_dim_rings() -> void:
+	for i: int in range(dim_rings.size() - 1, -1, -1):
+		var d := dim_rings[i]
+		var p: Person = d["person"]
+		if not is_instance_valid(p) or p.is_rescued or not GloomSim.is_dark(p):
+			dim_rings.remove_at(i)
+			continue
+		d["progress"] = clampf(p.joy / p.joy_needed(), 0.0, 1.0)
+		d["feet"] = main.world_to_screen(p.global_position)
+		d["head"] = main.world_to_screen(p.global_position + Vector3(0, 3.0, 0))
+
+
 func _update_icons(delta: float) -> void:
 	icons.clear()
 	for p: Person in _flash.keys():
@@ -287,6 +317,7 @@ func _age_effects(delta: float) -> void:
 	_age_list(sparks, delta)
 	_age_list(closes, delta)
 	_age_list(player_pulses, delta)
+	_age_list(dim_rings, delta)
 
 
 static func _age_list(list: Array[Dictionary], delta: float) -> void:
@@ -305,6 +336,7 @@ func _draw() -> void:
 	_draw_motes()
 	_draw_tethers()
 	_draw_closes()
+	_draw_dim_rings()
 	for m: Dictionary in markers:
 		_draw_marker(m)
 	for ic: Dictionary in icons:
@@ -361,6 +393,23 @@ func _draw_closes() -> void:
 		var fill := col
 		fill.a = 0.35 * f
 		draw_circle(at + Vector2(0, -20), 22.0 * (1.2 - 0.4 * f), fill)
+
+
+# Round 14: the falter progress ring, round a dimmed person (same track, arc and colours; fades in its last half
+# second).
+func _draw_dim_rings() -> void:
+	for d: Dictionary in dim_rings:
+		var alpha := clampf(_num(d["left"]) / 0.5, 0.0, 1.0)
+		var feet: Vector2 = d["feet"]
+		var head: Vector2 = d["head"]
+		var centre := (feet + head) * 0.5 + Vector2(0, 6)
+		var prog: float = d["progress"]
+		var track := Color(0.1, 0.08, 0.14, 0.45 * alpha)
+		draw_arc(centre, Config.FALTER_RING_RADIUS, 0.0, TAU, 40, track, 6.0, true)
+		if prog > 0.0:
+			var pc := Config.BORDER_GAP_COLOUR.lerp(Config.FALTER_SEAL_COLOUR, prog)
+			pc.a = alpha
+			draw_arc(centre, Config.FALTER_RING_RADIUS, -PI * 0.5, -PI * 0.5 + TAU * prog, 40, pc, 6.0, true)
 
 
 func _draw_marker(m: Dictionary) -> void:

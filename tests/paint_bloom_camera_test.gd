@@ -135,9 +135,9 @@ func test_camera_range_ring_fits_on_a_1280_by_720_screen() -> void:
 		assert_bool(rect.has_point(td.camera.unproject_position(spot))).is_true()
 
 
-# Round 11: the camera is about 15% further out (was 14.5), and the range is 10.0 m. Round 13a: the view is 18 m tall.
-# The ring must fit at 10.0 m, and a ring 12 m out must not (the player sits below the centre of the screen, so about
-# 11 m is the most this zoom allows).
+# Round 11: the camera is about 15% further out (was 14.5), and the range is 10.0 m. Round 13a: the view was 18 m tall.
+# The ring must fit at 10.0 m, and a ring 13 m out must not. Round 14: the default is 19.5 m tall (the player sits below
+# the centre of the screen, so about 12 m is now the most the default zoom allows; the wheel can zoom in closer).
 func test_round_eleven_camera_is_zoomed_out_and_the_ten_metre_ring_still_fits() -> void:
 	get_window().size = Vector2i(1280, 720)
 	await get_tree().process_frame
@@ -145,16 +145,17 @@ func test_round_eleven_camera_is_zoomed_out_and_the_ten_metre_ring_still_fits() 
 	var td: TopDownMain = s["td"]
 	var rect := td.get_viewport().get_visible_rect()
 	assert_float(td.camera.size).is_equal_approx(Config.TD_CAMERA_ORTHO_SIZE, 0.0001)
-	assert_float(Config.TD_CAMERA_ORTHO_SIZE).is_equal_approx(18.0, 0.0001)
+	# Round 14: the default zoom is 19.5 (was 18), so the ring fits with room to spare: see the test below.
+	assert_float(Config.TD_CAMERA_ORTHO_SIZE).is_equal_approx(19.5, 0.0001)
 	assert_float(Config.TD_AUTO_RANGE).is_equal(10.0)
 
 	var centre := td.player.global_position
-	var fits_at_12 := true
+	var fits_at_13 := true
 	for i: int in range(16):
 		var a := TAU * float(i) / 16.0
 		var spot_10 := centre + Vector3(cos(a) * 10.0, 0, sin(a) * 10.0)
 		assert_bool(rect.has_point(td.camera.unproject_position(spot_10))).is_true()
-		var spot_12 := centre + Vector3(cos(a) * 12.0, 0, sin(a) * 12.0)
-		if not rect.has_point(td.camera.unproject_position(spot_12)):
-			fits_at_12 = false
-	assert_bool(fits_at_12).is_false()
+		var spot_13 := centre + Vector3(cos(a) * 13.0, 0, sin(a) * 13.0)
+		if not rect.has_point(td.camera.unproject_position(spot_13)):
+			fits_at_13 = false
+	assert_bool(fits_at_13).is_false()

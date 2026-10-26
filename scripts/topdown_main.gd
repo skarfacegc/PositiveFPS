@@ -70,6 +70,16 @@ var _cover_timer := 0.0
 var _look_frame: int = -1
 # Seconds since the intro last checked for its one-time prompts.
 var _intro_timer: float = 0.0
+# Round 14: the wheel zoom. The ortho size the camera is easing toward, and the frame the last zoom step was taken (the
+# key press can arrive twice in one frame, see Known gotchas).
+var _zoom_target: float = Config.TD_CAMERA_ORTHO_SIZE
+var _zoom_frame: int = -1
+# The ortho size the label scales were last set for (they are only rewritten when the zoom moves).
+var _scaled_for_size: float = -1.0
+# Round 14: game time that passed in the night (the clock for the staggered arrivals) and the clock value when a person
+# last sank to dimmed (-INF before anyone did).
+var _dim_clock: float = 0.0
+var _last_dim_sink: float = -INF
 
 
 func _ready() -> void:
@@ -147,7 +157,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	_update_camera()
+	_update_camera(delta)
 	_update_highlight(delta)
 	_update_readability(delta)
 	if not running:
@@ -164,7 +174,7 @@ func _process(delta: float) -> void:
 	_update_cover(delta)
 	_update_dim(delta)
 	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER * border.loss_mult, strength, border)
-	_hold_back_dimmed()
+	_hold_back_dimmed(delta)
 	grabs.update(people, player, delta)
 	for p: Person in people:
 		p.tick(delta)
@@ -189,6 +199,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		if frame != _look_frame:
 			_look_frame = frame
 			toggle_look()
+	elif event.is_action_pressed("zoom_in") or event.is_action_pressed("zoom_out"):
+		# Round 14: one wheel notch per frame (a repeated delivery in the same frame counts once).
+		var frame := Engine.get_process_frames()
+		if frame != _zoom_frame:
+			_zoom_frame = frame
+			var step := -Config.TD_ZOOM_STEP if event.is_action_pressed("zoom_in") else Config.TD_ZOOM_STEP
+			_zoom_target = clampf(_zoom_target + step, Config.TD_ZOOM_MIN, Config.TD_ZOOM_MAX)
 
 
 # F4: flips between the placeholder and the styled look without touching the game state.
@@ -331,6 +348,7 @@ func _build_feedback() -> void:
 	hud.add_child(prompts)
 	for p: Person in people:
 		p.joy_blocked.connect(_on_joy_blocked.bind(p))
+		p.joy_landed.connect(_on_joy_landed.bind(p))
 
 
 # Every frame, also after the round ends: the overlays advance and redraw.
@@ -350,6 +368,14 @@ func _on_joy_blocked(reason: int, p: Person) -> void:
 		intro.request(Intro.Prompt.GUARDED)
 
 
+# Round 14: joy landed on a dimmed person: their progress ring shows, and the one-time dimmed prompt.
+func _on_joy_landed(p: Person) -> void:
+	if not GloomSim.is_dark(p):
+		return
+	feedback.on_dim_joy(p)
+	intro.request(Intro.Prompt.DIM_HELP)
+
+
 func _on_burst_fired(_at: Vector3) -> void:
 	spirit_meter.moment(-Config.BURST_SPIRIT_COST, SpiritMeter.Moment.SPEND)
 	feedback.pulse_player(SpiritMeter.Moment.SPEND)
@@ -364,14 +390,26 @@ func _unlock_moods() -> void:
 		p.mood_unlocked = intro.mood_active(p.mood)
 
 
-# Round 13b: until the calm opening is over, nobody sinks to dimmed (they wait as gloomy). Afterwards the cap lifts and
-# the ones who waited sink with the usual stage-change puff.
-func _hold_back_dimmed() -> void:
-	if intro.dimmed_allowed():
-		return
-	for p: Person in people:
-		if not p.is_rescued and p.gloom > Config.INTRO_DIM_CAP:
-			p.gloom = Config.INTRO_DIM_CAP
+# Round 13b: nobody sinks to dimmed during the calm opening (they wait as gloomy: the cap holds them under the gloomy
+# band's top). Round 14, the midnight surge is staggered by _try_dim_sink (asked from Person._check_level). Runs after
+# GloomSim.update.
+func _hold_back_dimmed(delta: float) -> void:
+	_dim_clock += delta
+	if not intro.dimmed_allowed():
+		for p: Person in people:
+			if not p.is_rescued and p.gloom > Config.INTRO_DIM_CAP:
+				p.gloom = Config.INTRO_DIM_CAP
+
+
+# Round 14, the midnight stagger: asked by a person who would sink to dimmed (Person._check_level), in the order the
+# people tick. Yes only once dimmed people may emerge (after the calm opening) and DIM_ARRIVAL_MIN_GAP seconds
+# have passed since the last one sank. The first to ask in a frame takes the gate, so array order decides who goes.
+func _try_dim_sink() -> bool:
+	# (Nobody gets this far during the calm opening: _hold_back_dimmed keeps them under the line until then.)
+	if _dim_clock - _last_dim_sink < Config.DIM_ARRIVAL_MIN_GAP:
+		return false
+	_last_dim_sink = _dim_clock
+	return true
 
 
 # Round 13b: asks the intro for its one-time prompts when something first happens. Checked every INTRO_CHECK_SECONDS.
@@ -386,6 +424,9 @@ func _update_intro(delta: float) -> void:
 		var faltering: Person = feedback.markers[0]["person"]
 		intro.request(Intro.Prompt.GAP, faltering.global_position)
 	var view := get_viewport().get_visible_rect().grow(-40.0)
+	for p: Person in people:
+		if GloomSim.is_dark(p) and view.has_point(world_to_screen(p.global_position)):
+			intro.request(Intro.Prompt.DIM_HELP)
 	for p: Person in people:
 		if p.is_rescued:
 			continue
@@ -421,8 +462,17 @@ func _on_grab_avoided(_p: Person, perfect: bool) -> void:
 
 
 # The camera follows the player from above and behind, looking at a point just north of them (round 10: orthographic, at
-# TD_CAMERA_PITCH_DEG degrees, so the player sits a little below the centre of the screen).
-func _update_camera() -> void:
+# TD_CAMERA_PITCH_DEG degrees, so the player sits a little below the centre of the screen). Round 14: the ortho size
+# eases toward the wheel's target, and the labels and the look offset scale with it (so they look the same on screen).
+func _update_camera(delta: float) -> void:
+	var size := lerpf(camera.size, _zoom_target, 1.0 - exp(-Config.TD_ZOOM_EASE * delta))
+	if size != camera.size:
+		camera.size = size
+	if camera.size != _scaled_for_size:
+		_scaled_for_size = camera.size
+		var zoom := camera.size / Config.TD_CAMERA_ORTHO_SIZE
+		for p: Person in people:
+			p.set_ui_scale(Config.TD_UI_SCALE * zoom)
 	var target := _view_centre()
 	var pitch := deg_to_rad(Config.TD_CAMERA_PITCH_DEG)
 	var d := Config.TD_CAMERA_DISTANCE
@@ -430,9 +480,10 @@ func _update_camera() -> void:
 	camera.look_at(target, Vector3.UP)
 
 
-# The point the camera looks at: the player plus TD_CAMERA_LOOK_OFFSET.
+# The point the camera looks at: the player plus TD_CAMERA_LOOK_OFFSET, scaled with the zoom (the player keeps the same
+# place on screen at every zoom).
 func _view_centre() -> Vector3:
-	return player.global_position + Config.TD_CAMERA_LOOK_OFFSET
+	return player.global_position + Config.TD_CAMERA_LOOK_OFFSET * (camera.size / Config.TD_CAMERA_ORTHO_SIZE)
 
 
 # The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the view is
@@ -441,7 +492,7 @@ func view_half_extents() -> Vector2:
 	var screen := get_viewport().get_visible_rect().size
 	var aspect := screen.x / screen.y
 	var pitch := deg_to_rad(Config.TD_CAMERA_PITCH_DEG)
-	return Vector2(Config.TD_CAMERA_ORTHO_SIZE * aspect * 0.5, Config.TD_CAMERA_ORTHO_SIZE * 0.5 / sin(pitch))
+	return Vector2(camera.size * aspect * 0.5, camera.size * 0.5 / sin(pitch))
 
 
 # Each frame: the off-screen gap arrows. The minimap picture is refreshed about 10 times a second (see Minimap.tick).
@@ -581,6 +632,7 @@ func _spawn_people() -> void:
 		p.rescued.connect(_on_person_rescued.bind(p))
 		p.relapsed.connect(_on_person_relapsed.bind(p))
 		p.stage_changed.connect(_on_stage_changed.bind(p))
+		p.dim_gate = _try_dim_sink
 		people.append(p)
 
 

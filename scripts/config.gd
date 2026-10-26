@@ -57,7 +57,8 @@ const GLOOM_LEVEL_STEPS: Array[float] = [0.34, 0.67]
 # Body colour for each level (0 light, 1 grey, 2 dark).
 const LEVEL_COLORS: Array[Color] = [Color(0.82, 0.82, 0.82), Color(0.5, 0.5, 0.52), Color(0.16, 0.16, 0.18)]
 # Joy needed at each level, as a multiple of JOY_MAX. Darker people need more joy.
-const LEVEL_JOY_MULT: Array[float] = [1.0, 1.5, 2.0]
+# Round 14: dimmed 2.0 -> 1.6 (the counter to the midnight dimmed people; wistful and gloomy unchanged).
+const LEVEL_JOY_MULT: Array[float] = [1.0, 1.5, 1.6]
 # Only people at this level or darker spread darkness (2 = only dark people).
 const SPREAD_LEVEL := 2
 
@@ -113,10 +114,20 @@ const TD_DEBUG_PIXEL_SIZE := 0.012
 # Round 10: an orthographic camera, size TD_CAMERA_ORTHO_SIZE (the view height in metres at the focus), tilted down at
 # TD_CAMERA_PITCH_DEG degrees. It sits TD_CAMERA_DISTANCE metres from its look point, which is the player plus
 # TD_CAMERA_LOOK_OFFSET (2.4 m north, so the player sits a little below the centre of the screen).
-const TD_CAMERA_ORTHO_SIZE := 18.0  # Round 13a: 16.7 -> 18 (the world is bigger; the minimap covers the rest).
+# Round 14: the reference size is 19.5 (the default zoom, a little further out than 18). The mouse wheel zooms between
+# TD_ZOOM_MIN and TD_ZOOM_MAX (see the zoom block below); TD_CAMERA_ORTHO_SIZE is the size at default zoom.
+const TD_CAMERA_ORTHO_SIZE := 19.5
 const TD_CAMERA_PITCH_DEG := 41.0
 const TD_CAMERA_DISTANCE := 20.0
-const TD_CAMERA_LOOK_OFFSET := Vector3(0, 0, -2.6)  # Round 13a: -2.4 x 18 / 16.7, same screen position.
+# Round 14: the offset is for the default zoom and scales with the zoom (-2.6 x 19.5 / 18), so the player keeps the
+# same place on screen at every zoom.
+const TD_CAMERA_LOOK_OFFSET := Vector3(0, 0, -2.82)
+# Mouse-wheel zoom (round 14): the view height goes from TD_ZOOM_MIN (close) to TD_ZOOM_MAX (wide), one TD_ZOOM_STEP
+# per wheel notch, eased at TD_ZOOM_EASE per second (an exponential approach).
+const TD_ZOOM_MIN := 14.0
+const TD_ZOOM_MAX := 26.0
+const TD_ZOOM_STEP := 1.5
+const TD_ZOOM_EASE := 8.0
 # Walking speed, in metres per second.
 const TD_MOVE_SPEED := 7.6  # Round 13a: +10% (6.9) to offset the longer walks.
 # Speed while holding Shift, in metres per second. Round 11: walk and run are about 15% faster than round 10 (6.0, 9.5).
@@ -309,7 +320,9 @@ const TD_BURST_JOY := 350.0
 const TD_BURST_TIME := 0.35
 # Size multiplier for floating numbers and labels in top-down mode. Round 8: 1.9 (was 2.5), to match the closer camera
 # so the labels keep about the same size on screen.
-const TD_UI_SCALE := 2.37  # Round 11: 1.9 x the zoom-out (16.7 / 14.5), so the labels keep their size on screen.
+# Round 14: the labels scale with the zoom (ui_scale = TD_UI_SCALE x size / TD_CAMERA_ORTHO_SIZE), so they keep the same
+# size on screen at every zoom. 2.5675 = 2.37 x 19.5 / 18 keeps the round 13b size at the default zoom.
+const TD_UI_SCALE := 2.5675
 
 # Round 8: own paint does not protect. A rescued person's cover leaves out the paint made by their own soft circle
 # (see PaintedGround.average_weight_excluding). Unrescued people still use the full cover.
@@ -613,6 +626,18 @@ const PROMPT_SECONDS := 4.0
 const PROMPT_FADE_SECONDS := 0.5
 const INTRO_CHECK_SECONDS := 0.2
 const INTRO_DIM_CAP := 0.669
+# ---- Round 14: balance (scripts/moods.gd, topdown_main.gd, feedback_layer.gd) ----
+# Sheltering: a dimmed person shelters only the single nearest wistful or gloomy person within SHELTER_RADIUS.
+# Midnight surge: a person may sink to dimmed only if this many seconds have passed since the last one did. Others
+# wait just under the dimmed line (DIM_WAIT_GLOOM) and ask again each frame, so the first to ask when the gate
+# is open goes.
+const DIM_ARRIVAL_MIN_GAP := 6.0
+# A person refused the midnight gate waits just under the dimmed threshold (0.67), so the next frame's growth takes them
+# over it and they ask again: the gate goes to whoever asks first in the level's order.
+const DIM_WAIT_GLOOM := 0.669999
+# A dimmed person hit by joy shows their progress ring for this long after the last hit.
+const DIM_RING_SECONDS := 1.5
+const DIM_HELP_TEXT := "Dimmed folk can be helped too — it takes longer"
 static var intro_override: int = -1
 
 # The matchups form a soft cycle:

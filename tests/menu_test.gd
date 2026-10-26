@@ -102,6 +102,8 @@ func test_every_key_named_in_the_keys_line_is_bound() -> void:
 		"burst",
 		"cycle_targeting",
 		"toggle_debug",
+		"zoom_in",
+		"zoom_out",
 		"toggle_look",
 		"restart",
 		"menu",

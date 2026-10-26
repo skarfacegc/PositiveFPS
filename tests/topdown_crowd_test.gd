@@ -34,6 +34,10 @@ func test_two_dark_people_on_the_same_spot_push_apart() -> void:
 	var b: Person = td.people[1]
 	TopDownTestUtil.place(a, Vector3(0, 0, -8), 0, 1.0)
 	TopDownTestUtil.place(b, Vector3(0, 0, -8), 1, 1.0)
+	# Round 14: only one person sinks to dimmed at a time, so the second waits as gloomy until the gate opens.
+	await runner.simulate_frames(2)
+	TopDownTestUtil.open_dim_gate(td)
+	TopDownTestUtil.place(b, Vector3(0, 0, -8), 1, 1.0)
 
 	await runner.simulate_frames(120)
 	assert_float(_gap(a, b)).is_greater_equal(Config.TD_SEPARATION_RADIUS * 0.8)

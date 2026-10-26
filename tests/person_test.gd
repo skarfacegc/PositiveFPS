@@ -42,7 +42,8 @@ func test_rescued_signal_fires_once() -> void:
 func test_darker_level_needs_more_joy() -> void:
 	assert_float(_make_person(0, Vector3.ZERO, 0.0).joy_needed()).is_equal_approx(Config.JOY_MAX, 0.001)
 	assert_float(_make_person(0, Vector3.ZERO, 0.5).joy_needed()).is_equal_approx(Config.JOY_MAX * 1.5, 0.001)
-	assert_float(_make_person(0, Vector3.ZERO, 0.9).joy_needed()).is_equal_approx(Config.JOY_MAX * 2.0, 0.001)
+	# Round 14: a dimmed person needs 1.6 times the joy of a wistful one (was 2.0).
+	assert_float(_make_person(0, Vector3.ZERO, 0.9).joy_needed()).is_equal_approx(Config.JOY_MAX * 1.6, 0.001)
 
 
 func test_joy_fades_only_after_delay() -> void:

@@ -39,6 +39,13 @@ var _grab_mat: StandardMaterial3D
 var _fx_rng := RandomNumberGenerator.new()
 
 
+# Round 14: the label follows the person's ui_scale (the zoom). Called only when the scale changes
+# (Person.set_ui_scale): a Label3D re-lays out its text on every change.
+func rescale() -> void:
+	if label != null and subject != null:
+		label.pixel_size = 0.005 * subject.ui_scale
+
+
 # Builds the look for `person`.
 func setup(person: Person) -> void:
 	subject = person
