@@ -115,3 +115,17 @@ t_ratchet`.
   `Failed to load script` or a compile error, or when a discovered `tests/*_test.gd` suite reports no results or fewer
   tests than it declares (`integrity_problems()`, used by the serial and parallel paths, so `coverage.py` gets it too).
   `tools/test_gate.py` proves it with a deliberately broken suite in a temporary project under `.scratch/`.
+
+## Future idea (2026-10-26): change-based test selection (test impact analysis)
+For small turns, run only the tests likely to be affected; releases and significant reviews still run the full suite.
+- **Impact map:** during a full coverage run, record per test suite which files and lines it executes (the current tool
+  only records hits for the whole run). Save the suite → lines map.
+- **Selection:** `git diff` since the last full run → changed lines → run only suites whose recorded lines include them,
+  plus new or changed test files.
+- **Fall back to the full suite** if: the map is missing or stale; shared foundations change (config.gd, controls.gd,
+  scenes, project.godot); a changed file isn't in the map; or the selection would cover most suites anyway.
+- **Two tiers:** quick (pre-commit: lint + impacted suites + coverage of changed files only; no ratchet) and full
+  (`--full` / `FULL=1`, release, round end, significant reviews: whole suite + coverage + ratchet + rebuild the map).
+  Build agents run full before each round's final commit.
+- **Caveat:** misses breakage through paths no test exercised before; the full tier catches those. gdUnit4 selects by
+  suite, which is fine at this size.
