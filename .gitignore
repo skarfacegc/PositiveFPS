@@ -10,3 +10,6 @@ coverage_hits.json
 
 # Scratch copies and temporary files (never commit).
 .scratch/
+
+# Standalone game builds (exported exes, zips).
+dist-builds/
