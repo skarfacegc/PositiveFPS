@@ -5,6 +5,18 @@ people you rescue form a living border that holds the darkness back and paints t
 dusk to dawn: the light fades, the grey gets stronger at midnight, and the level ends at dawn. (Round 11. The first person
 mode was retired.)
 
+## How to play
+
+- **Goal:** Bring joy to the gloomy townsfolk. Everyone you help joins a living border around your town. Enclose the
+  landmark (the beacon) and hold it for 10 seconds before dawn.
+- **Helping:** Point at a person and joy flies to them automatically. Guarded people only accept joy from the front,
+  skittish people flee if you run at them, and glum people take extra joy when they look up.
+- **The gloom:** Dimmed people press on your border and reach for you. Where they push, border folk falter and gaps
+  open. Re-joy a faltering person to close the gap.
+- **Spirit:** Helping people fills it; a joy burst costs some. At zero you go dim. Recover inside your border.
+- **Keys:** WASD move · Shift run · Space twirl (dodge a grab) · G or Q joy burst · Mouse point at people (F2 changes
+  targeting) · F3 debug · F4 switch look · R restart · M menu
+
 ## How to run
 
 1. Open Godot 4.7.

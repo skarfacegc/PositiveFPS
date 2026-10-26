@@ -5,7 +5,7 @@ extends GdUnitTestSuite
 
 const MENU := "res://menu.tscn"
 const TOP_DOWN := "res://topdown.tscn"
-const HINT := "Enter or 1 to play.  In game: R restart, M menu, F2 targeting, F3 debug"
+const HOW_TO_PLAY_VIEW := Vector2(1280, 720)
 
 
 # The gdUnit4 CLI shrinks the window to 64x64, and the menu lays out against that size. Give the window and
@@ -24,13 +24,6 @@ func _find_buttons(node: Node, out: Array) -> void:
 		out.append(node)
 	for child: Node in node.get_children():
 		_find_buttons(child, out)
-
-
-func _find_labels(node: Node, out: Array) -> void:
-	if node is Label:
-		out.append(node)
-	for child: Node in node.get_children():
-		_find_labels(child, out)
 
 
 func _current_scene_path() -> String:
@@ -66,15 +59,49 @@ func test_the_look_button_flips_the_look_and_remembers_it() -> void:
 	assert_str(button.text).is_equal("Look: Placeholder")
 
 
-func test_hint_line_names_the_keys() -> void:
+func test_how_to_play_panel_is_visible_and_names_the_sections() -> void:
 	var runner: GdUnitSceneRunner = await _start_menu()
-	var labels: Array = []
-	_find_labels(runner.scene(), labels)
-	var found := false
-	for lbl: Label in labels:
-		if lbl.text == HINT:
-			found = true
-	assert_bool(found).is_true()
+	var panel: RichTextLabel = (runner.scene() as Control).get("how_to_play")
+	assert_object(panel).is_not_null()
+	assert_bool(panel.is_visible_in_tree()).is_true()
+	var text := panel.get_parsed_text()
+	assert_str(text).contains("How to play")
+	assert_str(text).contains("Goal")
+	assert_str(text).contains("Spirit")
+	assert_str(text).contains("Space twirl")
+
+
+func test_every_key_named_in_the_keys_line_is_bound() -> void:
+	await _start_menu()
+	Controls.setup()
+	for action: String in [
+		"move_forward",
+		"move_back",
+		"move_left",
+		"move_right",
+		"run",
+		"twirl",
+		"burst",
+		"cycle_targeting",
+		"toggle_debug",
+		"toggle_look",
+		"restart",
+		"menu",
+	]:
+		assert_bool(InputMap.has_action(action)).is_true()
+		assert_int(InputMap.action_get_events(action).size()).is_greater(0)
+
+
+func test_how_to_play_panel_does_not_overlap_the_buttons_at_1280_by_720() -> void:
+	var runner: GdUnitSceneRunner = await _start_menu()
+	var menu := runner.scene() as Control
+	var panel: RichTextLabel = menu.get("how_to_play")
+	var panel_rect := panel.get_global_rect()
+	assert_bool(Rect2(Vector2.ZERO, HOW_TO_PLAY_VIEW).encloses(panel_rect)).is_true()
+	var buttons: Array = []
+	_find_buttons(menu, buttons)
+	for btn: Button in buttons:
+		assert_bool(panel_rect.intersects(btn.get_global_rect())).is_false()
 
 
 func test_key_1_starts_the_level() -> void:
