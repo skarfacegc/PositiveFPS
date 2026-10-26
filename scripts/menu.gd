@@ -4,6 +4,7 @@ extends Control
 # key 1 or Enter (the "play" action). Round 10 retired the Circle and Paint edge border variants.
 
 const TOP_DOWN_SCENE := "res://topdown.tscn"
+const STYLED_NOTE := "Styled look: visual test only — not the current game."
 const HOW_TO_PLAY_WIDTH := 760
 const HOW_TO_PLAY_FONT := 18
 const HOW_TO_PLAY_TEXT := (
@@ -15,12 +16,15 @@ const HOW_TO_PLAY_TEXT := (
 	+ "[b]The gloom:[/b] Dimmed people press on your border and reach for you. Where they push, border folk falter "
 	+ "and gaps open. Re-joy a faltering person to close the gap.\n"
 	+ "[b]Spirit:[/b] Helping people fills it; a joy burst costs some. At zero you go dim. Recover inside your border.\n"
+	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered · ! faltering.\n"
 	+ "[b]Keys:[/b] WASD move · Shift run · Space twirl (dodge a grab) · G or Q joy burst · Mouse point at people "
 	+ "(F2 changes targeting) · F3 debug · F4 switch look · R restart · M menu"
 )
 
 # The look toggle (Placeholder / Styled). The choice lasts for the session (see Looks.mode).
 var look_button: Button
+# Round 13b: a small note under the Look button, shown while the styled look is selected (it is a visual test only).
+var look_note: Label
 # The how-to-play panel (a RichTextLabel with the bbcode bold labels).
 var how_to_play: RichTextLabel
 # Set once Play is pressed, so a key and a click in the same frame start the level only once.
@@ -51,6 +55,10 @@ func _ready() -> void:
 	look_button = _make_button(look_text())
 	look_button.pressed.connect(_toggle_look)
 	box.add_child(look_button)
+	look_note = _make_label(STYLED_NOTE, 15)
+	look_note.add_theme_color_override("font_color", Color(0.75, 0.7, 0.55))
+	look_note.visible = Looks.is_styled()
+	box.add_child(look_note)
 	how_to_play = _make_how_to_play()
 	box.add_child(how_to_play)
 
@@ -69,6 +77,7 @@ func look_text() -> String:
 func _toggle_look() -> void:
 	Looks.toggle()
 	look_button.text = look_text()
+	look_note.visible = Looks.is_styled()
 
 
 # Starts the level.

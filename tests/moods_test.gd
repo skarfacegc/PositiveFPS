@@ -30,6 +30,14 @@ func _hover(runner: GdUnitSceneRunner, td: TopDownMain, p: Person) -> void:
 	await runner.simulate_frames(3)
 
 
+# True when the feedback layer shows an icon of `kind` over `p`.
+func _has_icon(td: TopDownMain, p: Person, kind: int) -> bool:
+	for ic: Dictionary in td.feedback.icons:
+		if ic["person"] == p and ic["kind"] == kind:
+			return true
+	return false
+
+
 # --- The split ---------------------------------------------------------------------------------------------------
 
 
@@ -88,7 +96,8 @@ func test_a_guarded_person_turns_their_back_and_shots_from_behind_glance_off() -
 	await runner.simulate_frames(240)
 	# They keep their back to the player: they face away (north, local forward -Z).
 	assert_float(guarded.facing_dir().z).is_less(-0.7)
-	assert_bool(guarded.look.arms_bar.visible).is_true()
+	# Round 13b: the shield icon over their head says "guarded" (the crossed-arms bar is gone).
+	assert_bool(_has_icon(td, guarded, MoodIcons.Kind.SHIELD)).is_true()
 	# Shots keep arriving from behind: they glance off and no joy lands.
 	var glances := guarded.glance_count
 	await runner.simulate_frames(120)

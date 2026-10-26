@@ -60,26 +60,35 @@ func _ready() -> void:
 	burst_label.visible = false
 	add_child(burst_label)
 
-	# Spirit: a label and a bar just above the burst indicator (see set_spirit).
+	# Spirit (round 13b): a bigger bar at the bottom centre with its label to the left; SpiritMeter draws over the bar
+	# (ticks, flash, floating numbers). The label and bar keep the values for the tests and for reading.
+	var half := Config.SPIRIT_METER_WIDTH * 0.5
 	spirit_label = Label.new()
 	spirit_label.add_theme_font_size_override("font_size", 20)
-	spirit_label.position = Vector2(20, 548)
+	spirit_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	spirit_label.offset_left = -half - 250.0
+	spirit_label.offset_right = -half - 14.0
+	spirit_label.offset_top = -112.0
+	spirit_label.offset_bottom = -84.0
+	spirit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	spirit_label.visible = false
 	add_child(spirit_label)
 	spirit_bar = ProgressBar.new()
 	spirit_bar.min_value = 0.0
 	spirit_bar.max_value = Config.SPIRIT_MAX
 	spirit_bar.show_percentage = false
-	spirit_bar.position = Vector2(20, 578)
-	spirit_bar.size = Vector2(260, 14)
-	spirit_bar.custom_minimum_size = Vector2(260, 14)
+	spirit_bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	spirit_bar.offset_left = -half
+	spirit_bar.offset_right = half
+	spirit_bar.offset_top = -110.0
+	spirit_bar.offset_bottom = -110.0 + Config.SPIRIT_METER_HEIGHT
 	spirit_bar.visible = false
 	add_child(spirit_bar)
 
-	# Twirl cooldown, beside the burst indicator (see set_twirl).
+	# Twirl cooldown text (SpiritMeter also draws an arc), above the burst indicator (see set_twirl).
 	twirl_label = Label.new()
 	twirl_label.add_theme_font_size_override("font_size", 22)
-	twirl_label.position = Vector2(420, 606)
+	twirl_label.position = Vector2(20, 572)
 	twirl_label.visible = false
 	add_child(twirl_label)
 
@@ -220,9 +229,7 @@ func set_spirit(spirit: float, is_dim: bool) -> void:
 	spirit_bar.visible = true
 	spirit_bar.value = spirit
 	if is_dim:
-		spirit_label.text = (
-			"DIM: spirit %d / %d (recover inside the border)" % [roundi(spirit), roundi(Config.SPIRIT_MAX)]
-		)
+		spirit_label.text = ("DIM  spirit %d / %d" % [roundi(spirit), roundi(Config.SPIRIT_MAX)])
 		spirit_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	else:
 		spirit_label.text = "Spirit %d / %d" % [roundi(spirit), roundi(Config.SPIRIT_MAX)]

@@ -27,9 +27,9 @@ var wave: float = 0.0
 # the soft dark haze under a dimmed person (the styled look draws its own, see has_aura).
 var grab_ring: MeshInstance3D
 var aura: MeshInstance3D
-# Round 12b (placeholder in both looks): the mood tells. A guarded person shows a small crossed-arms bar, a glum person
-# a warm glint when they look up, and a skittish person jitters (see _update_mood_cue).
-var arms_bar: MeshInstance3D
+# Round 12b (placeholder in both looks): the mood tells. A glum person shows a warm glint when they look up and a
+# skittish person jitters (see _update_mood_cue). Round 13b: the guarded crossed-arms bar is gone; the shield icon over
+# the head (FeedbackLayer) says "guarded".
 var glint: MeshInstance3D
 var _grace_mat: StandardMaterial3D
 # +1 leans the body back as the rules say; the styled bodies face the other way and flip it.
@@ -300,12 +300,11 @@ func _update_grab_cue() -> void:
 	_grab_mat.albedo_color = col
 
 
-# Round 12b: the mood tells, drawn over the body in both looks. Guarded: the crossed-arms bar. Skittish: a small
+# Round 12b: the mood tells, drawn over the body in both looks. Skittish: a small
 # sideways jitter of the whole body. Glum: hunched forward, and while they look up the body straightens and a warm
 # glint shows above the head. Nothing shows for rescued or dimmed people (they have no mood).
 func _update_mood_cue() -> void:
 	var mood := subject.active_mood()
-	arms_bar.visible = mood == Person.Mood.GUARDED
 	glint.visible = mood == Person.Mood.GLUM and subject.glum_up
 	if mood == Person.Mood.SKITTISH:
 		visual.position.x = sin(subject.mood_phase * 38.0) * Config.SKITTISH_JITTER
@@ -316,16 +315,6 @@ func _update_mood_cue() -> void:
 
 
 func _build_mood_parts() -> void:
-	arms_bar = MeshInstance3D.new()
-	var bar := BoxMesh.new()
-	bar.size = Vector3(1.2, 0.16, 0.5)
-	arms_bar.mesh = bar
-	arms_bar.position = Vector3(0, 1.15, 0)
-	var arms_mat := StandardMaterial3D.new()
-	arms_mat.albedo_color = Config.MOOD_ARMS_COLOUR
-	arms_bar.material_override = arms_mat
-	arms_bar.visible = false
-	visual.add_child(arms_bar)
 	glint = MeshInstance3D.new()
 	var spark := SphereMesh.new()
 	spark.radius = 0.2
@@ -339,7 +328,6 @@ func _build_mood_parts() -> void:
 	glint.visible = false
 	visual.add_child(glint)
 	if is_styled():
-		Looks.note_placeholder(arms_bar, "guarded arms bar")
 		Looks.note_placeholder(glint, "glum look-up glint")
 
 

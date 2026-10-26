@@ -27,6 +27,8 @@ var building_rects: Array[Rect2] = []
 var building_warm: Array[bool] = []
 # Round 12b: brief blips where someone just became dimmed: each is {"pos": Vector2, "left": seconds}.
 var blips: Array[Dictionary] = []
+# Round 13b: a marker on each open gap, {"pos": Vector2, "urgency": 0..1}; it grows and brightens with urgency.
+var gap_markers: Array[Dictionary] = []
 
 # The look: the palette and the frame (see scripts/looks/minimap_look.gd). The picture itself is built here.
 var look: MinimapLook
@@ -92,6 +94,12 @@ func refresh_from(
 	gap_flags.clear()
 	for j: int in range(border.polygon.size()):
 		gap_flags.append(border.segment_is_gap(j))
+	gap_markers.clear()
+	var mids := border.gap_midpoints()
+	var urgencies := border.gap_urgencies()
+	for gi: int in range(mids.size()):
+		var u := urgencies[gi] if gi < urgencies.size() else 0.0
+		gap_markers.append({"pos": Vector2(mids[gi].x, mids[gi].z), "urgency": u})
 	member_pts = PackedVector2Array()
 	for m: Person in border.members:
 		member_pts.append(Vector2(m.position.x, m.position.z))
@@ -158,6 +166,12 @@ func _render() -> void:
 		var at: Vector2 = b["pos"]
 		var left: float = b["left"]
 		_ring(at, 2.0 + 3.0 * (1.0 - left / Config.MINIMAP_BLIP_SECONDS), Config.MINIMAP_BLIP_COLOUR)
+	for gm: Dictionary in gap_markers:
+		var u: float = gm["urgency"]
+		var at: Vector2 = gm["pos"]
+		_marker(at, 1.4 + 1.8 * u, look.line_colour(true).lerp(Color(1.0, 0.9, 0.82), u * 0.8), "gap")
+		if u > 0.5:
+			_ring(at, 3.4 + 2.0 * u, look.line_colour(true))
 	_star(landmark_pos, look.landmark_colour())
 	_marker(player_pos, 2.2, look.player_colour(), "player")
 	for k: int in range(view_pts.size()):

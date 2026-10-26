@@ -38,6 +38,12 @@ var grabs: Grabs
 # Round 12b: the moods of wistful and gloomy people and the sheltering of dimmed people (see moods.gd).
 var moods: Moods
 var night: NightCycle
+# Round 13b: communication. The layer of screen-space markers, icons and effects, the spirit meter (bottom centre), the
+# one-time prompt bar and the layered introduction through the night (see intro.gd).
+var feedback: FeedbackLayer
+var spirit_meter: SpiritMeter
+var prompts: PromptBar
+var intro: Intro
 # The looks that are not owned by one object: the floor and walls, and the camera / post-process pipeline (see
 # scripts/looks). F4 flips the look in place with toggle_look().
 var plaza_look: PlazaLook
@@ -62,11 +68,14 @@ var _pulse_time := 0.0
 var _cover_timer := 0.0
 # The frame F4 last flipped the look (the key press can arrive twice in one frame, see Known gotchas).
 var _look_frame: int = -1
+# Seconds since the intro last checked for its one-time prompts.
+var _intro_timer: float = 0.0
 
 
 func _ready() -> void:
 	Controls.setup()
 	night = NightCycle.new()
+	intro = Intro.new(night, Config.intro_enabled)
 	pipeline = ViewPipeline.new()
 	add_child(pipeline)
 	_setup_environment()
@@ -96,6 +105,7 @@ func _ready() -> void:
 	player = TopDownPlayer.new()
 	add_child(player)
 	player.burst_fired.connect(border.shove)
+	player.burst_fired.connect(_on_burst_fired)
 	player.dim_changed.connect(_on_player_dim_changed)
 	grabs.grab_landed.connect(_on_grab_landed)
 	grabs.grab_avoided.connect(_on_grab_avoided)
@@ -122,6 +132,7 @@ func _ready() -> void:
 	hud.add_child(minimap)
 	arrows = GapArrows.new()
 	hud.add_child(arrows)
+	_build_feedback()
 	hud.set_hint(HINT)
 	hud.set_targeting(player.targeting_mode)
 	player.target_changed.connect(hud.set_target)
@@ -140,17 +151,20 @@ func _process(delta: float) -> void:
 	_update_highlight(delta)
 	_update_readability(delta)
 	if not running:
+		_update_feedback(delta)
 		return
 	night.update(delta)
 	var strength := night.strength()
 	hud.set_night_progress(night.progress())
 	_update_light()
+	_unlock_moods()
 	border.update(people, delta, strength)
 	_update_people(delta)
 	moods.update(people, player, delta)
 	_update_cover(delta)
 	_update_dim(delta)
 	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER * border.loss_mult, strength, border)
+	_hold_back_dimmed()
 	grabs.update(people, player, delta)
 	for p: Person in people:
 		p.tick(delta)
@@ -158,6 +172,8 @@ func _process(delta: float) -> void:
 	landmark.update(delta, border.landmark_beautified())
 	_update_spirit_hud()
 	_update_target_mood()
+	_update_intro(delta)
+	_update_feedback(delta)
 	if debug_on:
 		_update_debug_hint()
 	_check_end()
@@ -297,6 +313,90 @@ func _update_spirit_hud() -> void:
 	hud.set_spirit(player.spirit, player.is_dim)
 	hud.set_burst(player.burst_cooldown, player.has_burst_spirit())
 	hud.set_twirl(player.twirl_cooldown)
+	spirit_meter.set_values(player.spirit, player.is_dim, player.twirl_cooldown)
+
+
+# Round 13b: builds the communication overlays on the HUD (the feedback layer sits behind the HUD text) and connects the
+# things they react to.
+func _build_feedback() -> void:
+	feedback = FeedbackLayer.new()
+	feedback.main = self
+	hud.add_child(feedback)
+	hud.move_child(feedback, 0)
+	spirit_meter = SpiritMeter.new()
+	hud.add_child(spirit_meter)
+	prompts = PromptBar.new()
+	prompts.intro = intro
+	prompts.main = self
+	hud.add_child(prompts)
+	for p: Person in people:
+		p.joy_blocked.connect(_on_joy_blocked.bind(p))
+
+
+# Every frame, also after the round ends: the overlays advance and redraw.
+func _update_feedback(delta: float) -> void:
+	feedback.tick(delta)
+	spirit_meter.tick(delta)
+	intro.update(delta)
+	prompts.tick(get_viewport().get_visible_rect())
+
+
+func _on_joy_blocked(reason: int, p: Person) -> void:
+	feedback.on_blocked(p, reason)
+	if reason == Person.Block.SHELTERED:
+		intro.request(Intro.Prompt.SHELTERED)
+	elif p.active_mood() == Person.Mood.GUARDED:
+		intro.request(Intro.Prompt.GUARDED)
+
+
+func _on_burst_fired(_at: Vector3) -> void:
+	spirit_meter.moment(-Config.BURST_SPIRIT_COST, SpiritMeter.Moment.SPEND)
+	feedback.pulse_player(SpiritMeter.Moment.SPEND)
+
+
+# Round 13b, the layered introduction: a mood is dormant until its fraction of the night (the people keep their mood but
+# it does nothing and shows nothing).
+func _unlock_moods() -> void:
+	for p: Person in people:
+		p.mood_unlocked = intro.mood_active(p.mood)
+
+
+# Round 13b: until the calm opening is over, nobody sinks to dimmed (they wait as gloomy). Afterwards the cap lifts and
+# the ones who waited sink with the usual stage-change puff.
+func _hold_back_dimmed() -> void:
+	if intro.dimmed_allowed():
+		return
+	for p: Person in people:
+		if not p.is_rescued and p.gloom > Config.INTRO_DIM_CAP:
+			p.gloom = Config.INTRO_DIM_CAP
+
+
+# Round 13b: asks the intro for its one-time prompts when something first happens. Checked every INTRO_CHECK_SECONDS.
+func _update_intro(delta: float) -> void:
+	if not intro.enabled:
+		return
+	_intro_timer += delta
+	if _intro_timer < Config.INTRO_CHECK_SECONDS:
+		return
+	_intro_timer = 0.0
+	if intro.dimmed_allowed() and not feedback.markers.is_empty():
+		var faltering: Person = feedback.markers[0]["person"]
+		intro.request(Intro.Prompt.GAP, faltering.global_position)
+	var view := get_viewport().get_visible_rect().grow(-40.0)
+	for p: Person in people:
+		if p.is_rescued:
+			continue
+		var m := p.active_mood()
+		if (m == Person.Mood.NONE and not p.sheltered) or not view.has_point(world_to_screen(p.global_position)):
+			continue
+		if m != Person.Mood.NONE:
+			intro.request(Intro.prompt_for_mood(m))
+		if p.sheltered:
+			intro.request(Intro.Prompt.SHELTERED)
+	if player.is_dim:
+		intro.request(Intro.Prompt.DIM)
+	elif player.spirit < Config.BURST_SPIRIT_COST:
+		intro.request(Intro.Prompt.SPIRIT_LOW)
 
 
 func _on_player_dim_changed(dim: bool) -> void:
@@ -308,6 +408,8 @@ func _on_player_dim_changed(dim: bool) -> void:
 
 func _on_grab_landed(_p: Person) -> void:
 	hud.show_alert("Grabbed! -%d spirit" % roundi(Config.GRAB_SPIRIT_DRAIN))
+	spirit_meter.moment(-Config.GRAB_SPIRIT_DRAIN, SpiritMeter.Moment.LOSS)
+	feedback.pulse_player(SpiritMeter.Moment.LOSS)
 
 
 func _on_grab_avoided(_p: Person, perfect: bool) -> void:
@@ -345,7 +447,14 @@ func _update_readability(delta: float) -> void:
 	if minimap.tick(delta):
 		minimap.refresh_from(ground, border, people, player.global_position, _view_centre(), view_half_extents())
 	arrows.update_arrows(
-		camera, screen, border.gap_midpoints(), minimap.get_global_rect(), border.pulse(), pipeline.view_scale()
+		camera,
+		screen,
+		border.gap_midpoints(),
+		minimap.get_global_rect(),
+		border.pulse(),
+		pipeline.view_scale(),
+		border.gap_urgencies(),
+		delta
 	)
 
 
@@ -723,6 +832,8 @@ func _on_person_rescued(p: Person) -> void:
 	border.on_rescue(p)
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)
 	player.add_spirit(Config.SPIRIT_PER_RESCUE)
+	spirit_meter.moment(Config.SPIRIT_PER_RESCUE, SpiritMeter.Moment.GAIN)
+	feedback.pulse_player(SpiritMeter.Moment.GAIN)
 
 
 # A rescued person (`p`) relapsed: they step out of the border, and the count goes down.

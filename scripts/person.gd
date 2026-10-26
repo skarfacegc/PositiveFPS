@@ -5,10 +5,14 @@ signal rescued
 signal relapsed
 # The visible stage changed (0 wistful, 1 gloomy, 2 dimmed): sank when `to_level` is higher, lifted when lower.
 signal stage_changed(from_level: int, to_level: int)
+# Round 13b: joy was turned away. `reason` is a Block value (the cause, so the screen can flash its icon).
+signal joy_blocked(reason: int)
 
 # Round 12b: the mood of an unrescued wistful or gloomy person (see scripts/moods.gd). Dimmed and rescued people act
 # as if they had none (active_mood).
 enum Mood { NONE, GUARDED, SKITTISH, GLUM }
+# Round 13b: why joy was turned away (see joy_blocked).
+enum Block { GUARDED, SHELTERED }
 
 var affinity: int = 0
 # A small number that picks cosmetic variety (the pose and outfit variant a styled look draws). Set by the level.
@@ -53,6 +57,8 @@ var flee_left: float = 0.0
 var flee_from := Vector3.ZERO
 var glance_count: int = 0
 var mood_phase: float = 0.0
+# Round 13b: false while the layered introduction (see intro.gd) keeps this person's mood dormant.
+var mood_unlocked: bool = true
 # Seconds since this person was last hit by a joy projectile.
 var _since_hit: float = 99.0
 
@@ -107,7 +113,7 @@ func chest_position() -> Vector3:
 
 # The mood that counts right now: none for rescued and dimmed people.
 func active_mood() -> int:
-	if is_rescued or Config.gloom_level(gloom) >= 2:
+	if is_rescued or Config.gloom_level(gloom) >= 2 or not mood_unlocked:
 		return Mood.NONE
 	return mood
 
@@ -141,9 +147,11 @@ func receive_joy(element: int, amount: float, distance: float, from: Vector3 = V
 	if not is_rescued:
 		if sheltered:
 			_glance(Config.SHELTER_COLOUR)
+			joy_blocked.emit(Block.SHELTERED)
 			return
 		if active_mood() == Mood.GUARDED and from != Vector3.INF and not is_open_to(from):
 			_glance(Config.GLANCE_COLOUR)
+			joy_blocked.emit(Block.GUARDED)
 			return
 		if active_mood() == Mood.GLUM and glum_up:
 			amount *= Config.GLUM_LOOKUP_MULT

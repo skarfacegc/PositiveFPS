@@ -529,8 +529,8 @@ const GLUM_GLINT_COLOUR := Color(1.0, 0.85, 0.45)
 # Sheltering: joy does not land on a wistful or gloomy person while a dimmed person is this close (metres).
 const SHELTER_RADIUS := 2.0
 const SHELTER_COLOUR := Color(0.45, 0.45, 0.5)
-# Placeholder mood tells: the crossed-arms bar of a guarded person, and the jitter of a skittish one (metres).
-const MOOD_ARMS_COLOUR := Color(0.25, 0.2, 0.3)
+# Placeholder mood tells: the jitter of a skittish person (metres). (The guarded crossed-arms bar was replaced by the
+# shield icon in round 13b.)
 const SKITTISH_JITTER := 0.05
 const GLUM_SLUMP_SCALE := 0.8
 # Edge pressure: dimmed people prefer the newest and outermost stretch of the border. A stretch's score is
@@ -561,6 +561,56 @@ const STAGE_RIPPLE_RADIUS := 1.8
 const STAGE_RIPPLE_SECONDS := 0.7
 const MINIMAP_BLIP_SECONDS := 2.5
 const MINIMAP_BLIP_COLOUR := Color(0.7, 0.5, 0.95)
+
+# ---- Round 13b: communication (no new mechanics)
+# Gaps: seconds a gap must stay open for its urgency to reach 1 (marker pulse, minimap marker and arrow intensify).
+const GAP_URGENCY_SECONDS := 8.0
+# A gap seen again within this many metres of where it was last frame is the same gap (its age carries over).
+const GAP_TRACK_RADIUS := 6.0
+# Screen-space markers (pixels): the pulsing ring at a faltering person's feet, the progress ring, the "!" badge.
+const FALTER_MARKER_RADIUS := 26.0
+const FALTER_RING_RADIUS := 34.0
+const FALTER_BADGE_SIZE := 26.0
+const FALTER_PULSE_HZ_MIN := 1.0
+const FALTER_PULSE_HZ_MAX := 3.2
+const FALTER_CLOSED_SECONDS := 0.8
+const FALTER_SEAL_COLOUR := Color(1.0, 0.9, 0.55)
+# Gloom leaking in through an open gap: grey-violet motes drifting from the gap toward the border centre.
+const LEAK_COLOUR := Color(0.55, 0.46, 0.7)
+const LEAK_MOTES_PER_GAP := 8
+const LEAK_MOTES_MAX := 120
+const LEAK_SPEED := 1.6
+const LEAK_LIFE_SECONDS := 1.8
+# Mood icons (screen-space, pixels) and the blocked-joy flash.
+const MOOD_ICON_SIZE := 26.0
+const MOOD_ICON_COLOURS: Array[Color] = [
+	Color(1, 1, 1),
+	Color(0.55, 0.65, 1.0),
+	Color(1.0, 0.72, 0.3),
+	Color(0.68, 0.74, 0.86),
+	Color(0.78, 0.6, 1.0),
+]
+const GLUM_UP_ICON_COLOUR := Color(1.0, 0.9, 0.5)
+const BLOCK_FLASH_SECONDS := 0.55
+const BLOCK_SPARK_SECONDS := 0.4
+const TETHER_COLOUR := Color(0.72, 0.6, 0.95, 0.4)
+const TETHER_SNAP_SECONDS := 0.45
+# The spirit meter (bottom centre) and its moments.
+const SPIRIT_METER_WIDTH := 360.0
+const SPIRIT_METER_HEIGHT := 22.0
+const SPIRIT_MOMENT_SECONDS := 1.1
+const SPIRIT_GAIN_COLOUR := Color(1.0, 0.88, 0.4)
+const SPIRIT_SPEND_COLOUR := Color(0.7, 0.55, 1.0)
+const SPIRIT_LOSS_COLOUR := Color(1.0, 0.4, 0.38)
+# Layered introduction through the night (driven by NightCycle progress). Dimmed people emerge at NIGHT_CALM_FRACTION;
+# each mood becomes active at its fraction (indexed by Person.Mood: NONE, GUARDED, SKITTISH, GLUM). One-time prompts
+# last PROMPT_SECONDS and never overlap. `intro_enabled` is off in automated tests (they turn it on to test the intro).
+const MOOD_INTRO_FRACTIONS: Array[float] = [0.0, 0.35, 0.5, 0.65]
+const PROMPT_SECONDS := 4.0
+const PROMPT_FADE_SECONDS := 0.5
+const INTRO_CHECK_SECONDS := 0.2
+const INTRO_DIM_CAP := 0.669
+static var intro_enabled: bool = not is_automated_test()
 
 # The matchups form a soft cycle:
 #   Music is strong against Art, Art is strong against Nature, Nature is strong against Music.

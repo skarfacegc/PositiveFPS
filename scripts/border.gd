@@ -67,6 +67,8 @@ var _pushed_at: Array[float] = []
 # faltering members a spare inner member has taken the place of (they stay inner while they falter).
 var _falter_age: Dictionary = {}
 var _benched: Dictionary = {}
+# Round 13b: each open gap seen last frame as {"pos": Vector3, "age": seconds open}, in gap_midpoints() order.
+var _gap_track: Array[Dictionary] = []
 var _debug_on: bool = false
 var _debug_labels: Array[Label3D] = []
 
@@ -140,6 +142,7 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 	_move_members(delta)
 	_update_buildings(delta)
 	_press_darkness(people, delta, strength)
+	_update_gap_ages(delta)
 	_update_ground()
 	_draw_lines()
 	if _debug_on:
@@ -241,6 +244,46 @@ func gap_midpoints() -> Array[Vector3]:
 			var mid := _point_at_arc((float(k) + 0.5) * spacing)
 			out.append(Vector3(mid.x, 0.0, mid.y))
 	return out
+
+
+# Round 13b: carries each open gap's age over from last frame (a gap within GAP_TRACK_RADIUS of an old one is the same
+# gap) and starts new ones at zero.
+func _update_gap_ages(delta: float) -> void:
+	var next: Array[Dictionary] = []
+	var taken: Dictionary = {}
+	for mid: Vector3 in gap_midpoints():
+		var best := -1
+		var best_d := Config.GAP_TRACK_RADIUS
+		for i: int in range(_gap_track.size()):
+			if taken.has(i):
+				continue
+			var old: Vector3 = _gap_track[i]["pos"]
+			var d := Vector2(mid.x - old.x, mid.z - old.z).length()
+			if d < best_d:
+				best_d = d
+				best = i
+		var age := 0.0
+		if best >= 0:
+			taken[best] = true
+			var old_age: float = _gap_track[best]["age"]
+			age = old_age + delta
+		next.append({"pos": mid, "age": age})
+	_gap_track = next
+
+
+# How urgent each open gap is, 0 (just opened) to 1 (open GAP_URGENCY_SECONDS or more), in gap_midpoints() order.
+func gap_urgencies() -> Array[float]:
+	var out: Array[float] = []
+	for g: Dictionary in _gap_track:
+		var age: float = g["age"]
+		out.append(clampf(age / Config.GAP_URGENCY_SECONDS, 0.0, 1.0))
+	return out
+
+
+# Urgency (0 to 1) of a faltering rescued person: how long they have faltered, over GAP_URGENCY_SECONDS.
+func falter_urgency(p: Person) -> float:
+	var age: float = _falter_age.get(p, 0.0)
+	return clampf(age / Config.GAP_URGENCY_SECONDS, 0.0, 1.0)
 
 
 # The gap pulse right now (see gap_pulse).

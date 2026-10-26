@@ -9,6 +9,8 @@ extends Control
 # radians).
 var arrows: Array[Dictionary] = []
 var _alpha: float = 1.0
+# Round 13b: a clock for the urgency pulse (an urgent gap's arrow pulses faster, brighter and bigger).
+var _clock: float = 0.0
 
 
 func _ready() -> void:
@@ -24,9 +26,12 @@ func update_arrows(
 	gaps: Array[Vector3],
 	minimap_rect: Rect2,
 	pulse: float,
-	view_scale: Vector2 = Vector2.ONE
+	view_scale: Vector2 = Vector2.ONE,
+	urgencies: Array[float] = [],
+	delta: float = 0.0
 ) -> void:
-	arrows = off_screen_arrows(camera, screen, gaps, minimap_rect, view_scale)
+	_clock += delta
+	arrows = off_screen_arrows(camera, screen, gaps, minimap_rect, view_scale, urgencies)
 	_alpha = lerpf(0.45, 1.0, pulse)
 	queue_redraw()
 
@@ -37,7 +42,12 @@ func update_arrows(
 # `view_scale` turns the camera's own view coordinates into window coordinates (the styled look draws the 3D view
 # small).
 static func off_screen_arrows(
-	camera: Camera3D, screen: Rect2, gaps: Array[Vector3], minimap_rect: Rect2, view_scale: Vector2 = Vector2.ONE
+	camera: Camera3D,
+	screen: Rect2,
+	gaps: Array[Vector3],
+	minimap_rect: Rect2,
+	view_scale: Vector2 = Vector2.ONE,
+	urgencies: Array[float] = []
 ) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var inner := screen.grow(-Config.OFFSCREEN_ARROW_MARGIN)
@@ -45,7 +55,9 @@ static func off_screen_arrows(
 	var half := inner.size * 0.5
 	var mm_centre := minimap_rect.get_center()
 	var mm_clear := minimap_rect.size.x * 0.5 + Config.OFFSCREEN_ARROW_PAD
-	for g: Vector3 in gaps:
+	for gi: int in range(gaps.size()):
+		var g: Vector3 = gaps[gi]
+		var urgency := urgencies[gi] if gi < urgencies.size() else 0.0
 		var sp := camera.unproject_position(g) * view_scale
 		if screen.has_point(sp):
 			continue
@@ -62,20 +74,33 @@ static func off_screen_arrows(
 			var down := Vector2(edge.x, maxf(edge.y, mm_centre.y + mm_clear)).clamp(inner.position, inner.end)
 			var right := Vector2(maxf(edge.x, mm_centre.x + mm_clear), edge.y).clamp(inner.position, inner.end)
 			edge = down if (down - mm_centre).length() >= mm_clear else right
-		out.append({"pos": edge, "angle": dir.angle()})
+		out.append({"pos": edge, "angle": dir.angle(), "urgency": urgency})
 	return out
 
 
 func _draw() -> void:
-	var col := Config.BORDER_GAP_COLOUR
-	col.a = _alpha
 	for arrow: Dictionary in arrows:
 		var pos: Vector2 = arrow["pos"]
 		var angle: float = arrow["angle"]
+		var urgency: float = arrow.get("urgency", 0.0)
+		var col := arrow_colour(urgency, _clock, _alpha)
 		var fwd := Vector2(cos(angle), sin(angle))
 		var side := Vector2(-fwd.y, fwd.x)
-		var k := Config.OFFSCREEN_ARROW_SIZE
+		var k := Config.OFFSCREEN_ARROW_SIZE * (1.0 + 0.6 * urgency)
 		var tip := pos + fwd * k
 		var a := pos - fwd * k * 0.5 + side * k * 0.6
 		var b := pos - fwd * k * 0.5 - side * k * 0.6
 		draw_colored_polygon(PackedVector2Array([tip, a, b]), col)
+
+
+# The colour of an arrow at `urgency` (0 to 1) at clock time `t`: the coral gap colour, pulsing faster and brighter
+# (toward a hot white-coral) as the gap stays open. `base_alpha` is the slow gap pulse used at urgency 0.
+static func arrow_colour(urgency: float, t: float, base_alpha: float) -> Color:
+	var col := Config.BORDER_GAP_COLOUR.lerp(Color(1.0, 0.82, 0.74), urgency * 0.7)
+	if urgency <= 0.0:
+		col.a = base_alpha
+		return col
+	var hz := lerpf(1.0, 3.2, urgency)
+	var wave := 0.5 - 0.5 * cos(TAU * t * hz)
+	col.a = lerpf(0.45 + 0.4 * urgency, 1.0, wave)
+	return col

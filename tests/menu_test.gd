@@ -47,6 +47,24 @@ func test_menu_has_a_play_button_and_a_look_toggle_and_no_variant_choices() -> v
 	assert_str(buttons[1].text).is_equal("Look: Placeholder")
 
 
+func test_the_styled_look_note_shows_only_while_styled_is_selected() -> void:
+	var runner: GdUnitSceneRunner = await _start_menu()
+	var menu := runner.scene() as Control
+	var note: Label = menu.get("look_note")
+	assert_bool(note.visible).is_false()
+	var button: Button = menu.get("look_button")
+	button.pressed.emit()
+	assert_bool(note.visible).is_true()
+	assert_str(note.text).contains("visual test only")
+	assert_str(note.text).contains("not the current game")
+	button.pressed.emit()
+	assert_bool(note.visible).is_false()
+	# It is a label, not a button: the menu still has just two buttons.
+	var buttons: Array = []
+	_find_buttons(menu, buttons)
+	assert_int(buttons.size()).is_equal(2)
+
+
 func test_the_look_button_flips_the_look_and_remembers_it() -> void:
 	var runner: GdUnitSceneRunner = await _start_menu()
 	var menu := runner.scene() as Control
