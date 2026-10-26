@@ -827,3 +827,15 @@ untested by eye. The ring, badge and icons all scale with screen pixels, not zoo
 gap prompt is tied to a faltering person (a gap from spacing alone, with nobody faltering, shows no prompt). The burst and
 dim-exit ticks coincide (both 30). The mood prompt on first sight can fire for someone at the screen edge. The styled look
 shows all of this (overlays) but the leak motes and the placeholder shapes are not restyled.
+
+## Round 13 playtest and round 14 plan (2026-10-26)
+Feedback: the balance is way off. Once the gloomiest (dimmed) people move in, around midnight, it's impossible to
+counter: sheltering blocks joy on everyone near them, and too many arrive at once. The player didn't know dimmed people
+can be helped. The bigger area works. Zoom out a little, or let the player zoom with the mouse wheel.
+
+Round 14 (balance):
+- **Sheltering:** each dimmed person shelters only the single nearest person.
+- **Dimmed people are the counter:** they show a joy ring when hit, with a one-time prompt ("Dimmed folk can be helped
+  too. It takes longer"), and need about 1.6x a wistful person's joy instead of 2x.
+- **Midnight surge:** people sink to dimmed one at a time, with a minimum gap between them, never in a wave.
+- **Mouse-wheel zoom** between close and wide; the default is a little further out than now.
