@@ -244,3 +244,22 @@ func test_a_full_border_of_sixty_people_updates_within_the_frame_budget() -> voi
 	print("WORLD_SCALE sim update with 60 people, full border: %.3f ms per frame" % per_frame_ms)
 	assert_float(per_frame_ms).is_less(4.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+# Spawn rules at the new scale: the centre stays clear, blocks and neighbours are kept away from, and a round that has
+# ended does not end again.
+func test_spawn_spots_keep_clear_of_the_centre_blocks_and_each_other() -> void:
+	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
+	await runner.simulate_frames(5)
+	var td: TopDownMain = runner.scene()
+	var none: Array[Vector3] = []
+	assert_bool(td._spot_ok(Vector3(Config.TD_SPAWN_CENTRE_CLEAR - 0.5, 0, 0), none)).is_false()
+	assert_bool(td._spot_ok(TopDownMain.BLOCK_POSITIONS[0] * Vector3(1, 0, 1), none)).is_false()
+	var near: Array[Vector3] = [Vector3(20, 0, 0)]
+	assert_bool(td._spot_ok(Vector3(20 + Config.TD_SPAWN_SPACING - 0.5, 0, 0), near)).is_false()
+	assert_bool(td._spot_ok(Vector3(20 + Config.TD_SPAWN_SPACING + 0.5, 0, 0), near)).is_true()
+	td._end_round("Test")
+	assert_bool(td.running).is_false()
+	td._end_round("Again")
+	assert_bool(td.running).is_false()
+	await TopDownTestUtil.leave_loaded_scene(td)

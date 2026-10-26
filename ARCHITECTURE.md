@@ -61,6 +61,7 @@ Top: element enum, joy numbers, person look. `TD_*` block ("Territory game", ~li
 camera, player, projectiles, blooms, ground, HUD, minimap. "Round 10: the floor" (~318): the floor-overlay priority
 inventory and cap. "Round 9: the living border" (~356): `BORDER_*`, landmark, night. "Round 10: easier growth" (~425):
 calm opening and friendlier numbers. The matchup table and helpers are at the bottom. Rule: no magic numbers in other scripts.
+**World scale (round 13a):** `Config.WORLD_SCALE` (100/70) scales TERRITORY constants (plaza, blocks, spawn, border spacing/gap/push/radii/bands, cover, erosion, paint and contagion radii, search reach); INTERACTION and BODY constants (sizes, projectile ranges and speeds, `TD_AUTO_RANGE`, `GRAB_*`, `SHELTER_RADIUS`, `SKITTISH_RADIUS`, hit radii, press and shove range) are not; per-metre rates are divided by it. New distances: decide which kind, and write `* WORLD_SCALE` in the const if territory. Test: `world_scale_test.gd`.
 
 ## Data flow per frame (`TopDownMain._process`)
 1. `_update_camera`, `_update_highlight`, `_update_readability` (minimap refresh about every 0.1 s, gap arrows) run even when ended.

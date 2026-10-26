@@ -1,7 +1,7 @@
 {
   "line_files": {
     "scripts/bloom.gd": 100.0,
-    "scripts/border.gd": 99.1,
+    "scripts/border.gd": 99.5,
     "scripts/building.gd": 100.0,
     "scripts/config.gd": 100.0,
     "scripts/controls.gd": 100.0,
@@ -47,8 +47,8 @@
     "scripts/night_cycle.gd": 100.0,
     "scripts/painted_ground.gd": 100.0,
     "scripts/person.gd": 100.0,
-    "scripts/topdown_main.gd": 98.9,
+    "scripts/topdown_main.gd": 99.1,
     "scripts/topdown_player.gd": 100.0
   },
-  "line_overall": 99.6
+  "line_overall": 99.7
 }

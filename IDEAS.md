@@ -706,3 +706,45 @@ spacing is wanted, even if the level is less dense.
 - Layered introduction through the night: dusk = rescuing and growing only; then dimmed people arrive (one-time prompt
   at the first gap); then moods appear one type at a time, each with a one-time visual prompt.
 - Placeholder looks; icons and meters are screen overlays, so they work in both looks.
+
+## Round 13a build (world scale-up)
+Built as planned: the plaza is 100 m (WORLD_SCALE = 100/70 = 1.4286), same 60 people. Styled ("full graphics") look and the
+checkpoint renders were deliberately NOT adapted this round; the styled look is still switchable and loads, but may look
+off at the new size.
+
+**The scale rule** (also in the `config.gd` comment and ARCHITECTURE.md): territory constants are multiplied by
+WORLD_SCALE; interaction and body constants are not; a per-metre rate is divided by it; speeds are hand-tuned.
+- Scaled: plaza 100, block and landmark positions (landmark (25.7, -22.9)), spawn edge/centre-clear/spacing, border
+  spacing 3.71, max gap 5.0, push 3.43 (push width is an angle, unchanged), min radius 4.29, post reach 2.86, edge
+  band 1.43, outward step, inner spacing, shove amount, cover radius 4.29, erosion radius 2.86, colour-zone (paint) and
+  contagion radii 8.57, no-zone distance, pursuit search radius 35.7, edge-pressure reach 17.1.
+  `GLOOM_GROWTH_PER_METER` divided by the scale.
+- Not scaled: person and block sizes, projectile speeds and ranges, `TD_AUTO_RANGE` (10), `GRAB_*`, `SHELTER_RADIUS`,
+  `SKITTISH_RADIUS`, hit/click radii, burst radius, `BORDER_PRESS_RANGE`, `BORDER_SHOVE_RANGE`, wall margin, block
+  clearance, `LANDMARK_RECOVER_RADIUS`, wander range and speed, `BORDER_WALK_SPEED`, `TD_DARK_STOP_DISTANCE`.
+- Speeds: player walk 6.9 -> 7.6, run 10.9 -> 12.0, dark drift 0.92 -> 1.01 (all +10%). Night stays 180 s.
+- Camera: ortho size 16.7 -> 18, look offset -2.4 -> -2.6, `TD_UI_SCALE` 2.2 -> 2.37 (labels keep their screen size). The
+  10 m auto-range ring still fits at 1280x720 (about 11 m is the most it allows); the camera test now checks 10 fits and 12
+  does not. No camera follow bounds existed.
+- Ground: kept 1 m tiles, so a 100 x 100 grid (10,000 tiles).
+- Minimap: needed no change; it maps the plaza size, so it now covers 100 m.
+
+**Measured** (headless, 60 people all rescued on a full border, whole `_process`, best of three batches): about 2.6 to 3.2
+ms per frame (budget in the test 4 ms). Split over 120 frames: border update about 1.2 ms per frame, paint about 0.85 ms,
+people tick 0.2 ms, the rest under 0.1 ms. The border update is the biggest cost; if it matters later, look there first.
+Local-gap scenario (20 members, two pressers on one member): exactly one local gap opens after 275 frames (4.6 s), the same
+order as before. Overextension (4 people on a small loop): every stretch is a gap, as before.
+Same people enclose about 2.04x the area (area goes with scale squared), checked for n = 8, 12 and 20.
+
+**Tests**: 285 now (277 before plus 8 new in `world_scale_test.gd`). Updated for scale (each by multiplying the test's
+sizes by WORLD_SCALE so the same counts result): border growth / level / shape (radii, spacing, perimeter), local gap post
+border, erosion hold (dark person at the edge of the bigger paint disc), edge-pressure drift (positions scaled, clear of the
+moved blocks), painted ground (sets a 6 m disc), projectile block test (block moved), minimap far corner (`FAR` scaled), spirit
+recovery depth (band is 1.43 m), pace test (+10%), camera test (18 m view, 12 m ring does not fit).
+
+**Playtest questions**
+- Does the border now read as a border? Is 3.9 m spacing too sparse to feel like a wall, or a good rhythm?
+- Is walking across the plaza too slow or fine at 7.6 m/s (running 12)? Does it need more speed or a dash?
+- Are dark people arriving too slowly (drift 1.01 across a bigger plaza)? Is the night (180 s) still enough to win?
+- Do grabs and presses feel rarer, since the people are less dense?
+- Is the minimap still enough to find gaps and the landmark at this size?
