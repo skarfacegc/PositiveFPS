@@ -35,8 +35,6 @@ static func colour_for(kind: int) -> Color:
 
 # Draws icon `kind` on `ci`: a badge with the glyph inside, `size` pixels wide, centred on `centre`.
 static func draw(ci: CanvasItem, kind: int, centre: Vector2, size: float, colour: Color) -> void:
-	if kind == Kind.NONE:
-		return
 	var badge := BADGE_COLOUR
 	badge.a *= colour.a
 	ci.draw_circle(centre, size * 0.68, badge)

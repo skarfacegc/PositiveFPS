@@ -579,6 +579,8 @@ const FALTER_SEAL_COLOUR := Color(1.0, 0.9, 0.55)
 const LEAK_COLOUR := Color(0.55, 0.46, 0.7)
 const LEAK_MOTES_PER_GAP := 8
 const LEAK_MOTES_MAX := 120
+# Only gaps within the view plus this many metres leak motes.
+const LEAK_VIEW_MARGIN := 8.0
 const LEAK_SPEED := 1.6
 const LEAK_LIFE_SECONDS := 1.8
 # Mood icons (screen-space, pixels) and the blocked-joy flash.
@@ -604,17 +606,26 @@ const SPIRIT_SPEND_COLOUR := Color(0.7, 0.55, 1.0)
 const SPIRIT_LOSS_COLOUR := Color(1.0, 0.4, 0.38)
 # Layered introduction through the night (driven by NightCycle progress). Dimmed people emerge at NIGHT_CALM_FRACTION;
 # each mood becomes active at its fraction (indexed by Person.Mood: NONE, GUARDED, SKITTISH, GLUM). One-time prompts
-# last PROMPT_SECONDS and never overlap. `intro_enabled` is off in automated tests (they turn it on to test the intro).
+# last PROMPT_SECONDS and never overlap. `intro_on()` is false in automated tests (they set `intro_override` to turn it
+# on to test the intro).
 const MOOD_INTRO_FRACTIONS: Array[float] = [0.0, 0.35, 0.5, 0.65]
 const PROMPT_SECONDS := 4.0
 const PROMPT_FADE_SECONDS := 0.5
 const INTRO_CHECK_SECONDS := 0.2
 const INTRO_DIM_CAP := 0.669
-static var intro_enabled: bool = not is_automated_test()
+static var intro_override: int = -1
 
 # The matchups form a soft cycle:
 #   Music is strong against Art, Art is strong against Nature, Nature is strong against Music.
 # Matching the affinity gives MATCH_MULT. The element that loses to the affinity gives WEAK_MULT.
+
+
+# True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unless a test
+# sets `intro_override` to 1 (on) or 0 (off). -1 means no override.
+static func intro_on() -> bool:
+	if intro_override >= 0:
+		return intro_override == 1
+	return not is_automated_test()
 
 
 # Returns how much a hit with `element` is multiplied when the person has `affinity`.

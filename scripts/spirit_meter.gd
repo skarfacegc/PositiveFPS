@@ -20,6 +20,7 @@ var flash: float = 0.0
 var flash_colour := Color.WHITE
 var popups: Array[Dictionary] = []
 var _clock: float = 0.0
+var _dirty: bool = true
 
 
 func _ready() -> void:
@@ -33,16 +34,19 @@ func _ready() -> void:
 
 # Sets the numbers it draws and redraws. `twirl_cooldown` is the seconds left before the next twirl.
 func set_values(new_spirit: float, dim: bool, twirl_cooldown: float) -> void:
+	var frac := 1.0 - clampf(twirl_cooldown / Config.TWIRL_COOLDOWN, 0.0, 1.0)
+	if not is_equal_approx(spirit, new_spirit) or is_dim != dim or not is_equal_approx(twirl_frac, frac):
+		_dirty = true
 	spirit = new_spirit
 	is_dim = dim
-	twirl_frac = 1.0 - clampf(twirl_cooldown / Config.TWIRL_COOLDOWN, 0.0, 1.0)
-	queue_redraw()
+	twirl_frac = frac
 
 
 # A spirit moment: flash the meter and float `amount` (positive or negative) up from it. `kind` is a Moment.
 func moment(amount: float, kind: int) -> void:
 	var colour := _moment_colour(kind)
 	flash = 1.0
+	_dirty = true
 	flash_colour = colour
 	var sign_text := "+" if amount > 0.0 else "−"
 	popups.append(
@@ -70,7 +74,9 @@ func tick(delta: float) -> void:
 		popups[i]["left"] = left
 		if left <= 0.0:
 			popups.remove_at(i)
-	queue_redraw()
+	if _dirty or is_dim or flash > 0.0 or not popups.is_empty():
+		_dirty = false
+		queue_redraw()
 
 
 # The x (in the meter's own pixels) of the tick for `value` spirit.

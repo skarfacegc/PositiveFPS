@@ -75,7 +75,7 @@ var _intro_timer: float = 0.0
 func _ready() -> void:
 	Controls.setup()
 	night = NightCycle.new()
-	intro = Intro.new(night, Config.intro_enabled)
+	intro = Intro.new(night, Config.intro_on())
 	pipeline = ViewPipeline.new()
 	add_child(pipeline)
 	_setup_environment()
@@ -337,8 +337,9 @@ func _build_feedback() -> void:
 func _update_feedback(delta: float) -> void:
 	feedback.tick(delta)
 	spirit_meter.tick(delta)
-	intro.update(delta)
-	prompts.tick(get_viewport().get_visible_rect())
+	if intro.enabled:
+		intro.update(delta)
+		prompts.tick(get_viewport().get_visible_rect())
 
 
 func _on_joy_blocked(reason: int, p: Person) -> void:
@@ -357,6 +358,8 @@ func _on_burst_fired(_at: Vector3) -> void:
 # Round 13b, the layered introduction: a mood is dormant until its fraction of the night (the people keep their mood but
 # it does nothing and shows nothing).
 func _unlock_moods() -> void:
+	if not intro.enabled:
+		return
 	for p: Person in people:
 		p.mood_unlocked = intro.mood_active(p.mood)
 
@@ -449,7 +452,7 @@ func _update_readability(delta: float) -> void:
 	arrows.update_arrows(
 		camera,
 		screen,
-		border.gap_midpoints(),
+		border.gap_midpoints_cached(),
 		minimap.get_global_rect(),
 		border.pulse(),
 		pipeline.view_scale(),

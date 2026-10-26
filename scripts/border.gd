@@ -30,6 +30,8 @@ var inner_count: int = 0
 # The loop, as (x, z) points in order around the centre. Empty when there is no border.
 var polygon := PackedVector2Array()
 var members: Array[Person] = []
+# Round 13b: every rescued person who is faltering as of the last update (members, benched and others).
+var faltering: Array[Person] = []
 var inner: Array[Person] = []
 # One entry per slot segment: true when that stretch is a gap.
 var segment_gap: Array[bool] = []
@@ -67,8 +69,9 @@ var _pushed_at: Array[float] = []
 # faltering members a spare inner member has taken the place of (they stay inner while they falter).
 var _falter_age: Dictionary = {}
 var _benched: Dictionary = {}
-# Round 13b: each open gap seen last frame as {"pos": Vector3, "age": seconds open}, in gap_midpoints() order.
-var _gap_track: Array[Dictionary] = []
+# Round 13b: the age of each open gap (see gap_tracker.gd) and the gap middles as of the last update.
+var _tracker := GapTracker.new()
+var _mids_cache: Array[Vector3] = []
 var _debug_on: bool = false
 var _debug_labels: Array[Label3D] = []
 
@@ -246,38 +249,21 @@ func gap_midpoints() -> Array[Vector3]:
 	return out
 
 
+# The gap middles as of the last update(), for the things that read them every frame (do not change the result).
+func gap_midpoints_cached() -> Array[Vector3]:
+	return _mids_cache
+
+
 # Round 13b: carries each open gap's age over from last frame (a gap within GAP_TRACK_RADIUS of an old one is the same
 # gap) and starts new ones at zero.
 func _update_gap_ages(delta: float) -> void:
-	var next: Array[Dictionary] = []
-	var taken: Dictionary = {}
-	for mid: Vector3 in gap_midpoints():
-		var best := -1
-		var best_d := Config.GAP_TRACK_RADIUS
-		for i: int in range(_gap_track.size()):
-			if taken.has(i):
-				continue
-			var old: Vector3 = _gap_track[i]["pos"]
-			var d := Vector2(mid.x - old.x, mid.z - old.z).length()
-			if d < best_d:
-				best_d = d
-				best = i
-		var age := 0.0
-		if best >= 0:
-			taken[best] = true
-			var old_age: float = _gap_track[best]["age"]
-			age = old_age + delta
-		next.append({"pos": mid, "age": age})
-	_gap_track = next
+	_mids_cache = gap_midpoints()
+	_tracker.update(segment_gap, _mids_cache, delta)
 
 
 # How urgent each open gap is, 0 (just opened) to 1 (open GAP_URGENCY_SECONDS or more), in gap_midpoints() order.
 func gap_urgencies() -> Array[float]:
-	var out: Array[float] = []
-	for g: Dictionary in _gap_track:
-		var age: float = g["age"]
-		out.append(clampf(age / Config.GAP_URGENCY_SECONDS, 0.0, 1.0))
-	return out
+	return _tracker.urgencies
 
 
 # Urgency (0 to 1) of a faltering rescued person: how long they have faltered, over GAP_URGENCY_SECONDS.
@@ -730,10 +716,13 @@ func _take_outermost(list: Array[Person]) -> Person:
 # faltered for GAP_HEAL_DELAY seconds is replaced by a spare inner member (see _bench_replaced).
 func _update_falter(rescued: Array[Person], delta: float) -> void:
 	var ages: Dictionary = {}
+	faltering.clear()
 	for p: Person in rescued:
 		if not p.is_faltering():
 			_benched.erase(p)
-		elif _benched.has(p):
+			continue
+		faltering.append(p)
+		if _benched.has(p):
 			ages[p] = _falter_age.get(p, 0.0)
 		elif members.has(p):
 			ages[p] = _falter_age.get(p, 0.0) + delta

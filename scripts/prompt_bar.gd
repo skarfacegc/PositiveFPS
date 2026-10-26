@@ -17,6 +17,7 @@ var prompt_id: int = -1
 var intro: Intro
 var main: TopDownMain
 var _rect := Rect2()
+var _showing: bool = false
 
 
 func _ready() -> void:
@@ -30,8 +31,11 @@ func tick(screen: Rect2) -> void:
 		prompt_id = -1
 		alpha = 0.0
 		text = ""
-		queue_redraw()
+		if _showing:
+			_showing = false
+			queue_redraw()
 		return
+	_showing = true
 	prompt_id = intro.current
 	text = Intro.text_for(prompt_id)
 	icon = Intro.icon_for(prompt_id)

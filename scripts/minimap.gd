@@ -95,7 +95,7 @@ func refresh_from(
 	for j: int in range(border.polygon.size()):
 		gap_flags.append(border.segment_is_gap(j))
 	gap_markers.clear()
-	var mids := border.gap_midpoints()
+	var mids := border.gap_midpoints_cached()
 	var urgencies := border.gap_urgencies()
 	for gi: int in range(mids.size()):
 		var u := urgencies[gi] if gi < urgencies.size() else 0.0

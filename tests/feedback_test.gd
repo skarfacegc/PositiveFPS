@@ -461,3 +461,12 @@ func test_the_icons_have_distinct_kinds_and_colours() -> void:
 	for k: int in kinds:
 		assert_bool(seen.has(MoodIcons.colour_for(k))).is_false()
 		seen.append(MoodIcons.colour_for(k))
+
+
+func test_the_spark_list_is_capped() -> void:
+	var s: Dictionary = await _quiet_level()
+	var td: TopDownMain = s["td"]
+	for i: int in range(40):
+		td.feedback.on_blocked(td.people[0], Person.Block.GUARDED)
+	assert_int(td.feedback.sparks.size()).is_equal(24)
+	await TopDownTestUtil.leave_loaded_scene(td)

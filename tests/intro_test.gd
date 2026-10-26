@@ -2,16 +2,16 @@ extends GdUnitTestSuite
 
 # Round 13b, the layered introduction through the night: dusk is only rescuing and growing (nobody sinks to dimmed, no
 # mood is active); dimmed people emerge after the calm opening; moods switch on one type at a time; each one-time prompt
-# shows once, one at a time, queued. The flag Config.intro_enabled is off in automated tests (so older scenario tests
+# shows once, one at a time, queued. The flag Config.intro_on() is off in automated tests (so older scenario tests
 # keep their behaviour); these tests switch it on, and one checks that off really is the old behaviour.
 
 
 func before_test() -> void:
-	Config.intro_enabled = true
+	Config.intro_override = 1
 
 
 func after_test() -> void:
-	Config.intro_enabled = false
+	Config.intro_override = -1
 
 
 # The level with everyone parked away and the player at the origin (lock-on targeting: nothing fires by itself).
@@ -280,7 +280,7 @@ func test_prompts_queue_one_at_a_time_and_each_shows_once() -> void:
 
 
 func test_with_the_intro_off_everything_is_available_at_once_and_no_prompt_shows() -> void:
-	Config.intro_enabled = false
+	Config.intro_override = 0
 	var s: Dictionary = await _start(0.0)
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]

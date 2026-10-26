@@ -35,6 +35,11 @@ var _was_faltering: Dictionary = {}
 var _gaps_near: Dictionary = {}
 var _links: Dictionary = {}
 var _clock: float = 0.0
+var _pending: float = 0.0
+var _odd_frame: bool = false
+var _gap_mids: Array[Vector3] = []
+var _was_busy: bool = false
+var _any_sheltered: bool = false
 var _spawn_acc: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
 
@@ -48,12 +53,30 @@ func _ready() -> void:
 # Advances every effect by `delta`, rebuilds the data model from the level and redraws.
 func tick(delta: float) -> void:
 	_clock += delta
-	_update_markers()
-	_update_leak(delta)
-	_update_icons(delta)
-	_update_tethers()
 	_age_effects(delta)
-	queue_redraw()
+	# The data model is rebuilt every other frame (30 Hz) with the time that has passed; it is plenty for overlays.
+	_pending += delta
+	_odd_frame = not _odd_frame
+	if _odd_frame:
+		_gap_mids = main.border.gap_midpoints_cached()
+		_update_markers()
+		_update_leak(_pending)
+		_update_icons(_pending)
+		_update_tethers()
+		_pending = 0.0
+	var busy := not (
+		markers.is_empty()
+		and motes.is_empty()
+		and icons.is_empty()
+		and tethers.is_empty()
+		and snaps.is_empty()
+		and sparks.is_empty()
+		and closes.is_empty()
+		and player_pulses.is_empty()
+	)
+	if busy or _was_busy:
+		queue_redraw()
+	_was_busy = busy
 
 
 # Joy was turned away from `p` (Person.joy_blocked): a spark at their chest, and the reason's icon flashes.
@@ -112,8 +135,8 @@ static func _num(v: Variant) -> float:
 func _update_markers() -> void:
 	markers.clear()
 	var now: Dictionary = {}
-	var mids := main.border.gap_midpoints()
-	for p: Person in main.people:
+	var mids := _gap_mids
+	for p: Person in main.border.faltering:
 		if not p.is_rescued or not p.is_faltering():
 			continue
 		now[p] = true
@@ -160,11 +183,19 @@ func _update_leak(delta: float) -> void:
 		var pos: Vector3 = m["pos"]
 		var vel: Vector3 = m["vel"]
 		m["pos"] = pos + vel * delta
-	var mids := main.border.gap_midpoints()
+	var mids := _gap_mids
 	var urg := main.border.gap_urgencies()
 	if not main.border.active:
 		return
+	if mids.is_empty():
+		return
+	# Only gaps near the view leak motes (the rest could not be seen).
+	var half := main.view_half_extents()
+	var reach := maxf(half.x, half.y) + Config.LEAK_VIEW_MARGIN
+	var at := main.player.global_position
 	for gi: int in range(mids.size()):
+		if GloomSim.flat_dist(mids[gi], at) > reach:
+			continue
 		var u := urg[gi] if gi < urg.size() else 0.0
 		var rate := float(Config.LEAK_MOTES_PER_GAP) / Config.LEAK_LIFE_SECONDS * lerpf(0.7, 2.0, u)
 		var acc: float = _spawn_acc.get(gi, 0.0) + rate * delta
@@ -195,9 +226,11 @@ func _update_icons(delta: float) -> void:
 		else:
 			_flash[p]["left"] = left
 	var view := get_viewport_rect().grow(60.0)
+	_any_sheltered = false
 	for p: Person in main.people:
 		if p.is_rescued:
 			continue
+		_any_sheltered = _any_sheltered or p.sheltered
 		var kinds: Array[int] = []
 		var mood_kind := MoodIcons.kind_for_mood(p.active_mood())
 		if mood_kind != MoodIcons.Kind.NONE:
@@ -228,6 +261,8 @@ func _update_tethers() -> void:
 	var now: Dictionary = {}
 	var people := main.people
 	for i: int in range(people.size()):
+		if not _any_sheltered:
+			break
 		var q := people[i]
 		if not GloomSim.is_dark(q):
 			continue
@@ -267,8 +302,6 @@ static func _age_list(list: Array[Dictionary], delta: float) -> void:
 
 
 func _draw() -> void:
-	if main == null:
-		return
 	_draw_motes()
 	_draw_tethers()
 	_draw_closes()

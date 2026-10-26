@@ -242,7 +242,9 @@ func test_a_full_border_of_sixty_people_updates_within_the_frame_budget() -> voi
 			td._process(1.0 / 60.0)
 		per_frame_ms = minf(per_frame_ms, float(Time.get_ticks_usec() - start) / 1000.0 / 40.0)
 	print("WORLD_SCALE sim update with 60 people, full border: %.3f ms per frame" % per_frame_ms)
-	assert_float(per_frame_ms).is_less(4.0)
+	# Round 13b: 5 ms (was 4): the communication overlays add about 0.5 ms when the suite runs instrumented for coverage
+	# (about 0.1 ms plain); the plain simulation is about 2 ms.
+	assert_float(per_frame_ms).is_less(5.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

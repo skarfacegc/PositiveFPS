@@ -8,7 +8,7 @@ extends RefCounted
 #   then moods switch on one type at a time (Config.MOOD_INTRO_FRACTIONS), each with a one-time prompt.
 # This class holds the unlock rules and the prompt queue (one prompt at a time, each shown once per level,
 # PROMPT_SECONDS long). The level asks for prompts when something first happens; PromptBar draws the current one.
-# With `enabled` false (the default in automated tests, see Config.intro_enabled) everything is available at once and
+# With `enabled` false (the default in automated tests, see Config.intro_on()) everything is available at once and
 # no prompt ever shows.
 
 enum Prompt { GAP, GUARDED, SKITTISH, GLUM, SHELTERED, SPIRIT_LOW, DIM }
