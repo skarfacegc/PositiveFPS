@@ -966,3 +966,18 @@ test stops at the second hit because the shield pops at four), `feedback_test` (
 - The sheltered branch still calls `joy_blocked` per discrete landing, so the blocked spark shows on each hit.
 - Two dimmed people within reach: the first in array order claims the ward; the second takes its next-nearest in reach.
 - Wall clock about 2.5 hours. Full gate runs: 4 (lint, then the perf budget under load, then the coverage ratchet; only the last passed).
+
+## Round 15 playtest and round 16 plan (2026-10-27)
+
+**Playtest:** reached past midnight; staggered sinking made midnight manageable. The shield is "better, still meh"
+(leak + wear stays for now). New problem: late in the night, near the edge of the map under heavy push, happy folks
+stopped holding a spaced-out wall and bunched up (screenshot: three or four people stacked in one spot). They stayed
+stuck, and the wall had gaps elsewhere.
+
+**Round 16 (focus: this bug only):** reproduce border clustering near the map edge under heavy push, find the real
+cause (suspected: border slots clamped to the map edge collapse onto the same points, and push compresses them with
+nothing spreading them back out), and fix it so the wall bends along the edge, slots stay evenly spaced, and crowded
+people drift out to the nearest gap. Regression test: spacing holds and no gaps open for a while after the push.
+
+**Later (not scheduled): area-control movement tuning.** The user says the area-control mechanic still needs tuning,
+particularly *how it moves* (how the border grows, shifts and responds). Revisit after round 16.
