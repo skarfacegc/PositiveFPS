@@ -257,7 +257,14 @@ func test_a_spare_inner_member_takes_a_faltering_place_only_after_the_heal_delay
 	var rescued: Array[Person] = []
 	var made_list: Array = made["rescued"]
 	rescued.assign(made_list)
-	var weak: Person = border.members[2]
+	# Round 16: the weak member is the one standing farthest from the post. (This used to be members[2], which only worked
+	# because the old nearest-free-slot assignment happened to put that member away from the post; with members now kept
+	# in order round the loop, members[2] can sit beside the post, where the segments are anchored and never a gap.)
+	var post_at := Vector3(5.5 * Config.WORLD_SCALE, 0.0, 0.0)
+	var weak: Person = border.members[0]
+	for m: Person in border.members:
+		if GloomSim.flat_dist(m.position, post_at) > GloomSim.flat_dist(weak.position, post_at):
+			weak = m
 	weak.joy = Config.JOY_MAX * 0.6  # Faltering, but not about to relapse (0.5).
 	# Each frame: the level updates the falter clock, then the slots.
 	for i: int in range(60):

@@ -639,6 +639,14 @@ const DIM_WAIT_GLOOM := 0.669999
 const DIM_RING_SECONDS := 1.5
 const DIM_HELP_TEXT := "Dimmed folk can be helped too — it takes longer"
 
+# ---- Round 16: the border near the map edge (scripts/border.gd) ----
+# The border stays on the map: its loop is clamped to this distance from the middle (the same limit people wander to).
+# Where it runs along the edge it is sealed (closed by the map, never a gap, no slots).
+const BORDER_MAP_LIMIT := TD_PLAZA_SIZE / 2.0 - TD_EDGE_MARGIN
+# A loop segment counts as sealed by the map edge when both ends are on it; it fades in over this distance (metres from
+# the edge) so the open length of the loop changes smoothly (a segment 2 m off the edge is fully open).
+const BORDER_SEAL_BAND := 2.0 * WORLD_SCALE
+
 # ---- Round 15: the shield leaks and wears down (scripts/moods.gd, person.gd, feedback_layer.gd) ----
 # A dimmed person's shield: joy that hits the person it shelters still lets SHELTER_LEAK of its amount through. Each
 # landing (one Person.receive_joy call on that person) wears the shield; on the SHELTER_HITS-th it pops.

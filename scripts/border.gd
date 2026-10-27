@@ -58,6 +58,13 @@ var _scale: float = 1.0
 var _sample_gap: Array[bool] = []
 # Cumulative arc length at each polygon point, plus the total at the end (so it has one more entry than polygon).
 var _arc: Array[float] = []
+# Round 16: per polygon segment, how much of it lies along the map edge, 0..1 (1 = sealed: closed by the map, needs no
+# slots and is never a gap; it fades in over BORDER_SEAL_BAND so the open length never jumps). _open is the cumulative
+# OPEN length at each polygon point (a sealed segment adds nothing), with the total at the end. Slots are spaced evenly
+# along the open length, starting at _phase.
+var _sealed: Array[float] = []
+var _open: Array[float] = []
+var _phase: float = 0.0
 # Where each rescued person should stand: Person -> Vector3.
 var _targets: Dictionary = {}
 var _time: float = 0.0
@@ -244,7 +251,7 @@ func gap_midpoints() -> Array[Vector3]:
 	var out: Array[Vector3] = []
 	for k: int in range(segment_gap.size()):
 		if segment_gap[k]:
-			var mid := _point_at_arc((float(k) + 0.5) * spacing)
+			var mid := _point_at_open(_phase + (float(k) + 0.5) * spacing)
 			out.append(Vector3(mid.x, 0.0, mid.y))
 	return out
 
@@ -401,6 +408,36 @@ static func perimeter_of(pts: PackedVector2Array) -> float:
 	return total
 
 
+# Round 16: pulls every point onto the map (within BORDER_MAP_LIMIT of the middle) and returns, per segment (point j to
+# point j + 1), whether the segment runs along the map edge: both ends sit on the same side.
+static func clamp_to_map(pts: PackedVector2Array) -> Array[float]:
+	var lim := Config.BORDER_MAP_LIMIT
+	var band := Config.BORDER_SEAL_BAND
+	var n := pts.size()
+	for i: int in range(n):
+		pts[i] = Vector2(clampf(pts[i].x, -lim, lim), clampf(pts[i].y, -lim, lim))
+	var out: Array[float] = []
+	for j: int in range(n):
+		var a := pts[j]
+		var b := pts[(j + 1) % n]
+		var near := INF  # The largest distance of the two ends from the closest edge they share.
+		near = minf(near, maxf(lim + a.x, lim + b.x))
+		near = minf(near, maxf(lim - a.x, lim - b.x))
+		near = minf(near, maxf(lim + a.y, lim + b.y))
+		near = minf(near, maxf(lim - a.y, lim - b.y))
+		out.append(clampf(1.0 - near / band, 0.0, 1.0))
+	return out
+
+
+# Round 16: the length of a closed loop of points, counting each segment by how much of it is open (see clamp_to_map).
+static func open_perimeter_of(pts: PackedVector2Array, sealed: Array[float]) -> float:
+	var total := 0.0
+	var n := pts.size()
+	for j: int in range(n):
+		total += pts[j].distance_to(pts[(j + 1) % n]) * (1.0 - sealed[j])
+	return total
+
+
 # How many slots a loop of this perimeter holds (perimeter over the target spacing, rounded up).
 static func slot_count_for(loop_perimeter: float) -> int:
 	return ceili(loop_perimeter / Config.BORDER_TARGET_SPACING)
@@ -445,8 +482,12 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 		if block.x > 0.0 and block.x < r:
 			r = maxf(r, block.y + 0.5)
 		pts.append(c2 + dir * r)
-	# Soft normalisation: ease the size so the perimeter moves toward n x spacing (never below the smallest circle).
-	var raw := perimeter_of(pts)
+	# Round 16: the map edge seals the territory. Points beyond the edge are pulled onto it, and a segment between two
+	# points on the same edge is sealed: it counts as closed border, so nobody stands on it and the loop's size is
+	# measured by its open length only (the loop grows elsewhere to make up for it).
+	_sealed = clamp_to_map(pts)
+	# Soft normalisation: ease the size so the open perimeter moves toward n x spacing (never below the smallest circle).
+	var raw := open_perimeter_of(pts, _sealed)
 	var smallest := perimeter_of(circle_polygon(c2, Config.BORDER_MIN_RADIUS, Config.BORDER_SAMPLES))
 	var target := maxf(float(n) * Config.BORDER_TARGET_SPACING, smallest)
 	if raw > 0.001:
@@ -583,6 +624,7 @@ func _assign_members(rescued: Array[Person]) -> void:
 	perimeter = 0.0
 	_sample_gap.clear()
 	_arc.clear()
+	_open.clear()
 	for b: Building in buildings:
 		b.set_post(false)
 	_post_points.clear()
@@ -591,14 +633,23 @@ func _assign_members(rescued: Array[Person]) -> void:
 		_sample_gap.append(false)
 	if not active or n < 3:
 		return
-	perimeter = perimeter_of(polygon)
-	if perimeter < 0.01:
-		return
+	if _sealed.size() != n:  # A loop set by hand (or before the first update) has no map edge.
+		_sealed.clear()
+		for j: int in range(n):
+			_sealed.append(0.0)
 	var acc := 0.0
+	var open_acc := 0.0
 	for j: int in range(n):
 		_arc.append(acc)
-		acc += polygon[j].distance_to(polygon[(j + 1) % n])
+		_open.append(open_acc)
+		var seg_len := polygon[j].distance_to(polygon[(j + 1) % n])
+		acc += seg_len
+		open_acc += seg_len * (1.0 - _sealed[j])
 	_arc.append(acc)
+	_open.append(open_acc)
+	perimeter = open_acc  # Round 16: the open length (the whole loop unless the map edge seals part of it).
+	if perimeter < 0.01:
+		return
 
 	var posts := _find_posts(slot_count_for(perimeter))
 	post_count = posts.size()
@@ -615,27 +666,6 @@ func _assign_members(rescued: Array[Person]) -> void:
 		slot_taken.append(false)
 		post_slot.append(false)
 		slot_faltering.append(false)
-	var placed := 0
-	for entry: Dictionary in posts:
-		var b: Building = entry["building"]
-		var arc: float = entry["arc"]
-		var c := roundi(arc / spacing)
-		for off: int in range(k_total):
-			var s := posmod(c - 1 + off, k_total)
-			if _run_free(slot_taken, s):
-				for t: int in range(Config.BORDER_POST_WORTH):
-					slot_taken[posmod(s + t, k_total)] = true
-					post_slot[posmod(s + t, k_total)] = true
-				b.set_post(true)
-				placed += 1
-				var at2 := _point_at_arc(arc)
-				_post_points.append(Vector3(at2.x, 0.0, at2.y))
-				break
-	post_count = placed
-
-	var slots: Array[Vector2] = []
-	for k: int in range(k_total):
-		slots.append(_point_at_arc(float(k) * spacing))
 	# The outermost m rescued people are border members; the rest are inner members. Round 12b: a faltering member keeps
 	# their place for GAP_HEAL_DELAY seconds (so the gap they open is not smoothed away at once), then a spare inner
 	# member takes it, if there is one (see _bench_replaced).
@@ -656,20 +686,44 @@ func _assign_members(rescued: Array[Person]) -> void:
 		border_list.append(benched_list.pop_front())
 	inner = remaining
 	inner.append_array(benched_list)
+	# Round 16: where the slot grid starts. Where the map edge seals part of the loop, the open length has no fixed
+	# starting point (the first open point jumps along the edge as the loop changes), so the grid rides with the
+	# members: its phase is the circular mean of where they stand, measured along the open length.
+	_phase = _grid_phase(border_list)
+	var placed := 0
+	for entry: Dictionary in posts:
+		var b: Building = entry["building"]
+		var arc: float = entry["arc"]
+		var c := roundi((_open_of_arc(arc) - _phase) / spacing)
+		for off: int in range(k_total):
+			var s := posmod(c - 1 + off, k_total)
+			if _run_free(slot_taken, s):
+				for t: int in range(Config.BORDER_POST_WORTH):
+					slot_taken[posmod(s + t, k_total)] = true
+					post_slot[posmod(s + t, k_total)] = true
+				b.set_post(true)
+				placed += 1
+				var at2 := _point_at_arc(arc)
+				_post_points.append(Vector3(at2.x, 0.0, at2.y))
+				break
+	post_count = placed
 
-	# Greedy assignment: each border member takes the nearest free slot, in the order they were chosen. There are always
-	# at least m free slots, because the posts were counted out of the slot total.
-	for p: Person in border_list:
-		var pos2 := Vector2(p.position.x, p.position.z)
+	var slots: Array[Vector2] = []
+	for k: int in range(k_total):
+		slots.append(_point_at_open(_phase + float(k) * spacing))
+
+	# Round 16: members keep their order around the loop. Sorted by angle round the centre, they take the free slots in
+	# loop order, turned by whichever whole-slot offset costs the least walking (_ordered_slots). Nobody crosses anybody,
+	# so there is no convoy, and everyone slides along the wall toward the empty stretches. When a post could not be
+	# placed there are spare slots; then each member takes the nearest free slot, in the order they were chosen.
+	var chosen := _ordered_slots(border_list, slots, slot_taken)
+	for i: int in range(border_list.size()):
+		var p: Person = border_list[i]
 		var best_k := -1
-		var best_d2 := INF
-		for k: int in range(k_total):
-			if slot_taken[k]:
-				continue
-			var d2 := pos2.distance_to(slots[k])
-			if d2 < best_d2:
-				best_d2 = d2
-				best_k = k
+		if chosen.size() == border_list.size():
+			best_k = chosen[i]
+		else:
+			best_k = nearest_free_slot(Vector2(p.position.x, p.position.z), slots, slot_taken)
 		slot_taken[best_k] = true
 		var slot_at := slots[best_k]
 		if p.is_faltering():
@@ -694,8 +748,94 @@ func _assign_members(rescued: Array[Person]) -> void:
 		anchored.append(post_slot[k] or post_slot[(k + 1) % k_total])
 	segment_gap = gap_flags(spacing, slot_taken, anchored, slot_faltering)
 	for j: int in range(n):
-		var k := mini(k_total - 1, floori(_arc[j] / spacing))
-		_sample_gap[j] = segment_gap[k]
+		var k := mini(k_total - 1, int(fposmod(_open[j] - _phase, perimeter) / spacing))
+		_sample_gap[j] = segment_gap[k] and not is_sealed(j)
+
+
+# The index of the free slot nearest to `pos2` (-1 when none is free).
+static func nearest_free_slot(pos2: Vector2, slots: Array[Vector2], taken: Array[bool]) -> int:
+	var best_k := -1
+	var best_d2 := INF
+	for k: int in range(slots.size()):
+		if taken[k]:
+			continue
+		var d2 := pos2.distance_squared_to(slots[k])
+		if d2 < best_d2:
+			best_d2 = d2
+			best_k = k
+	return best_k
+
+
+# Round 16: the start of the slot grid, in open length. 0 when nothing is sealed (the grid then starts at the first loop
+# point, as before). Where the map edge seals part of the loop it has no fixed first point, so the grid rides with the
+# members instead: the circular mean of their places along the open length, taken modulo spacing, blended in by the
+# largest seal weight so it fades in as the loop meets the edge.
+func _grid_phase(list: Array[Person]) -> float:
+	var seal := 0.0
+	for w: float in _sealed:
+		seal = maxf(seal, w)
+	if seal <= 0.0 or list.is_empty() or spacing <= 0.0:
+		return 0.0
+	var sum_s := 0.0
+	var sum_c := 0.0
+	for p: Person in list:
+		var a := TAU * fposmod(_open_of_point(Vector2(p.position.x, p.position.z)), spacing) / spacing
+		sum_s += sin(a)
+		sum_c += cos(a)
+	if absf(sum_s) + absf(sum_c) < 1e-6:
+		return 0.0
+	return fposmod(atan2(sum_s, sum_c) * seal, TAU) / TAU * spacing
+
+
+# Round 16: the open length at the point of the open loop nearest to `p2`.
+func _open_of_point(p2: Vector2) -> float:
+	var best_d := INF
+	var best_s := 0.0
+	var n := polygon.size()
+	for j: int in range(n):
+		if is_sealed(j):
+			continue
+		var b := polygon[(j + 1) % n]
+		var c := Geometry2D.get_closest_point_to_segment(p2, polygon[j], b)
+		var d := c.distance_squared_to(p2)
+		if d < best_d:
+			best_d = d
+			best_s = _open[j] + polygon[j].distance_to(c) * (1.0 - _sealed[j])
+	return best_s
+
+
+# Round 16: the slot index for each person in `list`, when the free slots are exactly as many as the people (else an
+# empty array). The people are ordered by angle round the centre and the free slots by their place on the loop; person i
+# takes free slot (i + r) mod m, with the offset r that makes the total squared walk smallest (the first on a tie).
+func _ordered_slots(list: Array[Person], slots: Array[Vector2], taken: Array[bool]) -> Array[int]:
+	var free: Array[int] = []
+	for k: int in range(slots.size()):
+		if not taken[k]:
+			free.append(k)
+	var m := list.size()
+	var out: Array[int] = []
+	if m == 0 or free.size() != m:
+		return out
+	var order: Array[int] = []
+	var angles: Array[float] = []
+	for i: int in range(m):
+		order.append(i)
+		angles.append(atan2(list[i].position.z - centre.z, list[i].position.x - centre.x))
+	order.sort_custom(func(a: int, b: int) -> bool: return angles[a] < angles[b] or (angles[a] == angles[b] and a < b))
+	var best_r := 0
+	var best_cost := INF
+	for r: int in range(m):
+		var cost := 0.0
+		for i: int in range(m):
+			var q: Person = list[order[i]]
+			cost += Vector2(q.position.x, q.position.z).distance_squared_to(slots[free[(i + r) % m]])
+		if cost < best_cost:
+			best_cost = cost
+			best_r = r
+	out.resize(m)
+	for i: int in range(m):
+		out[order[i]] = free[(i + best_r) % m]
+	return out
 
 
 # Removes and returns the person farthest from the centre.
@@ -807,6 +947,33 @@ func _point_at_arc(s: float) -> Vector2:
 	return polygon[0]
 
 
+# Round 16: true when polygon segment `j` runs along the map edge (fully closed by the map).
+func is_sealed(j: int) -> bool:
+	return j >= 0 and j < _sealed.size() and _sealed[j] >= 0.999
+
+
+# Round 16: the point at open length `s` (sealed segments take no length), and the open length at full arc length `a`.
+func _point_at_open(s: float) -> Vector2:
+	var total := _open[_open.size() - 1]
+	var along := fposmod(s, total)
+	var n := polygon.size()
+	for j: int in range(n):
+		if not is_sealed(j) and along <= _open[j + 1]:
+			var seg := _open[j + 1] - _open[j]
+			var t := 0.0
+			if seg > 1e-9:
+				t = (along - _open[j]) / seg
+			return polygon[j].lerp(polygon[(j + 1) % n], t)
+	return polygon[0]
+
+
+func _open_of_arc(a: float) -> float:
+	for j: int in range(polygon.size()):
+		if a <= _arc[j + 1]:
+			return _open[j] + (a - _arc[j]) * (1.0 - _sealed[j])
+	return _open[_open.size() - 1]
+
+
 func _mean_radius() -> float:
 	if polygon.is_empty():
 		return Config.BORDER_MIN_RADIUS
@@ -874,6 +1041,8 @@ func _press_darkness(people: Array[Person], delta: float, strength: float) -> vo
 		if dist > Config.BORDER_PRESS_RANGE:
 			continue
 		var seg: int = near["seg"]
+		if is_sealed(seg):
+			continue  # Round 16: the map edge is closed border; nothing presses on it.
 		if segment_is_gap(seg):
 			var best := _nearest_member(p.position)
 			if best != null:
@@ -889,7 +1058,10 @@ func _press_darkness(people: Array[Person], delta: float, strength: float) -> vo
 			if best_intact != null:
 				best_intact.drain_joy(rate * Config.BORDER_INTACT_DRAIN_FRACTION)
 			var move := out.normalized() * Config.BORDER_PUSHBACK_SPEED * delta
-			p.position += Vector3(move.x, 0.0, move.y)
+			var lim := Config.BORDER_MAP_LIMIT
+			p.position = Vector3(
+				clampf(p.position.x + move.x, -lim, lim), p.position.y, clampf(p.position.z + move.y, -lim, lim)
+			)
 
 
 # The border member nearest to `pos`, or null when there are none.
@@ -970,6 +1142,6 @@ func _update_debug_labels() -> void:
 		var lbl := _debug_labels[k]
 		lbl.visible = k < m
 		if k < m:
-			var mid := _point_at_arc((float(k) + 0.5) * spacing)
+			var mid := _point_at_open(_phase + (float(k) + 0.5) * spacing)
 			lbl.position = Vector3(mid.x, 2.0, mid.y)
 			lbl.text = "%.1f m%s" % [spacing, " GAP" if segment_gap[k] else ""]

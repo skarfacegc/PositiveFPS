@@ -61,6 +61,7 @@ mode moves the camera into a 640x360 SubViewport that shares the world, with nea
   (grep its log for errors).
 
 ## Where tuning lives (`scripts/config.gd`)
+**Round 16 (edge):** `BORDER_MAP_LIMIT` (the loop is clamped to the map), `BORDER_SEAL_BAND`. The "Round 16" block sits before the round 15 block. `Border` seals the stretch along the map edge (`clamp_to_map`, `_sealed` weights, `is_sealed()`): it has no slots and is never a gap; slots are spaced along the OPEN length (`_open`, `_point_at_open`), the grid phase rides with the members (`_grid_phase`), and members keep their order round the loop (`_ordered_slots`). Tests: `border_edge_test`.
 **Round 15 (shield):** `SHELTER_LEAK` (0.25), `SHELTER_HITS` (4), `SHELTER_REGROW` (8.0 s), `SHELTER_POP_PUFF`, `SHELTER_WORN_ALPHA`. The "Round 15" block sits after the round 14 block.
 **Round 14 (balance):** `LEVEL_JOY_MULT` (dimmed 1.6), `DIM_ARRIVAL_MIN_GAP` (6 s), `DIM_RING_SECONDS`, `DIM_HELP_TEXT`,
 `TD_ZOOM_MIN` / `TD_ZOOM_MAX` / `TD_ZOOM_STEP` / `TD_ZOOM_EASE`. The camera reference size is `TD_CAMERA_ORTHO_SIZE`
