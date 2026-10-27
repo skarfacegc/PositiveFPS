@@ -914,3 +914,55 @@ as a mechanic but wants it good enough to keep testing.
 **Later (not scheduled): gloom variety.** The user wants more variance in the gloom, specifically *varied people*: a
 wider spread of starting grey levels, per-person wander speed, roaming range and sink rate, and a less uniform mood mix
 across the night. Must stay on the seeded RNG. Parked to keep focus on the core loop.
+
+## Round 15 build (shield)
+Built from the round 14 playtest: the shield (the umbrella of a dimmed person) leaks and wears down. No new visuals beyond
+the umbrella fade, no checkpoint screenshots, styled look not touched.
+
+**What changed**
+- **Leak:** a sheltered person still takes 25% of the joy that lands (`Person.receive_joy`, `SHELTER_LEAK`).
+- **Wear:** each discrete landing on the sheltered person wears the dimmed shielder's shield (`Person.wear_shield`). The
+  hit hook is the sheltered branch of `receive_joy`: one call is one landing (a projectile, a note, a burst hit).
+  Continuous joy (a bloom's per-tick pulse) leaks but does not wear the shield (`wears_shield = false`).
+- **Pop:** the 4th landing pops the shield: the ward is unpaired and puffs, and the dimmed person shelters no one for
+  8 s. After that, if still dimmed, a fresh shield (hits restart from 0). A person helped out of dimmed loses their hits.
+- **Hits belong to the shielder:** changing ward does not reset the count.
+- **One shielder per ward:** a second dimmed person skips a ward already claimed this pass and takes its next-nearest
+  eligible person, or none (`Moods._assign_wards`, `_nearest_ward(..., claimed)`).
+- **Visual:** the umbrella icon fades (alpha 0.35 to 1) and shrinks (0.85 to 1) with the shield left.
+- **Text:** the SHELTERED prompt, the menu icon line and README now say the umbrella lets a little joy through and
+  breaks after a few hits.
+
+**Values** (`config.gd`, "Round 15"): `SHELTER_LEAK 0.25`, `SHELTER_HITS 4`, `SHELTER_REGROW 8.0`, `SHELTER_POP_PUFF 16`,
+`SHELTER_WORN_ALPHA 0.35`. Unchanged: `SHELTER_RADIUS 2.0`, all other round 14 values.
+
+**Tests:** 340 (329 after round 14; this round adds 11, all in the new `shield_test`). Input-driven: hover fire
+at a sheltered person gains about a quarter of a control per landing (ratio 0.2 to 0.3, a band because wanderers move the
+falloff a little); hover fire pops the shield on the fourth landing. Rule-level (exact): the leak is exactly 0.25; the
+fifth landing is full strength; the umbrella wear steps 1, 0.75, 0.5, 0.25 then goes; the cooldown is 8 s, then a fresh
+shield; a shielder helped out during the cooldown does not shelter and starts fresh if dimmed again; hits survive a ward
+change; a bloom pulsing for 5 s leaks but does not wear; two dimmed people never share a ward; a lifted shielder loses
+its hits.
+Changed (each has a code comment): `shelter_nearest_test` (joy is no longer zero), `moods_test` (joy no longer zero; the
+test stops at the second hit because the shield pops at four), `feedback_test` (same), `intro_test` (prompt text).
+`shelter_nearest_test` calls `_nearest_ward` with an empty claim set. Nothing loosened: no pass threshold or budget moved.
+
+**Coverage:** `coverage_baseline.json` re-recorded; the file is unchanged. Line coverage 99.7%.
+**Perf:** `world_scale_test` under coverage, 3 runs each: working tree 3.650, 3.690, 3.700 ms; 160f453 3.684, 3.818,
+3.933 ms. The round's per-frame cost is not measurable here. The 7 ms budget is unchanged.
+
+**Playtest questions**
+- Does the umbrella read as weakening (fade and shrink), and can you tell how many hits are left?
+- Is a quarter the right leak? Does a shielded person still feel like a waste, or does the leak feel like progress?
+- Does the 8 s regrow feel right, or is it too long to wait for the same dimmed person?
+- Did you notice the bloom pulse leaking without breaking the umbrella? Is that the right feel?
+- Did two dimmed folk ever fight over one person, and did it feel fair when they did not?
+
+**Rough spots**
+- Headless only: nothing seen in a real window.
+- Bloom pulses leak but never wear the shield, so a bloom can keep a shielded person's joy flowing forever. Worth
+  playtesting.
+- The ratio test uses a band, not an exact value, because wanderers shift the falloff.
+- The sheltered branch still calls `joy_blocked` per discrete landing, so the blocked spark shows on each hit.
+- Two dimmed people within reach: the first in array order claims the ward; the second takes its next-nearest in reach.
+- Wall clock about 2.5 hours. Full gate runs: 4 (lint, then the perf budget under load, then the coverage ratchet; only the last passed).
