@@ -897,3 +897,20 @@ test now says so); `menu_test` (the zoom actions are listed). No pass threshold 
 larger than the screen, which is fine (targeting still works; you just see less of the ring). The dimmed ring and the
 falter ring both use screen pixels, so a crowd of rings can overlap. The wander drifts people about a metre or so during a
 test, so the tests that need exact spots re-place people or call the rule directly.
+
+## Round 14 playtest and round 15 plan (2026-10-26)
+
+**Playtest:** the shield (sheltering) is far too clunky. You have to reposition to get around it, and joy that hits it is
+wasted. The playtest stopped before midnight, so staggered arrivals, the dimmed ring and zoom are untested. Correction to
+the round 14 notes: the `world_scale_test` frame budget *was* loosened (5 to 7 ms under coverage; plain run 2.65 to
+2.75 ms, no single cause found).
+
+**Round 15 (focus: the current core loop only):** a shield that leaks and wears down. The user is lukewarm on sheltering
+as a mechanic but wants it good enough to keep testing.
+- About 25% of joy that hits a shield reaches the sheltered person (nothing is fully wasted).
+- Each hit also wears the shield; it pops after about 4 hits. The umbrella visibly cracks/fades as it weakens.
+- A popped shield stays down for about 8 s, then returns only if the shielder is still dimmed.
+
+**Later (not scheduled): gloom variety.** The user wants more variance in the gloom, specifically *varied people*: a
+wider spread of starting grey levels, per-person wander speed, roaming range and sink rate, and a less uniform mood mix
+across the night. Must stay on the seeded RNG. Parked to keep focus on the core loop.
