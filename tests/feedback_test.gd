@@ -442,7 +442,8 @@ func test_joy_shot_at_a_sheltered_person_bounces_off_and_the_umbrella_flashes() 
 		await runner.simulate_frames(1)
 		frames += 1
 	assert_int(td.feedback.sparks.size()).is_greater(0)
-	assert_float(wistful.joy).is_equal(0.0)
+	# Round 15: the umbrella lets a quarter of the joy through, so the person gains a little joy (it used to be none).
+	assert_float(wistful.joy).is_greater(0.0)
 	await runner.simulate_frames(1)
 	var icon: Dictionary = _icon_for(td, wistful, MoodIcons.Kind.UMBRELLA)
 	assert_float(icon["flash"]).is_greater(0.3)

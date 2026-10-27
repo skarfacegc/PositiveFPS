@@ -59,6 +59,13 @@ var sheltered: bool = false
 # Round 14: the one wistful or gloomy person a dimmed person shelters (the nearest within SHELTER_RADIUS), or null.
 # Set by Moods; the tether and the umbrella follow this one person only.
 var shelter_ward: Person = null
+# Round 15: the shield. On a sheltered person, `shielder` is the dimmed person whose shield it is (null otherwise). On a
+# dimmed person, `shield_hits` counts the joy landings its shield has taken (0 to SHELTER_HITS; the shield belongs to
+# this dimmed person, so it survives a change of ward), and `shield_down_left` is the seconds left before it may
+# shelter again after a pop. Set by Moods; wear_shield() is called by the sheltered person's receive_joy.
+var shielder: Person = null
+var shield_hits: int = 0
+var shield_down_left: float = 0.0
 # Round 14: asked before this person sinks to dimmed (returns true to let them). Set by the level; invalid for a Person
 # built by hand (tests), who then sink freely.
 var dim_gate := Callable()
@@ -159,15 +166,24 @@ func is_open_to(from: Vector3) -> bool:
 
 # Called when a joy projectile (or a burst) hits this person. Works on rescued people too (top-up). `from` is where the
 # joy comes from (the shooter, or the centre of a burst or bloom); Vector3.INF means no direction. Round 12b: an
-# unrescued person can turn the joy away (sheltered by a dimmed person, or guarded and shot from behind: it glances off
-# with a small puff and gives no joy), and a glum person looking up counts it triple.
-func receive_joy(element: int, amount: float, distance: float, from: Vector3 = Vector3.INF) -> void:
+# unrescued person can turn the joy away (guarded and shot from behind: it glances off with a small puff and gives no
+# joy), and a glum person looking up counts it triple.
+# Round 15: a sheltered person's shield takes each discrete landing (a projectile, a note, a burst hit): it puffs the
+# blocked-joy feedback, wears the shield (wear_shield), and only SHELTER_LEAK of the amount gets through. The shield
+# pops on its SHELTER_HITS-th landing. Continuous joy (a bloom's per-tick pulse) passes wears_shield = false: it still
+# leaks, but it is not a landing, so it neither wears the shield nor puffs the feedback every tick.
+func receive_joy(
+	element: int, amount: float, distance: float, from: Vector3 = Vector3.INF, wears_shield: bool = true
+) -> void:
 	if not is_rescued:
 		if sheltered:
-			_glance(Config.SHELTER_COLOUR)
-			joy_blocked.emit(Block.SHELTERED)
-			return
-		if active_mood() == Mood.GUARDED and from != Vector3.INF and not is_open_to(from):
+			if wears_shield:
+				_glance(Config.SHELTER_COLOUR)
+				joy_blocked.emit(Block.SHELTERED)
+				if shielder != null:
+					shielder.wear_shield()
+			amount *= Config.SHELTER_LEAK
+		elif active_mood() == Mood.GUARDED and from != Vector3.INF and not is_open_to(from):
 			_glance(Config.GLANCE_COLOUR)
 			joy_blocked.emit(Block.GUARDED)
 			return
@@ -187,6 +203,28 @@ func receive_joy(element: int, amount: float, distance: float, from: Vector3 = V
 		_rescue()
 	else:
 		_update_visuals()
+
+
+# Round 15: the share of this dimmed person's shield left: 1 when fresh, 0.25 after three hits, and so on.
+func shield_left_frac() -> float:
+	return 1.0 - float(shield_hits) / float(Config.SHELTER_HITS)
+
+
+# Round 15: one joy landing on the person this dimmed person shelters wears the shield. On the SHELTER_HITS-th it pops:
+# the ward is no longer sheltered (its puff shows), this person shelters no one for SHELTER_REGROW seconds, and the
+# hit count starts again from zero. Returns true when it popped.
+func wear_shield() -> bool:
+	shield_hits += 1
+	if shield_hits < Config.SHELTER_HITS:
+		return false
+	shield_hits = 0
+	shield_down_left = Config.SHELTER_REGROW
+	if shelter_ward != null:
+		shelter_ward.sheltered = false
+		shelter_ward.shielder = null
+		shelter_ward._fx_puff(Config.SHELTER_COLOUR, Config.SHELTER_POP_PUFF)
+	shelter_ward = null
+	return true
 
 
 # Joy glanced off: a small puff, no joy.

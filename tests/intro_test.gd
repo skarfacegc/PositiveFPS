@@ -210,7 +210,9 @@ func test_the_glum_and_sheltered_prompts_have_their_icons() -> void:
 	await runner.simulate_frames(int(Config.PROMPT_SECONDS * 60.0 * 2.0))
 	assert_int(td.intro.current).is_equal(Intro.Prompt.SHELTERED)
 	assert_int(td.prompts.icon).is_equal(MoodIcons.Kind.UMBRELLA)
-	assert_str(td.prompts.text).contains("draw the dimmed one away")
+	# Round 15: the prompt says the umbrella lets a little joy through and breaks after a few hits (it used to say to
+	# draw the dimmed one away).
+	assert_str(td.prompts.text).contains("a little joy gets through")
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

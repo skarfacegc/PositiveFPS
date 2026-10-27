@@ -16,7 +16,8 @@ const HOW_TO_PLAY_TEXT := (
 	+ "[b]The gloom:[/b] Dimmed people press on your border and reach for you. Where they push, border folk falter "
 	+ "and gaps open. Re-joy a faltering person to close the gap.\n"
 	+ "[b]Spirit:[/b] Helping people fills it; a joy burst costs some. At zero you go dim. Recover inside your border.\n"
-	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered · ! faltering.\n"
+	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered (breaks after a few hits) · "
+	+ "! faltering.\n"
 	+ "[b]Keys:[/b] WASD move · Shift run · Space twirl (dodge a grab) · G or Q joy burst · Mouse point at people "
 	+ "(F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look · R restart · M menu"
 )

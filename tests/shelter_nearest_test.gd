@@ -67,7 +67,9 @@ func test_only_the_nearest_wistful_person_is_sheltered_and_the_other_takes_joy()
 	await _hover(runner, td, near)
 	assert_object(td.player.target).is_same(near)
 	await runner.simulate_frames(120)
-	assert_float(near.joy).is_equal(0.0)
+	# Round 15: the shield lets a quarter of the joy through (it used to block all of it), so the sheltered one gains a
+	# little joy and still glances each hit. (Shield_test checks the exact share.)
+	assert_float(near.joy).is_greater(0.0)
 	assert_int(near.glance_count).is_greater(0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -104,8 +106,8 @@ func test_a_tie_goes_to_the_earlier_person_in_the_level() -> void:
 	TopDownTestUtil.place(dimmed, Vector3(0, 0, -8), 0, 0.95)
 	TopDownTestUtil.place(first, Vector3(1.2, 0, -8), 0, 0.2)
 	TopDownTestUtil.place(second, Vector3(-1.2, 0, -8), 0, 0.2)
-	assert_object(td.moods._nearest_ward(dimmed, td.people)).is_same(first)
+	assert_object(td.moods._nearest_ward(dimmed, td.people, {})).is_same(first)
 	# Swapping the array order swaps the winner: the tie goes to whoever is earlier in the level.
 	var swapped: Array[Person] = [td.people[0], td.people[2], td.people[1]]
-	assert_object(td.moods._nearest_ward(dimmed, swapped)).is_same(second)
+	assert_object(td.moods._nearest_ward(dimmed, swapped, {})).is_same(second)
 	await TopDownTestUtil.leave_loaded_scene(td)

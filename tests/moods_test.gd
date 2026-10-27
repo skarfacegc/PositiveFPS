@@ -346,10 +346,16 @@ func test_no_joy_lands_on_a_person_while_a_dimmed_person_is_within_two_metres() 
 	TopDownTestUtil.place(dimmed, Vector3(1.6, 0, -8), 1, 0.95)
 	await _hover(runner, td, wistful)
 	assert_object(td.player.target).is_same(wistful)
-	await runner.simulate_frames(90)
+	# Round 15: the shield wears with each hit and pops on the fourth (shield_test), so this stops at the second hit, while
+	# the shield is still up. The shield lets a quarter of the joy through, so the joy is small but not zero (it used to
+	# be zero). (shield_test checks the exact share.)
+	var frames := 0
+	while wistful.glance_count < 2 and frames < 400:
+		await runner.simulate_frames(1)
+		frames += 1
 	assert_bool(wistful.sheltered).is_true()
-	assert_float(wistful.joy).is_equal(0.0)
-	assert_int(wistful.glance_count).is_greater(2)
+	assert_float(wistful.joy).is_greater(0.0)
+	assert_int(wistful.glance_count).is_greater(1)
 
 	# Draw the dimmed person away (here: they leave): joy lands again.
 	TopDownTestUtil.place(dimmed, Vector3(-25, 0, -25), 1, 0.95)

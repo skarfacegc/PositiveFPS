@@ -638,6 +638,18 @@ const DIM_WAIT_GLOOM := 0.669999
 # A dimmed person hit by joy shows their progress ring for this long after the last hit.
 const DIM_RING_SECONDS := 1.5
 const DIM_HELP_TEXT := "Dimmed folk can be helped too — it takes longer"
+
+# ---- Round 15: the shield leaks and wears down (scripts/moods.gd, person.gd, feedback_layer.gd) ----
+# A dimmed person's shield: joy that hits the person it shelters still lets SHELTER_LEAK of its amount through. Each
+# landing (one Person.receive_joy call on that person) wears the shield; on the SHELTER_HITS-th it pops.
+const SHELTER_LEAK := 0.25
+const SHELTER_HITS := 4
+# After a pop the dimmed person cannot shelter anyone for this many seconds. Then, if still dimmed, a fresh shield.
+const SHELTER_REGROW := 8.0
+# Particles in the puff where a shield pops (on the sheltered person).
+const SHELTER_POP_PUFF := 16
+# The umbrella icon's alpha when its shield is about to pop (a fresh shield is full alpha; it scales between the two).
+const SHELTER_WORN_ALPHA := 0.35
 static var intro_override: int = -1
 
 # The matchups form a soft cycle:

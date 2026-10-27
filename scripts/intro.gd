@@ -99,7 +99,7 @@ static func text_for(id: int) -> String:
 		Prompt.GLUM:
 			return "Glum — help when they look up"
 		Prompt.SHELTERED:
-			return "Sheltered — draw the dimmed one away"
+			return "Sheltered — a little joy gets through; the umbrella breaks after a few hits"
 		Prompt.SPIRIT_LOW:
 			return "Spirit low — rescue people to refill"
 		Prompt.DIM_HELP:

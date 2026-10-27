@@ -14,7 +14,7 @@ mode was retired.)
 - **The gloom:** Dimmed people press on your border and reach for you. Where they push, border folk falter and gaps
   open. Re-joy a faltering person to close the gap.
 - **Spirit:** Helping people fills it; a joy burst costs some. At zero you go dim. Recover inside your border.
-- **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered · ! = faltering. The night
+- **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered (breaks after four hits) · ! = faltering. The night
   introduces them one at a time, with a short one-time prompt each.
 - **Keys:** WASD move · Shift run · Space twirl (dodge a grab) · G or Q joy burst · Mouse point at people (F2 changes
   targeting) · Mouse wheel zoom · F3 debug · F4 switch look · R restart · M menu
@@ -92,9 +92,10 @@ element, and F3 labels it above the person.
 - **Skittish** (jittery): if you run (Shift) at them within 5 m, they back away for 1.5 s. Walking up does not scare them.
 - **Glum** (slumped, leaning forward): every 3 s they look up for 0.8 s (they straighten and a warm glint shows above
   them). Joy that lands then counts triple.
-- **Sheltering:** a dimmed person shelters the single nearest wistful or gloomy person within 2 m of them: no joy lands
-  on that one (a grey puff shows, and an umbrella and tether mark the pair). Others nearby still take joy. Deal with the
-  dimmed person first, or draw them away: they chase you when you are close.
+- **Sheltering:** a dimmed person shelters the single nearest wistful or gloomy person within 2 m of them. The umbrella
+  lets a little joy through (a quarter); each hit fades it, and after four hits it breaks (a puff shows). A broken umbrella
+  stays down for 8 s, and only if the dimmed person is still dimmed can they put up a new one.
+  Others nearby still take joy. Deal with the dimmed person first, or draw them away: they chase you when you are close.
 - **Dimmed people can be helped too, just slower** (they need about 1.6 times the joy of a wistful person). A dimmed
   person hit by joy shows a progress ring. Dimmed people sink one at a time through the night, at least a few seconds
   apart.

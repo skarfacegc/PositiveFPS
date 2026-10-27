@@ -17,7 +17,7 @@ extends Control
 var markers: Array[Dictionary] = []
 # Leak motes: {"pos": Vector3, "vel": Vector3, "age": float, "life": float}.
 var motes: Array[Dictionary] = []
-# Mood and shelter icons: {"person", "kind", "pos", "lift", "flash"}.
+# Mood and shelter icons: {"person", "kind", "pos", "lift", "flash", "wear"} (wear: an umbrella's shield left, else 1).
 var icons: Array[Dictionary] = []
 # Sheltering tethers this frame: {"a": Vector3, "b": Vector3}; the broken ones: {"a", "b", "left"}.
 var tethers: Array[Dictionary] = []
@@ -281,7 +281,18 @@ func _update_icons(delta: float) -> void:
 			var flash := 0.0
 			if _flash.has(p) and MoodIcons.kind_for_block(_int(_flash[p]["reason"])) == kind:
 				flash = flash_of(p)
-			icons.append({"person": p, "kind": kind, "pos": head + Vector2(offset, 0.0), "lift": lift, "flash": flash})
+			# Round 15: an umbrella shows how much of its shield is left (the shielder's hits), so it fades per hit.
+			var wear := p.shielder.shield_left_frac() if p.shielder != null else 1.0
+			icons.append(
+				{
+					"person": p,
+					"kind": kind,
+					"pos": head + Vector2(offset, 0.0),
+					"lift": lift,
+					"flash": flash,
+					"wear": wear
+				}
+			)
 
 
 # Tethers from each dimmed person to each wistful or gloomy person they shelter. A link that was there last frame and is
@@ -454,7 +465,13 @@ func _draw_icon(ic: Dictionary) -> void:
 		col = Config.GLUM_UP_ICON_COLOUR
 		pos += Vector2(0, -10.0 - 3.0 * sin(_clock * 10.0))
 	col = col.lerp(Color.WHITE, flash)
-	MoodIcons.draw(self, kind, pos, Config.MOOD_ICON_SIZE * (1.0 + 0.8 * flash) * (1.0 + 0.2 * lift), col)
+	var size := Config.MOOD_ICON_SIZE * (1.0 + 0.8 * flash) * (1.0 + 0.2 * lift)
+	# Round 15: a worn shield's umbrella is fainter and a little smaller (wear 1 fresh, down to 0.25 before it pops).
+	var wear: float = ic.get("wear", 1.0)
+	if kind == MoodIcons.Kind.UMBRELLA and wear < 1.0:
+		col.a *= lerpf(Config.SHELTER_WORN_ALPHA, 1.0, wear)
+		size *= lerpf(0.85, 1.0, wear)
+	MoodIcons.draw(self, kind, pos, size, col)
 
 
 func _draw_sparks() -> void:
