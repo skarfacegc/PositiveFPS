@@ -129,3 +129,9 @@ For small turns, run only the tests likely to be affected; releases and signific
   Build agents run full before each round's final commit.
 - **Caveat:** misses breakage through paths no test exercised before; the full tier catches those. gdUnit4 selects by
   suite, which is fine at this size.
+
+## Timing tests and coverage (2026-10-26)
+`coverage.py` itself is unchanged, but it runs `run_tests.run_suite(..., cov_dir=...)`, which keeps `test_perf_*` tests in the
+instrumented parallel batch (so their lines are counted) with their time assert switched off. The budgets are enforced by a
+separate plain, serial pass (`run_tests.py --perf-only`, called by `gate.py --full`). A tool extracted from this repo needs
+both halves: the counted run and an uninstrumented timing run.

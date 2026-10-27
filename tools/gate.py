@@ -11,7 +11,9 @@ Usage:
     python tools/gate.py --label pre-commit    # prefix for the messages (the hook sets it)
 
 Steps: tools/lint.py, then tools/run_tests.py (default) or tools/coverage.py --check-baseline (--full, which runs the
-same tests with instrumentation, so the tests are not run twice).
+same tests with instrumentation, so the tests are not run twice). Timing tests (test_perf_*) run serially and plain after
+the parallel batch: run_tests.py does it itself in the default tier; --full follows the coverage run with
+`run_tests.py --perf-only`. The cache fingerprint covers tools/ and tests/, so it needs no change for that pass.
 
 Result cache: after a pass, the gate stores a fingerprint (sha256) of everything it depends on in
 .git/positivefps-gate-cache.json. If the fingerprint is unchanged on the next run the gate prints the cached summary
@@ -175,6 +177,16 @@ def main():
         cmd = [PYTHON, os.path.join("tools", "run_tests.py")]
     log = os.path.join(log_dir, "tests.log")
     code, out = run_step(cmd, log)
+    if code == 0 and full:
+        # The coverage run does not time the timing tests (test_perf_*, instrumented and in parallel they are noisy).
+        # Run them now, alone and plain, with their budgets enforced. The plain run above already did this itself.
+        say("timing tests, serial and uninstrumented (tools/run_tests.py --perf-only)")
+        code, perf_out = run_step([PYTHON, os.path.join("tools", "run_tests.py"), "--perf-only"],
+                                  os.path.join(log_dir, "perf.log"))
+        if code != 0:
+            say("FAILED timing tests (log: %s)" % os.path.join(log_dir, "perf.log"))
+            print("\n".join(key_lines(perf_out)))
+            return 1 if code == 1 else 2
     if code != 0:
         if code == 3:
             say("FAILED coverage ratchet (line coverage dropped below coverage_baseline.json)")

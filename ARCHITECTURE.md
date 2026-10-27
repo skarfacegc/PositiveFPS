@@ -113,6 +113,10 @@ Player physics (`TopDownPlayer._physics_process`) and projectile physics run on 
   at once calls `TopDownTestUtil.open_dim_gate(td)` between them; other people who would sink during a test are kept light.
 - A parse error in a test file makes gdUnit skip that suite quietly while its own summary still says all passed. `tools/run_tests.py` now catches this (`integrity_problems()`: it fails on `Parse Error` / `SCRIPT ERROR` / failed-to-load-script in any Godot output, and when a `tests/*_test.gd` suite reports no or fewer results than it declares); `tools/test_gate.py` proves it with a broken scratch suite.
 - Strict typing: warnings are errors (`project.godot`). Type every `for` variable; avoid iterating arrays that may hold freed nodes.
+- **Timing tests**: a test that asserts wall-clock time must be named `test_perf_*` and guard its time assert with
+  `if OS.get_environment("POSITIVEFPS_PERF_ENFORCE") == "1":`. `run_tests.py` then keeps it out of the parallel plain batch and runs
+  it alone, plain, afterwards (budget enforced); the instrumented coverage run still executes it (lines counted) but does not time it.
+  Set the budget to max of 5+ serial runs x 1.5 and record the runs next to the assert (example: `world_scale_test.gd`).
 - Coverage ignores lambda bodies passed as multi-line arguments; hoist them into a `var` to measure them.
 
 ## Quality gate and tools
@@ -121,6 +125,9 @@ Player physics (`TopDownPlayer._physics_process`) and projectile physics run on 
   `coverage_baseline.json` is staged. A passing result is cached by a sha256 of the working tree (`.git/positivefps-gate-cache.json`).
 - **Every round must end with `python tools/gate.py --full`, then `python tools/coverage.py --check-determinism`, then a baseline
   commit** (`python tools/coverage.py --update-baseline`). The hook alone does not run the coverage ratchet.
+- Timing tests (`test_perf_*`, see Known gotchas) run serially and uninstrumented after the parallel batch: inside `run_tests.py`
+  for the default tier, and via `run_tests.py --perf-only` after the coverage run in `--full` (about 5 s; skips Godot `--import` when the
+  class cache is current). `gate.py`'s cache fingerprint already covers `tests/` and `tools/`, so it is unchanged.
 - Other tools: `lint.py [--fix]`, `coverage.py`, `cleanup_worktrees.py`, `install_hooks.py`. Timing history: `tools/BUILD_TIMINGS.md`.
 
 ## Agent workflow rules

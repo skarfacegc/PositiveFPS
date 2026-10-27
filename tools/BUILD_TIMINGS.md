@@ -89,3 +89,16 @@ Where the time went (plain suite, in the order of effect):
 5. Coverage copy: skips `design/` and `.scratch/`, starts from the repo's import cache (about 2 s).
 
 What is left: the 2400-frame test (about 16 s when 8 Godot processes share the machine) sets the floor for the plain run.
+
+## Timing tests run serially (round 16, 2026-10-26)
+
+The one timing test, `world_scale_test::test_perf_a_full_border_of_sixty_people_updates_within_the_frame_budget`, used to run
+instrumented inside the parallel batch, where load pushed it from 3.7 ms to 7.3 ms. Tests named `test_perf_*` are now kept out
+of the plain parallel batch and run alone and uninstrumented afterwards (`run_tests.py --perf-only`, also called by
+`gate.py --full` after the coverage run). The coverage run still executes them (lines counted) with the time assert off.
+
+Eight serial plain runs (ms per frame, best of three 40-frame batches): 2.55, 2.56, 2.59, 2.65, 2.66, 2.68, 2.68, 2.94.
+Max 2.94 x 1.5 = 4.4, so the budget is 4.5 ms (was 7.0). The pass itself takes about 5 s (the 20 s Godot `--import` is skipped
+when the class cache is current). This machine's gate is slower than the table above: on this day `gate.py --full --no-cache`
+took 168 s (coverage run 131 s, timing pass 5 s, lint and start-up the rest), the plain `gate.py --no-cache` 111 s, and
+`coverage.py --check-determinism` 273 s.

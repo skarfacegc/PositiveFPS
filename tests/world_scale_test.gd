@@ -228,7 +228,7 @@ func test_two_pressers_open_exactly_one_local_gap_at_the_new_scale() -> void:
 
 # A full border of all 60 people on the 100 x 100 grid: the whole per-frame update (border, cover, paint, people, HUD)
 # (best of three 40-frame batches) stays under a budget. Headless, so this is the simulation cost, not drawing.
-func test_a_full_border_of_sixty_people_updates_within_the_frame_budget() -> void:
+func test_perf_a_full_border_of_sixty_people_updates_within_the_frame_budget() -> void:
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
@@ -244,13 +244,15 @@ func test_a_full_border_of_sixty_people_updates_within_the_frame_budget() -> voi
 			td._process(1.0 / 60.0)
 		per_frame_ms = minf(per_frame_ms, float(Time.get_ticks_usec() - start) / 1000.0 / 40.0)
 	print("WORLD_SCALE sim update with 60 people, full border: %.3f ms per frame" % per_frame_ms)
-	# Round 13b: 5 ms (was 4): the communication overlays add about 0.5 ms when the suite runs instrumented for coverage
-	# (about 0.1 ms plain); the plain simulation is about 2 ms.
-	# Round 14: 7 ms (was 5). Instrumented for coverage the frame measured 4.5-4.8 ms before this round and 5.5-5.9 ms
-	# after it (one run under parallel load reached 6.9 ms). Bisecting (sheltering pass, camera zoom, dimmed rings,
-	# camera and UI constants) did not find one cause: the new per-frame statements add about 1 ms only when the coverage
-	# probes count them. Plain it moved from about 2.65 ms to 2.75 ms, so the game itself is not measurably slower.
-	assert_float(per_frame_ms).is_less(7.0)
+	# Round 16: 4.5 ms (was 7). History: 4 ms, 5 ms (round 13b), 7 ms (round 14) were all loosened to absorb coverage
+	# probes and parallel-gate load (the test once read 7.3 ms in a busy instrumented run). It is now measured where
+	# that noise is gone: plain (no probes), alone on the machine, after the parallel batch. Eight such runs measured
+	# 2.55, 2.56, 2.59, 2.65, 2.66, 2.68, 2.68, 2.94 ms (max 2.94). Budget = max x 1.5, rounded up to 4.5 ms.
+	# If a real change pushes this past 4.5 ms plain, that is a real slowdown: find it before touching the number.
+	# The name starts with test_perf_, so tools/run_tests.py runs it alone, plain, after the parallel batch and sets
+	# POSITIVEFPS_PERF_ENFORCE=1. In the instrumented coverage run it still executes (its lines count) but is not timed.
+	if OS.get_environment("POSITIVEFPS_PERF_ENFORCE") == "1":
+		assert_float(per_frame_ms).is_less(4.5)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

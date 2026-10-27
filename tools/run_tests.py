@@ -6,6 +6,7 @@ Usage:
     python tools/run_tests.py --project DIR   # test another copy of the project
     python tools/run_tests.py --workers 1     # one Godot process runs everything (the old, serial behaviour)
     python tools/run_tests.py --update-weights  # after a run, record each test's duration in tools/test_weights.json
+    python tools/run_tests.py --perf-only     # only the timing tests (test_perf_*), serially, budget enforced
 
 The Godot console executable comes from the GODOT environment variable, or the known install path below.
 Reports are written to <project>/reports/<timestamp>/ (HTML and JUnit XML). The exit code is 0 when all
@@ -15,6 +16,12 @@ Parallelism: the suites are independent (each builds its own scene), so they are
 several Godot processes at once (`--workers`, default WORKERS_DEFAULT). A unit is a whole suite, or, for suites
 with slow tests listed in tools/test_weights.json, a single slow test, so one slow suite cannot set the run time.
 Every process uses the same fixed 1/60 s step and seed, so results do not depend on the split or the order.
+
+Timing tests: a test whose name starts with PERF_PREFIX ("test_perf_") asserts a wall-clock budget, which parallel load
+would make flaky. In a plain run they are left out of the parallel batch and run afterwards, one at a time, alone on the
+machine, with POSITIVEFPS_PERF_ENFORCE=1 (the test only asserts its time when that is set). In an instrumented (coverage)
+run they stay in the parallel batch so their lines are counted, with the time assertion off. `--perf-only` runs just
+that serial pass (tools/gate.py --full uses it after the coverage run).
 
 Only the Python standard library is used. This module's functions are also used by tools/coverage.py.
 """
@@ -53,6 +60,7 @@ TEST_FIXED_FPS = 60
 WORKERS_DEFAULT = max(1, min(8, (os.cpu_count() or 2) // 2))
 WEIGHTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_weights.json")
 UNKNOWN_TEST_SECONDS = 0.5  # weight of a test that is not in test_weights.json yet
+PERF_PREFIX = "test_perf_"  # timing tests: see the module docstring
 OWN_UNIT_SECONDS = 3.0  # a test at least this slow gets a Godot process of its own
 _print_lock = threading.Lock()
 
@@ -82,6 +90,26 @@ def import_project(project):
     code, _ = run_godot(["--import"], project, stream=False)
     if code != 0:
         raise RuntimeError("Godot --import failed with exit code %d" % code)
+
+
+def import_is_current(project):
+    """True when Godot's class cache is newer than every script, scene, resource and project.godot (so --import is a no-op).
+
+    --import costs about 20 s even when nothing changed, so the timing-only pass skips it when this holds.
+    """
+    cache = os.path.join(project, ".godot", "global_script_class_cache.cfg")
+    try:
+        stamp = os.path.getmtime(cache)
+    except OSError:
+        return False
+    if os.path.getmtime(os.path.join(project, "project.godot")) > stamp:
+        return False
+    for sub in ("scripts", "tests", "scenes", "resources", "shaders"):
+        for dirpath, _dirs, files in os.walk(os.path.join(project, sub)):
+            for name in files:
+                if os.path.getmtime(os.path.join(dirpath, name)) > stamp:
+                    return False
+    return True
 
 
 def gdunit_args(report_dir, suite=None, skip=None):
@@ -123,24 +151,29 @@ def load_weights():
         return {}
 
 
-def plan_units(tests, weights):
+def plan_units(tests, weights, with_perf=True):
     """Splits the suites into units that run in separate Godot processes, heaviest first.
 
     Returns a list of {"name", "suite", "skip", "weight"}. A unit runs one suite minus the tests in `skip`.
+    with_perf=False leaves the timing tests (PERF_PREFIX) out; run_perf_pass runs them.
     """
     units = []
-    for suite, names in tests.items():
+    for suite, all_names in tests.items():
+        names = [n for n in all_names if with_perf or not n.startswith(PERF_PREFIX)]
+        if not names:
+            continue
+        skip_always = [n for n in all_names if n not in names]
         w = {n: weights.get("%s::%s" % (suite, n), UNKNOWN_TEST_SECONDS) for n in names}
         slow = [n for n in names if w[n] >= OWN_UNIT_SECONDS]
         rest = [n for n in names if n not in slow]
         for n in slow:
             units.append({"name": "%s::%s" % (suite, n), "suite": suite,
-                          "skip": [m for m in names if m != n], "weight": w[n]})
+                          "skip": skip_always + [m for m in names if m != n], "weight": w[n]})
         if rest and slow:
-            units.append({"name": "%s (rest)" % suite, "suite": suite, "skip": slow,
+            units.append({"name": "%s (rest)" % suite, "suite": suite, "skip": skip_always + slow,
                           "weight": sum(w[n] for n in rest)})
         elif rest:
-            units.append({"name": suite, "suite": suite, "skip": [], "weight": sum(w.values())})
+            units.append({"name": suite, "suite": suite, "skip": skip_always, "weight": sum(w.values())})
     units.sort(key=lambda u: -u["weight"])
     return units
 
@@ -175,7 +208,7 @@ def integrity_problems(project, results, outputs):
 
 def run_parallel(project, report_dir, workers, cov_dir=None):
     """Runs all test units, `workers` Godot processes at a time. Returns (worst exit code, results list, outputs)."""
-    units = plan_units(discover_tests(project), load_weights())
+    units = plan_units(discover_tests(project), load_weights(), with_perf=bool(cov_dir))
 
     def job(i, unit):
         unit_dir = os.path.join(report_dir, "u%02d" % i)
@@ -209,6 +242,40 @@ def run_parallel(project, report_dir, workers, cov_dir=None):
     return code, results, outputs
 
 
+def run_perf_pass(project, report_dir):
+    """Runs the timing tests (PERF_PREFIX) one Godot process at a time, with nothing else running, budget enforced.
+
+    Returns (worst exit code, results list, outputs). Plain, not instrumented: probes would inflate the times.
+    """
+    code = 0
+    results = []
+    outputs = []
+    for suite, names in discover_tests(project).items():
+        perf = [n for n in names if n.startswith(PERF_PREFIX)]
+        if not perf:
+            continue
+        unit_dir = os.path.join(report_dir, "perf_" + suite)
+        os.makedirs(unit_dir, exist_ok=True)
+        skip = [n for n in names if n not in perf]
+        unit_code, out = run_godot(gdunit_args(unit_dir, suite, skip), project,
+                                   {"POSITIVEFPS_PERF_ENFORCE": "1"}, stream=False)
+        xml = latest_results_xml(unit_dir)
+        parsed = parse_results(xml) if xml else None
+        print("serial timing unit %-55s exit %d" % (suite, unit_code), flush=True)
+        outputs.append(out)
+        for ln in out.splitlines():  # a timing test prints its measurement; show it
+            if ln.startswith("WORLD_SCALE"):
+                print("  " + ln, flush=True)
+        if parsed is None or unit_code not in (0, 100):
+            print(out, flush=True)
+        if parsed is None:
+            code = max(code, 2)
+        else:
+            results.extend(parsed)
+            code = max(code, 1 if unit_code not in (0, 100) else 0)
+    return code, results, outputs
+
+
 def latest_results_xml(report_dir):
     """Finds the JUnit XML that the gdUnit4 CLI wrote below report_dir (the newest one)."""
     best = None
@@ -239,7 +306,7 @@ def parse_results(xml_path):
     return results
 
 
-def run_suite(project, report_root=None, workers=None, cov_dir=None):
+def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=False):
     """Runs the whole suite on `project`. Returns (exit code, list of test result dicts or None, report dir).
 
     workers=1 runs everything in one Godot process; more runs units in parallel (see the module docstring).
@@ -249,17 +316,27 @@ def run_suite(project, report_root=None, workers=None, cov_dir=None):
     report_root = report_root or os.path.join(project, "reports")
     report_dir = os.path.join(report_root, stamp)
     os.makedirs(report_dir, exist_ok=True)
-    import_project(project)
+    if not (perf_only and import_is_current(project)):
+        import_project(project)
     workers = WORKERS_DEFAULT if workers is None else workers
-    if workers <= 1:
+    if perf_only:
+        code, results, outputs = run_perf_pass(project, report_dir)
+        return code, results or None, report_dir
+    if workers <= 1 and cov_dir:  # (a plain serial run goes through run_parallel with one worker: it must split off the timing tests)
         env = {"POSITIVEFPS_COV_OUT": os.path.join(cov_dir, "hits_00.json")} if cov_dir else None
         code, out = run_godot(gdunit_args(report_dir), project, env)
         xml = latest_results_xml(report_dir)
         results, outputs = (parse_results(xml) if xml else None), [out]
     else:
         code, results, outputs = run_parallel(project, report_dir, workers, cov_dir)
+        if not cov_dir:  # plain run: the timing tests run now, one at a time, alone
+            perf_code, perf_results, perf_outputs = run_perf_pass(project, report_dir)
+            code = max(code, perf_code)
+            results = (results or []) + perf_results
+            outputs += perf_outputs
+            results.sort(key=lambda r: (r["file"], r["name"]))
         results = results or None
-    if results is not None:
+    if results is not None and not perf_only:
         problems = integrity_problems(project, results, outputs)
         for p in problems:
             print("ERROR: " + p, flush=True)
@@ -273,12 +350,14 @@ def main():
     parser.add_argument("--project", default=ROOT, help="project folder (default: this repo)")
     parser.add_argument("--workers", type=int, default=None,
                         help="Godot processes to run at once (default %d; 1 = serial)" % WORKERS_DEFAULT)
+    parser.add_argument("--perf-only", action="store_true",
+                        help="run only the timing tests (test_perf_*), serially, with their budgets enforced")
     parser.add_argument("--update-weights", action="store_true",
                         help="after the run, write each test's duration to tools/test_weights.json")
     args = parser.parse_args()
     project = os.path.abspath(args.project)
     try:
-        code, results, report_dir = run_suite(project, workers=args.workers)
+        code, results, report_dir = run_suite(project, workers=args.workers, perf_only=args.perf_only)
     except (RuntimeError, OSError) as err:
         print("ERROR: " + str(err), file=sys.stderr)
         return 2
