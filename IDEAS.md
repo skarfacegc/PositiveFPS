@@ -979,5 +979,77 @@ cause (suspected: border slots clamped to the map edge collapse onto the same po
 nothing spreading them back out), and fix it so the wall bends along the edge, slots stay evenly spaced, and crowded
 people drift out to the nearest gap. Regression test: spacing holds and no gaps open for a while after the push.
 
+**Round 16 housekeeping: remove the hard-coded username from paths.** Four committed files hard-code
+`C:/Users/amw1/...` paths: `design/style_test/main.gd` (render output dir), `design/style_test/run.sh`,
+`tools/run_tests.py` and `tools/checkpoint_shots.py` (Godot WinGet install dir). Replace them with paths relative to the
+project (`res://`, or relative to the script's location) and find Godot via the `GODOT` env var / `PATH`, falling back to
+the WinGet folder under `%LOCALAPPDATA%`. Done when `git grep amw1` finds nothing outside this note and the tests still run.
+
 **Later (not scheduled): area-control movement tuning.** The user says the area-control mechanic still needs tuning,
 particularly *how it moves* (how the border grows, shifts and responds). Revisit after round 16.
+
+## Round 16 build (edge clustering)
+
+**Decision:** the user chose (b) "the map edge seals the territory" plus (d) "change how the border moves" over (a) "bend
+the wall along the edge" and (c) "no gloom push from off-map".
+
+**Reproduced.** `tests/border_edge_test.gd`: 30 rescued people, a loop pressed by 14 joy-burst shoves (1.5 x WORLD_SCALE
+each, 1.5 s apart) toward the east edge, toward the NE corner, and (as a control) from mid-map. On the old code all three
+fail badly: the closest pair of members is nearer than half the border spacing in 156 of 156 samples (edge, corner) and
+144 of 156 (mid-map, which creeps to the edge), up to 27 member-samples stand outside the map, and members reverse
+direction up to ~100 times in 2 s.
+
+**Cause (not what we suspected).** Nothing clamped the slots: `Border._organic_polygon` let the loop run off the map
+(radius per angle, never limited), so slots lay beyond the walls. People were chasing them, and
+`Border._assign_members` handed every member "the nearest free slot" afresh each frame in a fixed order. When the loop
+changes quickly (a shove, the size easing back, the centre following the centroid) the slots all move at once, people
+who lose their own slots all pick the same few free ones, cross each other and walk in a convoy at the same speed, so
+3-4 people stack on one spot while other stretches stay empty. The tongue the shoves build (raw radii never decay) also
+makes the loop thin, so its two sides are nearer than the spacing. Near the edge it is worst because the loop is dragged
+there (see rough spots) and half of it lies off the map.
+
+**Fix (`scripts/border.gd`, `config.gd` "Round 16").**
+- (b) `clamp_to_map()` pulls the polygon onto the map (`BORDER_MAP_LIMIT` = 48 m). A segment whose two ends are on the same
+  edge is sealed (`_sealed` weight 1, `is_sealed()`): no slots, never a gap, no pressing or push-back on it, and the loop
+  size is normalised on its OPEN length only, so the loop grows elsewhere and the freed people strengthen the rest of the
+  wall. The weight fades in over `BORDER_SEAL_BAND` (2.86 m) so the open length never jumps when a sample reaches the
+  edge. Slots are spaced evenly on the open length (`_open`, `_point_at_open`, `_open_of_arc`); border spacing is
+  unchanged (`BORDER_TARGET_SPACING`). Dark push-back is clamped to the map.
+- (d) `_ordered_slots()`: members are sorted by angle round the centre and take the free slots in loop order, shifted by
+  whichever whole-slot offset costs the least walking. Nobody crosses anybody (no convoys) and everyone slides along the
+  wall toward the empty stretch. A separate spacing force proved unnecessary (even targets in order give even spacing),
+  so it was skipped. `_grid_phase()`: where the loop meets the edge the slot grid has no stable first point (the first
+  open point jumps along the edge), so the grid rides with the members (circular mean of their open-length places modulo
+  the spacing), faded in with the seal weight; mid-map it stays anchored as before (letting it ride everywhere made the
+  wall sway about +/-1 m).
+
+**Values.** `BORDER_MAP_LIMIT` = TD_PLAZA_SIZE / 2 - TD_EDGE_MARGIN (48; territory, same limit people wander to);
+`BORDER_SEAL_BAND` = 2.0 x WORLD_SCALE. Border spacing, max gap, push and walk speed are unchanged.
+
+**Tests.** `border_edge_test` (new): frame-driven level tests, edge / corner / mid-map under heavy shoves (rescues are
+direct `receive_joy`; the push is `Border._push_at`, the shove's rule, not a key press), asserting: nobody off the map,
+bunching (pair nearer than 0.5 x spacing) in at most 5% of samples (a swap of two members passing takes under a second;
+corner measured 2.6%, others 0%), no gaps open in any sample from 2 s after the last push, and at most 4 direction
+reversals per member in 120 frames (a steady glide is fine, jitter is not); rule-level: clamp and seal, sealed stretch
+takes no members and is never a gap, order kept round the loop, nearest free slot, grid phase, degenerate loops, nothing
+presses a sealed stretch. `local_gap_test` (updated): the weak member is now the one farthest from the post, because the
+old test took `members[2]`, which only worked when nearest-slot assignment happened to put it away from the post (beside
+a post the segments are anchored and never a gap). Nothing was loosened. Existing border tests pass unchanged.
+`gdlintrc` `max-file-lines` raised 1000 -> 1200 because `border.gd` is now ~1150 lines (the slot code should be split out).
+
+**Playtest questions.** Push hard toward a wall or corner late at night: does the wall run along the edge with the
+people spread out, and does the rest of the loop take up the slack? Does the loop feel stiffer or more alive when it is
+pushed (members now keep their order and slide, not hop to new slots)? Is the glowing line along the map edge OK when
+sealed (it is drawn like any intact stretch)?
+
+**Rough spots (for the later movement-tuning round).**
+- The loop creeps: the centre follows the centroid of the people, who sit on a loop with a permanent one-sided bump (raw
+  radii never decay), so the whole loop drifts at up to `BORDER_CENTRE_FOLLOW` (0.5 m/s) toward the last pushed side, until
+  it meets the map edge. That is what drags the wall to the edge in the first place.
+- After a heavy push the size easing back (`BORDER_NORMALISE_SECONDS` 2 s on a nonlinear, clamped shape) takes 20-30 s to
+  finish, and members walk at full speed (3 m/s) the whole time.
+- Raw radii only grow; shoves and rescues never shrink them; a one-sided bump makes a thin tongue whose two sides are
+  closer than the spacing.
+- Short sealed stretches (under a spacing) leave the members on either side of the seal nearer than the spacing.
+- A fully sealed loop (the whole map) has no members and no gaps (territory = the map).
+- Members still pass through each other briefly when the slot offset flips (no hysteresis).

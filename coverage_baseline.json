@@ -1,7 +1,7 @@
 {
   "line_files": {
     "scripts/bloom.gd": 100.0,
-    "scripts/border.gd": 99.5,
+    "scripts/border.gd": 99.6,
     "scripts/building.gd": 100.0,
     "scripts/config.gd": 100.0,
     "scripts/controls.gd": 100.0,
