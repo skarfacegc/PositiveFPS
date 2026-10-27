@@ -210,3 +210,9 @@ and git warns about them on every commit. To remove them:
 The main worktree is never touched. A worktree that a running Godot game is using is skipped: close the game and run the
 script again. Add `-y` to skip the prompt. If you see "Permission denied", close any program using the folder (Godot,
 Explorer, editors) and pause OneDrive sync, then re-run.
+
+## License
+
+PositiveFPS is released under the [MIT License](LICENSE). The bundled `addons/gdUnit4` test framework keeps its own MIT
+license (see `addons/gdUnit4/LICENSE`). Builds made with Godot include the Godot engine, which is MIT licensed; see
+[godotengine.org/license](https://godotengine.org/license) for the notice to ship with exported games.
