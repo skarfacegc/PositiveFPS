@@ -7,6 +7,7 @@ Usage:
     python tools/coverage.py --update-baseline                    # record the numbers (only if the tests pass)
     python tools/coverage.py --update-baseline --allow-decrease   # also accept lower numbers
     python tools/coverage.py --check-determinism   # run twice, fail (exit 3) if any covered line differs
+                                                  # (the two runs go at once; a saved run of the same code is reused)
 
 What it does:
   1. Copies the project to <root>/.coverage_build (addons and tests are copied, not instrumented).
@@ -32,13 +33,18 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
+import time
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, TOOLS)
 import run_tests  # noqa: E402
+import gate  # noqa: E402  (the gate's code fingerprint, shared with the result cache)
 
 ROOT = os.path.dirname(TOOLS)
 BUILD = os.path.join(ROOT, ".coverage_build")
+# The two determinism passes run in their own copies inside BUILD (ignored by git, skipped by the copy).
+DET_BUILDS = (os.path.join(BUILD, "det1"), os.path.join(BUILD, "det2"))
 COVERAGE_DIR = os.path.join(ROOT, "coverage")
 FILES_DIR = os.path.join(COVERAGE_DIR, "files")
 REPORTS_DIR = os.path.join(ROOT, "reports")
@@ -307,15 +313,16 @@ def instrument_lines(rel, raw_lines, result):
 # Build and run
 # ---------------------------------------------------------------------------
 
-def copy_project():
-    if os.path.isdir(BUILD):
-        shutil.rmtree(BUILD, onerror=_clear_readonly)
-    os.makedirs(BUILD)
+def copy_project(build=BUILD):
+    if os.path.isdir(build):
+        shutil.rmtree(build, onerror=_clear_readonly)
+    os.makedirs(build)
     for entry in os.listdir(ROOT):
-        if entry in COPY_EXCLUDE or entry in ("test_results.json", "coverage_hits.json"):
+        skip = entry in COPY_EXCLUDE or entry.startswith(".coverage_build")
+        if skip or entry in ("test_results.json", "coverage_hits.json"):
             continue
         src = os.path.join(ROOT, entry)
-        dst = os.path.join(BUILD, entry)
+        dst = os.path.join(build, entry)
         if os.path.isdir(src):
             shutil.copytree(src, dst, ignore=shutil.ignore_patterns(*COPY_EXCLUDE))
         else:
@@ -323,7 +330,7 @@ def copy_project():
     # Start from the repo's import cache, so the import step in the copy has little left to do (about 1.5 s saved).
     godot_cache = os.path.join(ROOT, ".godot")
     if os.path.isdir(godot_cache):
-        shutil.copytree(godot_cache, os.path.join(BUILD, ".godot"))
+        shutil.copytree(godot_cache, os.path.join(build, ".godot"))
 
 
 def _clear_readonly(func, path, _exc):
@@ -331,20 +338,20 @@ def _clear_readonly(func, path, _exc):
     func(path)
 
 
-def instrument_build():
+def instrument_build(build=BUILD):
     """Instruments scripts/*.gd in the build copy.
 
     Returns (files, uninstrumentable): files maps the script path to {"exec", "funcs", "src", "result"}.
     """
     files = {}
     uninstr = []
-    scripts_dir = os.path.join(BUILD, "scripts")
+    scripts_dir = os.path.join(build, "scripts")
     for dirpath, _dirs, names in os.walk(scripts_dir):
         for name in sorted(names):
             if not name.endswith(".gd"):
                 continue
             full = os.path.join(dirpath, name)
-            rel = os.path.relpath(full, BUILD).replace("\\", "/")
+            rel = os.path.relpath(full, build).replace("\\", "/")
             with open(full, encoding="utf-8", newline="") as fh:
                 text = fh.read().replace("\r\n", "\n")
             raw_lines = text.split("\n")
@@ -360,14 +367,14 @@ def instrument_build():
     return files, uninstr
 
 
-def write_probe_files():
-    tests_dir = os.path.join(BUILD, "tests")
+def write_probe_files(build=BUILD):
+    tests_dir = os.path.join(build, "tests")
     os.makedirs(tests_dir, exist_ok=True)
     with open(os.path.join(tests_dir, "cov.gd"), "w", encoding="utf-8", newline="\n") as fh:
         fh.write(COV_PROBE_GD)
     with open(os.path.join(tests_dir, "cov_dump.gd"), "w", encoding="utf-8", newline="\n") as fh:
         fh.write(COV_DUMP_GD)
-    project_file = os.path.join(BUILD, "project.godot")
+    project_file = os.path.join(build, "project.godot")
     with open(project_file, encoding="utf-8") as fh:
         text = fh.read()
     text = text.rstrip("\n") + '\n\n[autoload]\n\nCovDump="*res://tests/cov_dump.gd"\n'
@@ -677,37 +684,114 @@ def write_reports(stats, results, uninstr, files, hits, git, stamp):
 # Main
 # ---------------------------------------------------------------------------
 
-def measure_once(workers):
-    """Copies, instruments and runs the suite once. Returns (code, results, stats, hits), or None on a setup error."""
-    copy_project()
-    files, _uninstr = instrument_build()
-    write_probe_files()
-    os.makedirs(HITS_DIR, exist_ok=True)
-    code, results, _report_dir = run_tests.run_suite(BUILD, report_root=REPORTS_DIR, workers=workers, cov_dir=HITS_DIR)
-    hits = merge_hits(HITS_DIR)
+def measure_once(workers, build=BUILD, report_root=REPORTS_DIR):
+    """Copies, instruments and runs the suite once in `build`. Returns (code, results, stats, hits), or None on a
+    setup error (no results or no hits)."""
+    copy_project(build)
+    files, _uninstr = instrument_build(build)
+    write_probe_files(build)
+    hits_dir = os.path.join(build, "cov_hits")
+    os.makedirs(hits_dir, exist_ok=True)
+    code, results, _report_dir = run_tests.run_suite(build, report_root=report_root, workers=workers,
+                                                     cov_dir=hits_dir)
+    hits = merge_hits(hits_dir)
     if results is None or hits is None:
         return None
     return code, results, build_stats(files, hits, results), hits
 
 
+def det_run_file():
+    """The saved run of the code (see save_clean_run). It lives in .git, next to the gate's result cache."""
+    return os.path.join(os.path.dirname(gate.cache_path()), "positivefps-determinism-run.json")
+
+
+def code_fingerprint():
+    """The gate's fingerprint of the working tree, or None if it cannot be computed (then nothing is saved or reused)."""
+    try:
+        return gate.fingerprint()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def load_saved_run(fp):
+    """The saved run, but only when it was made from exactly this code (same fingerprint). Otherwise None."""
+    if fp is None:
+        return None
+    try:
+        with open(det_run_file(), encoding="utf-8") as fh:
+            saved = json.load(fh)
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        return None
+    if not isinstance(saved, dict) or saved.get("fingerprint") != fp:
+        return None
+    return saved
+
+
+def save_clean_run(fp, code, results, stats, hits):
+    """Keeps a run in which every test passed, so a later --check-determinism can use it as its first pass.
+
+    Called by every instrumented run (the ratchet run, the baseline run and the determinism check). A run that
+    failed is never kept.
+    """
+    if fp is None or code != 0 or not results or any(not r["ok"] for r in results):
+        return
+    payload = {"fingerprint": fp, "when": datetime.datetime.now().isoformat(timespec="seconds"), "code": code,
+               "results": results, "line_overall": stats["line_overall"], "line_files": stats["line_files"],
+               "hits": hits}
+    try:
+        with open(det_run_file(), "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(payload, fh)
+    except (OSError, subprocess.CalledProcessError) as err:
+        print("note: the run could not be saved for reuse (%s)" % err)
+
+
+def _determinism_pass(n, build, workers, outcomes):
+    """One fresh determinism pass (run on its own thread). Stores ("ok", run) or ("error", text) in outcomes[n]."""
+    try:
+        run = measure_once(workers, build, os.path.join(REPORTS_DIR, "determinism-%d" % n))
+    except (RuntimeError, OSError) as err:
+        outcomes[n] = ("error", str(err))
+        return
+    if run is None:
+        outcomes[n] = ("error", "determinism pass %d wrote no results or hits." % n)
+    else:
+        outcomes[n] = ("ok", run)
+
+
 def check_determinism(workers):
     """Runs the instrumented suite twice and compares the per-file line coverage and the exact set of lines hit.
 
-    Use it once at the end of a round (it costs two coverage runs), before `--update-baseline`.
+    The two passes are independent: each has its own copy of the project (det1, det2 under .coverage_build) and its own
+    report folder, and they run at the same time, each with the usual number of workers. If a clean run of this exact
+    code is saved (from an earlier --check-determinism or from the ratchet run), it stands in for pass 1 and only
+    one fresh run is made. Use it once at the end of a round, before `--update-baseline`.
     """
-    runs = []
-    for n in (1, 2):
-        print("== Determinism run %d of 2" % n)
-        try:
-            run = measure_once(workers)
-        except (RuntimeError, OSError) as err:
-            print("ERROR: " + str(err), file=sys.stderr)
-            return 2
-        if run is None:
-            print("ERROR: a run wrote no results or hits.", file=sys.stderr)
-            return 2
-        runs.append(run)
-    (code_a, res_a, stats_a, hits_a), (code_b, res_b, stats_b, hits_b) = runs
+    started = time.time()
+    fp = code_fingerprint()
+    saved = load_saved_run(fp)
+    outcomes = {}
+    if saved is not None:
+        print("== Determinism pass 1 of 2: the clean run of this exact code from %s (saved, not run again)"
+              % saved.get("when", "earlier"))
+        outcomes[1] = ("ok", (saved["code"], saved["results"],
+                              {"line_overall": saved["line_overall"], "line_files": saved["line_files"]},
+                              saved["hits"]))
+        print("== Determinism pass 2 of 2: a fresh run")
+        _determinism_pass(2, DET_BUILDS[1], workers, outcomes)
+    else:
+        print("== Determinism passes 1 and 2 of 2: two fresh runs, at the same time")
+        threads = [threading.Thread(target=_determinism_pass, args=(n, DET_BUILDS[n - 1], workers, outcomes))
+                   for n in (1, 2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+    errors = [outcomes[n][1] for n in (1, 2) if outcomes[n][0] == "error"]
+    if errors:
+        for text in errors:
+            print("ERROR: " + text, file=sys.stderr)
+        return 2
+    (code_a, res_a, stats_a, hits_a), (code_b, res_b, stats_b, hits_b) = outcomes[1][1], outcomes[2][1]
     problems = []
     if code_a != 0 or code_b != 0 or any(not r["ok"] for r in res_a + res_b):
         problems.append("a test failed in one of the runs")
@@ -724,13 +808,15 @@ def check_determinism(workers):
     count_diffs = sum(1 for k in lines_a & lines_b if hits_a[k] != hits_b[k])
     print("")
     print("Determinism: %d tests, line coverage %.1f%% and %.1f%%, %d lines hit; %d lines differ in hit count"
-          " (informational)" % (len(res_a), stats_a["line_overall"], stats_b["line_overall"], len(lines_a), count_diffs))
+          " (informational)" % (len(res_a), stats_a["line_overall"], stats_b["line_overall"], len(lines_a),
+                                count_diffs))
     if problems:
         print("DETERMINISM CHECK FAILED:")
         for line in problems:
             print("  - " + line)
         return 3
-    print("Determinism OK: both runs hit exactly the same lines.")
+    save_clean_run(fp, code_b, res_b, stats_b, hits_b)
+    print("Determinism OK: both runs hit exactly the same lines (%.0f s)." % (time.time() - started))
     return 0
 
 
@@ -756,6 +842,7 @@ def main():
             parser.error("--check-determinism cannot be combined with the baseline options")
         return check_determinism(args.workers)
 
+    fp = code_fingerprint()  # the code this run measures; a clean run is saved against it (save_clean_run)
     print("== Copying project to %s" % BUILD)
     copy_project()
     print("== Instrumenting scripts/*.gd (line probes)")
@@ -794,6 +881,7 @@ def main():
     for r in failed:
         print("FAIL %s::%s  %s" % (r["file"], r["name"], " | ".join(r["messages"])[:400]))
     tests_ok = not failed and code == 0
+    save_clean_run(fp, code, results, stats, hits)
 
     if args.update_baseline:
         if not tests_ok:

@@ -102,3 +102,17 @@ Max 2.94 x 1.5 = 4.4, so the budget is 4.5 ms (was 7.0). The pass itself takes a
 when the class cache is current). This machine's gate is slower than the table above: on this day `gate.py --full --no-cache`
 took 168 s (coverage run 131 s, timing pass 5 s, lint and start-up the rest), the plain `gate.py --no-cache` 111 s, and
 `coverage.py --check-determinism` 273 s.
+
+## Determinism check, two passes at once (round 18, 2026-10-28)
+`python tools/coverage.py --check-determinism` used to run its two instrumented passes one after the other. They now run at
+the same time, each in its own copy (`.coverage_build/det1`, `det2`) with its own report folder and the usual 8 workers. A
+clean run of the same code is also saved in `.git` (`positivefps-determinism-run.json`, keyed by the gate's fingerprint); when
+it matches the working tree it stands in for pass 1, so only one fresh run is made.
+
+| What | Command | Before | After | Speedup |
+|---|---|---|---|---|
+| Determinism check, no saved run | `python tools/coverage.py --check-determinism` | 273 s (recorded above, sequential, not re-measured) | 204 s (measured this session, two fresh passes at once) | about 1.3x |
+| Determinism check, saved run of the same code | same | 273 s | one fresh run (not timed end to end) | not measured |
+
+Caveat: other agents may have been using the CPU during the 204 s run, and the "before" figure was not re-measured in the same
+session. The result is the same as before: 366 tests, 5790 lines hit, 0 lines differ.

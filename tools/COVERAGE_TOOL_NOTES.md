@@ -135,3 +135,10 @@ For small turns, run only the tests likely to be affected; releases and signific
 instrumented parallel batch (so their lines are counted) with their time assert switched off. The budgets are enforced by a
 separate plain, serial pass (`run_tests.py --perf-only`, called by `gate.py --full`). A tool extracted from this repo needs
 both halves: the counted run and an uninstrumented timing run.
+
+## Determinism check (round 18, 2026-10-28)
+`--check-determinism` runs its two passes at once, each in its own copy under `.coverage_build/det1` and `det2`, with reports in
+`reports/determinism-1` and `-2`. A clean run of the current code is kept in `.git` (`positivefps-determinism-run.json`), from
+the ratchet run or from a determinism check, keyed by `tools/gate.py`'s fingerprint. When the fingerprint still matches, that
+run is pass 1 and only one fresh run is made. A run with a failing test is never kept. A tool extracted from this repo can
+drop the saved run: the check then just runs both passes.

@@ -102,6 +102,49 @@ finally:
     remove_tree(scratch)
 
 
+# --- Determinism reuse (tools/coverage.py): a saved clean run of the same code stands in for pass 1. No Godot here. ---
+import coverage  # noqa: E402
+
+saved_file = os.path.join(gate.ROOT, ".scratch", "det_reuse_%d.json" % os.getpid())
+real_run_file, real_fingerprint, real_measure = coverage.det_run_file, coverage.code_fingerprint, coverage.measure_once
+fake_results = [{"file": "t", "name": "test_a", "ok": True, "messages": [], "time": 0.1}]
+fake_stats = {"line_overall": 50.0, "line_files": {"scripts/a.gd": 50.0}}
+calls = []
+
+
+def fake_measure(workers, build, report_root):
+    calls.append(build)
+    return 0, fake_results, fake_stats, fake_hits[0]
+
+
+fake_hits = [{"scripts/a.gd:3": 2}]
+try:
+    os.makedirs(os.path.dirname(saved_file), exist_ok=True)
+    coverage.det_run_file = lambda: saved_file
+    coverage.measure_once = fake_measure
+    coverage.code_fingerprint = lambda: "fp-a"
+    coverage.save_clean_run("fp-a", 0, fake_results, fake_stats, fake_hits[0])
+    expect("a clean run is saved", coverage.load_saved_run("fp-a") is not None, True)
+    expect("a saved run is not reused for other code", coverage.load_saved_run("fp-b"), None)
+    coverage.save_clean_run("fp-a", 1, fake_results, fake_stats, {"scripts/a.gd:9": 1})
+    expect("a failed run never replaces a saved one", coverage.load_saved_run("fp-a")["hits"], fake_hits[0])
+    expect("the check passes when the fresh run matches the saved one", coverage.check_determinism(None), 0)
+    expect("with the saved run, only pass 2 is measured", calls, [coverage.DET_BUILDS[1]])
+    fake_hits[0] = {"scripts/a.gd:3": 2, "scripts/a.gd:4": 1}  # the fresh run hits a line the saved run did not
+    expect("a run that hits other lines fails the check", coverage.check_determinism(None), 3)
+    fake_hits[0] = {"scripts/a.gd:3": 2}
+    coverage.code_fingerprint = lambda: "fp-c"  # different code: nothing saved, both passes are fresh
+    del calls[:]
+    expect("without a saved run both passes run", coverage.check_determinism(None), 0)
+    expect("two fresh runs when nothing is saved", sorted(calls), sorted(coverage.DET_BUILDS))
+finally:
+    coverage.det_run_file = real_run_file
+    coverage.code_fingerprint = real_fingerprint
+    coverage.measure_once = real_measure
+    if os.path.exists(saved_file):
+        os.remove(saved_file)
+
+
 if failures:
     print("test_gate: FAILED")
     for line in failures:
