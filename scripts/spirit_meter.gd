@@ -92,7 +92,22 @@ func dim_tick_x() -> float:
 	return tick_x(Config.DIM_EXIT_SPIRIT)
 
 
+# The meter's clock (seconds), which paces the dim tick's pulse.
+func clock() -> float:
+	return _clock
+
+
+# The look was swapped (F4): draw again in the new style.
+func rebuild_look() -> void:
+	_dirty = true
+	queue_redraw()
+
+
 func _draw() -> void:
+	# Graphics checkpoint 2: the styled meter is a parchment-framed pixel bar (see StyleHud).
+	if Looks.is_styled():
+		StyleHud.draw_spirit(self)
+		return
 	var h := size.y
 	var bar := Rect2(Vector2.ZERO, size)
 	var back := StyleBoxFlat.new()

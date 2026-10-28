@@ -1,0 +1,155 @@
+class_name StyleHud
+extends RefCounted
+
+# Graphics checkpoint 2: the styled drawing of the spirit meter, the prompt bar and the off-screen gap arrows (see
+# StyleUi
+# for the cell style). The same data, positions and numbers as the placeholder drawing: a stepped parchment-and-ink
+# frame, an amber fill with a light top edge, a dark bottom edge and a dithered head, pixel glyphs for the ticks, and
+# arrows with an ink edge. HUD text (Labels) stays the placeholder text.
+
+const DIM_LIGHT := Color("#cfcbdd")
+const DIM_MAIN := Color("#9c97ad")
+const DIM_DARK := Color("#6e6a82")
+
+
+# Puts the control's local origin on the window's cell grid, so its cells line up with the pixels of the 3D view.
+static func align(ci: Control, c: float) -> void:
+	var at := ci.get_global_position()
+	ci.draw_set_transform((at / c).ceil() * c - at)
+
+
+static func draw_spirit(m: SpiritMeter) -> void:
+	var c := StyleUi.cell(m)
+	align(m, c)
+	var h := m.size.y
+	var bar := Rect2(Vector2.ZERO, m.size)
+	StyleUi.cut_rect(m, bar.grow(3.0 * c), c, StyleUi.INK)
+	StyleUi.cut_rect(m, bar.grow(2.0 * c), c, StyleUi.PARCHMENT_SHADE)
+	StyleUi.cut_rect(m, bar.grow(c), c, StyleUi.INK)
+	StyleUi.rect(m, bar, c, StyleUi.NIGHT)
+	_fill(m, c, h)
+	if m.flash > 0.0:
+		var f := m.flash_colour
+		f.a = 0.6 * m.flash
+		var x := 0.0
+		while x < m.size.x:
+			m.draw_rect(Rect2(x, 0.0, c, h), f)
+			x += 2.0 * c
+	_ticks(m, c, h)
+	_twirl(m, c, h)
+	_popups(m, c)
+	m.draw_set_transform(Vector2.ZERO)
+
+
+# The spirit fill: a light top row, a dark bottom pair of rows, and a head dithered over its last two cells.
+static func _fill(m: SpiritMeter, c: float, h: float) -> void:
+	var cells_wide := floori(m.size.x * clampf(m.spirit / Config.SPIRIT_MAX, 0.0, 1.0) / c)
+	if cells_wide < 1:
+		return
+	var light := StyleUi.GOLD_LIGHT
+	var main := StyleUi.GOLD
+	var dark := StyleUi.GOLD_DARK
+	if m.is_dim:
+		light = DIM_LIGHT
+		main = DIM_MAIN
+		dark = DIM_DARK
+	var rows := floori(h / c)
+	for r: int in range(rows):
+		var col := main
+		if r == 0:
+			col = light
+		elif r >= rows - 2:
+			col = dark
+		StyleUi.run(m, Vector2i(0, r), maxi(cells_wide - 2, 0), false, c, col)
+		for k: int in range(maxi(cells_wide - 2, 0), cells_wide):
+			if (k + r) % 2 == 0:
+				StyleUi.put(m, Vector2i(k, r), c, col)
+
+
+# The burst-cost tick with a pixel sunburst above it and the dim-exit tick with a pixel moon below it.
+static func _ticks(m: SpiritMeter, c: float, h: float) -> void:
+	var bx := floorf(m.burst_tick_x() / c)
+	var can := not m.is_dim and m.spirit >= Config.BURST_SPIRIT_COST
+	var burst_col := Color(1.0, 0.95, 0.75) if can else Color(0.9, 0.5, 0.45)
+	var top := floori(-5.0 / c)
+	StyleUi.run(m, Vector2i(int(bx), top), floori((h + 7.0) / c) + 1, true, c, StyleUi.INK)
+	StyleUi.run(m, Vector2i(int(bx), top + 1), floori((h + 3.0) / c), true, c, burst_col)
+	var star := Vector2(bx * c, -16.0)
+	StyleUi.sparkle(m, star, 3, c, StyleUi.INK)
+	StyleUi.sparkle(m, star, 2, c, burst_col)
+	var pulse := 0.5 + 0.5 * sin(m.clock() * TAU * 1.5)
+	var dim_col := Color(0.82, 0.8, 0.95, 0.95)
+	if m.is_dim:
+		dim_col = Color(1.0, 0.95, 0.8, 0.7 + 0.3 * pulse)
+	var dx := floorf(m.dim_tick_x() / c)
+	StyleUi.run(m, Vector2i(int(dx), floori(-2.0 / c)), floori((h + 8.0) / c), true, c, StyleUi.INK)
+	StyleUi.run(m, Vector2i(int(dx), floori(-2.0 / c) + 1), floori((h + 4.0) / c), true, c, dim_col)
+	var moon := Vector2i(int(dx), floori((h + 14.0) / c))
+	for j: int in range(-3, 4):
+		for i: int in range(-3, 4):
+			var inside := Vector2(i, j).length() <= 3.2 and Vector2(i - 1.3, j + 0.9).length() > 2.8
+			if inside:
+				StyleUi.put(m, moon + Vector2i(i, j), c, dim_col)
+
+
+# The twirl cooldown: a dithered track with the filled arc over it, and a gold dot when it is ready.
+static func _twirl(m: SpiritMeter, c: float, h: float) -> void:
+	var at := Vector2(m.size.x + 34.0, h * 0.5)
+	var ready_now := m.twirl_frac >= 1.0
+	var edge := StyleUi.INK
+	StyleUi.ring(m, at, 13.0, c, edge, 5)
+	StyleUi.ring(m, at, 13.0, c, Color(0.45, 0.45, 0.52, 0.9), 3, 1.0, 0.0, TAU, true)
+	var col := Color(0.6, 1.0, 0.65) if ready_now else Color(0.85, 0.85, 0.9)
+	if m.twirl_frac > 0.0:
+		StyleUi.ring(m, at, 13.0, c, col, 3, 1.0, -PI * 0.5, -PI * 0.5 + TAU * m.twirl_frac)
+	if ready_now:
+		StyleUi.disc(m, at, 2.0 * c, c, col)
+
+
+# The floating numbers: the same text, over a thick ink edge, rising in cell steps.
+static func _popups(m: SpiritMeter, c: float) -> void:
+	var font := ThemeDB.fallback_font
+	for p: Dictionary in m.popups:
+		var left: float = p["left"]
+		var t := 1.0 - left / Config.SPIRIT_MOMENT_SECONDS
+		var shown_text: String = p["text"]
+		var col: Color = p["colour"]
+		col.a = clampf(left / 0.4, 0.0, 1.0)
+		var at := Vector2(m.size.x * 0.5 - 20.0, -26.0 - 34.0 * t)
+		at = (at / c).floor() * c
+		var ink := StyleUi.INK
+		ink.a = col.a
+		m.draw_string_outline(
+			font, at, shown_text, HORIZONTAL_ALIGNMENT_LEFT, -1, SpiritMeter.POPUP_FONT_SIZE, int(3.0 * c), ink
+		)
+		m.draw_string(font, at, shown_text, HORIZONTAL_ALIGNMENT_LEFT, -1, SpiritMeter.POPUP_FONT_SIZE, col)
+
+
+# The prompt bar: a parchment panel with an ink frame and stepped corners, the icon at its left and ink text. The bar
+# fades with its self_modulate (the panel is opaque).
+static func draw_prompt(bar: PromptBar, rect: Rect2, text: String, icon: int) -> void:
+	var c := StyleUi.cell(bar)
+	StyleUi.panel(bar, rect, c, StyleUi.PARCHMENT)
+	var mid_y := rect.position.y + PromptBar.HEIGHT * 0.5
+	var text_x := rect.position.x + 24.0
+	if icon != MoodIcons.Kind.NONE:
+		MoodIcons.draw(bar, icon, Vector2(rect.position.x + 28.0, mid_y), 24.0, MoodIcons.colour_for(icon))
+		text_x = rect.position.x + 56.0
+	var at := Vector2(text_x, mid_y + PromptBar.FONT_SIZE * 0.35)
+	bar.draw_string(ThemeDB.fallback_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, PromptBar.FONT_SIZE, StyleUi.INK)
+
+
+# One off-screen gap arrow: a solid pointer with an ink edge, in the arrow's pulsing colour.
+static func draw_arrow(arrows: GapArrows, pos: Vector2, angle: float, size: float, col: Color) -> void:
+	var c := StyleUi.cell(arrows)
+	var fwd := Vector2(cos(angle), sin(angle))
+	var side := Vector2(-fwd.y, fwd.x)
+	var edge := StyleUi.INK
+	edge.a = col.a
+	for k: int in range(2):
+		var grow := 2.0 * c if k == 0 else 0.0
+		var s := size + grow
+		var tip := pos + fwd * (s + grow * 0.5)
+		var a := pos - fwd * s * 0.5 + side * (s * 0.6 + grow)
+		var b := pos - fwd * s * 0.5 - side * (s * 0.6 + grow)
+		StyleUi.poly(arrows, PackedVector2Array([tip, a, b]), c, edge if k == 0 else col)

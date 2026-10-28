@@ -5,15 +5,16 @@ extends Node
 # It loads the real level, builds a fixed scenario through the game's own API (a seeded level; rescue a few people, form
 # a border with a gap, a dark person pressing it, a beautified building, mid-night), freezes the rules, then takes the
 # same shots in the placeholder look and, after flipping the look in place (F4), in the styled look. It also times the
-# frames of each look. The window is titled so nobody mistakes it for the game, never captures the mouse, and the
+# frames of each look. (Graphics checkpoint 2 adds the round 12b-17 cues to the scenario, several views and zoom levels,
+# a second scenario for the sealed map edge, and a contact sheet.) The window is titled so nobody mistakes it for the game, never captures the mouse, and the
 # process quits by itself.
 
 const TITLE := "PositiveFPS — RENDERING CHECKPOINT SCREENSHOTS (closes automatically)"
-const HARD_TIMEOUT := 60.0
+const HARD_TIMEOUT := 170.0
 const FAR := Vector3(31.0, 0.0, 31.0)
 # The ring of rescued people: centre, radius and how many. With these numbers the border has one gap (see stats).
 
-var out_dir: String = "res://design/renders/checkpoint_01"
+var out_dir: String = "res://design/renders/checkpoint_02"
 var stats_only: bool = false
 var ring_radius: float = 6.6
 var ring_count: int = 16
@@ -119,6 +120,7 @@ func _build_scenario() -> void:
 		_make_dark(people[first_grey + 5], gap_spot + out_dir_v * 3.2 + side * 2.2)
 		_make_dark(people[first_grey + 6], gap_spot + out_dir_v * 4.4 - side * 2.0)
 		main.player.global_position = gap_spot - out_dir_v * 3.0
+	_add_cues(first_grey)
 	# The floating joy numbers of the rescues would still be mid-air (their tweens run in real time): remove them.
 	for child: Node in main.get_children():
 		if child is Label3D:
@@ -128,6 +130,8 @@ func _build_scenario() -> void:
 	main.border._time = Config.BORDER_GAP_PULSE_SECONDS * 0.5
 	main.border._draw_lines()
 	main._update_light()
+	for p: Person in people:
+		p._update_visuals()
 
 
 # Marks slot stretch `k` of the border as a gap (a scripted state, see _build_scenario) and redraws the border.
@@ -147,6 +151,129 @@ func _make_dark(p: Person, at: Vector3) -> void:
 	p._update_visuals()
 
 
+# ---- Graphics checkpoint 2: the cues of rounds 12b-17 in the scenario -----------------------------------------------
+# Everything is placed relative to the player (the camera centre), spread so nothing overlaps at the default zoom.
+
+var spot_open := Vector3.ZERO
+var spot_closed := Vector3.ZERO
+var spot_shelter := Vector3.ZERO
+var guarded_open: Person
+var guarded_closed: Person
+var shield_pair: Array[Person] = []
+var worn_pair: Array[Person] = []
+var dim_hit: Person
+var falterer: Person
+
+
+func _add_cues(first: int) -> void:
+	var people := main.people
+	var at := main.player.global_position
+	for k: int in range(4):
+		people[first + k].mood = Person.Mood.NONE
+	# A guarded person facing the player (a shot would land: bright wedge) and one turned away (dim wedge).
+	spot_open = at + Vector3(-9.5, 0.0, 3.5)
+	spot_closed = at + Vector3(-5.0, 0.0, 8.0)
+	guarded_open = people[first + 7]
+	guarded_closed = people[first + 8]
+	_stand(guarded_open, spot_open, Person.Mood.GUARDED, at - spot_open)
+	_stand(guarded_closed, spot_closed, Person.Mood.GUARDED, spot_closed - at)
+	guarded_open.shooter_pos = at
+	guarded_closed.shooter_pos = at
+	# A skittish person and a glum one looking up.
+	_stand(people[first + 9], at + Vector3(9.0, 0.0, 6.5), Person.Mood.SKITTISH, Vector3(1.0, 0.0, 1.0))
+	_stand(people[first + 10], at + Vector3(4.5, 0.0, 8.5), Person.Mood.GLUM, Vector3(0.0, 0.0, -1.0))
+	people[first + 10].glum_up = true
+	# Two shields: a fresh one (a dimmed person and the wistful person they shelter) and one worn to the last hit.
+	spot_shelter = at + Vector3(-13.5, 0.0, -1.0)
+	shield_pair = _shelter(people[first + 11], people[first + 12], spot_shelter, 1)
+	worn_pair = _shelter(people[first + 13], people[first + 14], at + Vector3(-12.0, 0.0, 7.5), Config.SHELTER_HITS - 1)
+	# A faltering border member (the progress ring and the "!" badge) and a dimmed person hit by joy (their ring).
+	falterer = main.border.members[3] if main.border.members.size() > 3 else null
+	if falterer != null:
+		falterer.joy = falterer.joy_needed() * 0.45
+		main.border.faltering.append(falterer)
+	dim_hit = people[first + 4]
+	dim_hit.joy = dim_hit.joy_needed() * 0.4
+	main.spirit_meter.set_values(72.0, false, 0.0)
+
+
+# Places `p` at `spot`, facing `dir`, with `mood`.
+func _stand(p: Person, spot: Vector3, mood: int, dir: Vector3) -> void:
+	p.global_position = Vector3(spot.x, 0.0, spot.z)
+	p.gloom = 0.45
+	p.joy = 0.0
+	p.level = 1
+	p.mood = mood
+	p.mood_unlocked = true
+	p.rotation.y = atan2(-dir.x, -dir.z)
+	p._update_visuals()
+
+
+# A dimmed person at `spot` sheltering a wistful person beside them, the shield worn by `hits`. Returns [dimmed, ward].
+func _shelter(dimmed: Person, ward: Person, spot: Vector3, hits: int) -> Array[Person]:
+	_make_dark(dimmed, spot)
+	_stand(ward, spot + Vector3(1.4, 0.0, 0.5), Person.Mood.NONE, Vector3(-1.0, 0.0, 0.0))
+	dimmed.shelter_ward = ward
+	ward.shielder = dimmed
+	ward.sheltered = true
+	dimmed.shield_hits = hits
+	return [dimmed, ward]
+
+
+# The short-lived effects (a prompt, a blocked spark, a dim ring, the spirit moment) are real-time timers, so they are
+# lit again just before each shot.
+func _refresh_effects() -> void:
+	main.intro.enabled = true
+	main.intro.current = Intro.Prompt.GUARDED
+	main.intro.time_left = 2.0
+	main.intro.anchor = Vector3.INF
+	main.feedback.on_blocked(shield_pair[1], Person.Block.SHELTERED)
+	main.feedback.on_blocked(guarded_closed, Person.Block.GUARDED)
+	main.feedback.on_dim_joy(dim_hit)
+	main.spirit_meter.moment(Config.SPIRIT_PER_RESCUE, SpiritMeter.Moment.GAIN)
+	main.spirit_meter.moment(-Config.BURST_SPIRIT_COST, SpiritMeter.Moment.SPEND)
+	main.feedback.pulse_player(SpiritMeter.Moment.GAIN)
+
+
+# ---- The edge scenario: a loop pressed against the east edge of the map, so a stretch of it is sealed by the map -------
+
+
+func _build_edge_scenario() -> void:
+	var people := main.people
+	for p: Person in people:
+		p.global_position = FAR
+		p.gloom = 0.45
+		p.mood = Person.Mood.NONE
+	var centre := Vector3(32.0, 0.0, -6.0)
+	for i: int in range(20):
+		var a := TAU * float(i) / 20.0 + 0.3
+		var p := people[i]
+		p.gloom = 0.0
+		p.global_position = centre + Vector3(cos(a), 0.0, sin(a)) * 7.0
+		p.receive_joy(p.affinity, Config.JOY_MAX * 2.0, 0.0)
+	main.player.global_position = Vector3(42.0, 0.0, -2.0)
+	main.night.elapsed = Config.NIGHT_LENGTH * 0.5
+	for i: int in range(300):
+		main._process(1.0 / 60.0)
+	# Press the loop toward the east edge (the joy burst's shove), then let it settle.
+	for k: int in range(14):
+		main.border._push_at(0.0, Config.BORDER_SHOVE_AMOUNT / maxf(main.border._scale, 0.01))
+		for i: int in range(90):
+			main._process(1.0 / 60.0)
+	for i: int in range(600):
+		main._process(1.0 / 60.0)
+	var sealed := 0
+	for j: int in range(main.border.polygon.size()):
+		if main.border.is_sealed(j):
+			sealed += 1
+	print("SEALED segments=", sealed, " of ", main.border.polygon.size(), " members=", main.border.member_count)
+	main.running = false
+	main.border._time = Config.BORDER_GAP_PULSE_SECONDS * 0.5
+	for p: Person in people:
+		p._update_visuals()
+	main._update_light()
+
+
 func _print_stats() -> void:
 	var b := main.border
 	print("STATS members=", b.member_count, " gaps=", b.gap_count(), " rescued=", main.rescued_count)
@@ -161,37 +288,155 @@ func _print_stats() -> void:
 
 # ---- The shots ---------------------------------------------------------------------------------------------------
 
+# The views of the main scenario, in the order they are taken. "world" or "rect" says where to cut a close-up from the
+# 1280x720 window (a world point to centre on, or window pixels) and "scale" how much to enlarge it (nearest).
+var views: Array[Dictionary] = []
+# Every image taken: shots[view_name][look_name] = Image.
+var shots: Dictionary = {}
+var current_zoom: float = Config.TD_CAMERA_ORTHO_SIZE
+
+
+func _make_views() -> void:
+	views = [
+		{"name": "overview"},
+		{"name": "gap_closeup", "world": gap_spot, "size": Vector2i(426, 240), "scale": 3},
+		{"name": "wedge_closeup", "world": (spot_open + spot_closed) * 0.5, "size": Vector2i(426, 240), "scale": 3},
+		{"name": "shield_closeup", "world": spot_shelter + Vector3(0.0, 0.0, 4.0), "size": Vector2i(426, 240), "scale": 3},
+		{"name": "ui_closeup", "rect": Rect2i(300, 500, 680, 220), "scale": 2},
+		{"name": "minimap_closeup", "rect": Rect2i(10, 10, 270, 270), "scale": 3},
+		{"name": "zoom_min", "zoom": Config.TD_ZOOM_MIN},
+		{"name": "zoom_max", "zoom": Config.TD_ZOOM_MAX},
+	]
+
 
 func _take_shots() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
-	var shots: Dictionary = {}
+	_make_views()
+	for mode: int in [Looks.Mode.PLACEHOLDER, Looks.Mode.STYLED]:
+		if Looks.mode != mode:
+			main.set_look(mode)
+		var label := Looks.mode_name().to_lower()
+		await _set_zoom(Config.TD_CAMERA_ORTHO_SIZE)
+		await _settle(12)
+		var frame_ms := await _time_frames(90)
+		timings[label] = frame_ms
+		main.feedback.visible = false
+		main.spirit_meter.visible = false
+		main.prompts.visible = false
+		main.arrows.visible = false
+		timings[label + "_no_overlays"] = await _time_frames(90)
+		main.feedback.visible = true
+		main.spirit_meter.visible = true
+		main.prompts.visible = true
+		main.arrows.visible = true
+		for view: Dictionary in views:
+			var view_name: String = view["name"]
+			var zoom: float = view.get("zoom", Config.TD_CAMERA_ORTHO_SIZE)
+			await _set_zoom(zoom)
+			_refresh_effects()
+			var full := await _grab()
+			_save(view_name, label, _cut(full, view))
+		print("TIMING ", label, " ", snappedf(frame_ms, 0.01), " ms/frame, fallback=", Looks.placeholder_fallback_count())
+	# The sealed map edge: a second level with its loop pressed against the east edge.
+	await _set_zoom(Config.TD_CAMERA_ORTHO_SIZE)
+	main.queue_free()
+	await get_tree().process_frame
+	main = (load("res://topdown.tscn") as PackedScene).instantiate()
+	add_child(main)
+	await get_tree().process_frame
+	_build_edge_scenario()
 	for mode: int in [Looks.Mode.PLACEHOLDER, Looks.Mode.STYLED]:
 		if Looks.mode != mode:
 			main.set_look(mode)
 		var label := Looks.mode_name().to_lower()
 		await _settle(12)
-		var frame_ms := await _time_frames(90)
-		timings[label] = frame_ms
 		var full := await _grab()
-		shots[label] = full
-		full.save_png(ProjectSettings.globalize_path("%s/overview_%s.png" % [out_dir, label]))
-		var close := _closeup(full)
-		close.save_png(ProjectSettings.globalize_path("%s/gap_closeup_%s.png" % [out_dir, label]))
-		shots[label + "_close"] = close
-		print("TIMING ", label, " ", snappedf(frame_ms, 0.01), " ms/frame, fallback=", Looks.placeholder_fallback_count())
-	var styled: Image = shots["styled"]
-	styled.save_png(ProjectSettings.globalize_path("%s/overview.png" % out_dir))
-	var styled_close: Image = shots["styled_close"]
-	styled_close.save_png(ProjectSettings.globalize_path("%s/gap_closeup.png" % out_dir))
-	var compare := Image.create(2560, 720, false, Image.FORMAT_RGBA8)
-	var left: Image = shots["placeholder"]
-	compare.blit_rect(left, Rect2i(0, 0, 1280, 720), Vector2i(0, 0))
-	compare.blit_rect(styled, Rect2i(0, 0, 1280, 720), Vector2i(1280, 0))
-	compare.save_png(ProjectSettings.globalize_path("%s/compare.png" % out_dir))
+		_save("sealed_edge", label, full)
+		_save("sealed_minimap", label, _cut(full, {"rect": Rect2i(10, 10, 270, 270), "scale": 3}))
+	_write_sheets()
 	var f := FileAccess.open(ProjectSettings.globalize_path("%s/timings.txt" % out_dir), FileAccess.WRITE)
 	f.store_string(JSON.stringify(timings))
 	f.close()
 	print("SAVED ", out_dir)
+
+
+# Eases the camera to the ortho size `size` (the mouse wheel's target) and waits for it to arrive.
+func _set_zoom(size: float) -> void:
+	if is_equal_approx(current_zoom, size):
+		return
+	current_zoom = size
+	main._zoom_target = size
+	await _settle(100)
+
+
+func _save(view_name: String, label: String, img: Image) -> void:
+	if not shots.has(view_name):
+		shots[view_name] = {}
+	var by_look: Dictionary = shots[view_name]
+	by_look[label] = img
+	img.save_png(ProjectSettings.globalize_path("%s/%s_%s.png" % [out_dir, view_name, label]))
+
+
+# The close-up `view` describes (or the whole window).
+func _cut(full: Image, view: Dictionary) -> Image:
+	var scale_by: int = view.get("scale", 1)
+	var rect := Rect2i(0, 0, 1280, 720)
+	if view.has("world"):
+		var w: Vector3 = view["world"]
+		var size: Vector2i = view["size"]
+		var sp := main.world_to_screen(Vector3(w.x, 1.0, w.z))
+		var x := clampi(int(sp.x) - size.x / 2, 0, 1280 - size.x)
+		var y := clampi(int(sp.y) - size.y / 2, 0, 720 - size.y)
+		rect = Rect2i(x, y, size.x, size.y)
+	elif view.has("rect"):
+		rect = view["rect"]
+	var crop := full.get_region(rect)
+	if scale_by > 1:
+		crop.resize(rect.size.x * scale_by, rect.size.y * scale_by, Image.INTERPOLATE_NEAREST)
+	return crop
+
+
+# contact_sheet.png: the styled views in a grid; contact_sheet_compare.png: placeholder and styled side by side.
+func _write_sheets() -> void:
+	var names: Array[String] = []
+	for key: String in shots.keys():
+		names.append(key)
+	var cols := 3
+	var cell := Vector2i(640, 360)
+	var rows := ceili(float(names.size()) / float(cols))
+	var sheet := Image.create(cell.x * cols, cell.y * rows, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color(0.1, 0.09, 0.12))
+	for i: int in range(names.size()):
+		var by_look: Dictionary = shots[names[i]]
+		var styled_img: Image = by_look["styled"]
+		_fit(styled_img, sheet, Vector2i((i % cols) * cell.x, (i / cols) * cell.y), cell)
+	sheet.save_png(ProjectSettings.globalize_path("%s/contact_sheet.png" % out_dir))
+	var pair_names: Array[String] = ["overview", "wedge_closeup", "shield_closeup", "ui_closeup", "sealed_edge", "zoom_max"]
+	var compare := Image.create(cell.x * 2, cell.y * pair_names.size(), false, Image.FORMAT_RGBA8)
+	compare.fill(Color(0.1, 0.09, 0.12))
+	for i: int in range(pair_names.size()):
+		var by_look: Dictionary = shots[pair_names[i]]
+		var plain_img: Image = by_look["placeholder"]
+		var styled_img: Image = by_look["styled"]
+		_fit(plain_img, compare, Vector2i(0, i * cell.y), cell)
+		_fit(styled_img, compare, Vector2i(cell.x, i * cell.y), cell)
+	compare.save_png(ProjectSettings.globalize_path("%s/contact_sheet_compare.png" % out_dir))
+	var both := Image.create(2560, 720, false, Image.FORMAT_RGBA8)
+	var over: Dictionary = shots["overview"]
+	var left: Image = over["placeholder"]
+	var right: Image = over["styled"]
+	both.blit_rect(left, Rect2i(0, 0, 1280, 720), Vector2i(0, 0))
+	both.blit_rect(right, Rect2i(0, 0, 1280, 720), Vector2i(1280, 0))
+	both.save_png(ProjectSettings.globalize_path("%s/compare.png" % out_dir))
+	right.save_png(ProjectSettings.globalize_path("%s/overview.png" % out_dir))
+
+
+# Scales `src` to fit the cell (keeping its shape) and puts it at `at` on `dst`.
+func _fit(src: Image, dst: Image, at: Vector2i, cell: Vector2i) -> void:
+	var img := src.duplicate() as Image
+	var k := minf(float(cell.x) / float(img.get_width()), float(cell.y) / float(img.get_height()))
+	img.resize(maxi(1, int(img.get_width() * k)), maxi(1, int(img.get_height() * k)), Image.INTERPOLATE_LANCZOS)
+	dst.blit_rect(img, Rect2i(0, 0, img.get_width(), img.get_height()), at)
 
 
 func _settle(frames: int) -> void:
@@ -213,15 +458,3 @@ func _time_frames(frames: int) -> float:
 	for i: int in range(frames):
 		await get_tree().process_frame
 	return float(Time.get_ticks_usec() - t0) / 1000.0 / float(frames)
-
-
-# A 3x nearest-neighbour zoom of the part of the screen round the gap.
-func _closeup(full: Image) -> Image:
-	var sp := main.world_to_screen(Vector3(gap_spot.x, 1.0, gap_spot.z))
-	var w := 426
-	var h := 240
-	var x := clampi(int(sp.x) - w / 2, 0, 1280 - w)
-	var y := clampi(int(sp.y) - h / 2, 0, 720 - h)
-	var crop := full.get_region(Rect2i(x, y, w, h))
-	crop.resize(w * 3, h * 3, Image.INTERPOLATE_NEAREST)
-	return crop

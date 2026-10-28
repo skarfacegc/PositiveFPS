@@ -78,12 +78,21 @@ static func off_screen_arrows(
 	return out
 
 
+# The look was swapped (F4): draw again in the new style.
+func rebuild_look() -> void:
+	queue_redraw()
+
+
 func _draw() -> void:
 	for arrow: Dictionary in arrows:
 		var pos: Vector2 = arrow["pos"]
 		var angle: float = arrow["angle"]
 		var urgency: float = arrow.get("urgency", 0.0)
 		var col := arrow_colour(urgency, _clock, _alpha)
+		# Graphics checkpoint 2: the styled arrow is a pixel pointer with an ink edge (see StyleHud).
+		if Looks.is_styled():
+			StyleHud.draw_arrow(self, pos, angle, Config.OFFSCREEN_ARROW_SIZE * (1.0 + 0.6 * urgency), col)
+			continue
 		var fwd := Vector2(cos(angle), sin(angle))
 		var side := Vector2(-fwd.y, fwd.x)
 		var k := Config.OFFSCREEN_ARROW_SIZE * (1.0 + 0.6 * urgency)

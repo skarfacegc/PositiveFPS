@@ -228,6 +228,11 @@ func set_look(new_mode: int) -> void:
 	for p: Person in people:
 		p.rebuild_look()
 	minimap.rebuild_look()
+	# Graphics checkpoint 2: the screen-space UI has a styled drawing too.
+	feedback.rebuild_look()
+	spirit_meter.rebuild_look()
+	prompts.rebuild_look()
+	arrows.rebuild_look()
 	pipeline.apply(self)
 	if debug_on:
 		_update_debug_hint()

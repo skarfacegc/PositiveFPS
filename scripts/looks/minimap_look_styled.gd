@@ -43,6 +43,17 @@ func line_colour(is_gap: bool) -> Color:
 	return Color("#e2402f") if is_gap else Color("#ffd24a")
 
 
+# Round 16: the stretch closed by the map edge is a thicker, deeper honey line (the same honey as the world look's
+# sealed
+# band), so it reads as a wall the map itself builds, apart from the gold line of people.
+func seal_colour() -> Color:
+	return Color("#d98a1f")
+
+
+func seal_width() -> int:
+	return 2
+
+
 func member_colour() -> Color:
 	return Color("#fff3c4")
 

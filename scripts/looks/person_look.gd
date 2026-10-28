@@ -286,9 +286,32 @@ func _build_grab_ring() -> void:
 	grab_ring.material_override = _grab_mat
 	grab_ring.visible = false
 	add_child(grab_ring)
-	# The ring is a loose placeholder in the styled look too (see Looks.note_placeholder).
-	if is_styled():
-		Looks.note_placeholder(grab_ring, "grab warning ring")
+	_style_grab_ring()
+
+
+# Graphics checkpoint 2: the cues on the ground (the grab ring, the guarded wedge, the glum glint, the stage ripple)
+# are styled by the styled look through these hooks; the placeholder keeps its plain shapes (they do nothing here).
+func _style_grab_ring() -> void:
+	pass
+
+
+# Sets the grab ring's look for this frame: `col` (alpha already follows the wind-up), `frac` 0 to 1, `radius` in
+# metres.
+func _show_grab(col: Color, _frac: float, _radius: float) -> void:
+	_grab_mat.albedo_color = col
+
+
+func _style_glint() -> void:
+	pass
+
+
+func _style_guard_wedge() -> void:
+	pass
+
+
+# Sets the wedge's colour for this frame: brighter while a shot from the player would land (`open`).
+func _show_wedge(open: bool) -> void:
+	wedge_mat.albedo_color = Config.GUARDED_WEDGE_OPEN_COLOUR if open else Config.GUARDED_WEDGE_COLOUR
 
 
 # The grab cue (round 12a): during the wind-up the body leans back and a red ring grows at the feet toward the player;
@@ -312,7 +335,7 @@ func _update_grab_cue() -> void:
 	grab_ring.position = Vector3(local.x, 0.05, local.z) * (Config.GRAB_HIT_RANGE * 0.5 * frac)
 	var col := Config.GRAB_RING_COLOUR
 	col.a = lerpf(0.25, 0.7, frac)
-	_grab_mat.albedo_color = col
+	_show_grab(col, frac, radius)
 
 
 # Round 12b: the mood tells, drawn over the body in both looks. Skittish: a small
@@ -342,8 +365,7 @@ func _build_mood_parts() -> void:
 	glint.material_override = glint_mat
 	glint.visible = false
 	visual.add_child(glint)
-	if is_styled():
-		Looks.note_placeholder(glint, "glum look-up glint")
+	_style_glint()
 
 
 # Round 17: the wedge's outline in the person's own frame (forward is -Z): the centre is the origin, then points along
@@ -386,8 +408,7 @@ func _build_guard_wedge() -> void:
 	guard_wedge.material_override = wedge_mat
 	guard_wedge.visible = false
 	add_child(guard_wedge)
-	if is_styled():
-		Looks.note_placeholder(guard_wedge, "guarded open-side wedge")
+	_style_guard_wedge()
 
 
 # Round 17: shows the wedge while the person is guarded (never for rescued or dimmed people), brighter while a shot
@@ -396,7 +417,7 @@ func _update_guard_wedge() -> void:
 	var guarded := subject.active_mood() == Person.Mood.GUARDED
 	guard_wedge.visible = guarded
 	wedge_open = guarded and subject.shot_lands_now()
-	wedge_mat.albedo_color = Config.GUARDED_WEDGE_OPEN_COLOUR if wedge_open else Config.GUARDED_WEDGE_COLOUR
+	_show_wedge(wedge_open)
 
 
 # Round 12b: a flat ring that spreads out from the feet and fades (the stage-change ripple). Placeholder in both looks.
@@ -415,8 +436,6 @@ func play_ripple(color: Color) -> void:
 	ring.scale = Vector3.ONE * 0.3
 	ring.add_to_group("stage_ripple")
 	add_child(ring)
-	if is_styled():
-		Looks.note_placeholder(ring, "stage ripple")
 	var t := create_tween()
 	t.set_parallel(true)
 	t.tween_property(ring, "scale", Vector3.ONE * Config.STAGE_RIPPLE_RADIUS, Config.STAGE_RIPPLE_SECONDS)

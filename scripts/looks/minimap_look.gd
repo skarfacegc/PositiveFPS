@@ -23,6 +23,17 @@ func line_colour(_is_gap: bool) -> Color:
 	return Color.WHITE
 
 
+# Round 16: the colour of a stretch of the loop sealed by the map edge. The placeholder draws it like any intact
+# stretch.
+func seal_colour() -> Color:
+	return line_colour(false)
+
+
+# How many picture pixels thick a sealed stretch is drawn (1 = like the rest of the line).
+func seal_width() -> int:
+	return 1
+
+
 func member_colour() -> Color:
 	return Color.WHITE
 

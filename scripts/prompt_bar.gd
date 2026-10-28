@@ -61,9 +61,20 @@ func _place(screen: Rect2) -> Rect2:
 	return Rect2(pos, size)
 
 
+# The look was swapped (F4): draw again in the new style.
+func rebuild_look() -> void:
+	queue_redraw()
+
+
 func _draw() -> void:
 	if alpha <= 0.0 or text == "":
 		return
+	# Graphics checkpoint 2: the styled bar is an opaque parchment panel that fades with its self_modulate.
+	if Looks.is_styled():
+		self_modulate = Color(1.0, 1.0, 1.0, alpha)
+		StyleHud.draw_prompt(self, _rect, text, icon)
+		return
+	self_modulate = Color.WHITE
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.08, 0.07, 0.12, 0.78 * alpha)
 	style.set_corner_radius_all(int(HEIGHT * 0.5))

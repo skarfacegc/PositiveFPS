@@ -6,13 +6,18 @@ uniform float strength = 0.3;
 uniform float gap_pulse = 0.0;
 const float M4[16] = float[16](0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.);
 void fragment() {
-	float lat = abs(UV.x);
+	// Round 16: UV2.y = how much of the stretch is sealed by the map edge (1 sealed). A sealed stretch is a narrower, steady
+	// band (no shimmer) with a solid honey core line, so it reads as a wall the map itself builds.
+	float sealed = UV2.y;
+	float lat = abs(UV.x) * mix(1.0, 1.5, sealed);
 	float a = pow(max(1.0 - lat, 0.0), 1.0) * COLOR.a * strength;
 	a *= 1.0 + gap_pulse * UV2.x * 2.6;
-	a *= 0.7 + 0.3 * sin(UV.y * 2.1 + sin(UV.y * 0.63) * 2.5);
+	a *= mix(0.7 + 0.3 * sin(UV.y * 2.1 + sin(UV.y * 0.63) * 2.5), 1.0, sealed);
+	float core = step(abs(UV.x), 0.13) * sealed;
+	a = max(a, core * 0.95);
 	int x = int(mod(FRAGCOORD.x, 4.0));
 	int y = int(mod(FRAGCOORD.y, 4.0));
 	float b = (M4[y * 4 + x] + 0.5) / 16.0;
 	if (b > a) discard;
-	ALBEDO = COLOR.rgb;
+	ALBEDO = mix(COLOR.rgb, vec3(1.0, 0.86, 0.5), core * 0.7);
 }
