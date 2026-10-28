@@ -17,7 +17,7 @@ the look in place (F4), in the styled look:
 
 Needs a real window (no headless): it is titled "PositiveFPS - RENDERING CHECKPOINT SCREENSHOTS (closes automatically)",
 never captures the mouse and quits by itself (hard limit 170 s here, 200 s for this script). The Godot executable is the
-non-console one next to the console one used by run_tests.py (the GODOT_GUI environment variable overrides it).
+non-console one next to the console one used by run_tests.py (tools/godot_path.py; GODOT_GUI overrides it).
 Only the Python standard library is used.
 """
 import argparse
@@ -25,12 +25,10 @@ import os
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from godot_path import godot_gui  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_GODOT_GUI = (
-    r"C:\Users\amw1\AppData\Local\Microsoft\WinGet\Packages"
-    r"\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe"
-    r"\Godot_v4.7.2-stable_win64.exe"
-)
 VIEWS = ["overview", "gap_closeup", "wedge_closeup", "shield_closeup", "ui_closeup", "minimap_closeup", "zoom_min",
          "zoom_max", "sealed_edge", "sealed_minimap"]
 EXPECTED = (["overview.png", "compare.png", "contact_sheet.png", "contact_sheet_compare.png", "timings.txt"]
@@ -42,9 +40,10 @@ def main():
     parser.add_argument("--out", default=os.path.join("design", "renders", "checkpoint_02"))
     args = parser.parse_args()
     out_abs = os.path.abspath(os.path.join(ROOT, args.out))
-    exe = os.environ.get("GODOT_GUI", DEFAULT_GODOT_GUI)
-    if not os.path.exists(exe):
-        print("ERROR: Godot executable not found: " + exe, file=sys.stderr)
+    exe = godot_gui()
+    if not exe or not os.path.exists(exe):
+        print("ERROR: Godot 4.7.2 not found (%s). Set GODOT_GUI or GODOT to the executable." % (exe or "no path"),
+              file=sys.stderr)
         return 2
     os.makedirs(out_abs, exist_ok=True)
     env = dict(os.environ, POSITIVEFPS_TEST="1")

@@ -2,7 +2,8 @@ extends Node
 # Renders the style samples. Internal pixel resolution 640x360, nearest-upscaled 3x to 1920x1080.
 
 const TITLE := "PositiveFPS — RENDERING STYLE SAMPLES (closes automatically)"
-const OUT := "C:/Users/amw1/OneDrive/Documents/Development/PositiveFPS/design/renders/"
+# The renders go to the repo's design/renders (this project is design/style_test, one folder down), whatever the checkout.
+var OUT: String = ProjectSettings.globalize_path("res://../renders").simplify_path() + "/"
 const W := 640
 const H := 360
 var sv: SubViewport
