@@ -41,6 +41,8 @@ for _stream in (sys.stdout, sys.stderr):  # the console may be cp1252; never fai
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PYTHON = sys.executable or "python"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from run_tests import PARALLEL_PART_ENV, PARALLEL_PART_NOTICE  # noqa: E402  (one definition, shared with run_tests)
 
 # What the gate depends on. A path is part of the fingerprint when it matches one of these...
 INCLUDE_PREFIXES = ("scripts/", "tests/", "tools/", ".githooks/")
@@ -94,8 +96,8 @@ def load_cache():
         return {}
 
 
-def save_cache(print_, level, fp, summary):
-    entry = {"fingerprint": fp, "level": level, "summary": summary,
+def save_cache(print_, level, fp, summary, perf_skipped=False):
+    entry = {"fingerprint": fp, "level": level, "summary": summary, "perf_skipped": perf_skipped,
              "when": datetime.datetime.now().isoformat(timespec="seconds")}
     try:
         with open(cache_path(), "w", encoding="utf-8") as fh:
@@ -104,11 +106,15 @@ def save_cache(print_, level, fp, summary):
         print_("could not write the gate cache (%s); the next run will not be cached" % err)
 
 
-def cached_summary(fp, level):
+def cached_summary(fp, level, perf_skip=False):
+    """The cached summary of a pass for this exact code, or None. A pass that skipped the timing pass (a parallel part
+    agent) only answers for a request that also skips it; an enforcing pass answers for both."""
     entry = load_cache().get("last_pass")
     if not entry or entry.get("fingerprint") != fp:
         return None
     if LEVELS.index(entry.get("level", "tests")) < LEVELS.index(level):
+        return None
+    if entry.get("perf_skipped", False) and not perf_skip:
         return None
     return entry.get("summary")
 
@@ -120,10 +126,10 @@ def baseline_staged():
         return False
 
 
-def run_step(cmd, log):
+def run_step(cmd, log, env=None):
     """Runs a command with its output going to `log`. Returns (exit code, output text)."""
     with open(log, "w", encoding="utf-8", errors="replace") as fh:
-        proc = subprocess.run(cmd, cwd=ROOT, stdout=fh, stderr=subprocess.STDOUT)
+        proc = subprocess.run(cmd, cwd=ROOT, stdout=fh, stderr=subprocess.STDOUT, env=env)
     with open(log, encoding="utf-8", errors="replace") as fh:
         return proc.returncode, fh.read()
 
@@ -147,6 +153,11 @@ def main():
 
     full = args.full or (args.hook and baseline_staged())
     level = "full" if full else "tests"
+    # A parallel part agent skips the serial timing pass in the plain tier only. --full always enforces it.
+    perf_skip = (not full) and os.environ.get(PARALLEL_PART_ENV) == "1"
+    child_env = dict(os.environ)
+    if full:
+        child_env.pop(PARALLEL_PART_ENV, None)
     try:
         fp = fingerprint()
     except (OSError, subprocess.CalledProcessError) as err:
@@ -154,16 +165,18 @@ def main():
         fp = None
 
     if fp and not args.no_cache:
-        summary = cached_summary(fp, level)
+        summary = cached_summary(fp, level, perf_skip)
         if summary:
             say("gate already passed for this exact code (cached) — %s" % summary)
             return 0
+    if perf_skip:
+        say(PARALLEL_PART_NOTICE)
 
     started = time.time()
     log_dir = tempfile.mkdtemp(prefix="positivefps-gate-")
 
     say("lint (tools/lint.py)")
-    code, out = run_step([PYTHON, os.path.join("tools", "lint.py")], os.path.join(log_dir, "lint.log"))
+    code, out = run_step([PYTHON, os.path.join("tools", "lint.py")], os.path.join(log_dir, "lint.log"), child_env)
     if code != 0:
         say("FAILED lint. Run: python tools/lint.py --fix   (then re-stage and commit again)")
         print(out)
@@ -176,13 +189,13 @@ def main():
         say("tests (tools/run_tests.py)")
         cmd = [PYTHON, os.path.join("tools", "run_tests.py")]
     log = os.path.join(log_dir, "tests.log")
-    code, out = run_step(cmd, log)
+    code, out = run_step(cmd, log, child_env)
     if code == 0 and full:
         # The coverage run does not time the timing tests (test_perf_*, instrumented and in parallel they are noisy).
         # Run them now, alone and plain, with their budgets enforced. The plain run above already did this itself.
         say("timing tests, serial and uninstrumented (tools/run_tests.py --perf-only)")
         code, perf_out = run_step([PYTHON, os.path.join("tools", "run_tests.py"), "--perf-only"],
-                                  os.path.join(log_dir, "perf.log"))
+                                  os.path.join(log_dir, "perf.log"), child_env)
         if code != 0:
             say("FAILED timing tests (log: %s)" % os.path.join(log_dir, "perf.log"))
             print("\n".join(key_lines(perf_out)))
@@ -206,8 +219,10 @@ def main():
     else:
         summary = "%s tests passed (coverage ratchet not run; use --full)" % n_tests
     elapsed = time.time() - started
+    if perf_skip:
+        summary += " (timing pass skipped: parallel part)"
     if fp:
-        save_cache(say, level, fp, summary)
+        save_cache(say, level, fp, summary, perf_skip)
     say("OK in %.0f s: %s" % (elapsed, summary))
     return 0
 

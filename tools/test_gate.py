@@ -145,6 +145,33 @@ finally:
         os.remove(saved_file)
 
 
+# --- Parallel part opt-out (POSITIVEFPS_PARALLEL_PART=1): the timing pass is skipped, and that must not be cached as a
+# full pass. No Godot here. ---
+real_load_cache = gate.load_cache
+try:
+    skipped = {"last_pass": {"fingerprint": "fp-x", "level": "tests", "summary": "S", "perf_skipped": True}}
+    enforced = {"last_pass": {"fingerprint": "fp-x", "level": "tests", "summary": "E", "perf_skipped": False}}
+    gate.load_cache = lambda: skipped
+    expect("a skipped-timing pass answers a request that also skips it",
+           gate.cached_summary("fp-x", "tests", True), "S")
+    expect("a skipped-timing pass does not answer the default tier", gate.cached_summary("fp-x", "tests", False), None)
+    gate.load_cache = lambda: enforced
+    expect("an enforcing pass answers the default tier", gate.cached_summary("fp-x", "tests", False), "E")
+    expect("an enforcing pass also answers a skipping request", gate.cached_summary("fp-x", "tests", True), "E")
+    expect("a tests pass never answers --full", gate.cached_summary("fp-x", "full", False), None)
+finally:
+    gate.load_cache = real_load_cache
+
+perf_free = [{"file": suite, "name": name, "ok": True, "messages": [], "time": 0.0}
+             for suite, names in run_tests.discover_tests(gate.ROOT).items()
+             for name in names if not name.startswith(run_tests.PERF_PREFIX)]
+expect("the integrity check accepts a run without timing tests when they are skipped",
+       run_tests.integrity_problems(gate.ROOT, perf_free, [], skip_perf=True), [])
+expect("the integrity check still expects the timing tests otherwise",
+       len(run_tests.integrity_problems(gate.ROOT, perf_free, [], skip_perf=False)) > 0, True)
+expect("the skip notice names the coordinator's gate", "gate --full" in run_tests.PARALLEL_PART_NOTICE, True)
+
+
 if failures:
     print("test_gate: FAILED")
     for line in failures:
