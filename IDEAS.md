@@ -1072,3 +1072,70 @@ The target feel for the late night is *hard but winnable*.
 2. Hover targeting: short stickiness only (about 0.2 s), then switch to whoever is under or nearest the cursor.
 3. Dimmed arrivals: `DIM_ARRIVAL_MIN_GAP` goes from 6 s to 9 s.
 4. Umbrella unchanged.
+
+## Round 17 build (2026-10-28)
+
+**Built (placeholder look only; styled look and checkpoint screenshots untouched):**
+1. **Guarded wedge.** A flat translucent fan on the ground at each guarded person's feet, centred on their facing and
+   spanning `GUARDED_ARC_DEG` (110) either side of it, radius `GUARDED_WEDGE_RADIUS` (2.0 m). It is the same arc
+   `Person.is_open_to` uses, so its edges are the rule's edges. It brightens (`GUARDED_WEDGE_OPEN_COLOUR`) while a shot
+   from the player would land (`Person.shot_lands_now()`). Hidden unless the person is guarded.
+2. **Slower guarded turn.** `GUARDED_TURN_SPEED` 0.8 -> 0.45 rad/s.
+3. **Hover stickiness.** A held target is kept for at most `HOVER_STICK_SECONDS` (0.2 s) after the cursor stops being over
+   or nearest to it. A person directly under the cursor (within `HOVER_DIRECT_RADIUS`, 1.0 m) takes over at once.
+   Empty ground nearer someone else switches after 0.2 s; nobody under the cursor clears the target after 0.2 s.
+4. **Dimmed arrivals.** `DIM_ARRIVAL_MIN_GAP` 6 s -> 9 s.
+
+**Cause of the hover fixation (before):** `TopDownPlayer._update_target` (`scripts/topdown_player.gd`). In hover mode the
+pick (`_nearest_valid`) ran only when there was no target, so a held target was never checked against the cursor again.
+It was kept until F2, or until it stopped being eligible or went beyond `TD_LOCK_BREAK_RANGE` (14 m). Round 14 made hover
+sticky on purpose; round 17 keeps the stickiness but gives it a 0.2 s limit.
+
+**Tests:**
+- `tests/hover_stick_test.gd` (new, input-driven: real mouse motion): switch at once onto a person under the cursor;
+  nearer empty ground switches after 0.2 s but not before (checked at 0.17 s and 0.27 s); a wobble off and back within
+  0.2 s keeps the target; a longer wobble clears it.
+- `tests/guarded_wedge_test.gd` (new, rule and frame): the wedge shows only while guarded (and hides when rescued); its
+  edges are exactly +/-`GUARDED_ARC_DEG` from the facing and its radius is `GUARDED_WEDGE_RADIUS`; the edges match
+  `is_open_to` at the boundary; it follows the facing as the person is turned; the open-side colour matches
+  `shot_lands_now()` and `is_open_to` for front, side, edge, past-edge and behind; one frame of turning is 0.45 rad/s.
+- `tests/moods_test.gd` (updated, input-driven): the hover follows the guarded person while the test waits; the run-round
+  test runs a square with WASD until joy lands (cap 1800 frames).
+- `tests/targeting_test.gd` (updated): the old "a held target is not changed by the mouse moving onto someone else"
+  assertion is inverted to the new rule (switches at once).
+- `tests/stagger_test.gd` (updated): the gap is 9 s (asserted equal to 9.0); six sinks need a 60 s wait (was 45 s).
+- `tests/shelter_nearest_test.gd`, `tests/shield_test.gd` (updated): see below.
+- `tests/local_gap_test.gd` (comment only: 6 s -> 9 s).
+
+**Changed existing tests, explicitly (nothing loosened to make a test pass):**
+- `moods_test` guarded tests: the wait now re-hovers on the guarded person (the held target now drops when the cursor is
+  left on empty ground). The square run is a loop with a cap instead of a fixed 66 + 30 frames (the turn is slower). The
+  final "eventually they turn their back" check is now the rule (`is_open_to(player)` is false) instead of a rising
+  glance count. The old glance check could not run: the player had left auto range, so no shots were fired.
+- `shelter_nearest_test`: the pointer follows the far and near people while they wander; the F2 cycle that used to drop
+  the target was removed; `_arrange` opens the midnight gate. The first phase needed the re-hover: without it the cursor
+  drifted onto the dimmed person and rescued them.
+- `shield_test`: `_arrange` opens the midnight gate (the 9 s gap would otherwise hold the dimmed person back).
+- No assertion on a timing budget (`test_perf_*`) was touched.
+- `coverage_baseline.json`: re-recorded (the numbers are unchanged from round 16; `topdown_player.gd` stays at 100%).
+
+**Gate:** `gate.py --full` passed twice (the second run after one small change: `_nearest_hover` folds its freed-node
+guard into one condition, because a separate `continue` line was never hit). `coverage.py --check-determinism` OK (both
+runs hit the same lines). 359 tests, line coverage 99.7%.
+
+**Playtest questions:**
+- The wedge is +/-110 degrees either side of the facing (a 220-degree open side, with a 140-degree closed back). If the
+  intent was a 110-degree wedge in total, change `GUARDED_ARC_DEG` only if the rule should change too; the wedge follows the rule.
+- Does the open-side brightening read as "a shot lands now"? Does a 2 m radius read at zoom 19.5 (default) and when zoomed?
+- Is 0.2 s of hover stick right, or does it switch too readily when wanderers drift off the cursor? Is 1.0 m right for
+  "directly under"?
+- Does 9 s between dimmed arrivals feel like the late night is hard but winnable?
+
+**Rough spots:**
+- Nothing was viewed on screen. The wedge colour, alpha and radius are checked by numbers only; no game window was run and
+  no checkpoint screenshots were taken (per the brief).
+- The wedge lives in the shared `PersonLook` base (like the glint), so it also appears in the styled look, unrestyled
+  (registered with `Looks.note_placeholder`). It has not been looked at in styled mode.
+- Hover can now switch to a dimmed person when the cursor drifts near them as a wistful target wanders (the nearest rule).
+  This is the intended new rule, but it is a new way to shoot a dimmed person by accident.
+- The turning test measures one frame of the turn, not a long turn.
