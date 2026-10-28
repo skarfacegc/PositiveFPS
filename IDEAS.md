@@ -1139,3 +1139,35 @@ runs hit the same lines). 359 tests, line coverage 99.7%.
 - Hover can now switch to a dimmed person when the cursor drifts near them as a wistful target wanders (the nearest rule).
   This is the intended new rule, but it is a new way to shoot a dimmed person by accident.
 - The turning test measures one frame of the turn, not a long turn.
+
+
+## Graphics checkpoint 2 (2026-10-28)
+Brought the styled look up to round 17. Gameplay rules unchanged; styled stays a visual test (the menu note is unchanged).
+
+**Audit (styled look lacked, or showed the plain placeholder):** guarded wedge (round 17, was the shared placeholder fan);
+grab warning ring (12a); glum glint (12b); stage ripple (12b); mood icons incl. the round 15 umbrella wear; faltering
+feet ring, progress ring and "!" badge; the round 14 dimmed progress ring; sheltering tethers and snaps; leak motes;
+blocked-hit sparks; player pulse rings; "closed" flash; spirit meter, ticks, twirl ring and moments; prompt bar; gap arrows;
+the round 16 sealed map edge (world and minimap). Already styled: the dimmed aura (smoke in the dark body), gaps, border.
+
+**Styled:**
+- Wedge: ordered-dither honey fan, solid ink pixel edge, cream rim; open (a shot would land) is denser with a whiter rim.
+- Grab ring and ripple: dithered coral / violet rings with ink edge and rim. Glint: gold four-point sparkle.
+- Icons: hand-made 11x11 pixel bitmaps (shield with cross, feet, rain cloud, umbrella, "!") with automatic ink outline and
+  shading on a ringed round badge; cells are one pixel of the 640x360 view. The umbrella shows wear as holes (and fades
+  to 0.6, not 0.35, so it stays readable).
+- Feedback overlays, spirit meter (parchment frame, amber fill with light/dark rows, dithered head, pixel ticks, moon),
+  prompt bar (parchment panel, ink text) and gap arrows (ink-edged pointer) are drawn in pixel cells.
+- Sealed map edge: narrower steady honey band with a solid core line and a few low motes; minimap draws it thicker, deeper honey.
+
+**Left as placeholder, and why:** target highlight, HUD labels and ProgressBars, landmark label, burst ring, projectiles,
+blooms and joy numbers: not in this checkpoint's brief (they were already listed after checkpoint 1).
+
+**Screenshots:** `design/renders/checkpoint_02/` (both looks): `overview`, `gap_closeup`, `wedge_closeup`, `shield_closeup`,
+`ui_closeup`, `minimap_closeup`, `zoom_min` (14), `zoom_max` (26), `sealed_edge`, `sealed_minimap`, `compare.png`,
+`contact_sheet.png` (styled), `contact_sheet_compare.png`, `timings.txt`.
+
+**Rough spots:** styled frame cost with every overlay lit at once is about 6.6 ms vs 2.2 ms placeholder (overlay drawing is
+about 3 ms of it; typical play shows far fewer cues). The sealed edge on the minimap sits on the circle's rim, so it is
+hard to see there. Worn umbrella is still the faintest icon. `looks_cues_test.gd` is a new suite because `looks_test.gd`
+hit the 20-public-method lint cap.

@@ -55,7 +55,17 @@ mode moves the camera into a 640x360 SubViewport that shares the world, with nea
   `camera.project_ray_*` (the player's `mouse_mapper`); use `TopDownMain.world_to_screen()` (not `camera.unproject_position`)
   for window positions. The HUD, minimap and gap arrows stay in the window at full resolution.
 - Checkpoint renders: `python tools/checkpoint_shots.py` (scripted scenario in `tools/checkpoint/checkpoint_shots.gd`,
-  both looks, `design/renders/checkpoint_01/`; needs a real window, about 20 s). Look at the PNGs; write `NOTES.md` there.
+  both looks, `design/renders/checkpoint_02/` by default; needs a real window, about 90 s; the script quits itself after
+  170 s). Views: overview, close-ups (gap, wedge, shields, UI, minimap), min/max zoom, and a second level with a sealed map
+  edge; `contact_sheet.png` and `contact_sheet_compare.png`. Look at the PNGs; write `NOTES.md` there.
+- **Graphics checkpoint 2 (styled cues)**: the ground cues of person looks are hooks in `PersonLook` (`_style_grab_ring`,
+  `_style_glint`, `_style_guard_wedge`, `_show_wedge`, `_show_grab`, `play_ripple`) overridden by `PersonLookStyled` using
+  `style_cues.gd` and `shaders/style_wedge|ring.gdshader`. Screen-space UI (feedback layer, mood icons, spirit meter, prompt
+  bar, gap arrows) branches on `Looks.is_styled()` at draw time: `style_ui.gd` (cell helpers + icon bitmaps),
+  `style_feedback.gd`, `style_hud.gd`; `set_look` calls each overlay's `rebuild_look()`. The styled border marks map-sealed
+  stretches (`BorderLookStyled._seal_w`, haze `UV2.y`); the minimap has `seal_flags` and `MinimapLook.seal_colour()`. Still
+  placeholder in styled mode: target highlight, HUD text and bars, landmark label, burst ring, projectiles, blooms, labels.
+  Tests: `looks_cues_test.gd`.
 - Tests run in the placeholder look; `tests/looks_test.gd` switches to styled on purpose and always switches back.
   Headless uses a dummy renderer, so shaders are not compiled by the tests; the screenshot run is the shader check
   (grep its log for errors).
