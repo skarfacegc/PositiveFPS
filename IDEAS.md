@@ -1053,3 +1053,22 @@ sealed (it is drawn like any intact stretch)?
 - Short sealed stretches (under a spacing) leave the members on either side of the seal nearer than the spacing.
 - A fully sealed loop (the whole map) has no members and no gaps (territory = the map).
 - Members still pass through each other briefly when the slot offset flips (no hysteresis).
+
+## Round 16 playtest and round 17 plan (2026-10-28)
+
+**Playtest:** edge clustering is fixed. The border stops cleanly at the map edge, and the sealed stretch reads as
+obviously safe. General border movement wasn't noticed either way. Lost late, and it felt *frustrating*: too many
+dimmed folk. The causes the user named:
+- Dimmed folk still arrive too often.
+- Umbrellas (sheltering) get in the way.
+- The shield icon (guarded mood) is awkward: you can't tell what angle to shoot from.
+- Hover targeting fixates on the original target, so you can't quickly switch to something more urgent.
+
+The target feel for the late night is *hard but winnable*.
+
+**Round 17:**
+1. Guarded: keep the angle rule (`GUARDED_ARC_DEG`) but show it. Draw a clear wedge on the ground marking the open
+   side where joy lands, and slow their turning (`GUARDED_TURN_SPEED`) so a shot can be lined up.
+2. Hover targeting: short stickiness only (about 0.2 s), then switch to whoever is under or nearest the cursor.
+3. Dimmed arrivals: `DIM_ARRIVAL_MIN_GAP` goes from 6 s to 9 s.
+4. Umbrella unchanged.
