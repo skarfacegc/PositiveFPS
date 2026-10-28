@@ -13,3 +13,6 @@ coverage_hits.json
 
 # Standalone game builds (exported exes, zips).
 dist-builds/
+
+# Gameplay recordings (round 18; events.jsonl and screenshots from playtests).
+recordings/

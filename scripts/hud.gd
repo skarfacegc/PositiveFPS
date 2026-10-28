@@ -18,6 +18,8 @@ var debug_hint_label: Label
 var floor_label: Label
 var end_panel: ColorRect
 var end_label: Label
+# Round 18: the small "REC" mark shown while the gameplay recorder is on (built the first time it is needed).
+var rec_label: Label
 var _alert_tween: Tween
 # Round 12b: the target's element and mood, kept so either can change the label alone.
 var _target_affinity: int = -1
@@ -221,6 +223,25 @@ func set_debug_text(text: String) -> void:
 # Replaces the controls hint text at the bottom of the screen.
 func set_hint(text: String) -> void:
 	hint_label.text = text
+
+
+# Round 18: shows or hides the red "REC" mark (top right, under the targeting label).
+func set_recording(on: bool) -> void:
+	if rec_label == null:
+		if not on:
+			return
+		rec_label = Label.new()
+		rec_label.text = "● REC"
+		rec_label.add_theme_font_size_override("font_size", 20)
+		rec_label.add_theme_color_override("font_color", Color(1.0, 0.25, 0.25))
+		rec_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		rec_label.offset_left = -160
+		rec_label.offset_right = -20
+		rec_label.offset_top = 52
+		rec_label.offset_bottom = 82
+		rec_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		add_child(rec_label)
+	rec_label.visible = on
 
 
 # Shows the player's spirit and whether they are dim (the bar and the label go grey).

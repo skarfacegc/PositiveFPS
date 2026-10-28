@@ -33,6 +33,7 @@ Ideas and decisions: `IDEAS.md`. Nothing here describes gameplay changes; it des
 | `spirit_meter.gd` (`SpiritMeter`) | Round 13b: the 360 px spirit meter over the HUD bar: burst-cost and dim-exit ticks, twirl arc, flash and floating numbers | `set_values()`, `moment(amount, kind)`, `burst_tick_x()`, `dim_tick_x()`; enum `Moment` | `SPIRIT_METER_*`, `SPIRIT_*_COLOUR` |
 | `mood_icons.gd` (`MoodIcons`) | Round 13b: the icon shapes (shield, feet, cloud, umbrella, "!") drawn on any CanvasItem | static `draw()`, `kind_for_mood()`, `kind_for_block()` | `MOOD_ICON_COLOURS` |
 | `intro.gd` (`Intro`), `prompt_bar.gd` (`PromptBar`) | Round 13b: the layered introduction (dimmed after `NIGHT_CALM_FRACTION`, moods at `MOOD_INTRO_FRACTIONS`) and the one-at-a-time, once-per-level prompt queue; the bar draws the current prompt; round 14: `Prompt.DIM_HELP` | `dimmed_allowed()`, `mood_active()`, `request()`, `update()`; fields `current`, `queue`, `shown` | `MOOD_INTRO_FRACTIONS`, `PROMPT_*`, `INTRO_*`, `DIM_HELP_TEXT` |
+| `recorder.gd` (`Recorder`) | Round 18: the gameplay recorder. Off unless the menu check box (`Recorder.enabled`, saved in `user://settings.cfg`) or `-- --record` asks for it; `TopDownMain._ready` then adds it as a child (`td.recorder`, else null). Listens to the people's, player's and grabs' signals and polls gaps (`Border.gap_midpoints_cached`, matched by `GAP_TRACK_RADIUS`) and shields every `RECORD_POLL_SECONDS`; writes a buffered `events.jsonl` (flushed every `RECORD_FLUSH_SECONDS`, on round end, on exit and on a window close) and a downscaled screenshot every `RECORD_SHOT_SECONDS` (not headless; saved on a worker thread) into `recordings/<stamp>/` (editor) or `user://recordings/<stamp>/` | `attach()`, `emit_event(type, fields)`, `on_round_end()`, `note_exit()`, `end()`; static `requested()`, `phase_for()`; `Hud.set_recording()` shows the REC mark | `RECORD_*` |
 | `controls.gd` (`Controls`) | Registers every InputMap action (no raw keys elsewhere); round 14: `zoom_in` / `zoom_out` on the mouse wheel | `setup()` | none |
 | `config.gd` (`Config`) | All tuning constants and tiny pure helpers | `multiplier()`, `falloff()`, `gloom_level()`, `is_automated_test()` | n/a |
 
@@ -69,6 +70,17 @@ mode moves the camera into a 640x360 SubViewport that shares the world, with nea
 - Tests run in the placeholder look; `tests/looks_test.gd` switches to styled on purpose and always switches back.
   Headless uses a dummy renderer, so shaders are not compiled by the tests; the screenshot run is the shader check
   (grep its log for errors).
+
+## The recorder (round 18)
+`scripts/recorder.gd` writes one JSON object per line to `events.jsonl`; every line has `t` (play seconds), `night_phase`
+(`calm`, `rising`, `midnight`, `easing`), `night` (seconds since dusk) and `type`. Types: `session_start`, `sample`
+(every second), `sink` / `lift` (a stage change, with `from`, `to`, `id`, `pos`), `rescue`, `relapse`, `gap_open`,
+`gap_close` (`duration`), `grab`, `grab_avoided`, `umbrella_pop`, `guarded_glance`, `shelter_block`, `burst`, `twirl`,
+`target_change`, `player_dim`, `screenshot`, `win` / `loss` / `dawn`, `session_end`. Person ids are indexes into
+`TopDownMain.people`. **To add an event:** connect a signal in `Recorder.attach()` (or poll a field in `_poll_*`) and call
+`emit_event("name", {...})`; the shared fields are added for you. Keep it cheap: nothing per frame except two comparisons.
+Add the event to `tools/analyse_recording.py` if it should count (`kind_of`, `THREAT_TYPES`). Tests: `recorder_test.gd`
+(session folders go to `user://rec_tests/...` through `Recorder.base_dir_override`) and `python tools/test_analyse_recording.py`.
 
 ## Where tuning lives (`scripts/config.gd`)
 **Round 17 (guarded wedge, hover, arrivals):** `GUARDED_WEDGE_*` (radius, segments, colours: the wedge spans `GUARDED_ARC_DEG` either side of the facing, the same arc `is_open_to` uses), `GUARDED_TURN_SPEED` (0.45, moved here from round 12b), `HOVER_STICK_SECONDS` (0.2), `HOVER_DIRECT_RADIUS` (1.0), `DIM_ARRIVAL_MIN_GAP` (9 s, moved here from round 14). The "Round 17" block sits before the round 16 block. The wedge is built in the shared `PersonLook` base (like the glint: placeholder in both looks, registered with `Looks.note_placeholder` in the styled look): `guard_wedge`, `wedge_mat`, `wedge_open`, `_update_guard_wedge`.

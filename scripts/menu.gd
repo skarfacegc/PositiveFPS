@@ -27,6 +27,8 @@ const HOW_TO_PLAY_TEXT := (
 var look_button: Button
 # Round 13b: a small note under the Look button, shown while the styled look is selected (it is a visual test only).
 var look_note: Label
+# Round 18: the recording toggle (a check box).
+var record_toggle: CheckBox
 # The how-to-play panel (a RichTextLabel with the bbcode bold labels).
 var how_to_play: RichTextLabel
 # Set once Play is pressed, so a key and a click in the same frame start the level only once.
@@ -61,6 +63,19 @@ func _ready() -> void:
 	look_note.add_theme_color_override("font_color", Color(0.75, 0.7, 0.55))
 	look_note.visible = Looks.is_styled()
 	box.add_child(look_note)
+	Recorder.load_setting()
+	record_toggle = CheckBox.new()
+	record_toggle.text = "Record this game (for review)"
+	record_toggle.button_pressed = Recorder.enabled
+	record_toggle.add_theme_font_size_override("font_size", 20)
+	# In the top right corner, so the centred column and the how-to-play panel keep their room.
+	record_toggle.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	record_toggle.offset_left = -340
+	record_toggle.offset_right = -16
+	record_toggle.offset_top = 16
+	record_toggle.offset_bottom = 52
+	record_toggle.toggled.connect(_on_record_toggled)
+	add_child(record_toggle)
 	how_to_play = _make_how_to_play()
 	box.add_child(how_to_play)
 
@@ -80,6 +95,12 @@ func _toggle_look() -> void:
 	Looks.toggle()
 	look_button.text = look_text()
 	look_note.visible = Looks.is_styled()
+
+
+# Round 18: the recording choice lasts for the session and is saved for next time.
+func _on_record_toggled(on: bool) -> void:
+	Recorder.enabled = on
+	Recorder.save_setting()
 
 
 # Starts the level.
