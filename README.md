@@ -118,6 +118,16 @@ element, and F3 labels it above the person.
 - **Mouse wheel** zooms the view in and out (a closer or wider look at the plaza; the labels keep their size on screen).
 - **R** restart, **M** back to the menu.
 
+**Recording a game for review (round 18):** tick **Record this game (for review)** in the top right of the menu (it is
+off by default and the choice is remembered), or start the game with `-- --record`. While it is on a red **REC** mark
+shows in the HUD, and each game writes a folder `recordings/YYYYMMDD-HHMMSS/` in the project folder (gitignored) when
+run from the editor; an exported build writes to `user://recordings/` instead (Godot's user data folder, for example
+`%APPDATA%/Godot/app_userdata/PositiveFPS/recordings` on Windows; the path is also printed to the console). The folder
+holds `events.jsonl` (one JSON event per line: a sample every second, plus sinks, rescues, gaps opening and closing,
+grabs, umbrella pops, target changes and the end) and a small `shot_0001.png` every 18 seconds. Summarise it with
+`python tools/analyse_recording.py recordings/<folder>` (quiet time, threat cadence, gap durations, decisions per minute,
+and a `timeline.csv`). Recording never changes how the game plays.
+
 **On screen (round 10):** the camera is orthographic and looks down at the plaza. A circular **minimap** sits top-left
 (warm and grey ground, buildings, the border, gaps, members, dimmed people, the landmark star, you, and the view rectangle).
 When a gap is off screen, a coral **arrow** on the screen edge points at it. You are a saffron figure with a warm ring

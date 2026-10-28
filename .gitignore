@@ -17,3 +17,6 @@ dist-builds/
 
 # Claude Code agent worktrees (each one is a full checkout of the repo).
 .claude/worktrees/
+
+# Gameplay recordings (round 18; events.jsonl and screenshots from playtests).
+recordings/

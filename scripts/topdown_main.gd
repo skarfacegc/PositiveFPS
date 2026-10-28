@@ -53,6 +53,8 @@ var highlight: MeshInstance3D
 var people: Array[Person] = []
 var rescued_count: int = 0
 var running: bool = true
+# Round 18: the gameplay recorder, or null when recording is off.
+var recorder: Recorder
 # The F3 debug overlay: cover and protection labels above each person, and the border labels. Off by default.
 var debug_on: bool = false
 var _sun: DirectionalLight3D
@@ -154,6 +156,12 @@ func _ready() -> void:
 	_update_spirit_hud()
 	_note_shared_placeholders()
 	pipeline.apply(self)
+	if Recorder.requested():
+		recorder = Recorder.new()
+		add_child(recorder)
+		if not recorder.attach(self):
+			recorder.queue_free()
+			recorder = null
 
 
 func _process(delta: float) -> void:
@@ -191,8 +199,10 @@ func _process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("restart"):
+		_note_exit("restart")
 		get_tree().reload_current_scene()
 	elif event.is_action_pressed("menu"):
+		_note_exit("menu")
 		get_tree().change_scene_to_file("res://menu.tscn")
 	elif event.is_action_pressed("toggle_look"):
 		var frame := Engine.get_process_frames()
@@ -206,6 +216,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_zoom_frame = frame
 			var step := -Config.TD_ZOOM_STEP if event.is_action_pressed("zoom_in") else Config.TD_ZOOM_STEP
 			_zoom_target = clampf(_zoom_target + step, Config.TD_ZOOM_MIN, Config.TD_ZOOM_MAX)
+
+
+# Round 18: tells the recorder why the level is being left.
+func _note_exit(reason: String) -> void:
+	if recorder != null:
+		recorder.note_exit(reason)
 
 
 # F4: flips between the placeholder and the styled look without touching the game state.
@@ -919,6 +935,8 @@ func _end_round(title: String) -> void:
 	if not running:
 		return
 	running = false
+	if recorder != null:
+		recorder.on_round_end(title)
 	player.active = false
 	hud.set_night_progress(night.progress())
 	hud.show_end(title, _detail_text())

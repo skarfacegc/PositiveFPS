@@ -42,9 +42,10 @@ func test_menu_has_a_play_button_and_a_look_toggle_and_no_variant_choices() -> v
 	var runner: GdUnitSceneRunner = await _start_menu()
 	var buttons: Array = []
 	_find_buttons(runner.scene(), buttons)
-	assert_int(buttons.size()).is_equal(2)
+	assert_int(buttons.size()).is_equal(3)
 	assert_str(buttons[0].text).is_equal("Play")
 	assert_str(buttons[1].text).is_equal("Look: Placeholder")
+	assert_str(buttons[2].text).is_equal("Record this game (for review)")
 
 
 func test_the_styled_look_note_shows_only_while_styled_is_selected() -> void:
@@ -59,10 +60,10 @@ func test_the_styled_look_note_shows_only_while_styled_is_selected() -> void:
 	assert_str(note.text).contains("not the current game")
 	button.pressed.emit()
 	assert_bool(note.visible).is_false()
-	# It is a label, not a button: the menu still has just two buttons.
+	# It is a label, not a button: the menu still has just three buttons (Play, Look, the recording check box).
 	var buttons: Array = []
 	_find_buttons(menu, buttons)
-	assert_int(buttons.size()).is_equal(2)
+	assert_int(buttons.size()).is_equal(3)
 
 
 func test_the_look_button_flips_the_look_and_remembers_it() -> void:
@@ -160,3 +161,14 @@ func test_a_second_start_in_the_same_frame_is_ignored() -> void:
 	await runner.simulate_frames(10)
 	assert_str(_current_scene_path()).is_equal(TOP_DOWN)
 	await _leave_loaded_scene()
+
+
+func test_the_record_toggle_sets_the_recorder_flag() -> void:
+	var runner: GdUnitSceneRunner = await _start_menu()
+	var menu: Control = runner.scene()
+	var toggle: CheckBox = menu.get("record_toggle")
+	assert_bool(toggle.button_pressed).is_equal(Recorder.enabled)
+	toggle.button_pressed = true
+	assert_bool(Recorder.enabled).is_true()
+	toggle.button_pressed = false
+	assert_bool(Recorder.enabled).is_false()
