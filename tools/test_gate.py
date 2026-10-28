@@ -102,6 +102,76 @@ finally:
     remove_tree(scratch)
 
 
+# --- Determinism reuse (tools/coverage.py): a saved clean run of the same code stands in for pass 1. No Godot here. ---
+import coverage  # noqa: E402
+
+saved_file = os.path.join(gate.ROOT, ".scratch", "det_reuse_%d.json" % os.getpid())
+real_run_file, real_fingerprint, real_measure = coverage.det_run_file, coverage.code_fingerprint, coverage.measure_once
+fake_results = [{"file": "t", "name": "test_a", "ok": True, "messages": [], "time": 0.1}]
+fake_stats = {"line_overall": 50.0, "line_files": {"scripts/a.gd": 50.0}}
+calls = []
+
+
+def fake_measure(workers, build, report_root):
+    calls.append(build)
+    return 0, fake_results, fake_stats, fake_hits[0]
+
+
+fake_hits = [{"scripts/a.gd:3": 2}]
+try:
+    os.makedirs(os.path.dirname(saved_file), exist_ok=True)
+    coverage.det_run_file = lambda: saved_file
+    coverage.measure_once = fake_measure
+    coverage.code_fingerprint = lambda: "fp-a"
+    coverage.save_clean_run("fp-a", 0, fake_results, fake_stats, fake_hits[0])
+    expect("a clean run is saved", coverage.load_saved_run("fp-a") is not None, True)
+    expect("a saved run is not reused for other code", coverage.load_saved_run("fp-b"), None)
+    coverage.save_clean_run("fp-a", 1, fake_results, fake_stats, {"scripts/a.gd:9": 1})
+    expect("a failed run never replaces a saved one", coverage.load_saved_run("fp-a")["hits"], fake_hits[0])
+    expect("the check passes when the fresh run matches the saved one", coverage.check_determinism(None), 0)
+    expect("with the saved run, only pass 2 is measured", calls, [coverage.DET_BUILDS[1]])
+    fake_hits[0] = {"scripts/a.gd:3": 2, "scripts/a.gd:4": 1}  # the fresh run hits a line the saved run did not
+    expect("a run that hits other lines fails the check", coverage.check_determinism(None), 3)
+    fake_hits[0] = {"scripts/a.gd:3": 2}
+    coverage.code_fingerprint = lambda: "fp-c"  # different code: nothing saved, both passes are fresh
+    del calls[:]
+    expect("without a saved run both passes run", coverage.check_determinism(None), 0)
+    expect("two fresh runs when nothing is saved", sorted(calls), sorted(coverage.DET_BUILDS))
+finally:
+    coverage.det_run_file = real_run_file
+    coverage.code_fingerprint = real_fingerprint
+    coverage.measure_once = real_measure
+    if os.path.exists(saved_file):
+        os.remove(saved_file)
+
+
+# --- Parallel part opt-out (POSITIVEFPS_PARALLEL_PART=1): the timing pass is skipped, and that must not be cached as a
+# full pass. No Godot here. ---
+real_load_cache = gate.load_cache
+try:
+    skipped = {"last_pass": {"fingerprint": "fp-x", "level": "tests", "summary": "S", "perf_skipped": True}}
+    enforced = {"last_pass": {"fingerprint": "fp-x", "level": "tests", "summary": "E", "perf_skipped": False}}
+    gate.load_cache = lambda: skipped
+    expect("a skipped-timing pass answers a request that also skips it",
+           gate.cached_summary("fp-x", "tests", True), "S")
+    expect("a skipped-timing pass does not answer the default tier", gate.cached_summary("fp-x", "tests", False), None)
+    gate.load_cache = lambda: enforced
+    expect("an enforcing pass answers the default tier", gate.cached_summary("fp-x", "tests", False), "E")
+    expect("an enforcing pass also answers a skipping request", gate.cached_summary("fp-x", "tests", True), "E")
+    expect("a tests pass never answers --full", gate.cached_summary("fp-x", "full", False), None)
+finally:
+    gate.load_cache = real_load_cache
+
+perf_free = [{"file": suite, "name": name, "ok": True, "messages": [], "time": 0.0}
+             for suite, names in run_tests.discover_tests(gate.ROOT).items()
+             for name in names if not name.startswith(run_tests.PERF_PREFIX)]
+expect("the integrity check accepts a run without timing tests when they are skipped",
+       run_tests.integrity_problems(gate.ROOT, perf_free, [], skip_perf=True), [])
+expect("the integrity check still expects the timing tests otherwise",
+       len(run_tests.integrity_problems(gate.ROOT, perf_free, [], skip_perf=False)) > 0, True)
+expect("the skip notice names the coordinator's gate", "gate --full" in run_tests.PARALLEL_PART_NOTICE, True)
+
+
 if failures:
     print("test_gate: FAILED")
     for line in failures:

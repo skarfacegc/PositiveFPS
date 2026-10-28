@@ -1,6 +1,8 @@
 #!/bin/bash
-D="/c/Users/amw1/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe"
-cd "$(dirname "$0")"
+cd "$(dirname "$0")" || exit 1
+ROOT="$(cd ../.. && pwd)"
+# The Godot 4.7.2 console executable: GODOT, then PATH, then the WinGet install (see tools/godot_path.py).
+GODOT_EXE="$(${PYTHON:-python} "$ROOT/tools/godot_path.py")" || exit 2
 # first step registers the class_name scripts (StyleScene, MiniMap); harmless to repeat
-timeout 120 "$D/Godot_v4.7.2-stable_win64_console.exe" --headless --path . --import 2>&1 | tail -3
-timeout 170 "$D/Godot_v4.7.2-stable_win64_console.exe" --path . --resolution 960x540 2>&1 | tail -60
+timeout 120 "$GODOT_EXE" --headless --path . --import 2>&1 | tail -3
+timeout 170 "$GODOT_EXE" --path . --resolution 960x540 2>&1 | tail -60

@@ -8,7 +8,7 @@ Usage:
     python tools/run_tests.py --update-weights  # after a run, record each test's duration in tools/test_weights.json
     python tools/run_tests.py --perf-only     # only the timing tests (test_perf_*), serially, budget enforced
 
-The Godot console executable comes from the GODOT environment variable, or the known install path below.
+The Godot console executable is found by tools/godot_path.py (GODOT environment variable, then PATH, then WinGet).
 Reports are written to <project>/reports/<timestamp>/ (HTML and JUnit XML). The exit code is 0 when all
 tests pass, 1 when any test fails, and 2 if Godot could not run.
 
@@ -35,6 +35,7 @@ import subprocess
 import sys
 import threading
 import xml.etree.ElementTree as ET
+from godot_path import godot_console, require  # noqa: E402  (where Godot lives: GODOT, PATH, then WinGet)
 
 
 def _use_utf8_console():
@@ -49,11 +50,6 @@ def _use_utf8_console():
 
 _use_utf8_console()
 
-DEFAULT_GODOT = (
-    r"C:\Users\amw1\AppData\Local\Microsoft\WinGet\Packages"
-    r"\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe"
-    r"\Godot_v4.7.2-stable_win64_console.exe"
-)
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Frames per second forced for test runs (Godot --fixed-fps). Matches the physics tick rate in project.godot.
 TEST_FIXED_FPS = 60
@@ -61,12 +57,17 @@ WORKERS_DEFAULT = max(1, min(8, (os.cpu_count() or 2) // 2))
 WEIGHTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_weights.json")
 UNKNOWN_TEST_SECONDS = 0.5  # weight of a test that is not in test_weights.json yet
 PERF_PREFIX = "test_perf_"  # timing tests: see the module docstring
+# Set to 1 by a parallel part agent (see ARCHITECTURE.md): the plain run then skips the serial timing pass, because the
+# other agents' load would make the budget flaky. The coordinator's `gate.py --full` after the merge still enforces it.
+PARALLEL_PART_ENV = "POSITIVEFPS_PARALLEL_PART"
+PARALLEL_PART_NOTICE = ("perf pass skipped (parallel part); enforced by the coordinator's gate --full after merge")
 OWN_UNIT_SECONDS = 3.0  # a test at least this slow gets a Godot process of its own
 _print_lock = threading.Lock()
 
 
 def godot_path():
-    return os.environ.get("GODOT") or DEFAULT_GODOT
+    """The Godot console executable. Raises RuntimeError (exit 2 for the callers) when it cannot be found."""
+    return require(godot_console, "GODOT")
 
 
 def run_godot(args, cwd, env_extra=None, stream=True):
@@ -187,18 +188,22 @@ def script_problems(output):
     return [ln.strip() for ln in output.splitlines() if SCRIPT_PROBLEM.search(ln)][:12]
 
 
-def integrity_problems(project, results, outputs):
+def integrity_problems(project, results, outputs, skip_perf=False):
     """Checks a finished run for what gdUnit hides. Returns a list of problem strings (empty = fine).
 
     A parse error in a test file makes gdUnit skip that suite while the summary still says all passed, so:
     (1) any script error in the Godot output is a problem, and (2) every discovered suite must report, with at
-    least as many tests as the file declares.
+    least as many tests as the file declares (the timing tests are not expected when skip_perf is set).
     """
     problems = ["script error in Godot output: " + ln for out in outputs for ln in script_problems(out)]
     ran = {}
     for r in results or []:
         ran[r["file"]] = ran.get(r["file"], 0) + 1
     for suite, names in discover_tests(project).items():
+        if skip_perf:
+            names = [n for n in names if not n.startswith(PERF_PREFIX)]
+        if not names:
+            continue
         if suite not in ran:
             problems.append("suite %s did not report any results (skipped?)" % suite)
         elif ran[suite] < len(names):
@@ -319,6 +324,8 @@ def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=F
     if not (perf_only and import_is_current(project)):
         import_project(project)
     workers = WORKERS_DEFAULT if workers is None else workers
+    # A plain run as a parallel part agent: no serial timing pass, and the timing tests are not run at all.
+    skip_perf = not cov_dir and os.environ.get(PARALLEL_PART_ENV) == "1"
     if perf_only:
         code, results, outputs = run_perf_pass(project, report_dir)
         return code, results or None, report_dir
@@ -329,7 +336,9 @@ def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=F
         results, outputs = (parse_results(xml) if xml else None), [out]
     else:
         code, results, outputs = run_parallel(project, report_dir, workers, cov_dir)
-        if not cov_dir:  # plain run: the timing tests run now, one at a time, alone
+        if not cov_dir and skip_perf:
+            print("WARNING: " + PARALLEL_PART_NOTICE, flush=True)
+        elif not cov_dir:  # plain run: the timing tests run now, one at a time, alone
             perf_code, perf_results, perf_outputs = run_perf_pass(project, report_dir)
             code = max(code, perf_code)
             results = (results or []) + perf_results
@@ -337,7 +346,7 @@ def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=F
             results.sort(key=lambda r: (r["file"], r["name"]))
         results = results or None
     if results is not None and not perf_only:
-        problems = integrity_problems(project, results, outputs)
+        problems = integrity_problems(project, results, outputs, skip_perf=skip_perf)
         for p in problems:
             print("ERROR: " + p, flush=True)
         if problems:

@@ -142,10 +142,14 @@ Player physics (`TopDownPlayer._physics_process`) and projectile physics run on 
 - Timing tests (`test_perf_*`, see Known gotchas) run serially and uninstrumented after the parallel batch: inside `run_tests.py`
   for the default tier, and via `run_tests.py --perf-only` after the coverage run in `--full` (about 5 s; skips Godot `--import` when the
   class cache is current). `gate.py`'s cache fingerprint already covers `tests/` and `tools/`, so it is unchanged.
+- **Parallel part opt-out:** with `POSITIVEFPS_PARALLEL_PART=1`, the plain tier (`run_tests.py`, the hook) skips the serial
+  timing pass and the `test_perf_*` tests, and prints "perf pass skipped (parallel part)". `gate.py --full` ignores the variable,
+  so the post-merge gate always enforces the budget. A cached pass made with the skip only answers requests that also skip it.
 - Other tools: `lint.py [--fix]`, `coverage.py`, `cleanup_worktrees.py`, `install_hooks.py`. Timing history: `tools/BUILD_TIMINGS.md`.
+- Tool locations: `tools/godot_path.py` finds Godot (GODOT env, then PATH, then WinGet). Every tool uses it.
 
 ## Agent workflow rules
-- Godot runs headless only; never open the editor GUI. Console exe path: `tools/run_tests.py` (`GODOT` env var overrides).
+- Godot runs headless only; never open the editor GUI. Console exe path: `tools/godot_path.py` (`GODOT` env var overrides; used by every tool).
 - Commit with explicit paths (`git add <files>`), never `git add -A`; never stage `design/`; never `--no-verify` or amend; never push.
 - Never kill processes you did not start. Never lower `coverage_baseline.json`. Scratch work goes in `.scratch/` (gitignored); delete it.
 - Run long commands in the foreground (they take under a minute now). Finish a round with the full gate, not just the hook.

@@ -21,6 +21,8 @@ instead of telling them to read every file.
   - Give each part its own constants block (for example "Round N: guarded wedge") to keep conflicts small.
 - **Gate per part.** Part agents run only their own targeted suites (`tools/run_tests.py`) and lint. They do not run
   the full gate, the determinism check or the baseline update, because parallel full gates fight over the CPU.
+  Part agents set `POSITIVEFPS_PARALLEL_PART=1` for their commits, which skips the flaky serial timing pass; the
+  coordinator's post-merge `gate.py --full` enforces it.
 - **Gate once after merging.** After the merge, run these once, in order: `python tools/gate.py --full`, then
   `python tools/coverage.py --check-determinism`, then `python tools/coverage.py --update-baseline` (never
   `--allow-decrease`). Then make the docs and baseline commit.

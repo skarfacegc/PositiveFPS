@@ -182,7 +182,7 @@ Commands:
     and refuses any decrease unless you add `--allow-decrease`. One run is enough.
   - `python tools/coverage.py --check-determinism` runs the instrumented suite twice and fails (exit 3) if the set of
     lines hit differs. Run it once at the end of a round, before the baseline commit.
-- The Godot executable comes from the `GODOT` environment variable, or the default path in `tools/run_tests.py`.
+- The Godot executable comes from the `GODOT` environment variable, then `godot` on PATH, then the WinGet install under `%LOCALAPPDATA%` (all in `tools/godot_path.py`).
 
 Pre-commit gate: once the hooks are enabled, a commit that changes `*.gd`, `*.tscn`, `*.tres`, `project.godot`,
 `tools/` or `tests/` runs `python tools/gate.py --hook`: lint, then the whole test suite (about 27 s; 1 s if the
