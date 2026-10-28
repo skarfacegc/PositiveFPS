@@ -31,6 +31,12 @@ var aura: MeshInstance3D
 # skittish person jitters (see _update_mood_cue). Round 13b: the guarded crossed-arms bar is gone; the shield icon over
 # the head (FeedbackLayer) says "guarded".
 var glint: MeshInstance3D
+# Round 17 (placeholder in both looks, like the glint): the guarded wedge on the ground, the open side (the arc where
+# joy lands). It is a child of this node, so it turns with the person's facing (its forward is local -Z). `wedge_open`
+# is true while a shot from the player would land (the brighter colour).
+var guard_wedge: MeshInstance3D
+var wedge_mat: StandardMaterial3D
+var wedge_open: bool = false
 var _grace_mat: StandardMaterial3D
 # +1 leans the body back as the rules say; the styled bodies face the other way and flip it.
 var _lean_sign: float = 1.0
@@ -82,6 +88,7 @@ func setup(person: Person) -> void:
 	_build_grab_ring()
 	_build_aura()
 	_build_mood_parts()
+	_build_guard_wedge()
 	_fx_rng.seed = Config.RNG_SEED
 
 
@@ -97,6 +104,7 @@ func sync() -> void:
 	_update_grace_cue()
 	_update_grab_cue()
 	_update_mood_cue()
+	_update_guard_wedge()
 	var need := subject.joy_needed()
 	frac = clampf(subject.joy / need, 0.0, 1.0)
 	warning = false
@@ -336,6 +344,59 @@ func _build_mood_parts() -> void:
 	visual.add_child(glint)
 	if is_styled():
 		Looks.note_placeholder(glint, "glum look-up glint")
+
+
+# Round 17: the wedge's outline in the person's own frame (forward is -Z): the centre is the origin, then points along
+# the arc from one edge (-half_deg) to the other (+half_deg), `segments` steps. Angles are from the forward direction.
+static func wedge_points(radius: float, half_deg: float, segments: int) -> PackedVector3Array:
+	var pts := PackedVector3Array()
+	for i: int in range(segments + 1):
+		var a := deg_to_rad(-half_deg + 2.0 * half_deg * float(i) / float(segments))
+		pts.append(Vector3(sin(a) * radius, 0.0, -cos(a) * radius))
+	return pts
+
+
+# Round 17: the flat fan mesh of the wedge (a triangle per arc step, from the centre).
+static func wedge_mesh(radius: float, half_deg: float, segments: int) -> ArrayMesh:
+	var pts := wedge_points(radius, half_deg, segments)
+	var verts := PackedVector3Array()
+	for i: int in range(pts.size() - 1):
+		verts.append(Vector3.ZERO)
+		verts.append(pts[i])
+		verts.append(pts[i + 1])
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
+
+
+# Round 17: builds the guarded wedge (hidden until the person is guarded). It spans GUARDED_ARC_DEG either side of the
+# facing: the same arc Person.is_open_to uses.
+func _build_guard_wedge() -> void:
+	guard_wedge = MeshInstance3D.new()
+	guard_wedge.mesh = wedge_mesh(Config.GUARDED_WEDGE_RADIUS, Config.GUARDED_ARC_DEG, Config.GUARDED_WEDGE_SEGMENTS)
+	guard_wedge.position = Vector3(0, 0.06, 0)
+	wedge_mat = StandardMaterial3D.new()
+	wedge_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	wedge_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	wedge_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	wedge_mat.albedo_color = Config.GUARDED_WEDGE_COLOUR
+	guard_wedge.material_override = wedge_mat
+	guard_wedge.visible = false
+	add_child(guard_wedge)
+	if is_styled():
+		Looks.note_placeholder(guard_wedge, "guarded open-side wedge")
+
+
+# Round 17: shows the wedge while the person is guarded (never for rescued or dimmed people), brighter while a shot
+# from the player would land (Person.shot_lands_now).
+func _update_guard_wedge() -> void:
+	var guarded := subject.active_mood() == Person.Mood.GUARDED
+	guard_wedge.visible = guarded
+	wedge_open = guarded and subject.shot_lands_now()
+	wedge_mat.albedo_color = Config.GUARDED_WEDGE_OPEN_COLOUR if wedge_open else Config.GUARDED_WEDGE_COLOUR
 
 
 # Round 12b: a flat ring that spreads out from the feet and fades (the stage-change ripple). Placeholder in both looks.

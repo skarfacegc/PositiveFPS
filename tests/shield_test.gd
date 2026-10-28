@@ -25,6 +25,8 @@ func _start() -> Dictionary:
 # The dimmed person at (0, 0, -8), their ward 1 m away (wistful), and a control far from everyone (wistful, same
 # affinity). Placed again each time a phase needs exact spots (wanderers move a little).
 func _arrange(td: TopDownMain) -> void:
+	# Round 17: the midnight stagger (9 s between sinks) would hold the dimmed person back, so the gate is opened here.
+	TopDownTestUtil.open_dim_gate(td)
 	TopDownTestUtil.place(td.people[0], Vector3(0, 0, -8), 0, 0.95)
 	TopDownTestUtil.place(td.people[1], Vector3(1.0, 0, -8), 0, 0.2)
 	TopDownTestUtil.place(td.people[2], Vector3(-25, 0, -25), 0, 0.2)

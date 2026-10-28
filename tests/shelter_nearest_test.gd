@@ -18,6 +18,8 @@ func _start() -> Dictionary:
 # The dimmed person at the origin of the pair, the nearest wistful person 1 m away and a farther one at 1.6 m (both west
 # of the dimmed person's north side, inside SHELTER_RADIUS), all music people.
 func _arrange(td: TopDownMain) -> void:
+	# Round 17: the midnight stagger (9 s between sinks) would hold the dimmed person back, so the gate is opened here.
+	TopDownTestUtil.open_dim_gate(td)
 	TopDownTestUtil.place(td.people[0], Vector3(0, 0, -8), 0, 0.95)
 	TopDownTestUtil.place(td.people[1], Vector3(1.0, 0, -8), 0, 0.2)
 	TopDownTestUtil.place(td.people[2], Vector3(-1.6, 0, -8), 0, 0.2)
@@ -51,22 +53,27 @@ func test_only_the_nearest_wistful_person_is_sheltered_and_the_other_takes_joy()
 			assert_object(ic["person"]).is_same(near)
 	assert_int(umbrellas).is_equal(1)
 
-	# Hover the farther one and fire: it is not sheltered, so joy lands on it.
+	# Hover the farther one and fire: it is not sheltered, so joy lands on it. Round 17: the pointer follows them while
+	# they wander (a held target drops once the cursor is off it for 0.2 s, and the nearest other person would take over;
+	# that would be the dimmed person, who must not be shot here).
 	await _hover(runner, td, far)
 	assert_object(td.player.target).is_same(far)
-	await runner.simulate_frames(120)
+	for _i: int in range(4):
+		await runner.simulate_frames(30)
+		await _hover(runner, td, far)
 	assert_float(far.joy).is_greater(0.0)
 
-	# The sheltered one turns joy away with a glance, and gains nothing. Hover targeting sticks to a target, so a real
-	# mode cycle (F2 to lock-on and back to hover) drops the old one, with the mouse moved off everyone first.
+	# The sheltered one turns joy away with a glance, and gains nothing. Round 17: a held hover target drops once the
+	# cursor has been off it for 0.2 s, so the pointer goes off everyone first, then back on the sheltered one, and
+	# follows them while they wander (the old F2 cycle is no longer needed to drop the target).
 	_arrange(td)
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, TopDownTestUtil.clear_spot(td)))
-	await runner.simulate_frames(3)
-	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
-	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.HOVER_STICKY)
+	await runner.simulate_frames(20)
 	await _hover(runner, td, near)
 	assert_object(td.player.target).is_same(near)
-	await runner.simulate_frames(120)
+	for _i: int in range(4):
+		await runner.simulate_frames(30)
+		await _hover(runner, td, near)
 	# Round 15: the shield lets a quarter of the joy through (it used to block all of it), so the sheltered one gains a
 	# little joy and still glances each hit. (Shield_test checks the exact share.)
 	assert_float(near.joy).is_greater(0.0)

@@ -93,13 +93,18 @@ func test_a_guarded_person_turns_their_back_and_shots_from_behind_glance_off() -
 	guarded.rotation.y = 0.0  # Already facing away (north), the player is south.
 	await _hover(runner, td, guarded)
 	assert_object(td.player.target).is_same(guarded)
-	await runner.simulate_frames(240)
+	# Round 17: a held hover target drops once the cursor has been off it for HOVER_STICK_SECONDS, and wanderers drift off
+	# the cursor, so the pointer follows them while the test waits.
+	for _i: int in range(4):
+		await runner.simulate_frames(60)
+		await _hover(runner, td, guarded)
 	# They keep their back to the player: they face away (north, local forward -Z).
 	assert_float(guarded.facing_dir().z).is_less(-0.7)
 	# Round 13b: the shield icon over their head says "guarded" (the crossed-arms bar is gone).
 	assert_bool(_has_icon(td, guarded, MoodIcons.Kind.SHIELD)).is_true()
 	# Shots keep arriving from behind: they glance off and no joy lands.
 	var glances := guarded.glance_count
+	await _hover(runner, td, guarded)
 	await runner.simulate_frames(120)
 	assert_float(guarded.joy).is_equal(0.0)
 	assert_int(guarded.glance_count).is_greater(glances)
@@ -119,20 +124,29 @@ func test_shots_from_the_front_or_side_land_and_the_player_can_run_round_to_the_
 	assert_float(guarded.joy).is_equal(0.0)  # still behind them
 	assert_int(guarded.glance_count).is_greater(0)
 
-	# Run north past them with WASD: they turn slowly (0.8 rad/s), so the player ends up at their front or side.
-	runner.simulate_key_press(KEY_SHIFT)
-	runner.simulate_key_press(KEY_W)
-	await runner.simulate_frames(66)
-	runner.simulate_key_release(KEY_W)
-	runner.simulate_key_release(KEY_SHIFT)
-	assert_float(td.player.global_position.z).is_less(-9.0)
-	await _hover(runner, td, guarded)
-	var glances := guarded.glance_count
-	await runner.simulate_frames(30)
+	# Run north past them with WASD, then keep running round them in a square. Round 17: they turn at GUARDED_TURN_SPEED
+	# (0.45 rad/s, was 0.8), slower than a runner can circle, so the square (about a minute of game time at most) gets
+	# joy in from their front or side. The pointer stays on them between legs.
+	assert_float(Config.GUARDED_TURN_SPEED).is_equal(0.45)
+	var legs := [KEY_W, KEY_D, KEY_S, KEY_A]
+	var frames := 0
+	var leg := 0
+	while guarded.joy <= 0.0 and frames < 1800:
+		var key: int = legs[leg % 4]
+		runner.simulate_key_press(KEY_SHIFT)
+		runner.simulate_key_press(key)
+		await runner.simulate_frames(60)
+		runner.simulate_key_release(key)
+		runner.simulate_key_release(KEY_SHIFT)
+		frames += 60
+		leg += 1
+		await _hover(runner, td, guarded)
 	assert_float(guarded.joy).is_greater(0.0)
-	# Eventually they turn their back again and shots glance off.
-	await runner.simulate_frames(200)
-	assert_int(guarded.glance_count).is_greater(glances)
+	# Eventually they turn their back again (a standing player: about 8 s at 0.45 rad/s), so shots from the player would
+	# glance off. Round 17: checked with the rule, not by counting glances: the player has run out of auto range by now,
+	# so no shots are fired to count.
+	await runner.simulate_frames(480)
+	assert_bool(guarded.is_open_to(td.player.global_position)).is_false()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

@@ -86,9 +86,9 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
 Every wistful or gloomy person has one mood (dimmed people have none). The HUD shows the target's mood next to its
 element, and F3 labels it above the person.
 
-- **Guarded** (shield icon, back to you): they turn slowly to keep their back to you. Joy only lands if
-  the shot arrives from their front or side (within 110 degrees of the way they face); from behind it glances off in a
-  small white puff. Run round them: they turn slower than you can circle.
+- **Guarded** (shield icon, back to you): they turn slowly to keep their back to you. A glowing wedge on the ground shows
+  where joy gets in: the open side, within 110 degrees either side of the way they face. It brightens while a shot from
+  you would land. From behind it glances off in a small white puff. Run round them: they turn slower than you can circle.
 - **Skittish** (jittery): if you run (Shift) at them within 5 m, they back away for 1.5 s. Walking up does not scare them.
 - **Glum** (slumped, leaning forward): every 3 s they look up for 0.8 s (they straighten and a warm glint shows above
   them). Joy that lands then counts triple.

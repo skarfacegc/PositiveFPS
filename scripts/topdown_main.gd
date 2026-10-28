@@ -675,6 +675,7 @@ func _near_block(p: Vector3, margin: float) -> bool:
 func _update_people(delta: float) -> void:
 	var pursuit: Dictionary = pursuit_assignments(people)
 	for p: Person in people:
+		p.shooter_pos = player.global_position  # Round 17: the guarded wedge asks whether a shot from here would land.
 		if p.is_rescued:
 			continue
 		if grabs.is_grabbing(p):

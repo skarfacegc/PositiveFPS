@@ -75,6 +75,8 @@ var glance_count: int = 0
 var mood_phase: float = 0.0
 # Round 13b: false while the layered introduction (see intro.gd) keeps this person's mood dormant.
 var mood_unlocked: bool = true
+# Round 17: where the player stands, set by topdown_main each frame (Vector3.INF until then). The guarded wedge uses it.
+var shooter_pos := Vector3.INF
 # Seconds since this person was last hit by a joy projectile.
 var _since_hit: float = 99.0
 
@@ -152,6 +154,12 @@ func facing_dir() -> Vector3:
 	var f := -global_transform.basis.z
 	f.y = 0.0
 	return f.normalized() if f.length() > 0.001 else Vector3.FORWARD
+
+
+# Round 17: true when a shot from the player would land on this person right now (the guarded open arc, the same rule
+# as receive_joy). False when the person is not guarded or the player's position is not known.
+func shot_lands_now() -> bool:
+	return active_mood() == Mood.GUARDED and shooter_pos != Vector3.INF and is_open_to(shooter_pos)
 
 
 # True when joy coming from `from` (a world point) would arrive at this person's front or side: the angle between

@@ -186,7 +186,7 @@ func test_entering_top_down_from_the_menu_defaults_to_hover_and_hover_targets() 
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_hover_target_follows_mouse_only_when_there_is_no_target() -> void:
+func test_hover_target_switches_at_once_to_the_person_under_the_cursor() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -201,15 +201,17 @@ func test_hover_target_follows_mouse_only_when_there_is_no_target() -> void:
 	await runner.simulate_frames(2)
 	assert_object(td.player.target).is_same(first)
 
-	# Moving the mouse to the other person does not change a target that is still held.
+	# Round 17: the cursor directly over another person switches the target at once (it used to keep the held target
+	# until F2 or until it became invalid). The hold-on-a-wobble and the nearer-ground switch are in hover_stick_test.gd.
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, second.global_position))
 	await runner.simulate_frames(2)
-	assert_object(td.player.target).is_same(first)
+	assert_object(td.player.target).is_same(second)
 
 	# Once the held target is rescued, the person under the mouse is picked.
-	first.receive_joy(first.affinity, Config.JOY_MAX * 3.0, 0.0)
+	second.receive_joy(second.affinity, Config.JOY_MAX * 3.0, 0.0)
+	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, first.global_position))
 	await runner.simulate_frames(2)
-	assert_object(td.player.target).is_same(second)
+	assert_object(td.player.target).is_same(first)
 
 
 func test_auto_prefers_a_rescued_person_about_to_relapse_over_a_grey_one() -> void:

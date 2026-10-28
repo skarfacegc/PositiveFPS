@@ -47,6 +47,9 @@ var _has_aim := false
 # Last mouse position from real mouse-motion events. Read by _update_aim (see _input).
 var _mouse_pos := Vector2.ZERO
 var _mouse_seen := false
+# Round 17: seconds the held hover target has not been the person the cursor is over or nearest to (see
+# _update_hover_target). Reset whenever the target changes or the cursor is back on it.
+var _hover_away := 0.0
 
 
 func _ready() -> void:
@@ -133,7 +136,7 @@ func _physics_process(delta: float) -> void:
 
 	_face_aim()
 	_fire_cooldown -= delta
-	_update_target()
+	_update_target(delta)
 	look.sync()
 	_try_fire()
 
@@ -179,7 +182,7 @@ func _click_lock() -> void:
 
 
 # Keeps the target in step with the mode, and drops it when it is no longer valid.
-func _update_target() -> void:
+func _update_target(delta: float) -> void:
 	if not is_instance_valid(target):
 		_set_target(null)
 	if targeting_mode == Config.TargetingMode.AUTO:
@@ -187,8 +190,40 @@ func _update_target() -> void:
 		return
 	if target != null and not _can_keep(target):
 		_set_target(null)
-	if targeting_mode == Config.TargetingMode.HOVER_STICKY and target == null and _has_aim:
-		_set_target(_nearest_valid(_aim_point, Config.TD_AIM_ASSIST_RADIUS))
+	if targeting_mode == Config.TargetingMode.HOVER_STICKY and _has_aim:
+		_update_hover_target(delta)
+
+
+# Round 17, hover: the target follows the pointer. The person the cursor is over or nearest to (the hover pick) takes
+# over at once if there is no target yet, or if the cursor is directly over them. Otherwise the held target is kept for
+# at most Config.HOVER_STICK_SECONDS after the cursor stops being over or nearest to it; then the pick takes over (or
+# the target clears when nobody is under the cursor). Wobbling off and back within that time keeps the target.
+func _update_hover_target(delta: float) -> void:
+	var pick := _nearest_hover(_aim_point, Config.TD_AIM_ASSIST_RADIUS)
+	if pick == target:
+		_hover_away = 0.0
+		return
+	if target == null or (pick != null and _flat_dist(_aim_point, pick.global_position) <= Config.HOVER_DIRECT_RADIUS):
+		_set_target(pick)
+		return
+	_hover_away += delta
+	if _hover_away >= Config.HOVER_STICK_SECONDS:
+		_set_target(pick)
+
+
+# The hover pick: the nearest person within `radius` of `point` who is a valid target, or the held target while it can
+# still be kept (so the cursor staying on it keeps it, even when it is outside auto range).
+func _nearest_hover(point: Vector3, radius: float) -> Person:
+	var best: Person = null
+	var best_d := INF
+	for p: Person in people:
+		if not is_instance_valid(p) or not (_is_valid_target(p) or (p == target and _can_keep(p))):
+			continue
+		var d := _flat_dist(point, p.global_position)
+		if d <= radius and d < best_d:
+			best_d = d
+			best = p
+	return best
 
 
 # Fires one shot at the target when the cooldown is ready and the target is in range. Notes, paint and flowers are all
@@ -218,6 +253,7 @@ func _set_target(p: Person) -> void:
 	if p == target:
 		return
 	target = p
+	_hover_away = 0.0
 	target_changed.emit(-1 if p == null else p.affinity)
 
 

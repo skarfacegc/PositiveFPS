@@ -524,7 +524,7 @@ const DIM_AURA_COLOUR := Color(0.05, 0.05, 0.08, 0.38)
 # Guarded: faces away from the player, turning at GUARDED_TURN_SPEED radians a second. Joy only lands when the angle
 # between their facing and the direction to the shooter is at most GUARDED_ARC_DEG; otherwise it glances off.
 const GUARDED_ARC_DEG := 110.0
-const GUARDED_TURN_SPEED := 0.8
+# GUARDED_TURN_SPEED (round 12b: 0.8 rad/s) moved to the Round 17 block: slowed to 0.45 so a shot can be lined up.
 const GLANCE_COLOUR := Color(0.9, 0.9, 0.95)
 # Skittish: a player closer than SKITTISH_RADIUS who moves faster than SKITTISH_SPEED_LIMIT (walk speed x 1.1, so a
 # run) scares them into backing away at SKITTISH_FLEE_SPEED for SKITTISH_FLEE_SECONDS. Walking up does not.
@@ -631,13 +631,32 @@ const INTRO_DIM_CAP := 0.669
 # Midnight surge: a person may sink to dimmed only if this many seconds have passed since the last one did. Others
 # wait just under the dimmed line (DIM_WAIT_GLOOM) and ask again each frame, so the first to ask when the gate
 # is open goes.
-const DIM_ARRIVAL_MIN_GAP := 6.0
+# Round 17: DIM_ARRIVAL_MIN_GAP (round 14: 6 s) moved to the Round 17 block: 9 s.
 # A person refused the midnight gate waits just under the dimmed threshold (0.67), so the next frame's growth takes them
 # over it and they ask again: the gate goes to whoever asks first in the level's order.
 const DIM_WAIT_GLOOM := 0.669999
 # A dimmed person hit by joy shows their progress ring for this long after the last hit.
 const DIM_RING_SECONDS := 1.5
 const DIM_HELP_TEXT := "Dimmed folk can be helped too — it takes longer"
+
+# ---- Round 17: the guarded wedge, quicker hover switching, slower dimmed arrivals (round 17 playtest) ----
+# Guarded: a wedge on the ground shows the open side, the arc where joy lands. It is centred on the person's facing and
+# spans GUARDED_ARC_DEG either side of it (the same arc Person.is_open_to uses), so its edges are the edges of the
+# rule. A body-sized radius in metres (not scaled by WORLD_SCALE). It is brighter while a shot from the player would
+# land now.
+const GUARDED_WEDGE_RADIUS := 2.0
+const GUARDED_WEDGE_SEGMENTS := 24
+const GUARDED_WEDGE_COLOUR := Color(1.0, 0.93, 0.7, 0.2)
+const GUARDED_WEDGE_OPEN_COLOUR := Color(1.0, 0.93, 0.7, 0.5)
+# Guarded turning, slowed from 0.8 rad/s so the player can line up a shot before they turn away.
+const GUARDED_TURN_SPEED := 0.45
+# Hover targeting: the held target is kept for at most this long after the cursor stops being over or nearest to it.
+# A person directly under the cursor (within HOVER_DIRECT_RADIUS metres of the aim point, a body size) takes over at
+# once, with no wait.
+const HOVER_STICK_SECONDS := 0.2
+const HOVER_DIRECT_RADIUS := 1.0
+# Midnight stagger (round 14: 6 s): the gap between two people sinking to dimmed.
+const DIM_ARRIVAL_MIN_GAP := 9.0
 
 # ---- Round 16: the border near the map edge (scripts/border.gd) ----
 # The border stays on the map: its loop is clamped to this distance from the middle (the same limit people wander to).

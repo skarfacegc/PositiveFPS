@@ -172,8 +172,8 @@ func test_a_focused_push_opens_one_local_gap_and_re_joying_the_member_closes_it(
 	TopDownTestUtil.place(td.people[20], target.position + out * 1.2, 1, 0.95)
 	TopDownTestUtil.place(td.people[21], target.position + out * 1.2 + side * 0.6, 2, 0.95)
 
-	# Round 14: the second presser sinks only DIM_ARRIVAL_MIN_GAP (6 s) after the first (the midnight stagger), so the
-	# member falters later than before. Exactly one stretch opens, not the whole border, within about 25 seconds.
+	# Round 14: the second presser sinks only DIM_ARRIVAL_MIN_GAP (9 s, round 17) after the first (the midnight stagger),
+	# so the member falters later than before. Exactly one stretch opens, not the whole border, within about 25 seconds.
 	var frames := 0
 	while border.gap_region_count() == 0 and frames < 2400:
 		await runner.simulate_frames(1)

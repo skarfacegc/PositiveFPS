@@ -15,10 +15,12 @@ func _start() -> Dictionary:
 	return {"runner": runner, "td": td}
 
 
-func test_many_people_ready_to_sink_at_midnight_enter_dimmed_at_least_six_seconds_apart() -> void:
+func test_many_people_ready_to_sink_at_midnight_enter_dimmed_at_least_nine_seconds_apart() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
+	# Round 17: the gap is 9 s (was 6 s). Six people sink at 0, 9, 18, 27, 36 and 45 s, so the wait is a minute.
+	assert_float(Config.DIM_ARRIVAL_MIN_GAP).is_equal(9.0)
 	# Six people ready to sink, spread across the plaza and far from the player (so nothing else happens to them).
 	var ready: Array[Person] = []
 	for i: int in range(6):
@@ -27,7 +29,7 @@ func test_many_people_ready_to_sink_at_midnight_enter_dimmed_at_least_six_second
 		ready.append(p)
 	var sank_at: Dictionary = {}
 	var frame := 0
-	for step: int in range(60 * 45):  # 45 seconds: long enough for all six to take their turn.
+	for step: int in range(60 * 60):  # 60 seconds (round 17): long enough for all six to take their turn at 9 s apart.
 		await runner.simulate_frames(1)
 		frame += 1
 		for p: Person in ready:
@@ -41,7 +43,7 @@ func test_many_people_ready_to_sink_at_midnight_enter_dimmed_at_least_six_second
 	times.sort()
 	# The first one goes at once (the gate is open at the start of the night).
 	assert_float(times[0]).is_less(0.2)
-	# Every later one came at least DIM_ARRIVAL_MIN_GAP after the one before (one frame of slack for the timing).
+	# Every later one came at least DIM_ARRIVAL_MIN_GAP (9 s, round 17) after the one before (one frame of slack).
 	for k: int in range(1, times.size()):
 		assert_float(times[k] - times[k - 1]).is_greater_equal(Config.DIM_ARRIVAL_MIN_GAP - 1.0 / 60.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
