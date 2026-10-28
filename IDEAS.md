@@ -1139,3 +1139,42 @@ runs hit the same lines). 359 tests, line coverage 99.7%.
 - Hover can now switch to a dimmed person when the cursor drifts near them as a wistful target wanders (the nearest rule).
   This is the intended new rule, but it is a new way to shoot a dimmed person by accident.
 - The turning test measures one frame of the turn, not a long turn.
+
+## Round 17 playtest and round 18 plan (2026-10-28)
+
+**Playtest:**
+- **Won** (reached dawn).
+- The guarded wedge is clear.
+- Hover targeting is fixed.
+- Dimmed folk every 9 s works.
+- The umbrella is still **hard to read**: who is sheltered, and how worn the umbrella is.
+- Key insight: *the core loop is good, but there isn't enough variance to create meaningful tension, and just making
+  it harder wouldn't feel right.*
+
+The user asked whether I could review a recording of their play.
+
+**Round 18 (starts after graphics checkpoint 2 merges, since both touch visuals):**
+1. **Border movement tuning.** This is the parked area-control work, using the round 16 rough spots:
+   - The loop creeps towards the last pushed side, because the centre follows the centroid.
+   - It eases back slowly (20–30 s) after a heavy push.
+   - Raw radii only grow, which leaves thin tongues.
+   - Members briefly swap places with no hysteresis.
+   - Short sealed stretches leave neighbours too close.
+2. **Gameplay recording.** A menu toggle that, while on, writes a session log for later analysis:
+   - Once a second: border size and open length, open gaps, counts by stage, spirit, player position, target, and
+     joy landed.
+   - Events: sinks, gaps opening and closing, rescues, grabs, umbrella pops, guarded glances, dawn and loss.
+   - A screenshot every 15–20 s.
+
+   The log goes in a gitignored folder. After the next playtest I analyse it (quiet time, decision density,
+   threat cadence, gap durations) and report a tension curve to the user.
+3. **Umbrella readability.** Make it clear who is sheltered and how worn the umbrella is, in the placeholder look.
+4. **Add-ons the user pre-approved for this round:**
+   - A faster determinism check.
+   - Remove the hard-coded username from paths ("Round 16 housekeeping").
+   - Delete old playtest worktrees.
+   - Split the slot code out of `border.gd` and restore lint max-file-lines to 1000. Do this *before* the movement
+     tuning, which touches the same file.
+   - Rename dark to dimmed/gloom in code identifiers. Do this last, after everything else is merged.
+
+**Round 19 (tentative):** gloom variety ("varied people"), informed by the round 18 recording.
