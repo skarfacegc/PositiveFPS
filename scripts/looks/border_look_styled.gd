@@ -15,6 +15,11 @@ const GAP_MOTE_STEP := 0.6
 const MAX_MOTES := 600
 const AMBER := Color("#e8963a")
 const CORAL := Color("#ff6a58")
+# Round 16: a stretch sealed by the map edge is a steadier, deeper honey band with a solid core line and only a few low
+# golden motes (see style_haze.gdshader); it is closed by the map, so it needs no people and never pulses.
+const HONEY := Color("#f0a93c")
+const SEAL_MOTE_STEP := 1.1
+const SEAL_MOTE_HEIGHT := 0.3
 
 var _haze: MeshInstance3D
 var _haze_mat: ShaderMaterial
@@ -24,6 +29,8 @@ var _gap_mote_mat: ShaderMaterial
 var _gap_glow_mat: ShaderMaterial
 var _glows: Array[MeshInstance3D] = []
 var _gap_points: PackedVector3Array = PackedVector3Array()
+# Per point of the loop: 1 where the stretch is sealed by the map edge (see _rebuild), else 0.
+var _seal_w: PackedFloat32Array = PackedFloat32Array()
 var _last_frame: int = -100000
 
 
@@ -97,6 +104,14 @@ func _rebuild() -> void:
 		var before := 1.0 if subject.segment_is_gap((j - 1 + n) % n) else 0.0
 		var after := 1.0 if subject.segment_is_gap(j) else 0.0
 		gap_w[j] = maxf(before, after)
+	# Round 16: per point, how much of it is sealed by the map edge (1 sealed), from the two segments that meet there.
+	var seal_w := PackedFloat32Array()
+	seal_w.resize(n)
+	for j: int in range(n):
+		var s_before := 1.0 if subject.is_sealed((j - 1 + n) % n) else 0.0
+		var s_after := 1.0 if subject.is_sealed(j) else 0.0
+		seal_w[j] = maxf(s_before, s_after)
+	_seal_w = seal_w
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var dist := 0.0
@@ -121,11 +136,12 @@ func _rebuild() -> void:
 			var side: float = v[1]
 			var d: float = v[2]
 			var w := gap_w[idx]
-			var tint := AMBER.lerp(CORAL, w)
+			var sw := seal_w[idx]
+			var tint := AMBER.lerp(HONEY, sw).lerp(CORAL, w)
 			st.set_normal(Vector3.UP)
 			st.set_color(Color(tint.r, tint.g, tint.b, lerpf(1.0, 0.4, w)))
 			st.set_uv(Vector2(side, d))
-			st.set_uv2(Vector2(w, 0.0))
+			st.set_uv2(Vector2(w, sw))
 			st.add_vertex(left[idx] if side < 0.0 else right[idx])
 	_haze.mesh = st.commit()
 	_rebuild_motes(poly, gap_w, dist)
@@ -166,9 +182,12 @@ func _rebuild_motes(poly: PackedVector2Array, gap_w: PackedFloat32Array, total: 
 				n_gap += 1
 			s += GAP_MOTE_STEP
 		else:
+			var sealed := lerpf(_seal_w[seg_i], _seal_w[(seg_i + 1) % n], f) > 0.5
+			if sealed:
+				pos.y = SEAL_MOTE_HEIGHT * (0.5 + h2)
 			gold.set_instance_transform(n_gold, Transform3D(Basis(), pos))
 			n_gold += 1
-			s += MOTE_STEP
+			s += SEAL_MOTE_STEP if sealed else MOTE_STEP
 		k += 1
 	gold.visible_instance_count = n_gold
 	coral.visible_instance_count = _gap_points.size()

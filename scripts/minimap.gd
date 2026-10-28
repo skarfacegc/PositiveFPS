@@ -16,6 +16,8 @@ const RESOLUTION := Config.TD_MINIMAP_RESOLUTION
 # order, and for each segment whether it is a gap.
 var border_pts := PackedVector2Array()
 var gap_flags: Array[bool] = []
+# Round 16: for each segment, whether the map edge seals it (drawn in the look's seal colour, see MinimapLook).
+var seal_flags: Array[bool] = []
 # Border members, dark people, the landmark, the player, and the four corners of the camera's view on the ground.
 var member_pts := PackedVector2Array()
 var dark_pts := PackedVector2Array()
@@ -92,8 +94,10 @@ func refresh_from(
 	_ground = ground
 	border_pts = border.polygon.duplicate()
 	gap_flags.clear()
+	seal_flags.clear()
 	for j: int in range(border.polygon.size()):
 		gap_flags.append(border.segment_is_gap(j))
+		seal_flags.append(border.is_sealed(j))
 	gap_markers.clear()
 	var mids := border.gap_midpoints_cached()
 	var urgencies := border.gap_urgencies()
@@ -157,7 +161,12 @@ func _render() -> void:
 		_fill_rect(building_rects[i], look.building_colour(building_warm[i]))
 	var n := border_pts.size()
 	for j: int in range(n):
-		_line(border_pts[j], border_pts[(j + 1) % n], look.line_colour(gap_flags[j]))
+		var a := border_pts[j]
+		var b := border_pts[(j + 1) % n]
+		if j < seal_flags.size() and seal_flags[j]:
+			_sealed_line(a, b)
+		else:
+			_line(a, b, look.line_colour(gap_flags[j]))
 	for m: Vector2 in member_pts:
 		_marker(m, 1.6, look.member_colour(), "member")
 	for d: Vector2 in dark_pts:
@@ -177,6 +186,18 @@ func _render() -> void:
 	for k: int in range(view_pts.size()):
 		_line(view_pts[k], view_pts[(k + 1) % view_pts.size()], look.view_colour())
 	_texture.update(_image)
+
+
+# A stretch of the loop sealed by the map edge (round 16): the look's seal colour, `seal_width()` pixels thick (the
+# extra
+# rows are shifted one pixel toward the middle of the map).
+func _sealed_line(a: Vector2, b: Vector2) -> void:
+	var col := look.seal_colour()
+	_line(a, b, col)
+	var px_metres := float(Config.TD_PLAZA_SIZE) / float(RESOLUTION)
+	for k: int in range(1, look.seal_width()):
+		var shift := -Vector2(signf(a.x + b.x), signf(a.y + b.y)) * px_metres * float(k)
+		_line(a + shift, b + shift, col)
 
 
 func _ground_colour(w: Vector2, px: int, py: int) -> Color:

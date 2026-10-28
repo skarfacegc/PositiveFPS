@@ -12,6 +12,9 @@ var _parts: Array[Dictionary] = [{}, {}, {}]
 var _bounce: Tween
 var _last_frac: float = -1.0
 var _last_glow: float = 0.0
+# Graphics checkpoint 2: the styled cue materials (see StyleCues).
+var _wedge_style: ShaderMaterial
+var _grab_style: ShaderMaterial
 
 
 func is_styled() -> bool:
@@ -72,6 +75,62 @@ func _sync_body() -> void:
 	else:
 		var soot: Node3D = _parts[Kind.DARK]["soot"]
 		soot.rotation.y = seconds * 0.5
+
+
+# ---- Graphics checkpoint 2: the cues on the ground (see StyleCues). The shared base builds the placeholder shapes; the
+# hooks below swap them for the pixel-style ones.
+
+
+# The grab warning ring: a coral dithered disc with an ink pixel and a bright rim (denser as the wind-up completes).
+func _style_grab_ring() -> void:
+	grab_ring.mesh = StyleCues.ring_mesh()
+	_grab_style = StyleCues.ring_material(StyleCues.GRAB_FILL, StyleCues.GRAB_RIM, 0.5, 0.0)
+	grab_ring.material_override = _grab_style
+
+
+func _show_grab(_col: Color, frac: float, radius: float) -> void:
+	_grab_style.set_shader_parameter("density", lerpf(0.3, 0.9, frac))
+	# Keep the rim about the same thickness on the ground while the ring grows.
+	_grab_style.set_shader_parameter("rim_width", clampf(StyleCues.GRAB_RIM_METRES / maxf(radius, 0.1), 0.05, 0.45))
+
+
+# The glum look-up glint: a small gold four-point sparkle (two crossed diamonds) instead of the plain sphere.
+func _style_glint() -> void:
+	glint.mesh = null
+	var gold := StyleKit.mat(StyleKit.hexc("#ffd95a"), 0, 0.0, 1.8)
+	StyleKit.sph(glint, 0.16, Vector3.ZERO, gold, Vector3(0.55, 1.7, 0.55), 4, false)
+	StyleKit.sph(glint, 0.16, Vector3.ZERO, gold, Vector3(1.7, 0.55, 1.7), 4, false)
+
+
+# The guarded wedge: a dithered honey fan with a solid ink edge and a cream rim; denser and whiter while a shot lands.
+func _style_guard_wedge() -> void:
+	_wedge_style = StyleCues.wedge_material(Config.GUARDED_WEDGE_RADIUS, Config.GUARDED_ARC_DEG)
+	guard_wedge.material_override = _wedge_style
+
+
+func _show_wedge(open: bool) -> void:
+	StyleCues.set_wedge_open(_wedge_style, open)
+
+
+# The stage ripple: a thin dithered ring that spreads out from the feet and thins away.
+func play_ripple(color: Color) -> void:
+	var ring := MeshInstance3D.new()
+	ring.mesh = StyleCues.ring_mesh()
+	var mat := StyleCues.ring_material(color, color.lightened(0.5), 0.45, 0.78)
+	mat.set_shader_parameter("rim_width", 0.06)
+	ring.material_override = mat
+	ring.position = Vector3(0, 0.06, 0)
+	ring.scale = Vector3(0.3, 1.0, 0.3)
+	ring.add_to_group("stage_ripple")
+	add_child(ring)
+	var set_fade := func(v: float) -> void: mat.set_shader_parameter("fade", v)
+	var t := create_tween()
+	t.set_parallel(true)
+	t.tween_property(
+		ring, "scale", Vector3(Config.STAGE_RIPPLE_RADIUS, 1.0, Config.STAGE_RIPPLE_RADIUS), Config.STAGE_RIPPLE_SECONDS
+	)
+	t.tween_method(set_fade, 1.0, 0.0, Config.STAGE_RIPPLE_SECONDS)
+	t.chain().tween_callback(ring.queue_free)
 
 
 func _set_glow(amount: float) -> void:

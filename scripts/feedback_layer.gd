@@ -344,16 +344,35 @@ static func _age_list(list: Array[Dictionary], delta: float) -> void:
 
 
 func _draw() -> void:
-	_draw_motes()
-	_draw_tethers()
-	_draw_closes()
-	_draw_dim_rings()
-	for m: Dictionary in markers:
-		_draw_marker(m)
+	# Graphics checkpoint 2: the styled look draws the same data as pixel cells (StyleFeedback); the icons go through
+	# MoodIcons, which is styled the same way.
+	var styled := Looks.is_styled()
+	if styled:
+		StyleFeedback.draw_under(self)
+	else:
+		_draw_motes()
+		_draw_tethers()
+		_draw_closes()
+		_draw_dim_rings()
+		for m: Dictionary in markers:
+			_draw_marker(m)
 	for ic: Dictionary in icons:
 		_draw_icon(ic)
-	_draw_sparks()
-	_draw_player_pulses()
+	if styled:
+		StyleFeedback.draw_over(self)
+	else:
+		_draw_sparks()
+		_draw_player_pulses()
+
+
+# The layer's clock (seconds), which paces the pulses.
+func clock() -> float:
+	return _clock
+
+
+# The look was swapped (F4): draw everything again in the new style.
+func rebuild_look() -> void:
+	queue_redraw()
 
 
 func _draw_motes() -> void:
@@ -469,9 +488,10 @@ func _draw_icon(ic: Dictionary) -> void:
 	# Round 15: a worn shield's umbrella is fainter and a little smaller (wear 1 fresh, down to 0.25 before it pops).
 	var wear: float = ic.get("wear", 1.0)
 	if kind == MoodIcons.Kind.UMBRELLA and wear < 1.0:
-		col.a *= lerpf(Config.SHELTER_WORN_ALPHA, 1.0, wear)
+		# The styled umbrella shows wear as holes, so it fades less (it must stay readable).
+		col.a *= lerpf(0.6 if Looks.is_styled() else Config.SHELTER_WORN_ALPHA, 1.0, wear)
 		size *= lerpf(0.85, 1.0, wear)
-	MoodIcons.draw(self, kind, pos, size, col)
+	MoodIcons.draw(self, kind, pos, size, col, wear)
 
 
 func _draw_sparks() -> void:

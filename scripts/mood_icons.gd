@@ -34,7 +34,13 @@ static func colour_for(kind: int) -> Color:
 
 
 # Draws icon `kind` on `ci`: a badge with the glyph inside, `size` pixels wide, centred on `centre`.
-static func draw(ci: CanvasItem, kind: int, centre: Vector2, size: float, colour: Color) -> void:
+# `wear` (1 fresh, down to 0.25) only matters to the styled umbrella, which shows holes as its shield wears. In the
+# styled
+# look (graphics checkpoint 2) the icon is a pixel-art bitmap on a ringed badge (see StyleUi.draw_icon).
+static func draw(ci: CanvasItem, kind: int, centre: Vector2, size: float, colour: Color, wear: float = 1.0) -> void:
+	if Looks.is_styled():
+		StyleUi.draw_icon(ci, kind, centre, size, colour, wear)
+		return
 	var badge := BADGE_COLOUR
 	badge.a *= colour.a
 	ci.draw_circle(centre, size * 0.68, badge)
