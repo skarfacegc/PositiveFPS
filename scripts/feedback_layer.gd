@@ -11,13 +11,17 @@ extends Control
 #     shelter (it snaps when they leave), and the bounce-off spark with the reason's icon flashing when joy is blocked.
 #   - A pulse ring round the player when spirit is gained, spent or lost (see SpiritMeter for the meter itself).
 #   - Round 14: a dimmed person hit by joy shows the same progress ring (filling toward rescue) for DIM_RING_SECONDS.
+#   - Round 18 (umbrella readability): wear pips under each sheltered person's umbrella (one per shield hit, filled
+#     while left), a canopy over their head, a steadier and thicker tether in the umbrella colour, a burst where
+#     a shield pops (the pip empties), and a faint regrow ring round a dimmed person during the shield's cooldown.
 # The lists below are the data model, so tests can check what is shown without reading pixels.
 
 # Faltering people: {"person", "urgency", "progress", "feet", "head"} (screen positions in pixels).
 var markers: Array[Dictionary] = []
 # Leak motes: {"pos": Vector3, "vel": Vector3, "age": float, "life": float}.
 var motes: Array[Dictionary] = []
-# Mood and shelter icons: {"person", "kind", "pos", "lift", "flash", "wear"} (wear: an umbrella's shield left, else 1).
+# Mood and shelter icons: {"person", "kind", "pos", "lift", "flash", "wear", "pips"}. wear: an umbrella's shield left
+# (else 1); pips: the hits the umbrella's shield has left (0 for other icons).
 var icons: Array[Dictionary] = []
 # Sheltering tethers this frame: {"a": Vector3, "b": Vector3}; the broken ones: {"a", "b", "left"}.
 var tethers: Array[Dictionary] = []
@@ -31,8 +35,15 @@ var player_pulses: Array[Dictionary] = []
 # Round 14: progress rings on dimmed people hit by joy: {"person", "progress" (0 to 1 toward rescue), "left", "feet",
 # "head"} (screen positions in pixels). A ring is dropped when the person stops being dimmed.
 var dim_rings: Array[Dictionary] = []
+# Round 18: shield pops, each once: {"pos": Vector3, "left": float} (the burst and the pip emptying).
+var pops: Array[Dictionary] = []
+# Round 18: regrow rings round dimmed people whose shield is cooling down:
+# {"person", "progress" (0 to 1), "feet", "head"}.
+var regrow_rings: Array[Dictionary] = []
 # How many times joy was blocked (for tests and the debug line).
 var blocked_count: int = 0
+# How many shields have popped (each pop adds one).
+var pop_count: int = 0
 var main: TopDownMain
 var _flash: Dictionary = {}
 var _was_faltering: Dictionary = {}
@@ -68,6 +79,7 @@ func tick(delta: float) -> void:
 		_update_icons(_pending)
 		_update_tethers()
 		_update_dim_rings()
+		_update_regrow()
 		_pending = 0.0
 	var busy := not (
 		markers.is_empty()
@@ -79,6 +91,8 @@ func tick(delta: float) -> void:
 		and closes.is_empty()
 		and player_pulses.is_empty()
 		and dim_rings.is_empty()
+		and pops.is_empty()
+		and regrow_rings.is_empty()
 	)
 	if busy or _was_busy:
 		queue_redraw()
@@ -111,6 +125,27 @@ func on_dim_joy(p: Person) -> void:
 	dim_rings.append(
 		{"person": p, "progress": 0.0, "left": Config.DIM_RING_SECONDS, "feet": Vector2.ZERO, "head": Vector2.ZERO}
 	)
+
+
+# Round 18: a dimmed person's shield popped at `at` (world space, the head of the person it covered). Once per pop.
+func on_shield_pop(at: Vector3) -> void:
+	pop_count += 1
+	pops.append({"pos": at, "left": Config.SHELTER_POP_SECONDS})
+
+
+# Round 18: the filled and hollow pips for `remaining` hits left (index 0 is the first pip; true = filled).
+static func pip_states(remaining: int) -> Array[bool]:
+	var out: Array[bool] = []
+	for i: int in range(Config.SHELTER_HITS):
+		out.append(i < remaining)
+	return out
+
+
+# Round 18: the alpha an umbrella with `wear` (1 fresh, 0.25 about to pop) is drawn with. The placeholder look
+# never goes below UMBRELLA_MIN_ALPHA; the styled look keeps its own floor.
+static func umbrella_alpha(wear: float, styled: bool) -> float:
+	var floor_alpha := Config.STYLED_UMBRELLA_MIN_ALPHA if styled else Config.UMBRELLA_MIN_ALPHA
+	return lerpf(floor_alpha, 1.0, clampf(wear, 0.0, 1.0))
 
 
 # True while the icon flash of `p` is showing (0 to 1, 1 just after joy was blocked).
@@ -283,6 +318,8 @@ func _update_icons(delta: float) -> void:
 				flash = flash_of(p)
 			# Round 15: an umbrella shows how much of its shield is left (the shielder's hits), so it fades per hit.
 			var wear := p.shielder.shield_left_frac() if p.shielder != null else 1.0
+			# Round 18: the pips count the same hits (SHELTER_HITS minus those taken).
+			var pips := Config.SHELTER_HITS if p.shielder == null else Config.SHELTER_HITS - p.shielder.shield_hits
 			icons.append(
 				{
 					"person": p,
@@ -290,7 +327,8 @@ func _update_icons(delta: float) -> void:
 					"pos": head + Vector2(offset, 0.0),
 					"lift": lift,
 					"flash": flash,
-					"wear": wear
+					"wear": wear,
+					"pips": pips if kind == MoodIcons.Kind.UMBRELLA else 0
 				}
 			)
 
@@ -323,7 +361,27 @@ func _update_tethers() -> void:
 	_links = now
 
 
+# Round 18: the regrow rings of the dimmed people whose shield is cooling down (only while they are dimmed).
+func _update_regrow() -> void:
+	regrow_rings.clear()
+	for p: Person in main.people:
+		if p.is_rescued or p.shield_down_left <= 0.0 or not GloomSim.is_dark(p):
+			continue
+		(
+			regrow_rings
+			. append(
+				{
+					"person": p,
+					"progress": clampf(1.0 - p.shield_down_left / Config.SHELTER_REGROW, 0.0, 1.0),
+					"feet": main.world_to_screen(p.global_position),
+					"head": main.world_to_screen(p.global_position + Vector3(0, 3.0, 0)),
+				}
+			)
+		)
+
+
 func _age_effects(delta: float) -> void:
+	_age_list(pops, delta)
 	_age_list(snaps, delta)
 	_age_list(sparks, delta)
 	_age_list(closes, delta)
@@ -354,13 +412,16 @@ func _draw() -> void:
 		_draw_tethers()
 		_draw_closes()
 		_draw_dim_rings()
+		_draw_regrow_rings()
 		for m: Dictionary in markers:
 			_draw_marker(m)
+		_draw_canopies()
 	for ic: Dictionary in icons:
 		_draw_icon(ic)
 	if styled:
 		StyleFeedback.draw_over(self)
 	else:
+		_draw_pops()
 		_draw_sparks()
 		_draw_player_pulses()
 
@@ -384,13 +445,14 @@ func _draw_motes() -> void:
 		draw_circle(main.world_to_screen(pos), 2.5 + 3.5 * t, col)
 
 
+# Round 18: the live tether is thick, steady and in the umbrella colour (the snap keeps the old colour).
 func _draw_tethers() -> void:
 	for t: Dictionary in tethers:
 		var a := main.world_to_screen(_vec3(t["a"]))
 		var b := main.world_to_screen(_vec3(t["b"]))
-		draw_line(a, b, Config.TETHER_COLOUR, 2.0, true)
-		draw_circle(a, 3.0, Config.TETHER_COLOUR)
-		draw_circle(b, 3.0, Config.TETHER_COLOUR)
+		draw_line(a, b, Config.SHELTER_TETHER_COLOUR, Config.SHELTER_TETHER_WIDTH, true)
+		draw_circle(a, Config.SHELTER_TETHER_WIDTH, Config.SHELTER_TETHER_COLOUR)
+		draw_circle(b, Config.SHELTER_TETHER_WIDTH, Config.SHELTER_TETHER_COLOUR)
 	for s: Dictionary in snaps:
 		var f: float = _num(s["left"]) / Config.TETHER_SNAP_SECONDS
 		var a := main.world_to_screen(_vec3(s["a"]))
@@ -442,6 +504,81 @@ func _draw_dim_rings() -> void:
 			draw_arc(centre, Config.FALTER_RING_RADIUS, -PI * 0.5, -PI * 0.5 + TAU * prog, 40, pc, 6.0, true)
 
 
+# Round 18: a small canopy over each sheltered person's head (placeholder look; the umbrella icon sits under it).
+func _draw_canopies() -> void:
+	for ic: Dictionary in icons:
+		if ic["kind"] != MoodIcons.Kind.UMBRELLA:
+			continue
+		var pos: Vector2 = ic["pos"]
+		var base := pos + Vector2(0, -Config.SHELTER_CANOPY_LIFT)
+		var half := Config.SHELTER_CANOPY_WIDTH * 0.5
+		var pts := PackedVector2Array()
+		for i: int in range(13):
+			var a := PI + PI * float(i) / 12.0
+			pts.append(base + Vector2(cos(a) * half, sin(a) * half * 0.6))
+		draw_colored_polygon(pts, Config.SHELTER_TETHER_COLOUR)
+		draw_line(base, base + Vector2(0, 5.0), Config.SHELTER_TETHER_COLOUR, 2.0, true)
+
+
+# Round 18: a faint countdown ring round a dimmed person whose shield is cooling down (it fills as the cooldown passes).
+func _draw_regrow_rings() -> void:
+	for r: Dictionary in regrow_rings:
+		var feet: Vector2 = r["feet"]
+		var head: Vector2 = r["head"]
+		var centre := (feet + head) * 0.5 + Vector2(0, 6)
+		var prog: float = r["progress"]
+		var track := Config.SHELTER_TETHER_COLOUR
+		track.a = Config.REGROW_RING_ALPHA * 0.3
+		draw_arc(centre, Config.REGROW_RING_RADIUS, 0.0, TAU, 48, track, Config.REGROW_RING_WIDTH, true)
+		var col := Config.SHELTER_TETHER_COLOUR
+		col.a = Config.REGROW_RING_ALPHA
+		if prog > 0.0:
+			draw_arc(
+				centre,
+				Config.REGROW_RING_RADIUS,
+				-PI * 0.5,
+				-PI * 0.5 + TAU * prog,
+				48,
+				col,
+				Config.REGROW_RING_WIDTH,
+				true
+			)
+
+
+# Round 18: a shield pops: a burst ring and spokes spread out from the head, and the one pip empties (filled for the
+# first 40% of the pop, then hollow).
+func _draw_pops() -> void:
+	for pop: Dictionary in pops:
+		var f: float = _num(pop["left"]) / Config.SHELTER_POP_SECONDS
+		var t := 1.0 - f
+		var at := main.world_to_screen(_vec3(pop["pos"]))
+		var col := Config.SHELTER_TETHER_COLOUR
+		col.a = f
+		var radius := lerpf(Config.SHELTER_POP_RING_MIN, Config.SHELTER_POP_RING_MAX, t)
+		draw_arc(at, radius, 0.0, TAU, 40, col, 2.0 + 3.0 * f, true)
+		for k: int in range(6):
+			var a := TAU * float(k) / 6.0 + 0.3
+			var d := Vector2(cos(a), sin(a))
+			draw_line(at + d * (radius * 0.6), at + d * (radius * 0.9), col, 2.0, true)
+		var filled := 1 if t < 0.4 else 0
+		_draw_pips(at + Vector2(0, Config.MOOD_ICON_SIZE * 0.68 + Config.PIP_LIFT), filled, col)
+
+
+# Round 18: the wear pips of an umbrella: a dot per shield hit, filled while it has hits left, hollow once used. Centred
+# on `centre`, in a row.
+func _draw_pips(centre: Vector2, remaining: int, colour: Color) -> void:
+	var states := pip_states(remaining)
+	var n := states.size()
+	for i: int in range(n):
+		var at := centre + Vector2((float(i) - float(n - 1) * 0.5) * Config.PIP_SPACING, 0.0)
+		if states[i]:
+			draw_circle(at, Config.PIP_RADIUS, colour)
+		else:
+			var hollow := colour
+			hollow.a *= Config.PIP_HOLLOW_ALPHA
+			draw_arc(at, Config.PIP_RADIUS, 0.0, TAU, 12, hollow, 1.5, true)
+
+
 func _draw_marker(m: Dictionary) -> void:
 	var u: float = m["urgency"]
 	var feet: Vector2 = m["feet"]
@@ -485,13 +622,15 @@ func _draw_icon(ic: Dictionary) -> void:
 		pos += Vector2(0, -10.0 - 3.0 * sin(_clock * 10.0))
 	col = col.lerp(Color.WHITE, flash)
 	var size := Config.MOOD_ICON_SIZE * (1.0 + 0.8 * flash) * (1.0 + 0.2 * lift)
-	# Round 15: a worn shield's umbrella is fainter and a little smaller (wear 1 fresh, down to 0.25 before it pops).
+	# Round 15: a worn shield's umbrella shrinks a little (wear 1 fresh, down to 0.25 before it pops). Round 18: it stays
+	# nearly opaque (umbrella_alpha) and the wear is shown by the pips under it instead of a fade.
 	var wear: float = ic.get("wear", 1.0)
-	if kind == MoodIcons.Kind.UMBRELLA and wear < 1.0:
-		# The styled umbrella shows wear as holes, so it fades less (it must stay readable).
-		col.a *= lerpf(0.6 if Looks.is_styled() else Config.SHELTER_WORN_ALPHA, 1.0, wear)
-		size *= lerpf(0.85, 1.0, wear)
+	if kind == MoodIcons.Kind.UMBRELLA:
+		col.a *= umbrella_alpha(wear, Looks.is_styled())
+		size *= lerpf(Config.UMBRELLA_MIN_SCALE, 1.0, wear)
 	MoodIcons.draw(self, kind, pos, size, col, wear)
+	if kind == MoodIcons.Kind.UMBRELLA:
+		_draw_pips(pos + Vector2(0, size * 0.68 + Config.PIP_LIFT), _int(ic.get("pips", 0)), col)
 
 
 func _draw_sparks() -> void:

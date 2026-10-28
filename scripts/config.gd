@@ -639,6 +639,34 @@ const DIM_WAIT_GLOOM := 0.669999
 const DIM_RING_SECONDS := 1.5
 const DIM_HELP_TEXT := "Dimmed folk can be helped too — it takes longer"
 
+# ---- Round 18: umbrella readability (scripts/feedback_layer.gd, mood_icons.gd, person.gd) ----
+# The umbrella stays nearly opaque however worn it is: the wear shows as pips (below), not as a fade. The styled
+# look keeps its own floor (its holes already show the wear).
+const UMBRELLA_MIN_ALPHA := 0.85
+const STYLED_UMBRELLA_MIN_ALPHA := 0.6
+# A worn umbrella shrinks a little (1 fresh, this much smaller about to pop).
+const UMBRELLA_MIN_SCALE := 0.9
+# Wear pips under the umbrella: one per shield hit (SHELTER_HITS). Filled = hits left, hollow = used. Pixels, centre to
+# centre; the row sits PIP_LIFT pixels under the icon.
+const PIP_RADIUS := 3.0
+const PIP_SPACING := 8.0
+const PIP_LIFT := 6.0
+const PIP_HOLLOW_ALPHA := 0.5
+# The tether from a dimmed person to who they shelter: thicker, steady, in the umbrella's colour (placeholder look).
+const SHELTER_TETHER_COLOUR := Color(0.78, 0.6, 1.0, 0.85)
+const SHELTER_TETHER_WIDTH := 4.0
+# A small canopy drawn over a sheltered person's head (pixels): its width, and how far above the head it sits.
+const SHELTER_CANOPY_WIDTH := 30.0
+const SHELTER_CANOPY_LIFT := 26.0
+# The pop: a burst ring (pixels, from POP_RING_MIN out to POP_RING_MAX) and the pip emptying, over POP_SECONDS.
+const SHELTER_POP_SECONDS := 0.5
+const SHELTER_POP_RING_MIN := 12.0
+const SHELTER_POP_RING_MAX := 46.0
+# The regrow ring: a faint arc round a dimmed person during their SHELTER_REGROW cooldown (fills as it passes).
+const REGROW_RING_RADIUS := 44.0
+const REGROW_RING_WIDTH := 2.5
+const REGROW_RING_ALPHA := 0.5
+
 # ---- Round 17: the guarded wedge, quicker hover switching, slower dimmed arrivals (round 17 playtest) ----
 # Guarded: a wedge on the ground shows the open side, the arc where joy lands. It is centred on the person's facing and
 # spans GUARDED_ARC_DEG either side of it (the same arc Person.is_open_to uses), so its edges are the edges of the
@@ -675,8 +703,6 @@ const SHELTER_HITS := 4
 const SHELTER_REGROW := 8.0
 # Particles in the puff where a shield pops (on the sheltered person).
 const SHELTER_POP_PUFF := 16
-# The umbrella icon's alpha when its shield is about to pop (a fresh shield is full alpha; it scales between the two).
-const SHELTER_WORN_ALPHA := 0.35
 # ---- Round 18: the gameplay recorder (scripts/recorder.gd). Off by default; the menu or `-- --record` turns it on.
 # A sample line every RECORD_SAMPLE_SECONDS; gaps, shields and the like are polled every RECORD_POLL_SECONDS; the
 # buffer is written out every RECORD_FLUSH_SECONDS; a screenshot (downscaled to RECORD_SHOT_WIDTH) every

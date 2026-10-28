@@ -10,6 +10,8 @@ signal joy_blocked(reason: int)
 # Round 14: joy landed on an unrescued person (after the guard and sheltering checks). The level uses it to show a
 # dimmed person's progress ring and the one-time dimmed prompt.
 signal joy_landed
+# Round 18: a dimmed person's shield popped (once per pop). `at` is the head of the person it was over (world space).
+signal shield_popped(at: Vector3)
 
 # Round 12b: the mood of an unrescued wistful or gloomy person (see scripts/moods.gd). Dimmed and rescued people act
 # as if they had none (active_mood).
@@ -227,11 +229,14 @@ func wear_shield() -> bool:
 		return false
 	shield_hits = 0
 	shield_down_left = Config.SHELTER_REGROW
+	var at := global_position + Vector3(0, 3.0, 0)
 	if shelter_ward != null:
+		at = shelter_ward.global_position + Vector3(0, 3.0, 0)
 		shelter_ward.sheltered = false
 		shelter_ward.shielder = null
 		shelter_ward._fx_puff(Config.SHELTER_COLOUR, Config.SHELTER_POP_PUFF)
 	shelter_ward = null
+	shield_popped.emit(at)
 	return true
 
 

@@ -370,6 +370,7 @@ func _build_feedback() -> void:
 	for p: Person in people:
 		p.joy_blocked.connect(_on_joy_blocked.bind(p))
 		p.joy_landed.connect(_on_joy_landed.bind(p))
+		p.shield_popped.connect(feedback.on_shield_pop)
 
 
 # Every frame, also after the round ends: the overlays advance and redraw.
