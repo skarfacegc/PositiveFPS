@@ -290,7 +290,7 @@ func _nearest_valid(point: Vector3, radius: float) -> Person:
 	return best
 
 
-# AUTO: rescued-and-warning people first, then the darkest, then the nearest.
+# AUTO: rescued-and-warning people first, then the dimmest, then the nearest.
 func _most_urgent() -> Person:
 	var best: Person = null
 	for p: Person in people:

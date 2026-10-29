@@ -3,7 +3,7 @@ extends Control
 
 # The round minimap (round 10), top-left, about TD_MINIMAP_WIDTH_FRACTION of the screen width. It shows the whole
 # plaza in a circle: warm and grey ground, buildings, the border line, the gaps (coral), the border members (cream
-# dots), the dark people (dark dots), the landmark (a star), the player (a bright dot) and the camera's view
+# dots), the dimmed people (dimmed dots), the landmark (a star), the player (a bright dot) and the camera's view
 # rectangle.
 #
 # The picture is drawn into a small image (TD_MINIMAP_RESOLUTION pixels across, outside the circle left transparent)
@@ -18,9 +18,9 @@ var border_pts := PackedVector2Array()
 var gap_flags: Array[bool] = []
 # Round 16: for each segment, whether the map edge seals it (drawn in the look's seal colour, see MinimapLook).
 var seal_flags: Array[bool] = []
-# Border members, dark people, the landmark, the player, and the four corners of the camera's view on the ground.
+# Border members, dimmed people, the landmark, the player, and the four corners of the camera's view on the ground.
 var member_pts := PackedVector2Array()
-var dark_pts := PackedVector2Array()
+var dimmed_pts := PackedVector2Array()
 var landmark_pos := Vector2.ZERO
 var player_pos := Vector2.ZERO
 var view_pts := PackedVector2Array()
@@ -107,10 +107,10 @@ func refresh_from(
 	member_pts = PackedVector2Array()
 	for m: Person in border.members:
 		member_pts.append(Vector2(m.position.x, m.position.z))
-	dark_pts = PackedVector2Array()
+	dimmed_pts = PackedVector2Array()
 	for p: Person in people:
-		if not p.is_rescued and GloomSim.is_dark(p):
-			dark_pts.append(Vector2(p.position.x, p.position.z))
+		if not p.is_rescued and GloomSim.is_dimmed(p):
+			dimmed_pts.append(Vector2(p.position.x, p.position.z))
 	landmark_pos = Vector2(Config.BORDER_LANDMARK_POS.x, Config.BORDER_LANDMARK_POS.z)
 	player_at.y = 0.0
 	player_pos = Vector2(player_at.x, player_at.z)
@@ -169,8 +169,8 @@ func _render() -> void:
 			_line(a, b, look.line_colour(gap_flags[j]))
 	for m: Vector2 in member_pts:
 		_marker(m, 1.6, look.member_colour(), "member")
-	for d: Vector2 in dark_pts:
-		_marker(d, 1.3, look.dark_colour(), "dark")
+	for d: Vector2 in dimmed_pts:
+		_marker(d, 1.3, look.dimmed_colour(), "dimmed")
 	for b: Dictionary in blips:
 		var at: Vector2 = b["pos"]
 		var left: float = b["left"]

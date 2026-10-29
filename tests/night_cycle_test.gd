@@ -87,16 +87,16 @@ func test_the_level_shows_the_night_progress_and_its_light() -> void:
 
 
 func test_dawn_is_the_end_and_the_strength_is_used_by_the_gloom() -> void:
-	# At midnight the same dark person spreads gloom faster than at dusk (the strength multiplies the spread).
+	# At midnight the same dimmed person spreads gloom faster than at dusk (the strength multiplies the spread).
 	var near: Person = auto_free(Person.new())
-	var dark: Person = auto_free(Person.new())
+	var dimmed: Person = auto_free(Person.new())
 	add_child(near)
-	add_child(dark)
-	dark.gloom = 1.0
+	add_child(dimmed)
+	dimmed.gloom = 1.0
 	near.gloom = 0.2
 	near.position = Vector3(1.0, 0.0, 0.0)
-	dark.position = Vector3.ZERO
-	var list: Array[Person] = [near, dark]
+	dimmed.position = Vector3.ZERO
+	var list: Array[Person] = [near, dimmed]
 	GloomSim.update(list, 1.0, Config.TD_DRAIN_MULTIPLIER, 1.0)
 	var dusk_gain := near.gloom - 0.2
 	near.gloom = 0.2

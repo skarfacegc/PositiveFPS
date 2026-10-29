@@ -2,8 +2,8 @@ class_name MinimapLookStyled
 extends MinimapLook
 
 # The styled minimap (per REVIEW_NOTES): a round parchment-framed map. Grey and warm ground in two shades with a faint
-# checker, buildings in rust or slate, a gold border line with coral gaps, cream border people, dark people with a pale
-# ring, a gold star for the landmark and a bright player dot, every marker outlined in dark brown. It is drawn at
+# checker, buildings in rust or slate, a gold border line with coral gaps, cream border people, dimmed people with a
+# pale ring, a gold star for the landmark and a bright player dot, every marker outlined in dark brown. It is drawn at
 # window resolution (crisp), not in the pixel pass. The picture is the same data model as the placeholder minimap.
 
 const INK := Color("#3a2a20")
@@ -58,7 +58,7 @@ func member_colour() -> Color:
 	return Color("#fff3c4")
 
 
-func dark_colour() -> Color:
+func dimmed_colour() -> Color:
 	return Color("#16181d")
 
 
@@ -75,7 +75,7 @@ func view_colour() -> Color:
 
 
 func halo_colour(kind: String) -> Color:
-	return Color("#c9ced8") if kind == "dark" else INK
+	return Color("#c9ced8") if kind == "dimmed" else INK
 
 
 func draw_back(ctl: Control) -> void:

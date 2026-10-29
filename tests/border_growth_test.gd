@@ -89,7 +89,7 @@ func test_a_segment_beside_a_post_is_never_a_gap() -> void:
 	assert_array(flags).is_equal([false, false, true, true])
 
 
-func test_a_dark_person_pressing_an_intact_line_is_pushed_out_and_drains_a_quarter_of_a_gap() -> void:
+func test_a_dimmed_person_pressing_an_intact_line_is_pushed_out_and_drains_a_quarter_of_a_gap() -> void:
 	# Round 11: the intact push-back is slower (0.35) and the nearest member loses BORDER_INTACT_DRAIN_FRACTION of the
 	# gap drain rate (round 10 drained nobody here).
 	var border := _organic_border()
@@ -99,14 +99,14 @@ func test_a_dark_person_pressing_an_intact_line_is_pushed_out_and_drains_a_quart
 	border._assign_members(ring)
 	for m: Person in border.members:
 		m.joy = 900.0
-	var dark: Person = auto_free(Person.new())
-	add_child(dark)
-	dark.position = Vector3(5.8, 0.0, 0.33)
-	dark.gloom = 1.0
-	var people: Array[Person] = [dark]
-	var before_x := dark.position.x
-	border._press_darkness(people, 1.0, 1.0)
-	assert_float(dark.position.x - before_x).is_equal_approx(Config.BORDER_PUSHBACK_SPEED, 0.02)
+	var dimmed: Person = auto_free(Person.new())
+	add_child(dimmed)
+	dimmed.position = Vector3(5.8, 0.0, 0.33)
+	dimmed.gloom = 1.0
+	var people: Array[Person] = [dimmed]
+	var before_x := dimmed.position.x
+	border._press_gloom(people, 1.0, 1.0)
+	assert_float(dimmed.position.x - before_x).is_equal_approx(Config.BORDER_PUSHBACK_SPEED, 0.02)
 	var lost := 0.0
 	for m: Person in border.members:
 		lost += 900.0 - m.joy
@@ -115,7 +115,7 @@ func test_a_dark_person_pressing_an_intact_line_is_pushed_out_and_drains_a_quart
 	assert_float(lost).is_equal_approx(6.0, 0.01)
 
 
-func test_a_dark_person_pressing_a_gap_drains_the_nearest_member() -> void:
+func test_a_dimmed_person_pressing_a_gap_drains_the_nearest_member() -> void:
 	var border := _organic_border()
 	border.polygon = Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
 	border.active = true
@@ -127,13 +127,13 @@ func test_a_dark_person_pressing_a_gap_drains_the_nearest_member() -> void:
 		m.joy = 900.0
 		ring.append(m)
 	border._assign_members(ring)
-	var dark: Person = auto_free(Person.new())
-	add_child(dark)
-	dark.position = Vector3(5.8, 0.0, 0.33)
-	dark.gloom = 1.0
-	var people: Array[Person] = [dark]
-	border._press_darkness(people, 1.0, 1.0)
-	assert_float(dark.position.x).is_equal_approx(5.8, 0.0001)
+	var dimmed: Person = auto_free(Person.new())
+	add_child(dimmed)
+	dimmed.position = Vector3(5.8, 0.0, 0.33)
+	dimmed.gloom = 1.0
+	var people: Array[Person] = [dimmed]
+	border._press_gloom(people, 1.0, 1.0)
+	assert_float(dimmed.position.x).is_equal_approx(5.8, 0.0001)
 	var nearest: Person = ring[0]
 	assert_float(nearest.joy).is_less(900.0)
 	# Round 11: a gap keeps the full drain rate (24 joy at strength 1 for one second), four times the intact rate.

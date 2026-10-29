@@ -282,13 +282,13 @@ func test_nothing_presses_on_a_sealed_stretch() -> void:
 		var a := TAU * float(i) / 40.0
 		rescued.append(_person_at(Vector3(lim - 10.0 + cos(a) * 28.0, 0.0, sin(a) * 28.0)))
 	border._assign_members(rescued)
-	var dark := _person_at(Vector3(lim + 0.5, 0.0, 0.0))
-	dark.is_rescued = false
-	dark.gloom = 1.0
+	var dimmed := _person_at(Vector3(lim + 0.5, 0.0, 0.0))
+	dimmed.is_rescued = false
+	dimmed.gloom = 1.0
 	var joy_before: Array[float] = []
 	for m: Person in border.members:
 		joy_before.append(m.joy)
-	border._press_darkness([dark] as Array[Person], 1.0, 1.0)
-	assert_vector(dark.position).is_equal(Vector3(lim + 0.5, 0.0, 0.0))
+	border._press_gloom([dimmed] as Array[Person], 1.0, 1.0)
+	assert_vector(dimmed.position).is_equal(Vector3(lim + 0.5, 0.0, 0.0))
 	for i: int in range(border.members.size()):
 		assert_float(border.members[i].joy).is_equal(joy_before[i])

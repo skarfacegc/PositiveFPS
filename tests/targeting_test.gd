@@ -109,7 +109,7 @@ func test_lock_breaks_when_the_player_moves_beyond_break_range() -> void:
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)
 	var target: Person = td.people[0]
-	# A dark person needs the most joy, so the walk-away below cannot end with a rescue.
+	# A dimmed person needs the most joy, so the walk-away below cannot end with a rescue.
 	TopDownTestUtil.place(target, Vector3(0, 0, -8), 0, 0.9)
 	await _click_at(runner, td, target.global_position)
 	assert_object(td.player.target).is_same(target)
@@ -220,9 +220,9 @@ func test_auto_prefers_a_rescued_person_about_to_relapse_over_a_grey_one() -> vo
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)
 	var rescued: Person = td.people[0]
-	var dark: Person = td.people[1]
+	var dimmed: Person = td.people[1]
 	TopDownTestUtil.place(rescued, Vector3(0, 0, -8), 0, 0.0)
-	TopDownTestUtil.place(dark, Vector3(4, 0, 0), 0, 0.9)
+	TopDownTestUtil.place(dimmed, Vector3(4, 0, 0), 0, 0.9)
 	# Rescue one person, then drop their joy into the warning zone (below 85% of what a rescue needs).
 	rescued.receive_joy(rescued.affinity, Config.JOY_MAX * 2.0, 0.0)
 	rescued.joy = 800.0
@@ -233,19 +233,19 @@ func test_auto_prefers_a_rescued_person_about_to_relapse_over_a_grey_one() -> vo
 	assert_object(td.player.target).is_same(rescued)
 
 
-func test_auto_prefers_the_darkest_person_when_nobody_is_rescued() -> void:
+func test_auto_prefers_the_dimmest_person_when_nobody_is_rescued() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)
 	var near_grey: Person = td.people[0]
-	var far_dark: Person = td.people[1]
+	var far_dimmed: Person = td.people[1]
 	TopDownTestUtil.place(near_grey, Vector3(0, 0, -6), 0, 0.5)
-	TopDownTestUtil.place(far_dark, Vector3(-8, 0, 0), 0, 0.9)
+	TopDownTestUtil.place(far_dimmed, Vector3(-8, 0, 0), 0, 0.9)
 
 	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.AUTO)
 	await runner.simulate_frames(2)
-	assert_object(td.player.target).is_same(far_dark)
+	assert_object(td.player.target).is_same(far_dimmed)
 
 
 func test_shots_use_the_target_element_and_the_ring_matches() -> void:

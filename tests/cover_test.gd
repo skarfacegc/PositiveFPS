@@ -1,6 +1,6 @@
 extends GdUnitTestSuite
 
-# Round 7 cover: paint weight on the ground, protection from cover, edge-only darkness, joy contagion, the slower
+# Round 7 cover: paint weight on the ground, protection from cover, edge-only gloom, joy contagion, the slower
 # ground (painting in and fading back), partial joy that does not fade deep in cover, and the F3 debug overlay.
 # (Round 8: own-paint exclusion, erosion and pursuit are in edge_pressure_test.gd.)
 # Pure rules are called directly. The level tests (cover in the real top-down level, and the F3 key) drive the scene.
@@ -126,37 +126,37 @@ func test_protection_is_zero_at_the_edge_and_one_deep_inside() -> void:
 	assert_float(GloomSim.protection_for(0.5)).is_less(GloomSim.protection_for(0.7))
 
 
-# --- Edge-only darkness --------------------------------------------------------------------------------------------
+# --- Edge-only gloom --------------------------------------------------------------------------------------------
 
 
-func test_dark_neighbour_cannot_drain_a_rescued_person_deep_in_cover() -> void:
+func test_dimmed_neighbour_cannot_drain_a_rescued_person_deep_in_cover() -> void:
 	var rescued := _person(0, Vector3.ZERO, 0.0, true)
-	var dark := _person(1, Vector3(2.0, 0.0, 0.0), 1.0)
+	var dimmed := _person(1, Vector3(2.0, 0.0, 0.0), 1.0)
 	rescued.protection = 1.0
 	var before := rescued.joy
-	GloomSim.update([rescued, dark], 1.0, Config.TD_DRAIN_MULTIPLIER)
+	GloomSim.update([rescued, dimmed], 1.0, Config.TD_DRAIN_MULTIPLIER)
 	assert_float(rescued.joy).is_equal_approx(before, 0.001)
 
 
-func test_dark_neighbour_drains_a_rescued_person_at_the_edge_at_the_top_down_rate() -> void:
+func test_dimmed_neighbour_drains_a_rescued_person_at_the_edge_at_the_top_down_rate() -> void:
 	var rescued := _person(0, Vector3.ZERO, 0.0, true)
-	var dark := _person(1, Vector3(2.0, 0.0, 0.0), 1.0)
+	var dimmed := _person(1, Vector3(2.0, 0.0, 0.0), 1.0)
 	rescued.protection = 0.0
 	var before := rescued.joy
-	GloomSim.update([rescued, dark], 1.0, Config.TD_DRAIN_MULTIPLIER)
+	GloomSim.update([rescued, dimmed], 1.0, Config.TD_DRAIN_MULTIPLIER)
 	var lost := before - rescued.joy
 	assert_float(lost).is_equal_approx(Config.SPREAD_DRAIN_RATE * Config.TD_DRAIN_MULTIPLIER, 0.01)
 
 
-func test_darkness_spreads_to_unrescued_people_only_at_the_edges() -> void:
-	var dark := _person(1, Vector3(0.0, 0.0, 0.0), 1.0)
+func test_gloom_spreads_to_unrescued_people_only_at_the_edges() -> void:
+	var dimmed := _person(1, Vector3(0.0, 0.0, 0.0), 1.0)
 	var deep := _person(0, Vector3(2.0, 0.0, 2.0), 0.2)
 	var edge := _person(2, Vector3(-2.0, 0.0, 2.0), 0.2)
 	deep.protection = 1.0
 	deep.cover = 0.5  # Below the contagion threshold, so only the spread and growth rules act on it.
 	edge.protection = 0.0
 	edge.cover = 0.0
-	GloomSim.update([dark, deep, edge], 1.0, Config.TD_DRAIN_MULTIPLIER)
+	GloomSim.update([dimmed, deep, edge], 1.0, Config.TD_DRAIN_MULTIPLIER)
 	assert_float(deep.gloom).is_less_equal(0.2001)
 	assert_float(edge.gloom).is_greater(0.2 + Config.SPREAD_GLOOM_RATE * 0.9)
 
@@ -164,7 +164,7 @@ func test_darkness_spreads_to_unrescued_people_only_at_the_edges() -> void:
 # --- Joy contagion ------------------------------------------------------------------------------------------------
 
 
-func test_contagion_lightens_a_dark_person_deep_in_cover_but_never_rescues_them() -> void:
+func test_contagion_lightens_a_dimmed_person_deep_in_cover_but_never_rescues_them() -> void:
 	var p := _person(1, Vector3.ZERO, 0.8)
 	p.cover = 0.9
 	p.protection = 1.0
@@ -190,7 +190,7 @@ func test_outside_cover_gloom_grows_and_inside_cover_it_does_not() -> void:
 	inside.protection = 1.0
 	var people: Array[Person] = [outside, inside]
 	_run_gloom(people, 12.0)
-	# Round 11: the grey -> dark step grows at 0.65 of the old rate, so 12 s from 0.3 is about 0.49 (was 0.5 or more).
+	# Round 11: the grey -> dimmed step grows at 0.65 of the old rate, so 12 s from 0.3 is about 0.49 (was 0.5 or more).
 	assert_float(outside.gloom).is_greater(0.45)
 	# Inside cover, growth is off (the contagion only lowers gloom), so the gloom has gone down.
 	assert_float(inside.gloom).is_less(0.3)

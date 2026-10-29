@@ -274,7 +274,7 @@ func _update_dim_rings() -> void:
 	for i: int in range(dim_rings.size() - 1, -1, -1):
 		var d := dim_rings[i]
 		var p: Person = d["person"]
-		if not is_instance_valid(p) or p.is_rescued or not GloomSim.is_dark(p):
+		if not is_instance_valid(p) or p.is_rescued or not GloomSim.is_dimmed(p):
 			dim_rings.remove_at(i)
 			continue
 		d["progress"] = clampf(p.joy / p.joy_needed(), 0.0, 1.0)
@@ -343,11 +343,11 @@ func _update_tethers() -> void:
 		if not _any_sheltered:
 			break
 		var q := people[i]
-		if not GloomSim.is_dark(q):
+		if not GloomSim.is_dimmed(q):
 			continue
 		for j: int in range(people.size()):
 			var p := people[j]
-			if p == q or p.is_rescued or not p.sheltered or GloomSim.is_dark(p):
+			if p == q or p.is_rescued or not p.sheltered or GloomSim.is_dimmed(p):
 				continue
 			if GloomSim.flat_dist(p.global_position, q.global_position) > Config.SHELTER_RADIUS:
 				continue
@@ -365,7 +365,7 @@ func _update_tethers() -> void:
 func _update_regrow() -> void:
 	regrow_rings.clear()
 	for p: Person in main.people:
-		if p.is_rescued or p.shield_down_left <= 0.0 or not GloomSim.is_dark(p):
+		if p.is_rescued or p.shield_down_left <= 0.0 or not GloomSim.is_dimmed(p):
 			continue
 		(
 			regrow_rings

@@ -55,7 +55,7 @@ func update(people: Array[Person], player: TopDownPlayer, delta: float) -> void:
 			p.sheltered = false
 			p.shelter_ward = null
 			p.shielder = null
-		if GloomSim.is_dark(p):
+		if GloomSim.is_dimmed(p):
 			dimmed.append(p)
 		elif p.shield_hits > 0:
 			# Round 15: a shield's hits are kept while its person is dimmed; a person who has been helped out of

@@ -8,9 +8,9 @@ extends Node3D
 #
 # Round 8: each tile remembers who painted it hardest (_top_owner) and the hardest paint from anyone else
 # (_other_weights). That lets average_weight_excluding leave a person's own paint out of their cover. With `erodes` on
-# (top-down), unrescued dark people take paint off the edge of the territory (see _erode).
+# (top-down), unrescued dimmed people take paint off the edge of the territory (see _erode).
 
-# True when darkness erodes paint (the top-down level turns it on).
+# True when gloom erodes paint (the top-down level turns it on).
 var erodes: bool = false
 # Round 12a: how much faster paint erodes and fades back (1 normally, DIM_LOSS_MULT while the player is dim).
 var loss_mult: float = 1.0
@@ -34,7 +34,7 @@ var _target_weights: Array[float] = []
 var _top_owner: Array[int] = []
 # The strongest paint target on each tile from a rescued person other than _top_owner.
 var _other_weights: Array[float] = []
-# Seconds left before paint can regrow on each tile (set when darkness erodes it).
+# Seconds left before paint can regrow on each tile (set when gloom erodes it).
 var _hold: Array[float] = []
 # Tile centres on the territory edge, rebuilt with the targets (see _paint).
 var _edge_points: Array[Vector3] = []
@@ -136,7 +136,7 @@ func average_weight_excluding(world_pos: Vector3, radius: float, exclude: Person
 	return _average(world_pos, radius, exclude.get_instance_id())
 
 
-# True when some tile is on the territory edge (see _paint). Dark people with no one to chase walk there.
+# True when some tile is on the territory edge (see _paint). Dimmed people with no one to chase walk there.
 func has_edge() -> bool:
 	return not _edge_points.is_empty()
 
@@ -268,7 +268,7 @@ func _paint_region(half: float) -> void:
 				_targets[idx] = Config.BORDER_GROUND_COLOUR
 
 
-# Darkness erodes paint. Each unrescued dark person takes TD_ERODE_RATE weight per second off the edge tiles within
+# Gloom erodes paint. Each unrescued dimmed person takes TD_ERODE_RATE weight per second off the edge tiles within
 # TD_ERODE_RADIUS of them, and an eroded tile is held for TD_ERODE_HOLD seconds (see _paint). Deep interior tiles are
 # immune. Tiles are checked before any are changed, so the order of people does not matter.
 func _erode(people: Array) -> void:
@@ -277,7 +277,7 @@ func _erode(people: Array) -> void:
 	var seen: Dictionary = {}
 	var to_erode: Array[int] = []
 	for p: Person in people:
-		if not GloomSim.is_dark(p):
+		if not GloomSim.is_dimmed(p):
 			continue
 		var pos: Vector3 = p.global_position
 		var x_min := clampi(floori(pos.x + half - r), 0, _size - 1)

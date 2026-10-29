@@ -1,6 +1,6 @@
 extends GdUnitTestSuite
 
-# Gloom rules: spreading darkness, drained joy, zone healing and growth far from zones.
+# Gloom rules: spreading gloom, drained joy, zone healing and growth far from zones.
 
 
 func _make_person(affinity: int, pos: Vector3, gloom: float, rescued: bool = false) -> Person:
@@ -14,37 +14,37 @@ func _make_person(affinity: int, pos: Vector3, gloom: float, rescued: bool = fal
 	return p
 
 
-func test_dark_person_raises_nearby_gloom_more_than_far() -> void:
-	var dark: Person = _make_person(0, Vector3(0, 0, 0), 1.0)
+func test_dimmed_person_raises_nearby_gloom_more_than_far() -> void:
+	var dimmed: Person = _make_person(0, Vector3(0, 0, 0), 1.0)
 	var near_light: Person = _make_person(1, Vector3(2, 0, 0), 0.0)
 	var far_light: Person = _make_person(1, Vector3(40, 0, 0), 0.0)
-	GloomSim.update([dark, near_light, far_light], 1.0)
+	GloomSim.update([dimmed, near_light, far_light], 1.0)
 	assert_float(near_light.gloom).is_greater(far_light.gloom)
 	assert_float(near_light.gloom).is_greater(0.0)
 
 
-func test_dark_person_drains_rescued_joy() -> void:
+func test_dimmed_person_drains_rescued_joy() -> void:
 	var rescued: Person = _make_person(0, Vector3(0, 0, 0), 0.0, true)
-	var dark: Person = _make_person(1, Vector3(2, 0, 0), 1.0)
+	var dimmed: Person = _make_person(1, Vector3(2, 0, 0), 1.0)
 	var before: float = rescued.joy
-	GloomSim.update([rescued, dark], 0.1)
+	GloomSim.update([rescued, dimmed], 0.1)
 	assert_float(rescued.joy).is_less(before)
 
 
-func test_drain_multiplier_scales_the_drain_from_darkness() -> void:
+func test_drain_multiplier_scales_the_drain_from_gloom() -> void:
 	# Same setup twice, one second each: the top-down multiplier (0.5) drains half as much as the default (1.0).
 	var full_rescued: Person = _make_person(0, Vector3(0, 0, 0), 0.0, true)
-	var full_dark: Person = _make_person(1, Vector3(2, 0, 0), 1.0)
+	var full_dimmed: Person = _make_person(1, Vector3(2, 0, 0), 1.0)
 	var full_before: float = full_rescued.joy
 	for i: int in range(60):
-		GloomSim.update([full_rescued, full_dark], 1.0 / 60.0)
+		GloomSim.update([full_rescued, full_dimmed], 1.0 / 60.0)
 	var full_lost := full_before - full_rescued.joy
 
 	var half_rescued: Person = _make_person(0, Vector3(0, 0, 0), 0.0, true)
-	var half_dark: Person = _make_person(1, Vector3(2, 0, 0), 1.0)
+	var half_dimmed: Person = _make_person(1, Vector3(2, 0, 0), 1.0)
 	var half_before: float = half_rescued.joy
 	for i: int in range(60):
-		GloomSim.update([half_rescued, half_dark], 1.0 / 60.0, Config.TD_DRAIN_MULTIPLIER)
+		GloomSim.update([half_rescued, half_dimmed], 1.0 / 60.0, Config.TD_DRAIN_MULTIPLIER)
 	var half_lost := half_before - half_rescued.joy
 
 	assert_float(full_lost).is_greater(0.0)
@@ -67,8 +67,8 @@ func test_gloom_grows_far_from_zones() -> void:
 
 
 # Round 11: with nobody rescued and no cover, a person grows at the base rate plus the far-from-zones rate
-# (NO_ZONE_DISTANCE). Light grey -> grey is unchanged; grey -> dark is slowed by GLOOM_DARK_STEP_MULT.
-func test_the_grey_to_dark_step_grows_slower_and_light_to_grey_does_not() -> void:
+# (NO_ZONE_DISTANCE). Light grey -> grey is unchanged; grey -> dimmed is slowed by GLOOM_DIMMED_STEP_MULT.
+func test_the_grey_to_dimmed_step_grows_slower_and_light_to_grey_does_not() -> void:
 	var base := Config.GLOOM_GROWTH + Config.GLOOM_GROWTH_PER_METER * Config.NO_ZONE_DISTANCE
 	var light: Person = _make_person(1, Vector3(100, 0, 0), 0.2)
 	var grey: Person = _make_person(1, Vector3(-100, 0, 0), 0.5)
@@ -77,8 +77,8 @@ func test_the_grey_to_dark_step_grows_slower_and_light_to_grey_does_not() -> voi
 	var light_gain := light.gloom - 0.2
 	var grey_gain := grey.gloom - 0.5
 	assert_float(light_gain).is_equal_approx(base, 0.0001)
-	assert_float(grey_gain).is_equal_approx(base * Config.GLOOM_DARK_STEP_MULT, 0.0001)
-	assert_float(Config.GLOOM_DARK_STEP_MULT).is_equal_approx(0.65, 0.0001)
+	assert_float(grey_gain).is_equal_approx(base * Config.GLOOM_DIMMED_STEP_MULT, 0.0001)
+	assert_float(Config.GLOOM_DIMMED_STEP_MULT).is_equal_approx(0.65, 0.0001)
 	assert_float(grey_gain).is_less(light_gain)
 
 

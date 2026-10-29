@@ -7,7 +7,7 @@ extends Node3D
 # play_slump, _set_glow and is_styled.
 
 # Which of the three states the person is drawn in.
-enum Kind { GREY, JOYFUL, DARK }
+enum Kind { GREY, JOYFUL, DIMMED }
 
 var subject: Person
 # The drawn parts of the person, scaled by Config.PERSON_VISUAL_SCALE. The collision and hit radius are not scaled.
@@ -127,7 +127,7 @@ func sync() -> void:
 			label.modulate = Color.WHITE
 			label.font_size = 48
 	else:
-		kind = Kind.DARK if subject.level == 2 else Kind.GREY
+		kind = Kind.DIMMED if subject.level == 2 else Kind.GREY
 		label.font_size = 48
 		if subject.sad_left > 0.0:
 			label.text = ":("
@@ -137,7 +137,7 @@ func sync() -> void:
 			label.modulate = Color.WHITE
 	_sync_body()
 	if aura != null:
-		aura.visible = kind == Kind.DARK and not has_styled_aura()
+		aura.visible = kind == Kind.DIMMED and not has_styled_aura()
 
 
 # A little bounce: up and down twice (a rescue).
@@ -252,7 +252,7 @@ func has_styled_aura() -> bool:
 
 # True when a dimmed person is showing a smoke or haze aura, in either look.
 func has_aura() -> bool:
-	return kind == Kind.DARK and (has_styled_aura() or (aura != null and aura.visible))
+	return kind == Kind.DIMMED and (has_styled_aura() or (aura != null and aura.visible))
 
 
 func _build_aura() -> void:

@@ -22,8 +22,8 @@ func member_colour() -> Color:
 	return Config.TD_MINIMAP_MEMBER_COLOUR
 
 
-func dark_colour() -> Color:
-	return Config.TD_MINIMAP_DARK_COLOUR
+func dimmed_colour() -> Color:
+	return Config.TD_MINIMAP_DIMMED_COLOUR
 
 
 func landmark_colour() -> Color:

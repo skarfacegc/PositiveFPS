@@ -54,13 +54,13 @@ func cooldown_left(p: Person) -> float:
 
 
 func _can_start(p: Person, player: TopDownPlayer) -> bool:
-	if not GloomSim.is_dark(p) or player.is_dim or not player.active or _cooldown.has(p):
+	if not GloomSim.is_dimmed(p) or player.is_dim or not player.active or _cooldown.has(p):
 		return false
 	return GloomSim.flat_dist(p.global_position, player.global_position) <= Config.GRAB_RANGE
 
 
 func _advance_windup(p: Person, player: TopDownPlayer, delta: float) -> void:
-	if not GloomSim.is_dark(p) or player.is_dim or not player.active:
+	if not GloomSim.is_dimmed(p) or player.is_dim or not player.active:
 		_cancel(p)
 		return
 	var t: float = _windup[p] + delta

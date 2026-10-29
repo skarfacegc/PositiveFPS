@@ -1,7 +1,7 @@
 class_name PersonLookStyled
 extends PersonLook
 
-# The styled person (see StylePeople): a stiff grey body, a relaxed joyful body or a hunched dark body, whichever the
+# The styled person (see StylePeople): a stiff grey body, a relaxed joyful body or a hunched dimmed body, whichever the
 # rules say. Each body is built the first time it is needed and then only shown or hidden. A rescued person who is
 # losing joy flickers between the joyful and the grey body.
 
@@ -51,9 +51,9 @@ func _build_body() -> void:
 	_lean_sign = -1.0
 
 
-# The dimmed person's smoke pool and soot are part of the dark body (see StylePeople.build_dark).
+# The dimmed person's smoke pool and soot are part of the dimmed body (see StylePeople.build_dimmed).
 func has_styled_aura() -> bool:
-	return shown_kind() == Kind.DARK and _parts[Kind.DARK].has("haze")
+	return shown_kind() == Kind.DIMMED and _parts[Kind.DIMMED].has("haze")
 
 
 func _sync_body() -> void:
@@ -73,7 +73,7 @@ func _sync_body() -> void:
 			_holders[Kind.JOYFUL].position.y = absf(sin(seconds * 3.0 + float(subject.look_seed))) * 0.05
 		_holders[Kind.JOYFUL].rotation.z = wave * 0.12 if warning else 0.0
 	else:
-		var soot: Node3D = _parts[Kind.DARK]["soot"]
+		var soot: Node3D = _parts[Kind.DIMMED]["soot"]
 		soot.rotation.y = seconds * 0.5
 
 
@@ -171,7 +171,7 @@ func _holder(k: int) -> Node3D:
 		Kind.JOYFUL:
 			StylePeople.build_joy(body, subject.affinity, outfit, parts)
 		_:
-			StylePeople.build_dark(body, parts)
+			StylePeople.build_dimmed(body, parts)
 	_bodies[k] = body
 	_holders[k] = holder
 	_parts[k] = parts

@@ -1,8 +1,8 @@
 extends GdUnitTestSuite
 
 # Round 8 edge pressure, in the real top-down level and on the painted ground: a rescued person's own paint does not
-# protect them, a lone rescued person is at risk at the edge (and a person in a group is not), darkness erodes the
-# edge of paint (interior tiles are immune, and eroded tiles are held), and dark people chase the weakest point.
+# protect them, a lone rescued person is at risk at the edge (and a person in a group is not), gloom erodes the
+# edge of paint (interior tiles are immune, and eroded tiles are held), and dimmed people chase the weakest point.
 # Rescues are made by joy (receive_joy), and the level is driven with real frames. Pure paint rules are called on a
 # PaintedGround directly.
 
@@ -104,7 +104,7 @@ func test_cover_excluding_own_paint_matches_others_paint_on_the_ground() -> void
 # --- Edge relapse risk ---------------------------------------------------------------------------------------------
 
 
-func test_a_lone_rescued_person_next_to_a_dark_person_relapses_within_a_bounded_time() -> void:
+func test_a_lone_rescued_person_next_to_a_dimmed_person_relapses_within_a_bounded_time() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -112,8 +112,8 @@ func test_a_lone_rescued_person_next_to_a_dark_person_relapses_within_a_bounded_
 	var lone: Person = td.people[0]
 	TopDownTestUtil.place(lone, Vector3(0, 0, -8), 0, 0.0)
 	lone.receive_joy(0, Config.JOY_MAX, 0.0)
-	var dark: Person = td.people[1]
-	TopDownTestUtil.place(dark, Vector3(2, 0, -8), 1, 0.9)
+	var dimmed: Person = td.people[1]
+	TopDownTestUtil.place(dimmed, Vector3(2, 0, -8), 1, 0.9)
 	# Round 10: the calm opening (grey strength 0.2) slows the drain, so this runs at midnight, where it was tuned.
 	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
 
@@ -126,8 +126,8 @@ func test_a_lone_rescued_person_next_to_a_dark_person_relapses_within_a_bounded_
 	assert_int(frames).is_less(2400)
 
 
-# Round 9: a dark person outside the border presses against its line. It cannot get inside, however long it stays.
-func test_a_dark_person_outside_the_border_cannot_get_inside_it() -> void:
+# Round 9: a dimmed person outside the border presses against its line. It cannot get inside, however long it stays.
+func test_a_dimmed_person_outside_the_border_cannot_get_inside_it() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -142,18 +142,18 @@ func test_a_dark_person_outside_the_border_cannot_get_inside_it() -> void:
 		TopDownTestUtil.place(p, spots[i], (i + 1) % 3, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
 		group.append(p)
-	# The dark person joins once the group's border is in.
-	var dark: Person = td.people[4]
-	TopDownTestUtil.place(dark, Vector3(-25, 0, 25), 1, 0.0)
+	# The dimmed person joins once the group's border is in.
+	var dimmed: Person = td.people[4]
+	TopDownTestUtil.place(dimmed, Vector3(-25, 0, 25), 1, 0.0)
 	await runner.simulate_frames(360)
-	TopDownTestUtil.place(dark, Vector3(0, 0, -4), 1, 0.9)
+	TopDownTestUtil.place(dimmed, Vector3(0, 0, -4), 1, 0.9)
 
 	await runner.simulate_frames(2400)
 	# The press drains a member, so the count may drop; the line is what matters here.
-	assert_bool(Border.is_inside(td.border.polygon, Vector2(dark.position.x, dark.position.z))).is_false()
+	assert_bool(Border.is_inside(td.border.polygon, Vector2(dimmed.position.x, dimmed.position.z))).is_false()
 
 
-func test_a_dark_person_at_the_edge_erodes_the_edge_tiles_next_to_them() -> void:
+func test_a_dimmed_person_at_the_edge_erodes_the_edge_tiles_next_to_them() -> void:
 	var g := _ground(40, true)
 	var lone := _person(0, Vector3.ZERO, 0.0, true)
 	var people: Array = [lone]
@@ -162,22 +162,22 @@ func test_a_dark_person_at_the_edge_erodes_the_edge_tiles_next_to_them() -> void
 	var edge_before := g.paint_weight_at(Vector3(4.5, 0.0, 0.5))
 	assert_float(edge_before).is_greater(0.5)
 
-	var dark := _person(1, Vector3(4.0, 0.0, 0.0), 0.9)
-	people.append(dark)
+	var dimmed := _person(1, Vector3(4.0, 0.0, 0.0), 0.9)
+	people.append(dimmed)
 	_paint_updates(g, people, 30)
-	# Three seconds of darkness: the edge tile is eaten away.
+	# Three seconds of gloom: the edge tile is eaten away.
 	assert_float(g.paint_weight_at(Vector3(4.5, 0.0, 0.5))).is_less(edge_before - 0.3)
 
 
-func test_a_dark_person_deep_inside_the_paint_erodes_nothing_within_reach() -> void:
+func test_a_dimmed_person_deep_inside_the_paint_erodes_nothing_within_reach() -> void:
 	var g := _ground(40, true)
 	var lone := _person(0, Vector3.ZERO, 0.0, true)
 	var people: Array = [lone]
 	_paint_updates(g, people, 100)
-	# Deep inside: the dark person is 1 m from the centre, so the tile at (2.5, 0.5) is within their 2 m reach. Every tile
-	# round them is interior (weight >= 0.9 with painted neighbours), so it is immune. (4.5, 0.5) is out of reach.
-	var dark := _person(1, Vector3(1.0, 0.0, 0.0), 0.9)
-	people.append(dark)
+	# Deep inside: the dimmed person is 1 m from the centre, so the tile at (2.5, 0.5) is within their 2 m reach. Every
+	# tile round them is interior (weight >= 0.9 with painted neighbours), so it is immune. (4.5, 0.5) is out of reach.
+	var dimmed := _person(1, Vector3(1.0, 0.0, 0.0), 0.9)
+	people.append(dimmed)
 	_paint_updates(g, people, 30)
 	assert_float(g.paint_weight_at(Vector3(2.5, 0.0, 0.5))).is_greater(0.95)
 	assert_float(g.paint_weight_at(Vector3(4.5, 0.0, 0.5))).is_greater(0.5)
@@ -186,16 +186,16 @@ func test_a_dark_person_deep_inside_the_paint_erodes_nothing_within_reach() -> v
 func test_an_eroded_tile_does_not_regrow_for_the_hold_time() -> void:
 	var g := _ground(40, true)
 	var lone := _person(0, Vector3.ZERO, 0.0, true)
-	# Round 13a: the paint disc is bigger, so the dark person stands at the edge of it (4 m x WORLD_SCALE).
-	var dark := _person(1, Vector3(5.7, 0.0, 0.0), 0.9)
-	var people: Array = [lone, dark]
+	# Round 13a: the paint disc is bigger, so the dimmed person stands at the edge of it (4 m x WORLD_SCALE).
+	var dimmed := _person(1, Vector3(5.7, 0.0, 0.0), 0.9)
+	var people: Array = [lone, dimmed]
 	_paint_updates(g, people, 100)
 	_paint_updates(g, people, 30)
 	var tile := Vector3(6.5, 0.0, 0.5)
 	var eroded := g.paint_weight_at(tile)
 	assert_float(eroded).is_less(0.01)
 
-	# The dark person leaves. For the hold time (3 s, 30 updates) the eroded tile does not grow back.
+	# The dimmed person leaves. For the hold time (3 s, 30 updates) the eroded tile does not grow back.
 	people = [lone]
 	_paint_updates(g, people, 20)
 	assert_float(g.paint_weight_at(tile)).is_less_equal(eroded + 0.001)
@@ -215,14 +215,14 @@ func test_a_tile_at_the_grid_corner_is_interior_only_if_its_neighbours_are_paint
 
 
 func test_erosion_only_runs_when_the_ground_is_set_to_erode() -> void:
-	# With erosion off (a plain ground), a dark neighbour does not take paint away.
+	# With erosion off (a plain ground), a dimmed neighbour does not take paint away.
 	var g := _ground(40, false)
 	var lone := _person(0, Vector3.ZERO, 0.0, true)
-	var dark := _person(1, Vector3(4.0, 0.0, 0.0), 0.9)
+	var dimmed := _person(1, Vector3(4.0, 0.0, 0.0), 0.9)
 	var people: Array = [lone]
 	_paint_updates(g, people, 100)
 	var before := g.paint_weight_at(Vector3(4.5, 0.0, 0.5))
-	people.append(dark)
+	people.append(dimmed)
 	_paint_updates(g, people, 30)
 	assert_float(g.paint_weight_at(Vector3(4.5, 0.0, 0.5))).is_greater(before - 0.05)
 
@@ -230,7 +230,7 @@ func test_erosion_only_runs_when_the_ground_is_set_to_erode() -> void:
 # --- Weakest-point pursuit -----------------------------------------------------------------------------------------
 
 
-func test_a_dark_person_with_nobody_to_chase_drifts_to_the_territory_edge() -> void:
+func test_a_dimmed_person_with_nobody_to_chase_drifts_to_the_territory_edge() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -238,14 +238,14 @@ func test_a_dark_person_with_nobody_to_chase_drifts_to_the_territory_edge() -> v
 	var rescued: Person = td.people[0]
 	TopDownTestUtil.place(rescued, Vector3(-26, 0, -26) * Config.WORLD_SCALE, 0, 0.0)
 	rescued.receive_joy(0, Config.JOY_MAX, 0.0)
-	var dark: Person = td.people[1]
+	var dimmed: Person = td.people[1]
 	# About 105 m from the rescued person (round 13a: scaled spots, clear of the scaled blocks), well outside the pursuit
 	# search radius.
-	TopDownTestUtil.place(dark, Vector3(26, 0, 26) * Config.WORLD_SCALE, 0, 0.9)
+	TopDownTestUtil.place(dimmed, Vector3(26, 0, 26) * Config.WORLD_SCALE, 0, 0.9)
 
 	await runner.simulate_frames(150)
 	assert_bool(td.ground.has_edge()).is_true()
-	var before := dark.global_position.distance_to(rescued.global_position)
-	assert_bool(td.pursuit_assignments(td.people).has(dark)).is_false()
+	var before := dimmed.global_position.distance_to(rescued.global_position)
+	assert_bool(td.pursuit_assignments(td.people).has(dimmed)).is_false()
 	await runner.simulate_frames(60)
-	assert_float(dark.global_position.distance_to(rescued.global_position)).is_less(before - 0.5)
+	assert_float(dimmed.global_position.distance_to(rescued.global_position)).is_less(before - 0.5)

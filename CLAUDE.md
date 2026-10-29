@@ -19,6 +19,10 @@ instead of telling them to read every file.
   - Expect small conflicts in shared files (`scripts/config.gd`, README.md, IDEAS.md, menu text). The coordinator
     resolves them at merge time.
   - Give each part its own constants block (for example "Round N: guarded wedge") to keep conflicts small.
+- **Check the base first.** Worktree agents start from `origin/main`, not local main, and main is usually ahead
+  because rounds aren't pushed. Before launching, compare `git rev-parse origin/main main`. If they differ, tell
+  each agent the local main commit hash and have it run `git merge --ff-only <hash>` in its worktree before any edit,
+  then stop and report if `git log --oneline -1` doesn't show that hash.
 - **Gate per part.** Part agents run only their own targeted suites (`tools/run_tests.py`) and lint. They do not run
   the full gate, the determinism check or the baseline update, because parallel full gates fight over the CPU.
   Part agents set `POSITIVEFPS_PARALLEL_PART=1` for their commits, which skips the flaky serial timing pass; the

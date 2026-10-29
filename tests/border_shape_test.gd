@@ -70,7 +70,7 @@ func test_a_ray_hits_a_box_in_front_of_the_centre() -> void:
 	assert_bool(miss.x == INF).is_true()
 
 
-func test_darkness_outside_an_intact_line_cannot_drain_someone_inside() -> void:
+func test_gloom_outside_an_intact_line_cannot_drain_someone_inside() -> void:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
@@ -90,11 +90,11 @@ func test_darkness_outside_an_intact_line_cannot_drain_someone_inside() -> void:
 	add_child(inside)
 	inside.position = Vector3(4.5, 0.0, 0.33)
 	inside.receive_joy(0, Config.JOY_MAX, 0.0)
-	var dark: Person = auto_free(Person.new())
-	add_child(dark)
-	dark.position = Vector3(6.0, 0.0, 0.33)
-	dark.gloom = 1.0
-	var people: Array[Person] = [inside, dark]
+	var dimmed: Person = auto_free(Person.new())
+	add_child(dimmed)
+	dimmed.position = Vector3(6.0, 0.0, 0.33)
+	dimmed.gloom = 1.0
+	var people: Array[Person] = [inside, dimmed]
 	var before := inside.joy
 	GloomSim.update(people, 0.5, Config.TD_DRAIN_MULTIPLIER, 1.0, border)
 	assert_float(inside.joy).is_equal(before)

@@ -59,7 +59,7 @@ func test_dusk_has_no_dimmed_people_and_no_active_moods() -> void:
 	await runner.simulate_frames(30)
 	# They wait as gloomy: not dimmed, not spreading, not reaching for the player.
 	assert_int(Config.gloom_level(deep.gloom)).is_equal(1)
-	assert_bool(GloomSim.is_dark(deep)).is_false()
+	assert_bool(GloomSim.is_dimmed(deep)).is_false()
 	for p: Person in [guarded, skittish, glum]:
 		assert_int(p.active_mood()).is_equal(Person.Mood.NONE)
 	assert_int(td.feedback.icons.size()).is_equal(0)
@@ -85,7 +85,7 @@ func test_dimmed_people_emerge_after_the_calm_opening_and_some_sink_with_a_puff(
 	assert_bool(td.intro.dimmed_allowed()).is_true()
 	await runner.simulate_frames(240)
 	assert_int(Config.gloom_level(deep.gloom)).is_equal(2)
-	assert_bool(GloomSim.is_dark(deep)).is_true()
+	assert_bool(GloomSim.is_dimmed(deep)).is_true()
 	assert_array(sank).contains([2])
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -294,7 +294,7 @@ func test_with_the_intro_off_everything_is_available_at_once_and_no_prompt_shows
 	var guarded := _mooded(td, 1, Vector3(-4, 0, -8), Person.Mood.GUARDED)
 	td.player.spirit = 5.0
 	await runner.simulate_frames(40)
-	assert_bool(GloomSim.is_dark(deep)).is_true()
+	assert_bool(GloomSim.is_dimmed(deep)).is_true()
 	assert_int(guarded.active_mood()).is_equal(Person.Mood.GUARDED)
 	assert_int(td.intro.current).is_equal(-1)
 	assert_bool(td.intro.request(Intro.Prompt.GAP)).is_false()

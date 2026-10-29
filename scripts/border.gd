@@ -7,7 +7,7 @@ extends Node3D
 # was rescued, and wrapped around blocks. The rules:
 #   - the outermost rescued people are the border members, one per slot evenly spaced along the loop; the rest stand
 #     inside (inner members). A stretch between members that is longer than BORDER_MAX_GAP is a gap.
-#   - darkness outside cannot cross an intact stretch: it presses against the line and drains the nearest member.
+#   - gloom outside cannot cross an intact stretch: it presses against the line and drains the nearest member.
 #     Through a gap it can pass.
 #   - inside the loop the ground is painted (see PaintedGround.set_region) and blocks are beautified (see Building).
 #   - protection is the depth inside the loop (see cover_at).
@@ -132,7 +132,7 @@ func register_building(
 
 
 # Call every frame, before people move. Recomputes the centre, the loop, the slots and the gaps, moves the rescued
-# people to their places, beautifies blocks, drains members from darkness outside and updates the ground and the line.
+# people to their places, beautifies blocks, drains members from gloom outside and updates the ground and the line.
 func update(people: Array[Person], delta: float, strength: float) -> void:
 	_time += delta
 	_strength = strength
@@ -154,7 +154,7 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 	_assign_members(rescued)
 	_move_members(delta)
 	_update_buildings(delta)
-	_press_darkness(people, delta, strength)
+	_press_gloom(people, delta, strength)
 	_update_gap_ages(delta)
 	_update_ground()
 	_draw_lines()
@@ -219,7 +219,7 @@ func line_blocks(a: Vector3, b: Vector3) -> bool:
 	return _first_crossing(Vector2(a.x, a.z), Vector2(b.x, b.z)) != null
 
 
-# A dark person outside the border moves from `from` toward `to`. If the move crosses an intact stretch, it stops just
+# A dimmed person outside the border moves from `from` toward `to`. If the move crosses an intact stretch, it stops just
 # short of the line. Otherwise (inside, or through a gap) the move is unchanged.
 func clip_move(from: Vector3, to: Vector3) -> Vector3:
 	if not active:
@@ -868,16 +868,16 @@ func _update_buildings(delta: float) -> void:
 		b.update(delta, frac)
 
 
-# Dark people pressing on the border (outside, within BORDER_PRESS_RANGE of the line). On an intact stretch they are
+# Dimmed people pressing on the border (outside, within BORDER_PRESS_RANGE of the line). On an intact stretch they are
 # pushed outward at BORDER_PUSHBACK_SPEED, and the nearest member drains at BORDER_INTACT_DRAIN_FRACTION of the rate
-# (round 11). At a gap they drain the nearest member at the full rate, scaled by the night strength. Dark people
+# (round 11). At a gap they drain the nearest member at the full rate, scaled by the night strength. Dimmed people
 # inside are handled by GloomSim.
-func _press_darkness(people: Array[Person], delta: float, strength: float) -> void:
+func _press_gloom(people: Array[Person], delta: float, strength: float) -> void:
 	if not active:
 		return
 	var rate := Config.SPREAD_DRAIN_RATE * Config.TD_DRAIN_MULTIPLIER * strength * delta * loss_mult
 	for p: Person in people:
-		if p.is_rescued or not GloomSim.is_dark(p):
+		if p.is_rescued or not GloomSim.is_dimmed(p):
 			continue
 		var p2 := Vector2(p.position.x, p.position.z)
 		if Geometry2D.is_point_in_polygon(p2, polygon):

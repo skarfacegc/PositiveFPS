@@ -69,17 +69,17 @@ func test_the_minimap_model_shows_the_border_gaps_members_landmark_and_player() 
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_minimap_marks_dark_people_and_refreshes_about_ten_times_a_second() -> void:
+func test_the_minimap_marks_dimmed_people_and_refreshes_about_ten_times_a_second() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)
 	TopDownTestUtil.place(td.people[0], Vector3(-10, 0, 10), 0, 1.0)
 	_refresh(td)
-	assert_int(td.minimap.dark_pts.size()).is_equal(1)
-	# A dark person in the plaza corner is on the map's data but outside its circle, so no pixel is drawn there.
+	assert_int(td.minimap.dimmed_pts.size()).is_equal(1)
+	# A dimmed person in the plaza corner is on the map's data but outside its circle, so no pixel is drawn there.
 	TopDownTestUtil.place(td.people[1], TopDownTestUtil.FAR, 0, 1.0)
 	_refresh(td)
-	assert_int(td.minimap.dark_pts.size()).is_equal(2)
+	assert_int(td.minimap.dimmed_pts.size()).is_equal(2)
 	var corner := td.minimap._to_px(Vector2(TopDownTestUtil.FAR.x, TopDownTestUtil.FAR.z))
 	assert_float(td.minimap._image.get_pixel(int(corner.x), int(corner.y)).a).is_equal(0.0)
 	# The tick is due once a refresh interval has passed, and not before.

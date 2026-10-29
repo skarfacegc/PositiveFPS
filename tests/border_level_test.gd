@@ -1,6 +1,6 @@
 extends GdUnitTestSuite
 
-# The living border in the real top-down level (round 9): forming, slots, gaps, holding darkness, relapse, painting
+# The living border in the real top-down level (round 9): forming, slots, gaps, holding gloom, relapse, painting
 # inside, buildings and the landmark. Most rescues are direct (receive_joy) so the rules are checked quickly. The
 # rescue and the F3 key go through real input, as a player would. Unit-level checks use the Border and Building classes.
 
@@ -196,10 +196,10 @@ func test_gaps_are_drawn_in_their_own_colour() -> void:
 	assert_bool(intact.segment_colour(0).is_equal_approx(Config.BORDER_INTACT_COLOUR)).is_true()
 
 
-# --- Holding darkness ---------------------------------------------------------------------------------------
+# --- Holding gloom ---------------------------------------------------------------------------------------
 
 
-func test_a_dark_person_outside_is_stopped_at_an_intact_line() -> void:
+func test_a_dimmed_person_outside_is_stopped_at_an_intact_line() -> void:
 	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
 	var people := _people(14)
 	var rescued: Array[Person] = []
@@ -216,8 +216,8 @@ func test_a_dark_person_outside_is_stopped_at_an_intact_line() -> void:
 	assert_bool(border.line_blocks(from, to)).is_true()
 
 
-func test_a_dark_person_passes_through_a_gap() -> void:
-	# Three members on a radius 5 loop are 10.5 m apart: every stretch is a gap, so nothing holds the dark person back.
+func test_a_dimmed_person_passes_through_a_gap() -> void:
+	# Three members on a radius 5 loop are 10.5 m apart: every stretch is a gap, so nothing holds the dimmed person back.
 	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
 	var people := _people(3)
 	var rescued: Array[Person] = []
@@ -231,7 +231,7 @@ func test_a_dark_person_passes_through_a_gap() -> void:
 	assert_bool(border.line_blocks(from, to)).is_false()
 
 
-func test_a_dark_person_inside_the_loop_is_not_held() -> void:
+func test_a_dimmed_person_inside_the_loop_is_not_held() -> void:
 	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
 	var from := Vector3(1.0, 0.0, 0.0)
 	var to := Vector3(2.0, 0.0, 0.0)
@@ -306,7 +306,7 @@ func test_tiles_inside_the_loop_paint_in_over_time_and_outside_stays_grey() -> v
 	assert_float(ground.paint_weight_at(Vector3(15.0, 0.0, 0.0))).is_equal(0.0)
 
 
-func test_a_grey_person_inside_the_loop_lightens_and_one_outside_darkens() -> void:
+func test_a_grey_person_inside_the_loop_lightens_and_one_outside_dims() -> void:
 	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 6.0, Config.BORDER_SAMPLES))
 	var people := _people(2)
 	var inside: Person = people[0]

@@ -53,7 +53,7 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
   Dimmed people prefer the newest, outermost part of the border, and they walk right up to the line to press it, so a
   push on one person is a push on one stretch.
 - **Inside the border the land changes.** The ground is painted warm (it fills in slowly), and blocks inside are
-  beautified after a few seconds. A grey person deep inside the border lightens instead of darkening.
+  beautified after a few seconds. A grey person deep inside the border lightens instead of dimming.
 - **The landmark** is the taller block with a beacon, 18 m east and 16 m north of the plaza centre. Beautify it and hold
   the border around it for 10 seconds to win.
 - **Losing**: if the border has formed and fewer than three people are rescued, the border falls.

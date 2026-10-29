@@ -3,7 +3,7 @@ extends Node
 # Renders the graphics checkpoint screenshots of the GAME (not design/style_test). Run by tools/checkpoint_shots.py:
 #   Godot --path . res://tools/checkpoint/checkpoint_shots.tscn -- --out <dir> [--stats-only]
 # It loads the real level, builds a fixed scenario through the game's own API (a seeded level; rescue a few people, form
-# a border with a gap, a dark person pressing it, a beautified building, mid-night), freezes the rules, then takes the
+# a border with a gap, a dimmed person pressing it, a beautified building, mid-night), freezes the rules, then takes the
 # same shots in the placeholder look and, after flipping the look in place (F4), in the styled look. It also times the
 # frames of each look. (Graphics checkpoint 2 adds the round 12b-17 cues to the scenario, several views and zoom levels,
 # a second scenario for the sealed map edge, and a contact sheet.) The window is titled so nobody mistakes it for the game, never captures the mouse, and the
@@ -107,7 +107,7 @@ func _build_scenario() -> void:
 			south = k
 	_force_gap(south)
 	_force_gap((south + slots / 2) % slots)
-	# A dark person pressing the first gap, and a couple more outside the loop.
+	# A dimmed person pressing the first gap, and a couple more outside the loop.
 	var gaps := main.border.gap_midpoints()
 	print("GAPS ", gaps)
 	var out_dir_v := Vector3(1.0, 0.0, 0.0)
@@ -116,9 +116,9 @@ func _build_scenario() -> void:
 		gap_spot = gaps[0]
 		out_dir_v = (gap_spot - centre).normalized()
 		var side := Vector3(-out_dir_v.z, 0.0, out_dir_v.x)
-		_make_dark(people[first_grey + 4], gap_spot + out_dir_v * 1.0)
-		_make_dark(people[first_grey + 5], gap_spot + out_dir_v * 3.2 + side * 2.2)
-		_make_dark(people[first_grey + 6], gap_spot + out_dir_v * 4.4 - side * 2.0)
+		_make_dimmed(people[first_grey + 4], gap_spot + out_dir_v * 1.0)
+		_make_dimmed(people[first_grey + 5], gap_spot + out_dir_v * 3.2 + side * 2.2)
+		_make_dimmed(people[first_grey + 6], gap_spot + out_dir_v * 4.4 - side * 2.0)
 		main.player.global_position = gap_spot - out_dir_v * 3.0
 	_add_cues(first_grey)
 	# The floating joy numbers of the rescues would still be mid-air (their tweens run in real time): remove them.
@@ -144,7 +144,7 @@ func _force_gap(k: int) -> void:
 	b._draw_lines()
 
 
-func _make_dark(p: Person, at: Vector3) -> void:
+func _make_dimmed(p: Person, at: Vector3) -> void:
 	p.global_position = Vector3(at.x, 0.0, at.z)
 	p.gloom = 0.95
 	p.level = 2
@@ -211,7 +211,7 @@ func _stand(p: Person, spot: Vector3, mood: int, dir: Vector3) -> void:
 
 # A dimmed person at `spot` sheltering a wistful person beside them, the shield worn by `hits`. Returns [dimmed, ward].
 func _shelter(dimmed: Person, ward: Person, spot: Vector3, hits: int) -> Array[Person]:
-	_make_dark(dimmed, spot)
+	_make_dimmed(dimmed, spot)
 	_stand(ward, spot + Vector3(1.4, 0.0, 0.5), Person.Mood.NONE, Vector3(-1.0, 0.0, 0.0))
 	dimmed.shelter_ward = ward
 	ward.shielder = dimmed

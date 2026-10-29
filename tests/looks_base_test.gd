@@ -52,11 +52,11 @@ func test_base_looks_have_do_nothing_defaults() -> void:
 	assert_bool(map.building_colour(true).is_equal_approx(Color.WHITE)).is_true()
 	assert_bool(map.line_colour(true).is_equal_approx(Color.WHITE)).is_true()
 	assert_bool(map.member_colour().is_equal_approx(Color.WHITE)).is_true()
-	assert_bool(map.dark_colour().is_equal_approx(Color.WHITE)).is_true()
+	assert_bool(map.dimmed_colour().is_equal_approx(Color.WHITE)).is_true()
 	assert_bool(map.landmark_colour().is_equal_approx(Color.WHITE)).is_true()
 	assert_bool(map.player_colour().is_equal_approx(Color.WHITE)).is_true()
 	assert_bool(map.view_colour().is_equal_approx(Color.WHITE)).is_true()
-	assert_float(map.halo_colour("dark").a).is_equal(0.0)
+	assert_float(map.halo_colour("dimmed").a).is_equal(0.0)
 	map.draw_back(null)
 	map.draw_frame(null)
 

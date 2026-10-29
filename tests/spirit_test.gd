@@ -346,7 +346,7 @@ func _press_loss(dim: bool) -> float:
 	var before := 0.0
 	for p: Person in rescued:
 		before += p.joy
-	border._press_darkness(everyone, 1.0, 1.0)
+	border._press_gloom(everyone, 1.0, 1.0)
 	var after := 0.0
 	for p: Person in rescued:
 		after += p.joy
@@ -371,11 +371,11 @@ func _erosion_after(mult: float) -> float:
 	var people: Array = [lone]
 	for i: int in range(100):
 		g.update_paint(people, Config.GROUND_UPDATE_INTERVAL)
-	var dark: Person = auto_free(Person.new())
-	add_child(dark)
-	dark.gloom = 0.9
-	dark.global_position = Vector3(4.0, 0.0, 0.0)
-	people.append(dark)
+	var dimmed: Person = auto_free(Person.new())
+	add_child(dimmed)
+	dimmed.gloom = 0.9
+	dimmed.global_position = Vector3(4.0, 0.0, 0.0)
+	people.append(dimmed)
 	var before := g.paint_weight_at(Vector3(4.5, 0.0, 0.5))
 	g.loss_mult = mult
 	for i: int in range(4):

@@ -38,7 +38,7 @@ func test_dimmed_people_need_one_point_six_times_the_joy_and_joy_shows_their_pro
 	TopDownTestUtil.place(dimmed, Vector3(0, 0, -8), 0, 0.95)
 	assert_float(dimmed.joy_needed()).is_equal_approx(Config.JOY_MAX * 1.6, 0.001)
 	await runner.simulate_frames(3)
-	assert_bool(GloomSim.is_dark(dimmed)).is_true()
+	assert_bool(GloomSim.is_dimmed(dimmed)).is_true()
 	assert_bool(td.feedback.dim_rings.is_empty()).is_true()
 
 	# Hover-fire at the dimmed person: their ring appears and fills with the joy they take.
@@ -59,7 +59,7 @@ func test_dimmed_people_need_one_point_six_times_the_joy_and_joy_shows_their_pro
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_hover_targets_a_dimmed_person_and_auto_targets_the_darkest_in_range() -> void:
+func test_hover_targets_a_dimmed_person_and_auto_targets_the_dimmest_in_range() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -71,7 +71,7 @@ func test_hover_targets_a_dimmed_person_and_auto_targets_the_darkest_in_range() 
 	await _hover(runner, td, dimmed)
 	assert_object(td.player.target).is_same(dimmed)
 
-	# Auto: the most urgent person in range is the darkest, even though the wistful one is nearer.
+	# Auto: the most urgent person in range is the dimmest, even though the wistful one is nearer.
 	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.AUTO)
 	await runner.simulate_frames(3)
 	assert_object(td.player.target).is_same(dimmed)

@@ -26,19 +26,19 @@ var joy: float = 0.0
 var is_rescued: bool = false
 # Scales the joy label and floating numbers. Top-down mode sets this higher, because the camera is far away.
 var ui_scale: float = 1.0
-# Hidden darkness value, 0.0 (light) to 1.0 (nearly black). topdown_main.gd changes this each frame.
+# Hidden gloom value, 0.0 (light) to 1.0 (nearly black). topdown_main.gd changes this each frame.
 var gloom: float = 0.0
-# The visible grey level (0 light, 1 grey, 2 dark). When it changes, a short moment plays.
+# The visible grey level (0 light, 1 grey, 2 dimmed). When it changes, a short moment plays.
 var level: int = 0
 # The look: draws this person from the state above (see scripts/looks/person_look.gd). Rebuilt by rebuild_look().
 var look: PersonLook
-# Seconds after a rescue during which nearby darkness cannot drain this person. 0 means no grace.
+# Seconds after a rescue during which nearby gloom cannot drain this person. 0 means no grace.
 var grace_seconds: float = 0.0
 # Seconds of grace left. The grace cue (ring and glow) is shown while this is above zero.
 var grace_left: float = 0.0
 # Cover (0..1): the average paint weight of the ground around this person. Set by topdown_main.gd.
 var cover: float = 0.0
-# Protection (0..1) from the cover: 0 at a painted edge, 1 deep inside. Darkness and joy fade scale by it.
+# Protection (0..1) from the cover: 0 at a painted edge, 1 deep inside. Gloom and joy fade scale by it.
 var protection: float = 0.0
 # Cover and protection labels, built the first time the F3 debug overlay is turned on (see set_debug_visible).
 var debug_label: Label3D
@@ -119,7 +119,7 @@ func set_ui_scale(value: float) -> void:
 		look.rescale()
 
 
-# The joy this person needs to be rescued. Darker levels need more.
+# The joy this person needs to be rescued. Dimmer levels need more.
 func joy_needed() -> float:
 	return Config.JOY_MAX * Config.LEVEL_JOY_MULT[Config.gloom_level(gloom)]
 
@@ -267,7 +267,7 @@ func tick(delta: float) -> void:
 	_update_debug_label()
 
 
-# Removes joy from a rescued person (used by nearby darkness). Relapses them if they drop too low.
+# Removes joy from a rescued person (used by nearby gloom). Relapses them if they drop too low.
 func drain_joy(amount: float) -> void:
 	if not is_rescued or grace_left > 0.0:
 		return
@@ -305,7 +305,7 @@ func _relapse() -> void:
 	relapsed.emit()
 
 
-# Fires a moment when the visible grey level changes: darker is a slump and dark puff, lighter is a sparkle.
+# Fires a moment when the visible grey level changes: dimmer is a slump and dimmed puff, lighter is a sparkle.
 func _check_level() -> void:
 	var new_level := Config.gloom_level(gloom)
 	if new_level == level:

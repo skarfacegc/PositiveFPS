@@ -3,7 +3,7 @@ extends RefCounted
 
 # The styled bodies (ported from design/style_test/scene.gd, per REVIEW_NOTES.md): chunky low-poly humans. Grey people
 # are stiff and upright with a cap, a muted affinity scarf, a pip and a grey version of their object held up in front.
-# Joyful people are relaxed and tilted, in their affinity colour with a playful hat and their object held high. Dark
+# Joyful people are relaxed and tilted, in their affinity colour with a playful hat and their object held high. Dimmed
 # people are hunched in a heavy coat with a low cap, soot motes round them and a smoke haze on the ground. The player
 # wears a wide-brim felt hat with a teal band and a glowing feather, a saffron coat, a teal scarf and a gold ring.
 # Every body faces +z; the look turns it to the person's facing.
@@ -127,8 +127,8 @@ static func build_joy(root: Node3D, aff: int, v: int, parts: Dictionary) -> void
 	parts["glow"] = glow
 
 
-# ---- Dark person. `parts["soot"]` is the node holding the drifting soot motes.
-static func build_dark(root: Node3D, parts: Dictionary) -> void:
+# ---- Dimmed person. `parts["soot"]` is the node holding the drifting soot motes.
+static func build_dimmed(root: Node3D, parts: Dictionary) -> void:
 	var coat := StyleKit.mat(StyleKit.hexc("#454a58"))
 	var coat_l := StyleKit.mat(StyleKit.hexc("#5a6070"))
 	var skin := StyleKit.mat(StyleKit.hexc("#9d958d"))
@@ -183,7 +183,7 @@ static func build_dark(root: Node3D, parts: Dictionary) -> void:
 	parts["haze"] = haze
 
 
-# The dark smoke haze under a dark person (one dithered dark glow, shared).
+# The dark smoke haze under a dimmed person (one dithered dark glow, shared).
 static func smoke_material() -> ShaderMaterial:
 	if _smoke == null:
 		_smoke = StyleKit.glow_mat(Color(0.05, 0.05, 0.08), 0.85)

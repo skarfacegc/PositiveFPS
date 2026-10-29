@@ -136,14 +136,14 @@ func test_territory_constants_scale_and_interaction_constants_do_not() -> void:
 	assert_float(Config.BORDER_PRESS_RANGE).is_equal(1.5)
 	assert_float(Config.BORDER_PUSH_WIDTH).is_equal(0.5)
 	assert_float(Config.BORDER_SHOVE_RANGE).is_equal(4.0)
-	assert_float(Config.TD_DARK_STOP_DISTANCE).is_equal(2.5)
+	assert_float(Config.TD_DIMMED_STOP_DISTANCE).is_equal(2.5)
 	assert_vector(TopDownMain.BLOCK_SIZE).is_equal(Vector3(4, 2, 4))
 	assert_vector(Config.BORDER_LANDMARK_SIZE).is_equal(Vector3(4, 3.5, 4))
 
 	# Speeds: about 10% faster, not scaled by 1.43.
 	assert_float(Config.TD_MOVE_SPEED / 6.9).is_equal_approx(1.1, 0.01)
 	assert_float(Config.TD_RUN_SPEED / 10.9).is_equal_approx(1.1, 0.01)
-	assert_float(Config.TD_DARK_DRIFT_SPEED / 0.92).is_equal_approx(1.1, 0.01)
+	assert_float(Config.TD_DIMMED_DRIFT_SPEED / 0.92).is_equal_approx(1.1, 0.01)
 	assert_float(Config.NIGHT_LENGTH).is_equal(180.0)
 
 

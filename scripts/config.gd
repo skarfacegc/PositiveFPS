@@ -14,7 +14,7 @@ enum TargetingMode { LOCK_ON, HOVER_STICKY, AUTO }
 # erosion, colour-zone and contagion radii, search and edge-pressure reach). It is left alone if it is about
 # INTERACTION or a BODY (person and block sizes, projectile ranges and speeds, TD_AUTO_RANGE, GRAB_*, SHELTER_RADIUS,
 # SKITTISH_RADIUS, hit and click radii, burst radius, press range). A per-metre rate is divided by WORLD_SCALE so the
-# same fraction of the way across the land gives the same rate. Speeds are tuned by hand (player, dark drift +10%).
+# same fraction of the way across the land gives the same rate. Speeds are tuned by hand (player, dimmed drift +10%).
 const WORLD_SCALE := 100.0 / 70.0
 
 # Display names, in the same order as the Element enum.
@@ -24,7 +24,7 @@ const ELEMENT_NAMES: Array[String] = ["Music", "Art", "Nature"]
 # projectiles, the HUD text and the painted ground.
 const ELEMENT_COLORS: Array[Color] = [Color(0.25, 0.5, 1.0), Color(1.0, 0.4, 0.7), Color(0.3, 0.85, 0.35)]
 
-# Joy needed for a person at light grey (darker levels need more, see LEVEL_JOY_MULT).
+# Joy needed for a person at light grey (dimmer levels need more, see LEVEL_JOY_MULT).
 const JOY_MAX := 1000.0
 
 # Damage multipliers for the element matchups (see multiplier() below).
@@ -43,23 +43,23 @@ const GLOOM_START_MAX := 0.5  # ...and highest.
 const GLOOM_GROWTH := 0.006  # Gloom gained per second by an unrescued person, base rate.
 # Extra gloom per second for each metre from the nearest colour zone (round 13a: divided by WORLD_SCALE).
 const GLOOM_GROWTH_PER_METER := 0.0008 / WORLD_SCALE
-# Round 11: growth is multiplied by this while the person is at grey (level 1), so the grey -> dark step is slower.
+# Round 11: growth is multiplied by this while the person is at grey (level 1), so the grey -> dimmed step is slower.
 # Light grey -> grey is unchanged (1.0 is the old rate). Applies to growth only, not spread or contagion.
-const GLOOM_DARK_STEP_MULT := 0.65
+const GLOOM_DIMMED_STEP_MULT := 0.65
 const NO_ZONE_DISTANCE := 20.0 * WORLD_SCALE  # Gloom growth distance when nobody is rescued yet (no colour zones).
 const ZONE_RADIUS := 6.0 * WORLD_SCALE  # Each rescued person creates a colour zone of this radius (metres).
-const SPREAD_RADIUS := 6.0 * WORLD_SCALE  # How far darkness spreads from a dark person (metres).
-const SPREAD_GLOOM_RATE := 0.03  # Gloom per second given to nearby unrescued people by a dark person.
-const SPREAD_DRAIN_RATE := 60.0  # Joy per second drained from nearby rescued people by a dark person.
+const SPREAD_RADIUS := 6.0 * WORLD_SCALE  # How far gloom spreads from a dimmed person (metres).
+const SPREAD_GLOOM_RATE := 0.03  # Gloom per second given to nearby unrescued people by a dimmed person.
+const SPREAD_DRAIN_RATE := 60.0  # Joy per second drained from nearby rescued people by a dimmed person.
 
-# The three visible grey levels. Gloom below the first step is light, below the second is grey, else dark.
+# The three visible grey levels. Gloom below the first step is light, below the second is grey, else dimmed.
 const GLOOM_LEVEL_STEPS: Array[float] = [0.34, 0.67]
-# Body colour for each level (0 light, 1 grey, 2 dark).
+# Body colour for each level (0 light, 1 grey, 2 dimmed).
 const LEVEL_COLORS: Array[Color] = [Color(0.82, 0.82, 0.82), Color(0.5, 0.5, 0.52), Color(0.16, 0.16, 0.18)]
-# Joy needed at each level, as a multiple of JOY_MAX. Darker people need more joy.
+# Joy needed at each level, as a multiple of JOY_MAX. Dimmer people need more joy.
 # Round 14: dimmed 2.0 -> 1.6 (the counter to the midnight dimmed people; wistful and gloomy unchanged).
 const LEVEL_JOY_MULT: Array[float] = [1.0, 1.5, 1.6]
-# Only people at this level or darker spread darkness (2 = only dark people).
+# Only people at this level or dimmer spread gloom (2 = only dimmed people).
 const SPREAD_LEVEL := 2
 
 # Joy fading: partly-helped people drain back toward grey if nobody keeps hitting them.
@@ -237,22 +237,22 @@ const TD_WANDER_REACH := 0.5
 # Wandering people pick a new spot after a random time between these two values, in seconds.
 const TD_WANDER_TIME_MIN := 3.0
 const TD_WANDER_TIME_MAX := 6.0
-# Dark people drift toward a rescued person at this speed, in metres per second (round 6: slowed from 1.3).
+# Dimmed people drift toward a rescued person at this speed, in metres per second (round 6: slowed from 1.3).
 # Round 11: 0.92 (15% faster than round 10's 0.8). Round 13a: +10% again.
-const TD_DARK_DRIFT_SPEED := 1.01
-# Dark people stop drifting when this close to their rescued person, in metres.
-const TD_DARK_STOP_DISTANCE := 2.5
-# At most this many dark people may drift toward the same rescued person. Others pick the next-nearest rescued person
+const TD_DIMMED_DRIFT_SPEED := 1.01
+# Dimmed people stop drifting when this close to their rescued person, in metres.
+const TD_DIMMED_STOP_DISTANCE := 2.5
+# At most this many dimmed people may drift toward the same rescued person. Others pick the next-nearest rescued person
 # with a free slot, or wander. This stops the crowd piling up on one person.
 const TD_MAX_PURSUERS_PER_TARGET := 2
-# Everyone steers away from people within this distance (metres). Dark and wandering people both do it.
+# Everyone steers away from people within this distance (metres). Dimmed and wandering people both do it.
 const TD_SEPARATION_RADIUS := 2.2
 # How strongly the separation push is added to a person's movement direction (before it is normalised).
 const TD_SEPARATION_STRENGTH := 1.2
-# Top-down joy drain is scaled by this. Dark people drain rescued joy at 0.4 of the round 6 rate (round 7). It is also
+# Top-down joy drain is scaled by this. Dimmed people drain rescued joy at 0.4 of the round 6 rate (round 7). It is also
 # scaled by (1 - protection) of the rescued person (see GloomSim), so cover makes it smaller.
 const TD_DRAIN_MULTIPLIER := 0.4
-# After a rescue, the person cannot be drained by nearby darkness for this many seconds (a warm halo shows it).
+# After a rescue, the person cannot be drained by nearby gloom for this many seconds (a warm halo shows it).
 const TD_RESCUE_GRACE_SECONDS := 4.0
 # The grace cue: a warm ring on the ground under a rescued person, pulsing in size, plus a soft glow on the body. Both
 # fade out over the last GRACE_FADE_SECONDS of the grace period.
@@ -327,18 +327,18 @@ const TD_UI_SCALE := 2.5675
 # Round 8: own paint does not protect. A rescued person's cover leaves out the paint made by their own soft circle
 # (see PaintedGround.average_weight_excluding). Unrescued people still use the full cover.
 #
-# Round 8: darkness erodes paint at the edge of territory. Each unrescued dark person takes TD_ERODE_RATE weight per
+# Round 8: gloom erodes paint at the edge of territory. Each unrescued dimmed person takes TD_ERODE_RATE weight per
 # second off the edge tiles within TD_ERODE_RADIUS. A tile is edge unless it and all its neighbours are at least
 # TD_ERODE_EDGE_MAX (deep interior tiles are immune). An eroded tile cannot regrow for TD_ERODE_HOLD seconds.
 const TD_ERODE_RADIUS := 2.0 * WORLD_SCALE
 const TD_ERODE_RATE := 0.25
 const TD_ERODE_EDGE_MAX := 0.9
 const TD_ERODE_HOLD := 3.0
-# The territory edge (for dark people with no one to chase) is painted tiles with weight in (TD_EDGE_MIN, EDGE_MAX).
+# The territory edge (for dimmed people with no one to chase) is painted tiles with weight in (TD_EDGE_MIN, EDGE_MAX).
 const TD_EDGE_MIN := 0.05
-# Dark people chase the weakest rescued person (lowest protection, ties to the nearest) within this many metres.
+# Dimmed people chase the weakest rescued person (lowest protection, ties to the nearest) within this many metres.
 const TD_PURSUIT_SEARCH_RADIUS := 25.0 * WORLD_SCALE
-# A dark person with no one to chase drifts to the nearest territory edge, and stops this close to it (metres).
+# A dimmed person with no one to chase drifts to the nearest territory edge, and stops this close to it (metres).
 const TD_EDGE_REACH := 0.5
 
 # ---- Round 10: the floor. Every floor overlay, with its draw priority (lower number = read first):
@@ -361,7 +361,7 @@ const TD_MINIMAP_REFRESH_SECONDS := 0.1
 const TD_MINIMAP_FRAME_COLOUR := Color(0.93, 0.87, 0.72)
 const TD_MINIMAP_LINE_COLOUR := Color(1.0, 0.82, 0.4)
 const TD_MINIMAP_MEMBER_COLOUR := Color(0.99, 0.95, 0.85)
-const TD_MINIMAP_DARK_COLOUR := Color(0.1, 0.1, 0.12)
+const TD_MINIMAP_DIMMED_COLOUR := Color(0.1, 0.1, 0.12)
 const TD_MINIMAP_LANDMARK_COLOUR := Color(1.0, 0.85, 0.45)
 const TD_MINIMAP_PLAYER_COLOUR := Color(1.0, 0.7, 0.15)
 const TD_MINIMAP_VIEW_COLOUR := Color(1.0, 1.0, 1.0, 0.7)
@@ -390,9 +390,9 @@ const BORDER_CENTRE_FOLLOW := 0.5
 const BORDER_TARGET_SPACING := 2.6 * WORLD_SCALE
 # Members walk to their slot at this speed, in metres per second.
 const BORDER_WALK_SPEED := 3.0
-# A stretch of border between two members longer than this is a gap: darkness can pass through it.
+# A stretch of border between two members longer than this is a gap: gloom can pass through it.
 const BORDER_MAX_GAP := 3.5 * WORLD_SCALE
-# A dark person outside the border drains the nearest member within this distance, in metres.
+# A dimmed person outside the border drains the nearest member within this distance, in metres.
 const BORDER_PRESS_RANGE := 1.5
 # The border loop has this many points (one per angle), and is drawn as line segments.
 const BORDER_SAMPLES := 48
@@ -463,10 +463,10 @@ const BORDER_POST_LANTERN_COLOUR := Color(1.0, 0.8, 0.45)
 const BORDER_POST_RING_COLOUR := Color(1.0, 0.82, 0.3)
 const BORDER_POST_RING_INNER := 2.3
 const BORDER_POST_RING_OUTER := 2.6
-# An intact stretch is not drained: dark people pressing on it are pushed outward at this speed (metres per second).
+# An intact stretch is not drained: dimmed people pressing on it are pushed outward at this speed (metres per second).
 const BORDER_PUSHBACK_SPEED := 0.35
-# Round 11: dark people pressing an intact stretch also drain the nearest member, at this fraction of the gap drain rate
-# (gaps keep the full rate). It makes the border feel at risk again without letting it fall to one press.
+# Round 11: dimmed people pressing an intact stretch also drain the nearest member, at this fraction of the gap drain
+# rate (gaps keep the full rate). It makes the border feel at risk again without letting it fall to one press.
 const BORDER_INTACT_DRAIN_FRACTION := 0.25
 # The joy burst shoves the border outward toward the player when they are this close to it (metres), by this much.
 const BORDER_SHOVE_RANGE := 4.0
@@ -555,7 +555,7 @@ const EDGE_PRESSURE_REACH := 12.0 * WORLD_SCALE
 # A dimmed person outside the border whose target is a border member walks up to the line (stopping this far from the
 # member, which the line itself holds them short of), so they really press it. (Before they stopped 2.5 m from the
 # member, beyond BORDER_PRESS_RANGE of the line, and pressed only for a moment.)
-const TD_DARK_PRESS_STOP := 0.6
+const TD_DIMMED_PRESS_STOP := 0.6
 # Protection values closer than this count as equal when a dimmed person picks a target.
 const EDGE_PROTECTION_TIE := 0.05
 # Local gaps: a border member drained below MEMBER_FALTER_FRACTION of their joy needed falters (steps back
@@ -773,7 +773,7 @@ static func falloff(distance: float) -> float:
 	return lerpf(1.0, FALLOFF_MIN, t)
 
 
-# Returns the visible grey level (0 light, 1 grey, 2 dark) for a hidden gloom value.
+# Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
 static func gloom_level(g: float) -> int:
 	if g < GLOOM_LEVEL_STEPS[0]:
 		return 0

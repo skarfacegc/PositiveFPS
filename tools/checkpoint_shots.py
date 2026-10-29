@@ -6,7 +6,7 @@ Usage:
 
 It launches the GAME (the real level, not design/style_test) in a labelled window through
 tools/checkpoint/checkpoint_shots.tscn. The scenario is scripted through the game's own API (fixed seed: a ring of
-rescued people forms a border, two stretches are marked as gaps, dark people press one, the landmark and a block are
+rescued people forms a border, two stretches are marked as gaps, dimmed people press one, the landmark and a block are
 beautified, mid-night). The rules are then frozen and the same view is saved in the placeholder look and, after flipping
 the look in place (F4), in the styled look:
 

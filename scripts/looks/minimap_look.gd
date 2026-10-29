@@ -38,7 +38,7 @@ func member_colour() -> Color:
 	return Color.WHITE
 
 
-func dark_colour() -> Color:
+func dimmed_colour() -> Color:
 	return Color.WHITE
 
 
@@ -54,7 +54,7 @@ func view_colour() -> Color:
 	return Color.WHITE
 
 
-# The outline round a marker of this kind ("member", "dark" or "player"). Alpha 0 means none.
+# The outline round a marker of this kind ("member", "dimmed" or "player"). Alpha 0 means none.
 func halo_colour(_kind: String) -> Color:
 	return Color(0, 0, 0, 0)
 

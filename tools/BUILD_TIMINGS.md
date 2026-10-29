@@ -36,8 +36,8 @@ The 15 slowest tests (plain run, serial):
 
 | s | Test |
 |---|---|
-| 13.72 | edge_pressure_test::test_a_dark_person_outside_the_border_cannot_get_inside_it (2400 frames) |
-| 5.25 | edge_pressure_test::test_a_lone_rescued_person_next_to_a_dark_person_relapses_within_a_bounded_time |
+| 13.72 | edge_pressure_test::test_a_dimmed_person_outside_the_border_cannot_get_inside_it (2400 frames) |
+| 5.25 | edge_pressure_test::test_a_lone_rescued_person_next_to_a_dimmed_person_relapses_within_a_bounded_time |
 | 3.29 | projectile_rhythm_test::test_music_fires_twice_as_often_as_nature_and_art_half_as_often |
 | 3.05 | border_level_test::test_the_landmark_is_held_and_the_level_is_won |
 | 2.26 | projectile_rhythm_test::test_joy_per_second_is_about_equal_for_music_and_art |

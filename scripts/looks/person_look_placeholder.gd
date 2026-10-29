@@ -2,7 +2,7 @@ class_name PersonLookPlaceholder
 extends PersonLook
 
 # The placeholder person: a capsule whose colour shows how grey they are, a coloured marker above the head for the
-# affinity, and dark wisps for dark people.
+# affinity, and dimmed wisps for dimmed people.
 
 var body_mat: StandardMaterial3D
 var body: MeshInstance3D
@@ -34,7 +34,7 @@ func _build_body() -> void:
 	marker.material_override = marker_mat
 	visual.add_child(marker)
 
-	# Dark wisps drift up from dark people (only while the person is at the dark level).
+	# Dimmed wisps drift up from dimmed people (only while the person is at the dimmed level).
 	wisp = CPUParticles3D.new()
 	wisp.position = Vector3(0, 1.0, 0)
 	wisp.amount = 12

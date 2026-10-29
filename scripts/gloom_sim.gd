@@ -1,16 +1,16 @@
 class_name GloomSim
 extends RefCounted
 
-# Shared gloom rules for the top-down territory game. Unrescued people darken over time (faster far from colour
-# zones) and dark people spread darkness to neighbours (and drain joy from rescued ones).
+# Shared gloom rules for the top-down territory game. Unrescued people dim over time (faster far from colour
+# zones) and dimmed people spread gloom to neighbours (and drain joy from rescued ones).
 #
-# The rules depend on each person's protection (0..1, from the paint around them, see Person.protection): darkness
+# The rules depend on each person's protection (0..1, from the paint around them, see Person.protection): gloom
 # only creeps in at the edges of painted ground, and people with enough cover have their gloom lowered by joy
 # contagion.
 
 
-# `drain_multiplier` scales how fast dark people drain rescued joy (Config.TD_DRAIN_MULTIPLIER in the level).
-# `strength` is the night strength (see NightCycle): it scales gloom growth, spread and drain. Darkness does not spread
+# `drain_multiplier` scales how fast dimmed people drain rescued joy (Config.TD_DRAIN_MULTIPLIER in the level).
+# `strength` is the night strength (see NightCycle): it scales gloom growth, spread and drain. Gloom does not spread
 # across an intact stretch of the border (`border`, when it has a loop).
 static func update(
 	people: Array, delta: float, drain_multiplier: float = 1.0, strength: float = 1.0, border: Border = null
@@ -51,16 +51,16 @@ static func update(
 # Contagion lowers gloom when the cover is high enough, scaled by protection. It never touches joy.
 static func _update_covered(p: Person, nearest: float, delta: float, strength: float) -> void:
 	var growth := Config.GLOOM_GROWTH + Config.GLOOM_GROWTH_PER_METER * nearest
-	# Round 11: the grey -> dark step (level 1) is slower. Light grey -> grey is not changed.
+	# Round 11: the grey -> dimmed step (level 1) is slower. Light grey -> grey is not changed.
 	if Config.gloom_level(p.gloom) == 1:
-		growth *= Config.GLOOM_DARK_STEP_MULT
+		growth *= Config.GLOOM_DIMMED_STEP_MULT
 	p.gloom += growth * delta * strength * (1.0 - p.protection)
 	if p.cover >= Config.TD_CONTAGION_THRESHOLD:
 		p.gloom -= Config.TD_CONTAGION_RATE * delta * p.protection
 
 
-# True for an unrescued person at the dark level: they spread darkness, drain nearby joy and erode paint.
-static func is_dark(p: Person) -> bool:
+# True for an unrescued person at the dimmed level: they spread gloom, drain nearby joy and erode paint.
+static func is_dimmed(p: Person) -> bool:
 	return not p.is_rescued and Config.gloom_level(p.gloom) >= Config.SPREAD_LEVEL
 
 

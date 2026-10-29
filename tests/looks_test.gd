@@ -202,25 +202,25 @@ func test_styled_people_build_the_body_for_each_state() -> void:
 	TopDownTestUtil.send_everyone_away(td)
 	td.running = false
 	var grey: Person = td.people[0]
-	var dark: Person = td.people[1]
+	var dimmed: Person = td.people[1]
 	var joy: Person = td.people[2]
 	TopDownTestUtil.place(grey, Vector3(0, 0, -6), 0, 0.5)
-	TopDownTestUtil.place(dark, Vector3(3, 0, -6), 1, 0.9)
+	TopDownTestUtil.place(dimmed, Vector3(3, 0, -6), 1, 0.9)
 	TopDownTestUtil.place(joy, Vector3(-3, 0, -6), 2, 0.0)
 	grey.level = 1
-	dark.level = 2
+	dimmed.level = 2
 	joy.receive_joy(2, Config.JOY_MAX * 2.0, 0.0)
-	for p: Person in [grey, dark, joy]:
+	for p: Person in [grey, dimmed, joy]:
 		p._update_visuals()
 	var gl := grey.look as PersonLookStyled
-	var dl := dark.look as PersonLookStyled
+	var dl := dimmed.look as PersonLookStyled
 	var jl := joy.look as PersonLookStyled
 	assert_int(gl.shown_kind()).is_equal(PersonLook.Kind.GREY)
-	assert_int(dl.shown_kind()).is_equal(PersonLook.Kind.DARK)
+	assert_int(dl.shown_kind()).is_equal(PersonLook.Kind.DIMMED)
 	assert_int(jl.shown_kind()).is_equal(PersonLook.Kind.JOYFUL)
 	assert_bool(gl._holders[PersonLook.Kind.GREY].visible).is_true()
 	assert_object(gl._holders[PersonLook.Kind.JOYFUL]).is_null()
-	assert_bool(dl._holders[PersonLook.Kind.DARK].visible).is_true()
+	assert_bool(dl._holders[PersonLook.Kind.DIMMED].visible).is_true()
 	assert_bool(jl._holders[PersonLook.Kind.JOYFUL].visible).is_true()
 	# Joy builds up on the grey person: their pip glows. A losing-joy rescued person flickers to the grey body.
 	grey.joy = 600.0
@@ -236,7 +236,7 @@ func test_styled_people_build_the_body_for_each_state() -> void:
 	joy._update_visuals()
 	joy.look.play_bounce()
 	joy.look.play_slump(0.8, 0.2)
-	dark.look.play_slump(0.8, 0.2)
+	dimmed.look.play_slump(0.8, 0.2)
 	await runner.simulate_frames(30)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -329,9 +329,9 @@ func test_the_styled_minimap_palette_and_frame() -> void:
 	assert_bool(look.ground_colour(null, Vector2.ZERO, 0, 0).is_equal_approx(MinimapLookStyled.GREY_B)).is_true()
 	assert_bool(look.building_colour(true).is_equal_approx(look.building_colour(false))).is_false()
 	assert_bool(look.line_colour(true).is_equal_approx(look.line_colour(false))).is_false()
-	assert_float(look.halo_colour("dark").a).is_equal(1.0)
+	assert_float(look.halo_colour("dimmed").a).is_equal(1.0)
 	var colours: Array[Color] = [
-		look.member_colour(), look.dark_colour(), look.landmark_colour(), look.player_colour(), look.view_colour()
+		look.member_colour(), look.dimmed_colour(), look.landmark_colour(), look.player_colour(), look.view_colour()
 	]
 	assert_int(colours.size()).is_equal(5)
 	var s: Dictionary = await _start(true)
@@ -367,7 +367,7 @@ func test_styled_dimmed_people_have_a_smoke_aura_and_the_grab_cue_leans_the_othe
 	assert_bool(dimmed.look.is_styled()).is_true()
 	assert_bool(dimmed.look.has_aura()).is_true()
 	assert_bool(dimmed.look.aura.visible).is_false()  # the placeholder haze stays hidden; the styled smoke is drawn
-	var parts: Dictionary = (dimmed.look as PersonLookStyled)._parts[PersonLook.Kind.DARK]
+	var parts: Dictionary = (dimmed.look as PersonLookStyled)._parts[PersonLook.Kind.DIMMED]
 	assert_bool(parts.has("haze")).is_true()
 	var grey: Person = auto_free(Person.new())
 	add_child(grey)

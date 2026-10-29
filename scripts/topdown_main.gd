@@ -2,7 +2,7 @@ class_name TopDownMain
 extends Node3D
 
 # The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a centre
-# (see border.gd). Darkness cannot cross an intact stretch of it. Inside the border the ground and the blocks are
+# (see border.gd). Gloom cannot cross an intact stretch of it. Inside the border the ground and the blocks are
 # beautified. The light goes from dusk to dawn (night.gd); the level ends at dawn, or earlier when the landmark is held
 # (win) or the border falls (lose).
 
@@ -392,7 +392,7 @@ func _on_joy_blocked(reason: int, p: Person) -> void:
 
 # Round 14: joy landed on a dimmed person: their progress ring shows, and the one-time dimmed prompt.
 func _on_joy_landed(p: Person) -> void:
-	if not GloomSim.is_dark(p):
+	if not GloomSim.is_dimmed(p):
 		return
 	feedback.on_dim_joy(p)
 	intro.request(Intro.Prompt.DIM_HELP)
@@ -447,7 +447,7 @@ func _update_intro(delta: float) -> void:
 		intro.request(Intro.Prompt.GAP, faltering.global_position)
 	var view := get_viewport().get_visible_rect().grow(-40.0)
 	for p: Person in people:
-		if GloomSim.is_dark(p) and view.has_point(world_to_screen(p.global_position)):
+		if GloomSim.is_dimmed(p) and view.has_point(world_to_screen(p.global_position)):
 			intro.request(Intro.Prompt.DIM_HELP)
 	for p: Person in people:
 		if p.is_rescued:
@@ -691,8 +691,8 @@ func _near_block(p: Vector3, margin: float) -> bool:
 	return absf(p.x - lm.x) < reach and absf(p.z - lm.z) < reach
 
 
-# Moves every unrescued person for this frame. Dark people drift toward the rescued person they are assigned to
-# (see pursuit_assignments). A dark person with nobody to chase drifts to the nearest territory edge, and everyone
+# Moves every unrescued person for this frame. Dimmed people drift toward the rescued person they are assigned to
+# (see pursuit_assignments). A dimmed person with nobody to chase drifts to the nearest territory edge, and everyone
 # else wanders. Everyone also steers away from close neighbours (_separation). Rescued people are moved by the border.
 func _update_people(delta: float) -> void:
 	var pursuit: Dictionary = pursuit_assignments(people)
@@ -711,7 +711,7 @@ func _update_people(delta: float) -> void:
 			var toward := Vector3.ZERO
 			if to_player.length() > Config.GRAB_RANGE * 0.8:
 				toward = to_player.normalized()
-			_steer(p, toward, Config.TD_DARK_DRIFT_SPEED, delta)
+			_steer(p, toward, Config.TD_DIMMED_DRIFT_SPEED, delta)
 		elif pursuit.has(p):
 			var target_p: Person = pursuit[p]
 			var to: Vector3 = target_p.global_position - p.global_position
@@ -719,39 +719,39 @@ func _update_people(delta: float) -> void:
 			var desired := Vector3.ZERO
 			if to.length() > _stop_distance(p, target_p):
 				desired = to.normalized()
-			_steer(p, desired, Config.TD_DARK_DRIFT_SPEED, delta)
-		elif GloomSim.is_dark(p) and ground.has_edge():
+			_steer(p, desired, Config.TD_DIMMED_DRIFT_SPEED, delta)
+		elif GloomSim.is_dimmed(p) and ground.has_edge():
 			var to_edge: Vector3 = ground.nearest_edge_point(p.global_position) - p.global_position
 			to_edge.y = 0.0
 			var edge_desired := Vector3.ZERO
 			if to_edge.length() > Config.TD_EDGE_REACH:
 				edge_desired = to_edge.normalized()
-			_steer(p, edge_desired, Config.TD_DARK_DRIFT_SPEED, delta)
+			_steer(p, edge_desired, Config.TD_DIMMED_DRIFT_SPEED, delta)
 		else:
 			_steer(p, _wander_dir(p, delta), Config.TD_WANDER_SPEED, delta)
 
 
 # How close a pursuing dimmed person walks to their target: right up to the line when they are outside the border and
-# the target is a border member (they press it, Round 12b), otherwise TD_DARK_STOP_DISTANCE.
+# the target is a border member (they press it, Round 12b), otherwise TD_DIMMED_STOP_DISTANCE.
 func _stop_distance(p: Person, target_p: Person) -> float:
 	if border.active and border.members.has(target_p):
 		if not Border.is_inside(border.polygon, Vector2(p.position.x, p.position.z)):
-			return Config.TD_DARK_PRESS_STOP
-	return Config.TD_DARK_STOP_DISTANCE
+			return Config.TD_DIMMED_PRESS_STOP
+	return Config.TD_DIMMED_STOP_DISTANCE
 
 
 # Round 12a: a dimmed person who notices a player that is not dim (within GRAB_NOTICE_RANGE) drifts toward them to grab.
 # Dimmed people ignore a dim player and go back to pressing the border.
 func _reaches_for_player(p: Person) -> bool:
-	if not GloomSim.is_dark(p) or player.is_dim or not player.active:
+	if not GloomSim.is_dimmed(p) or player.is_dim or not player.active:
 		return false
 	return _flat_dist(p.global_position, player.global_position) <= Config.GRAB_NOTICE_RANGE
 
 
-# Works out which rescued person each dark person drifts toward (the weakest point). Each rescued person takes at most
-# TD_MAX_PURSUERS_PER_TARGET dark people. A dark person takes the rescued person with the lowest protection within
+# Works out which rescued person each dimmed person drifts toward (the weakest point). Each rescued person takes at most
+# TD_MAX_PURSUERS_PER_TARGET dimmed people. A dimmed person takes the rescued person with the lowest protection within
 # TD_PURSUIT_SEARCH_RADIUS (ties go to the nearer one). People are handled in array order, so the result is the same on
-# every run. Returns a Dictionary of dark Person -> rescued Person. A dark person with no target is not in it.
+# every run. Returns a Dictionary of dimmed Person -> rescued Person. A dimmed person with no target is not in it.
 func pursuit_assignments(list: Array[Person]) -> Dictionary:
 	var rescued_list: Array[Person] = []
 	for p: Person in list:
@@ -760,7 +760,7 @@ func pursuit_assignments(list: Array[Person]) -> Dictionary:
 	var slots: Dictionary = {}
 	var out: Dictionary = {}
 	for p: Person in list:
-		if not GloomSim.is_dark(p):
+		if not GloomSim.is_dimmed(p):
 			continue
 		var best := _weakest_with_slot(p.global_position, rescued_list, slots)
 		if best != null:
@@ -770,7 +770,7 @@ func pursuit_assignments(list: Array[Person]) -> Dictionary:
 	return out
 
 
-# The rescued person a dark person at `pos` goes for: the lowest protection within TD_PURSUIT_SEARCH_RADIUS that
+# The rescued person a dimmed person at `pos` goes for: the lowest protection within TD_PURSUIT_SEARCH_RADIUS that
 # still has a free pursuer slot (see pursuit_assignments). Ties go to the nearest. Null if there is none.
 func _weakest_with_slot(pos: Vector3, rescued_list: Array[Person], slots: Dictionary) -> Person:
 	var best: Person = null
@@ -854,8 +854,8 @@ func _separation(p: Person) -> Vector3:
 # itself, not the crowd spacing, holds them back; see _stop_distance).
 func _may_loom(a: Person, b: Person) -> bool:
 	if a.is_rescued or b.is_rescued:
-		return GloomSim.is_dark(a) or GloomSim.is_dark(b)
-	return GloomSim.is_dark(a) != GloomSim.is_dark(b)
+		return GloomSim.is_dimmed(a) or GloomSim.is_dimmed(b)
+	return GloomSim.is_dimmed(a) != GloomSim.is_dimmed(b)
 
 
 # Picks a random spot within TD_WANDER_RANGE of `from`, inside the plaza and clear of blocks.
@@ -873,7 +873,7 @@ func _new_wander_target(from: Vector3) -> Vector3:
 
 
 # Moves a person along a flat direction, keeping them inside the plaza and out of blocks, and turns them to face it.
-# A dark person outside the border cannot cross an intact stretch: its move stops at the line (see Border.clip_move).
+# A dimmed person outside the border cannot cross an intact stretch: its move stops at the line (see Border.clip_move).
 func _step(p: Person, dir: Vector3, speed: float, delta: float) -> void:
 	var move := dir * speed * delta
 	move.y = 0.0
@@ -881,7 +881,7 @@ func _step(p: Person, dir: Vector3, speed: float, delta: float) -> void:
 	var limit := Config.TD_PLAZA_SIZE / 2.0 - Config.TD_EDGE_MARGIN
 	next_pos.x = clampf(next_pos.x, -limit, limit)
 	next_pos.z = clampf(next_pos.z, -limit, limit)
-	if GloomSim.is_dark(p):
+	if GloomSim.is_dimmed(p):
 		next_pos = border.clip_move(p.position, next_pos)
 	if _near_block(next_pos, Config.TD_BLOCK_CLEARANCE):
 		# Blocked: make a wanderer choose a new target next time.
