@@ -16,6 +16,7 @@ func _init(border: Border) -> void:
 # consecutive slots, so the loop needs that many fewer people, and the segments beside a post are never gaps. Everyone
 # gets a target position (see Border._move_members).
 func assign_members(rescued: Array[Person]) -> void:
+	var prev_targets: Dictionary = b._targets.duplicate()
 	b.members.clear()
 	b.inner.clear()
 	b.segment_gap.clear()
@@ -28,7 +29,10 @@ func assign_members(rescued: Array[Person]) -> void:
 	b._sample_gap.clear()
 	b._arc.clear()
 	b._open.clear()
+	var held: Array[Building] = []  # Round 18: last frame's posts keep their hold a little further out (see _find_posts).
 	for bld: Building in b.buildings:
+		if bld.post:
+			held.append(bld)
 		bld.set_post(false)
 	b._post_points.clear()
 	var n := b.polygon.size()
@@ -54,7 +58,7 @@ func assign_members(rescued: Array[Person]) -> void:
 	if b.perimeter < 0.01:
 		return
 
-	var posts := b._find_posts(Border.slot_count_for(b.perimeter))
+	var posts := b._find_posts(Border.slot_count_for(b.perimeter), held)
 	b.post_count = posts.size()
 	var m := mini(rescued.size(), b.required_members())
 	if m < 1:
@@ -119,7 +123,7 @@ func assign_members(rescued: Array[Person]) -> void:
 	# loop order, turned by whichever whole-slot offset costs the least walking (ordered_slots). Nobody crosses anybody,
 	# so there is no convoy, and everyone slides along the wall toward the empty stretches. When a post could not be
 	# placed there are spare slots; then each member takes the nearest free slot, in the order they were chosen.
-	var chosen := ordered_slots(border_list, slots, slot_taken)
+	var chosen := ordered_slots(border_list, slots, slot_taken, prev_targets)
 	for i: int in range(border_list.size()):
 		var p: Person = border_list[i]
 		var best_k := -1
@@ -209,7 +213,9 @@ func open_of_point(p2: Vector2) -> float:
 # Round 16: the slot index for each person in `list`, when the free slots are exactly as many as the people (else an
 # empty array). The people are ordered by angle round the centre and the free slots by their place on the loop; person i
 # takes free slot (i + r) mod m, with the offset r that makes the total squared walk smallest (the first on a tie).
-func ordered_slots(list: Array[Person], slots: Array[Vector2], taken: Array[bool]) -> Array[int]:
+func ordered_slots(
+	list: Array[Person], slots: Array[Vector2], taken: Array[bool], prev_targets: Dictionary = {}
+) -> Array[int]:
 	var free: Array[int] = []
 	for k: int in range(slots.size()):
 		if not taken[k]:
@@ -226,18 +232,52 @@ func ordered_slots(list: Array[Person], slots: Array[Vector2], taken: Array[bool
 	order.sort_custom(func(x: int, y: int) -> bool: return angles[x] < angles[y] or (angles[x] == angles[y] and x < y))
 	var best_r := 0
 	var best_cost := INF
+	var costs: Array[float] = []
 	for r: int in range(m):
 		var cost := 0.0
 		for i: int in range(m):
 			var q: Person = list[order[i]]
 			cost += Vector2(q.position.x, q.position.z).distance_squared_to(slots[free[(i + r) % m]])
+		costs.append(cost)
 		if cost < best_cost:
 			best_cost = cost
 			best_r = r
+	# Round 18, hysteresis: the offset that matches where everyone was heading last frame stays unless another offset
+	# saves more than BORDER_SLOT_HYSTERESIS of the walking, so small changes of the loop never swap people over.
+	var kept := _offset_matching(list, order, slots, free, prev_targets)
+	if kept >= 0 and costs[kept] <= best_cost * (1.0 + Config.BORDER_SLOT_HYSTERESIS):
+		best_r = kept
 	out.resize(m)
 	for i: int in range(m):
 		out[order[i]] = free[(i + best_r) % m]
 	return out
+
+
+# Round 18: the offset whose slots lie nearest to where the people were heading last frame (-1 when most of them had no
+# target yet, so there is nothing to keep).
+func _offset_matching(
+	list: Array[Person], order: Array[int], slots: Array[Vector2], free: Array[int], prev_targets: Dictionary
+) -> int:
+	var m := list.size()
+	var known := 0
+	for p: Person in list:
+		if prev_targets.has(p):
+			known += 1
+	if known * 2 < m:
+		return -1
+	var best_r := -1
+	var best_cost := INF
+	for r: int in range(m):
+		var cost := 0.0
+		for i: int in range(m):
+			var q: Person = list[order[i]]
+			if prev_targets.has(q):
+				var t: Vector3 = prev_targets[q]
+				cost += Vector2(t.x, t.z).distance_squared_to(slots[free[(i + r) % m]])
+		if cost < best_cost:
+			best_cost = cost
+			best_r = r
+	return best_r
 
 
 # Removes and returns the person farthest from the centre.
