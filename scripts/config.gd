@@ -686,6 +686,31 @@ const HOVER_DIRECT_RADIUS := 1.0
 # Midnight stagger (round 14: 6 s): the gap between two people sinking to dimmed.
 const DIM_ARRIVAL_MIN_GAP := 9.0
 
+# ---- Round 18: border movement (scripts/border.gd, border_slots.gd) ----
+# The centre follows the people's centroid only when it is further than this from the centre (territory, metres) ...
+const BORDER_CENTRE_DEAD_ZONE := 4.0 * WORLD_SCALE
+# ... scaled by how lopsided the loop is: no dead zone while the raw radii are even (a fresh ring is tracked exactly),
+# the
+# full one when they range by this much (metres). A lopsided loop is what pulls the centroid off the centre.
+const BORDER_CENTRE_DEAD_SPREAD := 2.0 * BORDER_PUSH
+# ... and only for loops bigger than the smallest circle: it fades in as the mean radius grows from BORDER_MIN_RADIUS
+# to twice
+# that, so a small group's loop always stays centred on them.
+# Raw radii ease toward the mean of their four neighbours at this rate, per second (bumps relax).
+const BORDER_RELAX_RATE := 1.5
+# Members walk at BORDER_WALK_SPEED, but at most this many times their distance to the slot per second (they ease in).
+const BORDER_ARRIVE_GAIN := 4.0
+# A block that was a post last frame stays one out to this many times BORDER_POST_REACH (no flicker at the edge).
+const BORDER_POST_HOLD := 1.5
+# Raw radii stop at this share of the way to the map edge again (1.1: just beyond it, so the loop still meets the edge).
+const BORDER_WALL_SLACK := 1.1
+# A block the loop wraps round lifts the samples beside it too, as a tent this many samples wide on each side.
+const BORDER_WRAP_TENT := 3
+# A slot offset is kept unless another one cuts the total walk by more than this share (no swaps on small changes).
+const BORDER_SLOT_HYSTERESIS := 0.15
+# A stretch sealed by the map edge shorter than this is opened again (its neighbours would stand too close).
+const BORDER_MIN_SEAL_RUN := BORDER_TARGET_SPACING
+
 # ---- Round 16: the border near the map edge (scripts/border.gd) ----
 # The border stays on the map: its loop is clamped to this distance from the middle (the same limit people wander to).
 # Where it runs along the edge it is sealed (closed by the map, never a gap, no slots).
