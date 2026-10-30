@@ -1414,3 +1414,34 @@ border-slot fallback and the empty styled spirit meter.
 losing one fair? Is the 3 s claim too quick? Are 2 and 3 lights at the right difficulty? Does tension now carry past
 the opening (compare with round 18: 51% quiet, threats only in the first 13 s, win at 1:20)? Do the styled landmarks
 and beacon read clearly?
+
+## Round 19 playtest and round 20 plan (2026-10-30)
+
+**Recording** (`20261030-061159`, seed 42, Placeholder look; compared with round 18): full 3:00 night (was a win at
+1:20), 52 of 60 rescued (was 31), quiet time 24.6% relaxed (was 51%), 43 threats spread across the night (was all in
+the first 13 s). Gaps opened 6 times in calm, none in rising or midnight, 20 in easing. 3 beacons (90 spirit), 2
+reached; spirit averaged 87–97 and never fell below 45. 2 landmarks claimed and both lost, 0 held at dawn. Rating 2 of
+3 lights (people 87%, ground 30%). No bursts, no umbrella pops, 1 grab.
+
+**Feedback:**
+- Tension: "the best one yet by far", still a bit flat overall, but going in the right direction.
+- Dawn rating: earned, and it makes the player want another go.
+- Beacon: too cheap and somewhat unclear.
+- Landmarks: boosts unclear, lost without noticing, hard to keep. With no way to keep hold of a captured landmark,
+  placing a beacon so the zone covers two of them is awkward.
+- Player's idea: the zone stretches to a point rather than staying a circle, then snaps back. This encourages
+  rescuing more people.
+- Player's idea: the minimap should show roughly where people are. It need not be precise.
+- Grabs, the twirl's removal and the F4 look: no comment this round.
+
+**Round 20 plan:**
+1. **Stretching zone.** A beacon pulls the zone out toward it, so it covers old and new ground, then it snaps back to
+   a circle. The reach grows with the number of people rescued.
+2. **Beacon cost and clarity.** Raise the cost so it bites (spirit sat near 90). Show the destination and the centre's
+   travel clearly.
+3. **Landmark clarity.** Make each boost readable while held, and make a loss hard to miss.
+4. **Minimap clouds.** Soft patches where people cluster, not exact dots.
+
+Still open, watch in the next recording: no gaps in rising or midnight, and bursts and umbrellas unused. Round 19's
+styled flags (guarded icon, canopy, dawn suns, bandstand ruin, beacon dashes) also stay open; the styled look changes
+only in a graphics checkpoint.
