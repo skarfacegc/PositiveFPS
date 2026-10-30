@@ -30,6 +30,15 @@ func landmark_colour() -> Color:
 	return Config.TD_MINIMAP_LANDMARK_COLOUR
 
 
+# Round 20: a held landmark is the gold star with its ring; one not held is a grey star with no ring.
+func landmark_state_colour(held: bool) -> Color:
+	return landmark_colour() if held else Config.TD_MINIMAP_LANDMARK_UNHELD_COLOUR
+
+
+func cloud_colour() -> Color:
+	return Color(Config.MINIMAP_CLOUD_COLOUR.r, Config.MINIMAP_CLOUD_COLOUR.g, Config.MINIMAP_CLOUD_COLOUR.b, 1.0)
+
+
 func player_colour() -> Color:
 	return Config.TD_MINIMAP_PLAYER_COLOUR
 

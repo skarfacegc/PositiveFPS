@@ -119,7 +119,7 @@ func _ready() -> void:
 	landmark_label.offset_left = -360
 	landmark_label.offset_right = -20
 	landmark_label.offset_top = 90
-	landmark_label.offset_bottom = 170
+	landmark_label.offset_bottom = 194  # Round 20: room for the header and three held lines (about 88 px).
 	landmark_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(landmark_label)
 	landmark_panel = StyledPanel.new()
@@ -322,14 +322,16 @@ func set_burst(cooldown_left: float, has_spirit: bool = true) -> void:
 		burst_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 
 
-# Shows a short alert that waits 0.8s, then fades out over 2s. Calling again restarts it.
-func show_alert(text: String) -> void:
+# Shows a short alert that waits `hold` seconds (0.8s by default), then fades out over 2s. Calling again restarts it.
+# Round 20: `colour` is the text colour (the default orange; a landmark claim or loss passes its own).
+func show_alert(text: String, colour: Color = Color(1, 0.6, 0.1), hold: float = 0.8) -> void:
 	alert_label.text = text
+	alert_label.add_theme_color_override("font_color", colour)
 	alert_label.modulate = Color(1, 1, 1, 1)
 	if _alert_tween != null and _alert_tween.is_valid():
 		_alert_tween.kill()
 	_alert_tween = create_tween()
-	_alert_tween.tween_interval(0.8)
+	_alert_tween.tween_interval(hold)
 	_alert_tween.tween_property(alert_label, "modulate:a", 0.0, 2.0)
 
 
