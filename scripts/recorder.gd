@@ -56,18 +56,28 @@ static func requested() -> bool:
 static func load_setting() -> void:
 	if Config.is_automated_test():
 		return
+	load_setting_from(SETTINGS_PATH)
+
+
+# Reads the menu choice from the config file at `path` (a missing or unreadable file leaves it as it is).
+static func load_setting_from(path: String) -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(SETTINGS_PATH) == OK:
+	if cfg.load(path) == OK:
 		enabled = cfg.get_value("recording", "enabled", false) == true
 
 
 static func save_setting() -> void:
 	if Config.is_automated_test():
 		return
+	save_setting_to(SETTINGS_PATH)
+
+
+# Writes the menu choice into the config file at `path`, keeping whatever else that file holds.
+static func save_setting_to(path: String) -> void:
 	var cfg := ConfigFile.new()
-	cfg.load(SETTINGS_PATH)
+	cfg.load(path)
 	cfg.set_value("recording", "enabled", enabled)
-	cfg.save(SETTINGS_PATH)
+	cfg.save(path)
 
 
 # The night phase name for a night progress 0..1 (the calm opening, then thirds up to dawn).
@@ -451,7 +461,11 @@ func _headless() -> bool:
 func _screenshot() -> void:
 	if _headless():
 		return
-	var img := get_viewport().get_texture().get_image()
+	_record_shot(get_viewport().get_texture().get_image())
+
+
+# Logs and saves one grabbed frame (nothing happens for a missing or empty picture).
+func _record_shot(img: Image) -> void:
 	if img == null or img.is_empty():
 		return
 	shots_taken += 1

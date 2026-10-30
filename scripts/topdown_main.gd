@@ -55,6 +55,8 @@ var rescued_count: int = 0
 var running: bool = true
 # Round 18: the gameplay recorder, or null when recording is off.
 var recorder: Recorder
+# Tests only: when valid, called with the scene path (empty = restart) instead of changing scene.
+var scene_switch: Callable
 # The F3 debug overlay: cover and protection labels above each person, and the border labels. Off by default.
 var debug_on: bool = false
 var _sun: DirectionalLight3D
@@ -199,11 +201,9 @@ func _process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("restart"):
-		_note_exit("restart")
-		get_tree().reload_current_scene()
+		_leave_level("restart", "")
 	elif event.is_action_pressed("menu"):
-		_note_exit("menu")
-		get_tree().change_scene_to_file("res://menu.tscn")
+		_leave_level("menu", "res://menu.tscn")
 	elif event.is_action_pressed("toggle_look"):
 		var frame := Engine.get_process_frames()
 		if frame != _look_frame:
@@ -216,6 +216,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			_zoom_frame = frame
 			var step := -Config.TD_ZOOM_STEP if event.is_action_pressed("zoom_in") else Config.TD_ZOOM_STEP
 			_zoom_target = clampf(_zoom_target + step, Config.TD_ZOOM_MIN, Config.TD_ZOOM_MAX)
+
+
+# Leaves the level for `scene_path` (empty = start this level again) after telling the recorder why. Tests set
+# `scene_switch` to catch the request instead of changing scene.
+func _leave_level(reason: String, scene_path: String) -> void:
+	_note_exit(reason)
+	if scene_switch.is_valid():
+		scene_switch.call(scene_path)
+	elif scene_path == "":
+		get_tree().reload_current_scene()
+	else:
+		get_tree().change_scene_to_file(scene_path)
 
 
 # Round 18: tells the recorder why the level is being left.

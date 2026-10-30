@@ -89,3 +89,21 @@ func test_twirl_text_and_the_burst_needing_spirit() -> void:
 	assert_str(hud.burst_label.text).is_equal("Joy burst [G]: needs 30 spirit")
 	hud.set_burst(0.0, true)
 	assert_str(hud.burst_label.text).is_equal("Joy burst [G]: READY")
+
+
+func test_the_rec_mark_is_built_once_shown_and_hidden() -> void:
+	var hud: Hud = _make_hud()
+	# Switching it off before it was ever shown builds nothing.
+	hud.set_recording(false)
+	assert_object(hud.rec_label).is_null()
+	hud.set_recording(true)
+	var mark := hud.rec_label
+	assert_object(mark).is_not_null()
+	assert_bool(mark.visible).is_true()
+	assert_str(mark.text).contains("REC")
+	hud.set_recording(false)
+	assert_bool(mark.visible).is_false()
+	# Showing it again reuses the same label.
+	hud.set_recording(true)
+	assert_object(hud.rec_label).is_same(mark)
+	assert_bool(mark.visible).is_true()
