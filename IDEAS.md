@@ -1306,3 +1306,46 @@ reward). The old code stays in git history if a dodge is wanted later.
 4. Landmarks: how many per level, which boosts (joy element, border), and whether they can be lost.
 5. Tension after the opening: does spending spirit on movement create enough decisions, or does gloom variety
    (parked under "Later") come next?
+
+## Round 19 plan (2026-10-29)
+
+The user accepted the design recommendations ("merge the plans") and asked for a visual update to match. All numbers
+below are starting values to tune.
+
+**1. Win at dawn, with a rating.** Holding a landmark no longer ends the level. The level ends at dawn
+(`NIGHT_LENGTH`). The existing loss conditions stay. At dawn the end screen rates what you hold: people rescued, ground
+held and landmarks held. The rating is 1–3 "dawn lights", with the reasons shown. Thresholds are set so a
+round-18-style quick push gets 1–2, not 3.
+
+**2. Spirit beacon moves the border.** Without a beacon, the border's centre stays anchored: it no longer drifts toward
+the player or follows people into a push. That removes "just stand there". Pressing **E** places a beacon at the cursor
+on the ground (inside the map) for `BEACON_SPIRIT_COST` (30) spirit. There's one beacon at a time, and a new one
+replaces the old (cost paid again). The centre walks toward the beacon at `BEACON_PULL_SPEED` (slow, scaled with
+WORLD_SCALE) and the beacon clears when the centre arrives. Not enough spirit gives a short "not enough spirit" prompt.
+The minimap shows the beacon. Splitting the zone in two is parked for round 20 or later.
+
+**3. Several landmarks with boosts.** There are three landmarks spread out so beacons are needed to reach them. Each
+gives its boost while it's held (beautified inside the border, after a short claim hold), and loses it if the border
+drops it:
+- Bandstand: music joy ×1.5.
+- Garden: nature joy ×1.5.
+- Bell tower: border members within a radius lose spirit/joy to gloom ×0.6.
+
+The HUD lists held landmarks and their boosts. Deeper boosts wait for the tech tree discussion.
+
+**4. Cleanup:**
+- Remove the twirl (Space), its HUD line, spirit and cooldown code, `TWIRL_*` config and recorder event. Grabs stay:
+  step out of reach during the wind-up to avoid one.
+- Move the record checkbox into view (with a test that it's inside the window at 1280×720 and 1920×1080).
+- The minimap no longer covers the Rescued counter.
+- Recorder tests clean up `user://rec_tests`.
+
+**5. Visual update (graphics checkpoint 3), after 1–4 merge:** the styled look for the beacon (placed marker and the
+centre's pull), the three landmarks (distinct silhouettes, held/unheld state, boost cue), the dawn rating screen and
+the HUD without the twirl line. New checkpoint screenshots go in `design/renders/checkpoint_03`. Original art only.
+
+**Build:** gameplay 1–3 as one Sonnet agent (all touch the border, landmark and win code, so sequential: beacon first,
+then landmarks and win). Cleanup 4 as a parallel Haiku agent. Visuals 5 as a Sonnet agent after the merge. Then one
+full gate, the determinism check and the baseline update.
+
+**Playtest:** record the game. Compare with round 18's baseline: 51% quiet, all threats in the first 13 s, win at 1:20.
