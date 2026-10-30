@@ -134,6 +134,8 @@ def analyse(events, quiet_window=5.0):
         "start": start, "end": end, "duration": duration, "samples": samples, "rows": rows, "counts": counts,
         "threats": threats, "threat_gaps": threat_gaps, "gap_durations": gap_durations,
         "target_changes": counts.get("target_change", 0),
+        "beacons_placed": [e for e in real if e["type"] == "beacon_placed"],
+        "beacons_reached": [e for e in real if e["type"] == "beacon_reached"],
     }
 
 
@@ -200,6 +202,14 @@ def report(res, folder):
     for name, group in phases(rows).items():
         c = sum(r["n_target_change"] for r in group)
         add("  %-9s %5.1f /min" % (name, per_minute(c, len(group))))
+    add("")
+    placed, reached = res["beacons_placed"], res["beacons_reached"]
+    spent = sum(e.get("cost", 0) for e in placed)
+    add("SPIRIT BEACONS: %d placed (%.0f spirit spent), %d reached by the centre" % (len(placed), spent, len(reached)))
+    for e in placed:
+        add("  placed at t=%.0f s, pos %s, spirit left %s" % (e["t"], e.get("pos"), e.get("spirit_after")))
+    for e in reached:
+        add("  reached at t=%.0f s, centre %s" % (e["t"], e.get("pos")))
     add("")
     add("STAGE COUNTS OVER TIME (mean per 30 s)")
     add("  %6s %8s %7s %7s %8s %5s %9s" % ("t", "wistful", "gloomy", "dimmed", "rescued", "gaps", "pressers"))

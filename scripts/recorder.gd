@@ -110,6 +110,8 @@ func attach(main: TopDownMain) -> bool:
 	main.player.dim_changed.connect(_on_player_dim)
 	main.grabs.grab_landed.connect(_on_grab_landed)
 	main.grabs.grab_avoided.connect(_on_grab_avoided)
+	main.beacon_placed.connect(_on_beacon_placed)
+	main.border.beacon_reached.connect(_on_beacon_reached)
 	main.hud.set_recording(true)
 	emit_event(
 		"session_start",
@@ -128,6 +130,14 @@ func attach(main: TopDownMain) -> bool:
 	_flush()
 	print("Recording to ", session_dir)
 	return true
+
+
+func _on_beacon_placed(pos: Vector3, cost: float, spirit_after: float) -> void:
+	emit_event("beacon_placed", {"pos": _pos(pos), "cost": cost, "spirit_after": snappedf(spirit_after, 0.1)})
+
+
+func _on_beacon_reached() -> void:
+	emit_event("beacon_reached", {"pos": _pos(_main.border.centre)})
 
 
 func is_open() -> bool:

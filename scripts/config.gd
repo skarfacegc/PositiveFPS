@@ -687,15 +687,7 @@ const HOVER_DIRECT_RADIUS := 1.0
 const DIM_ARRIVAL_MIN_GAP := 9.0
 
 # ---- Round 18: border movement (scripts/border.gd, border_slots.gd) ----
-# The centre follows the people's centroid only when it is further than this from the centre (territory, metres) ...
-const BORDER_CENTRE_DEAD_ZONE := 4.0 * WORLD_SCALE
-# ... scaled by how lopsided the loop is: no dead zone while the raw radii are even (a fresh ring is tracked exactly),
-# the
-# full one when they range by this much (metres). A lopsided loop is what pulls the centroid off the centre.
-const BORDER_CENTRE_DEAD_SPREAD := 2.0 * BORDER_PUSH
-# ... and only for loops bigger than the smallest circle: it fades in as the mean radius grows from BORDER_MIN_RADIUS
-# to twice
-# that, so a small group's loop always stays centred on them.
+# (Round 19: the centre no longer follows the centroid once the border forms; see "Round 19: beacon".)
 # Raw radii ease toward the mean of their four neighbours at this rate, per second (bumps relax).
 const BORDER_RELAX_RATE := 1.5
 # Members walk at BORDER_WALK_SPEED, but at most this many times their distance to the slot per second (they ease in).
@@ -738,6 +730,17 @@ const RECORD_FLUSH_SECONDS := 3.0
 const RECORD_SHOT_SECONDS := 18.0
 const RECORD_SHOT_WIDTH := 960
 const RECORD_PRESS_RADIUS := 3.0
+
+# ---- Round 19: beacon (scripts/border_centre.gd, topdown_main.gd). ----
+# The border's centre stays anchored once the border forms. E places a spirit beacon at the cursor's ground point for
+# BEACON_SPIRIT_COST spirit; the centre walks toward it at BEACON_PULL_SPEED (m/s, territory) and the beacon clears when
+# the centre is within BEACON_ARRIVE_RADIUS of it. One beacon at a time; a new one replaces the old (and costs again).
+const BEACON_SPIRIT_COST := 30.0
+const BEACON_PULL_SPEED := 0.8 * WORLD_SCALE
+const BEACON_ARRIVE_RADIUS := 0.3
+const BEACON_COLOUR := Color(0.55, 0.85, 1.0)
+const BEACON_NO_SPIRIT_TEXT := "Not enough spirit"
+const BEACON_NO_BORDER_TEXT := "Rescue three people to form a border first"
 
 static var intro_override: int = -1
 

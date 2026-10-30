@@ -22,6 +22,8 @@ var seal_flags: Array[bool] = []
 var member_pts := PackedVector2Array()
 var dimmed_pts := PackedVector2Array()
 var landmark_pos := Vector2.ZERO
+# Round 19: the spirit beacon (Vector2.INF when there is none).
+var beacon_pos := Vector2.INF
 var player_pos := Vector2.ZERO
 var view_pts := PackedVector2Array()
 # Buildings: each block's footprint (world rectangle) and whether it is beautified (warm).
@@ -111,6 +113,8 @@ func refresh_from(
 	for p: Person in people:
 		if not p.is_rescued and GloomSim.is_dimmed(p):
 			dimmed_pts.append(Vector2(p.position.x, p.position.z))
+	var bp := border.beacon_pos()
+	beacon_pos = Vector2.INF if bp == Vector3.INF else Vector2(bp.x, bp.z)
 	landmark_pos = Vector2(Config.BORDER_LANDMARK_POS.x, Config.BORDER_LANDMARK_POS.z)
 	player_at.y = 0.0
 	player_pos = Vector2(player_at.x, player_at.z)
@@ -182,6 +186,9 @@ func _render() -> void:
 		if u > 0.5:
 			_ring(at, 3.4 + 2.0 * u, look.line_colour(true))
 	_star(landmark_pos, look.landmark_colour())
+	if beacon_pos != Vector2.INF:
+		_ring(beacon_pos, 3.4, Config.BEACON_COLOUR)
+		_disc(beacon_pos, 1.4, Config.BEACON_COLOUR)
 	_marker(player_pos, 2.2, look.player_colour(), "player")
 	for k: int in range(view_pts.size()):
 		_line(view_pts[k], view_pts[(k + 1) % view_pts.size()], look.view_colour())

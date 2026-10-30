@@ -6,6 +6,9 @@ extends Node3D
 # beautified. The light goes from dusk to dawn (night.gd); the level ends at dawn, or earlier when the landmark is held
 # (win) or the border falls (lose).
 
+# Round 19: a spirit beacon was placed (where, its cost, and the spirit left).
+signal beacon_placed(pos: Vector3, cost: float, spirit_after: float)
+
 # Obstacle blocks are 4 x 2 x 4. Their centres are fixed (round 13a: the round 12 spots times Config.WORLD_SCALE,
 # within +-36), and the middle stays clear.
 const BLOCK_SIZE := Vector3(4, 2, 4)
@@ -22,7 +25,8 @@ const BLOCK_POSITIONS: Array[Vector3] = [
 	Vector3(-6, 0, 24) * Config.WORLD_SCALE + Vector3(0, 1, 0),
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
-const HINT := "WASD move | Shift run | Space twirl | Click to lock on | G/Q burst | R restart | M menu | [F4] look"
+const HINT_PLAY := "WASD move | Shift run | Space twirl | Click to lock on | G/Q burst | E beacon"
+const HINT := HINT_PLAY + " | R restart | M menu | [F4] look"
 
 var ground: PaintedGround
 var player: TopDownPlayer
@@ -32,6 +36,7 @@ var hud: Hud
 var minimap: Minimap
 var arrows: GapArrows
 var border: Border
+var beacon_marker: BeaconMarker  # Round 19: the beacon in the world (placeholder marker).
 var landmark: Landmark
 # Round 12a: the grabs of dimmed people (see grabs.gd).
 var grabs: Grabs
@@ -78,6 +83,7 @@ var _intro_timer: float = 0.0
 # key press can arrive twice in one frame, see Known gotchas).
 var _zoom_target: float = Config.TD_CAMERA_ORTHO_SIZE
 var _zoom_frame: int = -1
+var _beacon_frame: int = -1
 # The ortho size the label scales were last set for (they are only rewritten when the zoom moves).
 var _scaled_for_size: float = -1.0
 # Round 14: game time that passed in the night (the clock for the staggered arrivals) and the clock value when a person
@@ -110,6 +116,8 @@ func _ready() -> void:
 
 	landmark = Landmark.new()
 	add_child(landmark)
+	beacon_marker = BeaconMarker.new()
+	add_child(beacon_marker)
 
 	grabs = Grabs.new()
 	add_child(grabs)
@@ -190,6 +198,7 @@ func _process(delta: float) -> void:
 		p.tick(delta)
 	ground.update_paint(people, delta)
 	landmark.update(delta, border.landmark_beautified())
+	beacon_marker.sync(border.beacon_pos(), delta)
 	_update_spirit_hud()
 	_update_target_mood()
 	_update_intro(delta)
@@ -209,6 +218,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		if frame != _look_frame:
 			_look_frame = frame
 			toggle_look()
+	elif event.is_action_pressed("place_beacon"):
+		# gdUnit delivers a key press twice: one beacon per frame.
+		var beacon_frame := Engine.get_process_frames()
+		if beacon_frame != _beacon_frame:
+			_beacon_frame = beacon_frame
+			try_place_beacon()
 	elif event.is_action_pressed("zoom_in") or event.is_action_pressed("zoom_out"):
 		# Round 14: one wheel notch per frame (a repeated delivery in the same frame counts once).
 		var frame := Engine.get_process_frames()
@@ -216,6 +231,26 @@ func _unhandled_input(event: InputEvent) -> void:
 			_zoom_frame = frame
 			var step := -Config.TD_ZOOM_STEP if event.is_action_pressed("zoom_in") else Config.TD_ZOOM_STEP
 			_zoom_target = clampf(_zoom_target + step, Config.TD_ZOOM_MIN, Config.TD_ZOOM_MAX)
+
+
+# Round 19: E. Puts the spirit beacon at the cursor's ground point for BEACON_SPIRIT_COST spirit (the border's
+# centre then walks toward it). Refused (nothing changes, a short notice shows) without a border or
+# without enough spirit. A new beacon replaces the old one and costs again. Returns true when it was placed.
+func try_place_beacon() -> bool:
+	if not running or not player.has_aim():
+		return false
+	if not border.formed:
+		intro.notice(Intro.Prompt.BEACON_BORDER)
+		return false
+	if player.is_dim or player.spirit < Config.BEACON_SPIRIT_COST:
+		intro.notice(Intro.Prompt.BEACON_SPIRIT)
+		return false
+	player.lose_spirit(Config.BEACON_SPIRIT_COST)
+	border.place_beacon(player.aim_point())
+	spirit_meter.moment(-Config.BEACON_SPIRIT_COST, SpiritMeter.Moment.SPEND)
+	feedback.pulse_player(SpiritMeter.Moment.SPEND)
+	beacon_placed.emit(border.beacon_pos(), Config.BEACON_SPIRIT_COST, player.spirit)
+	return true
 
 
 # Leaves the level for `scene_path` (empty = start this level again) after telling the recorder why. Tests set

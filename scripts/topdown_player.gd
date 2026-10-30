@@ -335,6 +335,15 @@ func has_burst_spirit() -> bool:
 	return not is_dim and spirit >= Config.BURST_SPIRIT_COST
 
 
+# Round 19: the ground point under the cursor as of the last physics frame (valid only when `has_aim()`).
+func aim_point() -> Vector3:
+	return _aim_point
+
+
+func has_aim() -> bool:
+	return _has_aim
+
+
 func add_spirit(amount: float) -> void:
 	_set_spirit(spirit + amount)
 

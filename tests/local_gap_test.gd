@@ -211,7 +211,10 @@ func test_a_focused_push_opens_one_local_gap_and_re_joying_the_member_closes_it(
 		Vector2(target.position.x, target.position.z).distance_to(Vector2(border.centre.x, border.centre.z)) + 0.1
 	)
 
-	# Re-joying them with real input (hover and fire) restores them and the gap closes.
+	# Re-joying them with real input (hover and fire) restores them and the gap closes. Round 19: the centre no longer
+	# drifts toward the player, so the player walks out toward the member first (they were out of range at the middle).
+	td.player.global_position = faltering.global_position * 0.5
+	await runner.simulate_frames(120)  # the camera follows the player
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, faltering.global_position))
 	var waited := 0
 	while border.gap_count() > 0 and waited < 600:

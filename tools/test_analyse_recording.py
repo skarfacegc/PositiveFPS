@@ -28,7 +28,9 @@ def synthetic():
         ev.append(sample(float(t), gaps=1 if 12 <= t <= 14 else 0, phase="calm" if t <= 15 else "rising"))
     ev += [{"t": 12.2, "type": "gap_open", "gap": 1}, {"t": 14.8, "type": "gap_close", "gap": 1, "duration": 2.6},
            {"t": 25.0, "type": "sink", "to": "dimmed", "id": 4}, {"t": 6.0, "type": "target_change", "target": 3},
-           {"t": 7.0, "type": "target_change", "target": 4}, {"t": 30.0, "type": "session_end", "outcome": "win",
+           {"t": 7.0, "type": "target_change", "target": 4},
+           {"t": 8.0, "type": "beacon_placed", "pos": [10.0, -4.0], "cost": 30.0, "spirit_after": 20.0},
+           {"t": 20.0, "type": "beacon_reached", "pos": [10.0, -4.0]}, {"t": 30.0, "type": "session_end", "outcome": "win",
                                                              "reason": "win", "rescued": 9}]
     return sorted(ev, key=lambda e: e["t"])
 
@@ -45,6 +47,13 @@ class AnalyseTest(unittest.TestCase):
         self.assertEqual(res["target_changes"], 2)
         self.assertEqual(len(res["threats"]), 2)  # gap_open and the dimmed sink; the t=0 sink is ignored
         self.assertAlmostEqual(res["threat_gaps"][0], 12.8)
+
+    def test_beacons_are_counted_and_reported(self):
+        res = ar.analyse(synthetic())
+        self.assertEqual(len(res["beacons_placed"]), 1)
+        self.assertEqual(len(res["beacons_reached"]), 1)
+        text = ar.report(res, "x")
+        self.assertIn("SPIRIT BEACONS: 1 placed (30 spirit spent), 1 reached", text)
 
     def test_report_and_csv(self):
         with tempfile.TemporaryDirectory() as tmp:

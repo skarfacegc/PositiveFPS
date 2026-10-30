@@ -11,7 +11,7 @@ extends RefCounted
 # With `enabled` false (the default in automated tests, see Config.intro_on()) everything is available at once and
 # no prompt ever shows.
 
-enum Prompt { GAP, GUARDED, SKITTISH, GLUM, SHELTERED, SPIRIT_LOW, DIM, DIM_HELP }
+enum Prompt { GAP, GUARDED, SKITTISH, GLUM, SHELTERED, SPIRIT_LOW, DIM, DIM_HELP, BEACON_SPIRIT, BEACON_BORDER }
 
 var enabled: bool = true
 var night: NightCycle
@@ -56,6 +56,15 @@ func request(id: int, at: Vector3 = Vector3.INF) -> bool:
 	if current < 0:
 		_next()
 	return true
+
+
+# Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the intro
+# off too, so tests can read `current`.
+func notice(id: int) -> void:
+	queue.erase(id)
+	current = id
+	anchor = Vector3.INF
+	time_left = Config.PROMPT_SECONDS
 
 
 # Counts the current prompt down and moves on to the next one in the queue.
@@ -104,6 +113,10 @@ static func text_for(id: int) -> String:
 			return "Spirit low — rescue people to refill"
 		Prompt.DIM_HELP:
 			return Config.DIM_HELP_TEXT
+		Prompt.BEACON_SPIRIT:
+			return Config.BEACON_NO_SPIRIT_TEXT
+		Prompt.BEACON_BORDER:
+			return Config.BEACON_NO_BORDER_TEXT
 	return "You're dim — rest inside your border"
 
 
