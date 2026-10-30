@@ -347,7 +347,7 @@ func test_a_building_is_beautified_after_three_seconds_inside() -> void:
 func test_landmark_hold_grows_then_resets_when_not_beautified() -> void:
 	var lm: Landmark = auto_free(Landmark.new())
 	add_child(lm)
-	lm.update(4.0, true)
+	lm.update(Config.BORDER_LANDMARK_HOLD * 0.4, true)
 	assert_float(lm.progress()).is_equal_approx(0.4, 0.001)
 	assert_bool(lm.is_held()).is_false()
 	lm.update(1.0, false)
@@ -356,21 +356,21 @@ func test_landmark_hold_grows_then_resets_when_not_beautified() -> void:
 	assert_bool(lm.is_held()).is_true()
 
 
-func test_the_landmark_is_held_and_the_level_is_won() -> void:
-	# Three people around the landmark enclose it (the loop is a radius-3 circle around its centre). After three seconds
-	# inside it is beautified, and the hold runs for BORDER_LANDMARK_HOLD seconds.
+func test_a_held_landmark_no_longer_ends_the_level() -> void:
+	# Round 19: three people around the bandstand enclose it (the loop is a radius-3 circle around its centre). After the
+	# claim hold it is held, and the level keeps running (before round 19 holding the landmark won).
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	_rescue_ring(td, Config.BORDER_LANDMARK_POS, 2.5, 3)
+	_rescue_ring(td, Config.LANDMARK_POSITIONS[0], 2.5, 3)
 	var frames := 0
-	while td.running and frames < 1500:
+	while not td.landmarks.items[0].is_held() and frames < 1500:
 		await runner.simulate_frames(1)
 		frames += 1
-	assert_bool(td.running).is_false()
-	assert_bool(td.landmark.is_held()).is_true()
-	assert_str(td.hud.end_label.text).contains("The landmark is ours!")
-	assert_str(td.hud.end_label.text).contains("Landmark held: yes")
+	assert_bool(td.landmarks.items[0].is_held()).is_true()
+	await runner.simulate_frames(180)
+	assert_bool(td.running).is_true()
+	assert_bool(td.hud.end_panel.visible).is_false()
 
 
 # --- F3 through the menu and real keys ----------------------------------------------------------------------

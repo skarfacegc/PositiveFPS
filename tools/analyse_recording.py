@@ -136,6 +136,8 @@ def analyse(events, quiet_window=5.0):
         "target_changes": counts.get("target_change", 0),
         "beacons_placed": [e for e in real if e["type"] == "beacon_placed"],
         "beacons_reached": [e for e in real if e["type"] == "beacon_reached"],
+        "landmark_events": [e for e in real if e["type"] in ("landmark_claimed", "landmark_lost")],
+        "win": next((e for e in real if e["type"] == "win"), None),
     }
 
 
@@ -210,6 +212,17 @@ def report(res, folder):
         add("  placed at t=%.0f s, pos %s, spirit left %s" % (e["t"], e.get("pos"), e.get("spirit_after")))
     for e in reached:
         add("  reached at t=%.0f s, centre %s" % (e["t"], e.get("pos")))
+    add("")
+    lm_events = res["landmark_events"]
+    claims = sum(1 for e in lm_events if e["type"] == "landmark_claimed")
+    add("LANDMARKS: %d claimed, %d lost" % (claims, len(lm_events) - claims))
+    for e in lm_events:
+        add("  t=%.0f s  %s %s (%s held)" % (e["t"], e.get("name"), e["type"].split("_")[1], e.get("held")))
+    win = res["win"]
+    if win:
+        add("DAWN RATING: %s of 3 dawn lights (people %.0f%%, ground %.0f%%, landmarks held %s)" % (
+            win.get("lights", "?"), 100.0 * win.get("people_share", 0.0), 100.0 * win.get("ground_share", 0.0),
+            win.get("landmarks_held", "?")))
     add("")
     add("STAGE COUNTS OVER TIME (mean per 30 s)")
     add("  %6s %8s %7s %7s %8s %5s %9s" % ("t", "wistful", "gloomy", "dimmed", "rescued", "gaps", "pressers"))

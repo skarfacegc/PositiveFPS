@@ -30,7 +30,12 @@ def synthetic():
            {"t": 25.0, "type": "sink", "to": "dimmed", "id": 4}, {"t": 6.0, "type": "target_change", "target": 3},
            {"t": 7.0, "type": "target_change", "target": 4},
            {"t": 8.0, "type": "beacon_placed", "pos": [10.0, -4.0], "cost": 30.0, "spirit_after": 20.0},
-           {"t": 20.0, "type": "beacon_reached", "pos": [10.0, -4.0]}, {"t": 30.0, "type": "session_end", "outcome": "win",
+           {"t": 20.0, "type": "beacon_reached", "pos": [10.0, -4.0]},
+           {"t": 21.0, "type": "landmark_claimed", "name": "Garden", "held": 1},
+           {"t": 26.0, "type": "landmark_lost", "name": "Garden", "held": 0},
+           {"t": 29.9, "type": "win", "title": "Dawn", "rescued": 9, "lights": 2, "people_share": 0.52,
+            "ground_share": 0.31, "landmarks_held": 1},
+           {"t": 30.0, "type": "session_end", "outcome": "win",
                                                              "reason": "win", "rescued": 9}]
     return sorted(ev, key=lambda e: e["t"])
 
@@ -54,6 +59,14 @@ class AnalyseTest(unittest.TestCase):
         self.assertEqual(len(res["beacons_reached"]), 1)
         text = ar.report(res, "x")
         self.assertIn("SPIRIT BEACONS: 1 placed (30 spirit spent), 1 reached", text)
+
+    def test_landmarks_and_the_dawn_rating_are_reported(self):
+        res = ar.analyse(synthetic())
+        self.assertEqual([e["type"] for e in res["landmark_events"]], ["landmark_claimed", "landmark_lost"])
+        self.assertEqual(res["win"]["lights"], 2)
+        text = ar.report(res, "x")
+        self.assertIn("LANDMARKS: 1 claimed, 1 lost", text)
+        self.assertIn("DAWN RATING: 2 of 3 dawn lights (people 52%, ground 31%, landmarks held 1)", text)
 
     def test_report_and_csv(self):
         with tempfile.TemporaryDirectory() as tmp:

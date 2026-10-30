@@ -24,6 +24,7 @@ var anchor := Vector3.INF
 # Every prompt that was shown or queued this level, so each appears once.
 var shown: Dictionary = {}
 var _queued_anchor: Dictionary = {}
+var _check_timer: float = 0.0
 
 
 func _init(night_cycle: NightCycle = null, is_enabled: bool = true) -> void:
@@ -65,6 +66,38 @@ func notice(id: int) -> void:
 	current = id
 	anchor = Vector3.INF
 	time_left = Config.PROMPT_SECONDS
+
+
+# Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
+# INTRO_CHECK_SECONDS. (Moved here from topdown_main.gd in round 19.)
+func check_level(main: TopDownMain, delta: float) -> void:
+	if not enabled:
+		return
+	_check_timer += delta
+	if _check_timer < Config.INTRO_CHECK_SECONDS:
+		return
+	_check_timer = 0.0
+	if dimmed_allowed() and not main.feedback.markers.is_empty():
+		var faltering: Person = main.feedback.markers[0]["person"]
+		request(Prompt.GAP, faltering.global_position)
+	var view := main.get_viewport().get_visible_rect().grow(-40.0)
+	for p: Person in main.people:
+		if GloomSim.is_dimmed(p) and view.has_point(main.world_to_screen(p.global_position)):
+			request(Prompt.DIM_HELP)
+	for p: Person in main.people:
+		if p.is_rescued:
+			continue
+		var m := p.active_mood()
+		if (m == Person.Mood.NONE and not p.sheltered) or not view.has_point(main.world_to_screen(p.global_position)):
+			continue
+		if m != Person.Mood.NONE:
+			request(prompt_for_mood(m))
+		if p.sheltered:
+			request(Prompt.SHELTERED)
+	if main.player.is_dim:
+		request(Prompt.DIM)
+	elif main.player.spirit < Config.BURST_SPIRIT_COST:
+		request(Prompt.SPIRIT_LOW)
 
 
 # Counts the current prompt down and moves on to the next one in the queue.

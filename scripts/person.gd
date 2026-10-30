@@ -79,6 +79,10 @@ var mood_phase: float = 0.0
 var mood_unlocked: bool = true
 # Round 17: where the player stands, set by topdown_main each frame (Vector3.INF until then). The guarded wedge uses it.
 var shooter_pos := Vector3.INF
+# Round 19, landmark boosts (set by Landmarks.apply_boosts each frame): joy gained is multiplied by joy_boost[element]
+# (music, art, nature), and drain_joy by loss_mult (the bell tower's x0.6 for border members near it).
+var joy_boost: Array[float] = [1.0, 1.0, 1.0]
+var loss_mult: float = 1.0
 # Seconds since this person was last hit by a joy projectile.
 var _since_hit: float = 99.0
 
@@ -200,7 +204,7 @@ func receive_joy(
 		if active_mood() == Mood.GLUM and glum_up:
 			amount *= Config.GLUM_LOOKUP_MULT
 	var mult := Config.multiplier(element, affinity)
-	var gain := amount * mult * Config.falloff(distance)
+	var gain := amount * mult * Config.falloff(distance) * joy_boost[clampi(element, 0, 2)]
 	joy = minf(joy + gain, joy_needed())
 	_since_hit = 0.0
 	if not is_rescued:
@@ -271,7 +275,7 @@ func tick(delta: float) -> void:
 func drain_joy(amount: float) -> void:
 	if not is_rescued or grace_left > 0.0:
 		return
-	joy -= amount
+	joy -= amount * loss_mult
 	if joy < joy_needed() * Config.RELAPSE_FRACTION:
 		_relapse()
 	else:

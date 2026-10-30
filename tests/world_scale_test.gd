@@ -74,7 +74,8 @@ func test_the_plaza_is_a_hundred_metres_and_the_ground_grid_matches() -> void:
 		assert_float(absf(pos.x)).is_less(half - 6.0)
 		assert_float(absf(pos.z)).is_less(half - 6.0)
 		assert_float(Vector2(pos.x, pos.z).length()).is_greater(12.0)
-	assert_float(Vector2(Config.BORDER_LANDMARK_POS.x, Config.BORDER_LANDMARK_POS.z).length()).is_greater(12.0)
+	for lm: Vector3 in Config.LANDMARK_POSITIONS:
+		assert_float(Vector2(lm.x, lm.z).length()).is_greater(12.0)
 	for p: Person in td.people:
 		assert_float(absf(p.global_position.x)).is_less(half)
 		assert_float(absf(p.global_position.z)).is_less(half)
@@ -113,8 +114,9 @@ func test_territory_constants_scale_and_interaction_constants_do_not() -> void:
 		var now: float = pair[0]
 		var old: float = pair[1]
 		assert_float(now / (old * s)).override_failure_message(key).is_equal_approx(1.0, 0.001)
-	assert_float(Config.BORDER_LANDMARK_POS.x).is_equal_approx(18.0 * s, 0.0001)
-	assert_float(Config.BORDER_LANDMARK_POS.z).is_equal_approx(-16.0 * s, 0.0001)
+	# Round 19: the landmarks are placed in round-12 metres and scaled like the blocks.
+	assert_float(Config.LANDMARK_POSITIONS[0].x).is_equal_approx(27.0 * s, 0.0001)
+	assert_float(Config.LANDMARK_POSITIONS[0].z).is_equal_approx(-21.0 * s, 0.0001)
 	# A per-metre rate shrinks by the same factor, so the same fraction of the way gives the same rate.
 	assert_float(Config.GLOOM_GROWTH_PER_METER * s).is_equal_approx(0.0008, 0.000001)
 	# Round numbers from the brief.

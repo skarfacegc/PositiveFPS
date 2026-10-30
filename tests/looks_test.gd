@@ -87,7 +87,7 @@ func test_the_styled_level_loads_and_runs_frames() -> void:
 	assert_bool(td.player.look.is_styled()).is_true()
 	assert_bool(td.border.look.is_styled()).is_true()
 	assert_bool(td.minimap.look.is_styled()).is_true()
-	assert_bool(td.landmark.look.is_styled()).is_true()
+	assert_bool(td.landmarks.items[0].look.is_styled()).is_true()
 	assert_bool(td.ground.look.is_styled()).is_true()
 	assert_bool(td.plaza_look.is_styled()).is_true()
 	assert_bool(td.border.buildings[0].look.is_styled()).is_true()
@@ -351,7 +351,7 @@ func test_the_landmark_ring_grows_in_the_styled_look() -> void:
 	var look := lm.look as LandmarkLookStyled
 	assert_bool(look._glow.visible).is_false()
 	assert_str(look._label.text).is_equal("Landmark")
-	lm.update(5.0, true)
+	lm.update(Config.BORDER_LANDMARK_HOLD * 0.5, true)
 	assert_bool(look._glow.visible).is_true()
 	assert_str(look._label.text).contains("50%")
 

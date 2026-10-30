@@ -153,7 +153,7 @@ func test_element_keys_and_the_wheel_never_change_the_element_or_target() -> voi
 	assert_object(player.target).is_null()
 
 
-# Round 9: dusk to dawn replaces the timer. Dawn ends the level, and the end screen says whether the landmark was held.
+# Round 9: dusk to dawn replaces the timer. Dawn ends the level (round 19: a win, with a rating and its reasons).
 func test_dawn_ends_the_level_with_the_dawn_screen() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
@@ -164,7 +164,8 @@ func test_dawn_ends_the_level_with_the_dawn_screen() -> void:
 	assert_bool(td.running).is_false()
 	assert_bool(td.hud.end_panel.visible).is_true()
 	assert_str(td.hud.end_label.text).contains("Dawn")
-	assert_str(td.hud.end_label.text).contains("Landmark held: no")
+	assert_str(td.hud.end_label.text).contains("0 of 3 landmarks held")
+	assert_str(td.hud.end_label.text).contains("Dawn lights: [*][ ][ ]")
 
 
 # Round 9: rescuing everyone no longer ends the level. Only dawn, the landmark, or the border falling does.

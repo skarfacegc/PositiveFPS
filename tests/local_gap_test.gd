@@ -215,9 +215,11 @@ func test_a_focused_push_opens_one_local_gap_and_re_joying_the_member_closes_it(
 	# drifts toward the player, so the player walks out toward the member first (they were out of range at the middle).
 	td.player.global_position = faltering.global_position * 0.5
 	await runner.simulate_frames(120)  # the camera follows the player
-	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, faltering.global_position))
+	# The two pressers may have worn down two neighbours: re-joy whoever still falters, one after the other.
 	var waited := 0
-	while border.gap_count() > 0 and waited < 600:
+	while border.gap_count() > 0 and waited < 1200:
+		if waited % 30 == 0 and not border.faltering.is_empty():
+			runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, border.faltering[0].global_position))
 		await runner.simulate_frames(1)
 		waited += 1
 	assert_int(border.gap_count()).is_equal(0)

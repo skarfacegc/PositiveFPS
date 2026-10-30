@@ -21,7 +21,9 @@ var seal_flags: Array[bool] = []
 # Border members, dimmed people, the landmark, the player, and the four corners of the camera's view on the ground.
 var member_pts := PackedVector2Array()
 var dimmed_pts := PackedVector2Array()
-var landmark_pos := Vector2.ZERO
+var landmark_pts := PackedVector2Array()
+# Round 19: which of them are held right now (set by the level before each refresh).
+var held_landmarks: Array[bool] = []
 # Round 19: the spirit beacon (Vector2.INF when there is none).
 var beacon_pos := Vector2.INF
 var player_pos := Vector2.ZERO
@@ -115,7 +117,9 @@ func refresh_from(
 			dimmed_pts.append(Vector2(p.position.x, p.position.z))
 	var bp := border.beacon_pos()
 	beacon_pos = Vector2.INF if bp == Vector3.INF else Vector2(bp.x, bp.z)
-	landmark_pos = Vector2(Config.BORDER_LANDMARK_POS.x, Config.BORDER_LANDMARK_POS.z)
+	landmark_pts = PackedVector2Array()
+	for at: Vector3 in Config.LANDMARK_POSITIONS:
+		landmark_pts.append(Vector2(at.x, at.z))
 	player_at.y = 0.0
 	player_pos = Vector2(player_at.x, player_at.z)
 	var c := Vector2(view_centre.x, view_centre.z)
@@ -185,7 +189,10 @@ func _render() -> void:
 		_marker(at, 1.4 + 1.8 * u, look.line_colour(true).lerp(Color(1.0, 0.9, 0.82), u * 0.8), "gap")
 		if u > 0.5:
 			_ring(at, 3.4 + 2.0 * u, look.line_colour(true))
-	_star(landmark_pos, look.landmark_colour())
+	for k: int in range(landmark_pts.size()):
+		_star(landmark_pts[k], look.landmark_colour())
+		if k < held_landmarks.size() and held_landmarks[k]:
+			_ring(landmark_pts[k], 5.6, look.landmark_colour())
 	if beacon_pos != Vector2.INF:
 		_ring(beacon_pos, 3.4, Config.BEACON_COLOUR)
 		_disc(beacon_pos, 1.4, Config.BEACON_COLOUR)

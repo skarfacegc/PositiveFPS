@@ -193,6 +193,11 @@ func test_an_umbrella_pop_is_logged_when_the_shield_down_time_jumps() -> void:
 func test_relapses_and_avoided_grabs_are_logged_and_rescued_people_do_not_log_stage_changes() -> void:
 	var s: Dictionary = await _start(true)
 	var td: TopDownMain = s["td"]
+	# Person 4 may sink on its own at the start (its gloom comes from the level's seeded spawn), so count from here.
+	var sinks_before := 0
+	for e: Dictionary in _of_type(_events(td), "sink"):
+		if e["id"] == 4.0:
+			sinks_before += 1
 	td.people[2].relapsed.emit()
 	td.grabs.grab_avoided.emit(td.people[3], true)
 	td.people[4].is_rescued = true
@@ -205,27 +210,52 @@ func test_relapses_and_avoided_grabs_are_logged_and_rescued_people_do_not_log_st
 	assert_int(avoided.size()).is_equal(1)
 	assert_bool(avoided[0]["perfect"]).is_true()
 	assert_float(avoided[0]["id"]).is_equal(3.0)
+	var sinks_after := 0
 	for e: Dictionary in _of_type(events, "sink"):
-		assert_float(e["id"]).is_not_equal(4.0)
+		if e["id"] == 4.0:
+			sinks_after += 1
+	assert_int(sinks_after).is_equal(sinks_before)
 
 
-func test_winning_and_dawn_are_logged_and_a_finished_session_ignores_more() -> void:
+func test_dawn_is_the_win_with_a_rating_a_loss_is_logged_and_a_finished_session_ignores_more() -> void:
 	var s: Dictionary = await _start(true)
 	var td: TopDownMain = s["td"]
-	td.recorder.on_round_end("The landmark is ours!")
+	td.recorder.on_round_end("Dawn: 1 of 3 dawn lights")
 	var events := _read_file(td)
 	assert_int(_of_type(events, "win").size()).is_equal(1)
+	var win: Dictionary = _of_type(events, "win")[0]
+	assert_float(win["lights"]).is_equal(1.0)
+	assert_bool(win.has("people_share") and win.has("ground_share") and win.has("landmarks_held")).is_true()
 	assert_str(events.back()["outcome"]).is_equal("win")
 	var lines := FileAccess.get_file_as_string(td.recorder.events_path).count("\n")
-	td.recorder.on_round_end("Dawn")
+	td.recorder.on_round_end("The border fell")
 	td.recorder.emit_event("late")
 	td.recorder._flush()
 	assert_int(FileAccess.get_file_as_string(td.recorder.events_path).count("\n")).is_equal(lines)
 	var s2: Dictionary = await _start(true)
 	var td2: TopDownMain = s2["td"]
-	td2.recorder.on_round_end("Dawn")
-	assert_int(_of_type(_read_file(td2), "dawn").size()).is_equal(1)
-	assert_str(_read_file(td2).back()["outcome"]).is_equal("dawn")
+	td2.recorder.on_round_end("The border fell")
+	assert_int(_of_type(_read_file(td2), "loss").size()).is_equal(1)
+	assert_str(_read_file(td2).back()["outcome"]).is_equal("loss")
+
+
+func test_beacons_and_landmarks_are_logged() -> void:
+	var s: Dictionary = await _start(true)
+	var td: TopDownMain = s["td"]
+	td.beacon_placed.emit(Vector3(10, 0, -4), 30.0, 20.0)
+	td.border.beacon_reached.emit()
+	td.landmarks.items[1].claimed.emit()
+	td.landmarks.items[1].lost.emit()
+	var events := _events(td)
+	var placed := _of_type(events, "beacon_placed")
+	assert_int(placed.size()).is_equal(1)
+	assert_float(placed[0]["cost"]).is_equal(30.0)
+	assert_float(placed[0]["spirit_after"]).is_equal(20.0)
+	assert_array(placed[0]["pos"]).is_equal([10.0, -4.0])
+	assert_int(_of_type(events, "beacon_reached").size()).is_equal(1)
+	assert_str(_of_type(events, "landmark_claimed")[0]["name"]).is_equal("Garden")
+	assert_str(_of_type(events, "landmark_lost")[0]["name"]).is_equal("Garden")
+	await TopDownTestUtil.leave_loaded_scene(td)
 
 
 func test_the_restart_and_menu_keys_tell_the_recorder_why_and_ask_for_the_right_scene() -> void:

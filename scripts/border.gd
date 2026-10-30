@@ -39,7 +39,8 @@ var inner: Array[Person] = []
 # One entry per slot segment: true when that stretch is a gap.
 var segment_gap: Array[bool] = []
 var buildings: Array[Building] = []
-var landmark_building: Building = null
+# Round 19: the landmark blocks, in registration order (the order of Config.LANDMARK_NAMES).
+var landmark_buildings: Array[Building] = []
 # Round 12a: how much faster the border loses ground (1 normally, DIM_LOSS_MULT while the player is dim), and whether
 # the line should flicker to show it. Set by set_player_dim().
 var loss_mult: float = 1.0
@@ -133,7 +134,7 @@ func register_building(
 	b.attach(body, box, colour)
 	buildings.append(b)
 	if is_landmark:
-		landmark_building = b
+		landmark_buildings.append(b)
 
 
 # Call every frame, before people move. Recomputes the centre, the loop, the slots and the gaps, moves the rescued
@@ -355,8 +356,9 @@ func gap_count() -> int:
 	return n
 
 
-func landmark_beautified() -> bool:
-	return landmark_building != null and landmark_building.beautified
+# True while landmark block number `index` (Config.LANDMARK_NAMES order) is beautified.
+func landmark_beautified(index: int = 0) -> bool:
+	return index < landmark_buildings.size() and landmark_buildings[index].beautified
 
 
 func beautified_building_count() -> int:
