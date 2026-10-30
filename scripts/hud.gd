@@ -24,6 +24,8 @@ var landmark_label: Label
 # Graphics checkpoint 3: the styled drawings of the landmark panel and the end screen (nothing in the placeholder look).
 var landmark_panel: StyledPanel
 var dawn_panel: StyledPanel
+# Graphics checkpoint 4: the styled banner that shows the alert's text (the placeholder look shows alert_label).
+var alert_panel: StyledPanel
 var _alert_tween: Tween
 # Round 12b: the target's element and mood, kept so either can change the label alone.
 var _target_affinity: int = -1
@@ -166,6 +168,11 @@ func _ready() -> void:
 	alert_label.add_theme_constant_override("outline_size", 8)
 	alert_label.modulate = Color(1, 1, 1, 0)
 	add_child(alert_label)
+	alert_panel = StyledPanel.new()
+	alert_panel.kind = StyledPanel.Kind.ALERT
+	alert_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	alert_panel.modulate = Color(1, 1, 1, 0)
+	add_child(alert_panel)
 
 	# End screen: a dark panel covering the whole screen, hidden until the round ends.
 	end_panel = ColorRect.new()
@@ -193,6 +200,9 @@ func rebuild_look() -> void:
 	var styled := Looks.is_styled()
 	landmark_label.visible = not styled
 	end_label.visible = not styled
+	alert_label.visible = not styled
+	alert_panel.visible = styled
+	alert_panel.rebuild_look()
 	landmark_panel.visible = styled
 	dawn_panel.visible = styled
 	landmark_panel.rebuild_look()
@@ -328,11 +338,14 @@ func show_alert(text: String, colour: Color = Color(1, 0.6, 0.1), hold: float = 
 	alert_label.text = text
 	alert_label.add_theme_color_override("font_color", colour)
 	alert_label.modulate = Color(1, 1, 1, 1)
+	alert_panel.set_alert(text, colour)
+	alert_panel.modulate = Color(1, 1, 1, 1)
 	if _alert_tween != null and _alert_tween.is_valid():
 		_alert_tween.kill()
 	_alert_tween = create_tween()
 	_alert_tween.tween_interval(hold)
 	_alert_tween.tween_property(alert_label, "modulate:a", 0.0, 2.0)
+	_alert_tween.parallel().tween_property(alert_panel, "modulate:a", 0.0, 2.0)
 
 
 # Shows the end screen: a title, then the detail lines (dawn lights, the reasons, buildings).

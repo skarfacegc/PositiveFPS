@@ -71,6 +71,11 @@ func landmark_state_colour(held: bool) -> Color:
 	return landmark_colour() if held else Color("#9c97ad")
 
 
+# Graphics checkpoint 4: the people clouds are a dusk violet mist that shows on both the grey and the warm ground.
+func cloud_colour() -> Color:
+	return Color("#54479a")
+
+
 # The spirit beacon: the teal-white of its flame in the world, outlined like the other markers.
 func beacon_colour() -> Color:
 	return Color("#9cf0dc")

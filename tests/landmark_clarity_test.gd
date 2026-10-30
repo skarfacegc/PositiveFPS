@@ -114,7 +114,7 @@ func test_a_landmark_look_that_is_not_built_yet_ignores_a_claim_and_a_sync() -> 
 	assert_bool(look.pulse_running()).is_false()
 
 
-func test_the_styled_look_draws_no_clouds_and_keeps_its_own_landmark_marks() -> void:
+func test_the_base_look_draws_no_clouds_and_the_styled_look_keeps_its_own_landmark_marks() -> void:
 	assert_float(MinimapLook.new().cloud_colour().a).is_equal(0.0)
-	assert_float(MinimapLookStyled.new().cloud_colour().a).is_equal(0.0)
+	assert_float(MinimapLookStyled.new().cloud_colour().a).is_equal(1.0)
 	assert_float(MinimapLookPlaceholder.new().cloud_colour().a).is_equal(1.0)

@@ -505,9 +505,15 @@ func _draw_dim_rings() -> void:
 
 
 # Round 18: a small canopy over each sheltered person's head (placeholder look; the umbrella icon sits under it).
+static func canopy_shown() -> bool:
+	return not Looks.is_styled()
+
+
+# Graphics checkpoint 4: the styled look skips it (the badge, tether and pips already say "umbrella"; a second flat
+# canopy over the head read as another umbrella).
 func _draw_canopies() -> void:
 	for ic: Dictionary in icons:
-		if ic["kind"] != MoodIcons.Kind.UMBRELLA:
+		if ic["kind"] != MoodIcons.Kind.UMBRELLA or not canopy_shown():
 			continue
 		var pos: Vector2 = ic["pos"]
 		var base := pos + Vector2(0, -Config.SHELTER_CANOPY_LIFT)

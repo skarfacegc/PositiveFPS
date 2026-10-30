@@ -34,11 +34,12 @@ static func _m(ruin: bool, grey: String, warm: String, grime: float = 1.0, emit:
 
 
 static func _bandstand(root: Node3D, ruin: bool) -> Dictionary:
-	var step := _m(ruin, "#565d69", "#c4b088")
-	var floor_m := _m(ruin, "#6c7380", "#e0cfa4")
-	var post_m := _m(ruin, "#8d95a1", "#f1dfbd")
-	var roof_m := _m(ruin, "#4c525d", "#5f86b0", 1.0, 0.0, 2)
-	var rim_m := _m(ruin, "#6f7884", "#c0604f")
+	# Graphics checkpoint 4: the ruin's greys are lighter and less grimy than before (it was too dark to read at night).
+	var step := _m(ruin, "#7a8291", "#c4b088", 0.5)
+	var floor_m := _m(ruin, "#99a1ae", "#e0cfa4", 0.5)
+	var post_m := _m(ruin, "#b0b7c2", "#f1dfbd", 0.5)
+	var roof_m := _m(ruin, "#858d9a", "#5f86b0", 0.5, 0.0, 2)
+	var rim_m := _m(ruin, "#97a0ac", "#c0604f", 0.5)
 	StyleKit.cyl(root, 2.3, 0.2, Vector3(0, 0.1, 0), step, Vector3.ZERO, -1.0, 8)
 	StyleKit.cyl(root, 2.0, 0.4, Vector3(0, 0.4, 0), floor_m, Vector3.ZERO, -1.0, 8)
 	for k: int in range(POSTS):

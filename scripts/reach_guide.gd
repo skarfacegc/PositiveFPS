@@ -6,8 +6,8 @@ extends Node3D
 # cursor, a preview line to where the tip would stop (blue; coral with a cross when the cursor is beyond the reach and
 # the tip would stop short). During a stretch it shows the tip's travel (a bright line from the centre to the tip, a
 # disc at the tip, a dashed line on to the beacon when the reach falls short) and, once the tip holds, an arc round the
-# tip that empties as the snap-back nears. The styled look keeps its own cues (StyleBeacon), so this hides itself
-# there.
+# tip that empties as the snap-back nears. Graphics checkpoint 4: the styled look draws the same facts with dithered
+# ground pieces (StyleReach), swapped in by sync.
 
 const SEGMENTS := 72
 const LINE_WIDTH := 0.28
@@ -15,6 +15,7 @@ const PATH_WIDTH := 0.5
 
 var _mesh := ImmediateMesh.new()
 var _item := MeshInstance3D.new()
+var _styled: StyleReach
 
 
 func _ready() -> void:
@@ -32,7 +33,15 @@ func _ready() -> void:
 # Redraws the guide for this frame.
 func sync(border: Border, player: TopDownPlayer) -> void:
 	_mesh.clear_surfaces()
-	if Looks.is_styled() or not border.active:
+	if Looks.is_styled():
+		if _styled == null:
+			_styled = StyleReach.new()
+			_styled.build(self)
+		_styled.sync(border, player)
+		return
+	if _styled != null:
+		_styled.hide()
+	if not border.active:
 		return
 	var info := border.stretch_info()
 	var c := Vector2(border.centre.x, border.centre.z)
@@ -46,11 +55,17 @@ func sync(border: Border, player: TopDownPlayer) -> void:
 	_mesh.surface_end()
 
 
-func _preview(c: Vector2, aim: Vector2, reach: float) -> void:
+# Where the tip would stop toward `aim` from the centre `c` with the longest reach `reach`: {"end": Vector2, "capped":
+# bool} (capped when the cursor is beyond the reach, so the tip stops short). Both looks draw this.
+static func preview(c: Vector2, aim: Vector2, reach: float) -> Dictionary:
 	var to := aim - c
-	var capped := to.length() > reach
-	var end := c + to.normalized() * minf(to.length(), reach)
-	if capped:
+	return {"end": c + to.normalized() * minf(to.length(), reach), "capped": to.length() > reach}
+
+
+func _preview(c: Vector2, aim: Vector2, reach: float) -> void:
+	var p := preview(c, aim, reach)
+	var end: Vector2 = p["end"]
+	if p["capped"]:
 		_line(c, end, LINE_WIDTH, Config.BEACON_GUIDE_CAPPED_COLOUR)
 		_cross(end, 1.4, Config.BEACON_GUIDE_CAPPED_COLOUR)
 	else:

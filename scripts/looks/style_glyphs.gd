@@ -10,25 +10,35 @@ const SUN_LIT: Array[String] = [
 	".......h.......",
 	".......h.......",
 	"..h.........h..",
-	"...h.......h...",
-	".....#####.....",
-	"hh..#######..hh",
+	"...h.#####.h...",
+	"....#######....",
 	"...#########...",
-	"..###########..",
-	".#############.",
-	"ggggggggggggggg",
+	"...#########...",
+	"hh.#########.hh",
+	"...#########...",
+	"...#########...",
+	"....#######....",
+	"...h.#####.h...",
+	"..h.........h..",
+	".......h.......",
+	".......h.......",
 ]
 const SUN_OUT: Array[String] = [
-	"...............",
 	"...............",
 	"...............",
 	"...............",
 	".....#####.....",
 	"....#######....",
 	"...#########...",
-	"..###########..",
-	".#############.",
-	"ggggggggggggggg",
+	"...#########...",
+	"...#########...",
+	"...#########...",
+	"...#########...",
+	"....#######....",
+	".....#####.....",
+	"...............",
+	"...............",
+	"...............",
 ]
 const BANDSTAND: Array[String] = [
 	".....h.....",
@@ -194,11 +204,12 @@ static func draw(
 # ---- Palettes of the round 19 pieces ---------------------------------------------------------------------------------
 
 
-# The dawn light: lit (honey sun with rays over a brown hill) or out (a dimmed, rayless sun).
+# The dawn light: lit (a round honey sun with eight rays) or out (a dimmed, rayless disc). Graphics checkpoint 4: no
+# ground band under it, which read as a hill.
 static func sun_palette(lit: bool) -> Dictionary:
 	if lit:
-		return palette_for(StyleUi.GOLD, {"h": StyleUi.GOLD_LIGHT, "g": Color("#7a5538")})
-	return palette_for(StyleHud.DIM_MAIN, {"h": StyleHud.DIM_LIGHT, "g": Color("#5a4a44")})
+		return palette_for(StyleUi.GOLD, {"h": StyleUi.GOLD_LIGHT})
+	return palette_for(StyleHud.DIM_MAIN, {"h": StyleHud.DIM_LIGHT})
 
 
 # A landmark's icon colours: lit when held, grey when not.

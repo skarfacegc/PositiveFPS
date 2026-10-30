@@ -13,6 +13,8 @@ const UNHELD_RING := Color("#8d95a1")
 const HELD_RING := Color("#ffe08a")
 const MOTES := 6
 const BELL_RING_FADE_SECONDS := 3.0
+const PULSE_RADIUS := 8.0
+const PULSE_SECONDS := 1.2
 
 var ruin: Node3D
 var alive: Node3D
@@ -61,6 +63,31 @@ func sync() -> void:
 		_show_held(held)
 	if held:
 		_animate(Time.get_ticks_msec() * 0.001)
+
+
+# Graphics checkpoint 4: a claim sends a gold dithered ring out from the landmark (and the beam flares); a loss sends a
+# grey-violet ring with a coral rim in toward it. The ring is a short-lived node in the "landmark_pulse" group.
+func play_change(held: bool) -> void:
+	var fill := Color("#ffe08a") if held else Color("#9c97ad")
+	var rim := Color("#fffbe8") if held else Color("#e8453b")
+	var mat := StyleCues.ring_material(fill, rim, 0.55, 0.78)
+	mat.set_shader_parameter("rim_width", 0.035)
+	var ring := MeshInstance3D.new()
+	ring.mesh = StyleCues.ring_mesh()
+	ring.material_override = mat
+	ring.position = Vector3(0, 0.1, 0)
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	ring.add_to_group("landmark_pulse")
+	add_child(ring)
+	var from_r := 1.5 if held else PULSE_RADIUS
+	var to_r := PULSE_RADIUS if held else 1.5
+	ring.scale = Vector3(from_r, 1.0, from_r)
+	var set_fade := func(v: float) -> void: mat.set_shader_parameter("fade", v)
+	var t := create_tween()
+	t.set_parallel(true)
+	t.tween_property(ring, "scale", Vector3(to_r, 1.0, to_r), PULSE_SECONDS)
+	t.tween_method(set_fade, 1.0, 0.0, PULSE_SECONDS)
+	t.chain().tween_callback(ring.queue_free)
 
 
 # True while the held cues (beam, lit ring, boost cue) are on.

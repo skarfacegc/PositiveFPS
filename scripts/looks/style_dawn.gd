@@ -13,6 +13,8 @@ const LIGHT_GAP := 24.0
 const FOOTER := "Press R to play again, M for the menu"
 const FONT_ROW := 16
 const FONT_SUB := 13
+const ALERT_FONT := 24
+const ALERT_TOP := 188.0
 
 
 # The landmark panel: a parchment panel with one row per landmark: its pixel icon (lit when held, grey when not), its
@@ -57,6 +59,30 @@ static func draw_landmarks(ci: Control, held: Array[bool]) -> void:
 			sub_col
 		)
 	ci.draw_set_transform(Vector2.ZERO)
+
+
+# Graphics checkpoint 4: the alert banner (a landmark claimed or lost, someone lost their joy): a parchment panel near
+# the top of the play area with a pixel star in the notice's colour (gold for a claim, coral for a loss, orange for a
+# relapse) and the text in ink. The Hud fades it with the panel's modulate.
+static func draw_alert(ci: Control, text: String, colour: Color) -> void:
+	if text.is_empty():
+		return
+	var c := StyleUi.cell(ci)
+	var font := ThemeDB.fallback_font
+	var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, ALERT_FONT)
+	var star := StyleGlyphs.size_of("alert_star", StyleGlyphs.STAR)
+	var star_w := float(star.x) * c * 2.0
+	var w := size.x + star_w + 70.0
+	var h := 52.0
+	var rect := Rect2(Vector2((ci.size.x - w) * 0.5, ALERT_TOP), Vector2(w, h))
+	rect.position = (rect.position / c).floor() * c
+	StyleUi.panel(ci, rect, c, StyleUi.PARCHMENT)
+	var pal := StyleGlyphs.palette_for(colour)
+	var star_at := Vector2(rect.position.x + 22.0, rect.position.y + (h - float(star.y) * c * 2.0) * 0.5)
+	StyleGlyphs.draw(ci, "alert_star", StyleGlyphs.STAR, star_at, c * 2.0, pal)
+	var text_x := rect.position.x + 22.0 + star_w + 14.0
+	var text_at := Vector2(text_x, rect.position.y + h * 0.5 + float(ALERT_FONT) * 0.35)
+	ci.draw_string(font, text_at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ALERT_FONT, StyleUi.INK)
 
 
 # The plain detail lines of the end screen: the detail text without the text version of the lights and without the
@@ -125,8 +151,8 @@ static func _draw_lights(ci: Control, panel: Rect2, y: float, lit: int, c: float
 		var key := "sun_lit" if on else "sun_out"
 		StyleGlyphs.draw(ci, key, rows, Vector2(x, y), cw, StyleGlyphs.sun_palette(on))
 		if on:
-			var mid := Vector2(x + icon_w * 0.5, y + 4.0 * cw)
-			StyleUi.sparkle(ci, mid, 1, cw, StyleUi.GOLD_LIGHT)
+			var mid := Vector2(x + icon_w * 0.5, y + float(size.y) * 0.5 * cw)
+			StyleUi.sparkle(ci, mid - Vector2(cw * 2.0, cw * 2.0), 1, cw, StyleUi.GOLD_LIGHT)
 		x += icon_w + LIGHT_GAP
 	return y + float(size.y) * cw + 18.0
 

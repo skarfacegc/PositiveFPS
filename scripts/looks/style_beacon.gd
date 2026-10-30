@@ -48,10 +48,13 @@ static func build(root: Node3D) -> Dictionary:
 
 # The pooled dashes of the pull line, parented to `root` (they are positioned in the parent's space, see place_dashes).
 static func build_dashes(root: Node3D) -> Array[MeshInstance3D]:
-	var dash_m := StyleKit.mat(FLAME, 0, 0.0, 1.4)
+	var dash_m := StyleKit.mat(FLAME, 0, 0.0, 1.8)
+	var ink_m := StyleKit.mat(StyleKit.hexc("#3a2a20"))
 	var out: Array[MeshInstance3D] = []
 	for k: int in range(DASHES):
-		var d := StyleKit.box(root, Vector3(0.5, 0.07, 0.16), Vector3.ZERO, dash_m, Vector3.ZERO, false)
+		# Graphics checkpoint 4: bigger, with an ink edge under each dash so it shows on any ground.
+		var d := StyleKit.box(root, Vector3(1.0, 0.1, 0.32), Vector3.ZERO, dash_m, Vector3.ZERO, false)
+		StyleKit.box(d, Vector3(1.28, 0.06, 0.6), Vector3(0, -0.02, 0), ink_m, Vector3.ZERO, false)
 		d.visible = false
 		out.append(d)
 	return out
