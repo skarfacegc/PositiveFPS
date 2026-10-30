@@ -12,8 +12,10 @@ extends Node3D
 #   - inside the loop the ground is painted (see PaintedGround.set_region) and blocks are beautified (see Building).
 #   - protection is the depth inside the loop (see cover_at).
 
-# Round 19: the centre reached the beacon (it has cleared).
+# Round 19/20: the stretch's tip reached the beacon (or the maximum reach); a beacon was placed; the zone snapped back.
 signal beacon_reached
+signal stretch_started(beacon: Vector3, tip_target: Vector3)
+signal zone_snapped(from: Vector3, to: Vector3)
 
 # Inner members are placed on a golden-angle spiral, so they spread out without a random number.
 const GOLDEN_ANGLE := 2.39996323
@@ -514,9 +516,12 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 	var count := Config.BORDER_SAMPLES
 	var radii: Array[float] = []
 	var extra: Array[float] = []
+	var body := 0.0
+	for r0: float in smooth:
+		body += r0 * _scale / float(count)
 	for i: int in range(count):
 		var a := TAU * float(i) / float(count)
-		var r: float = smooth[i] * _scale
+		var r: float = maxf(smooth[i] * _scale, _centre_ctl.stretch_radius(a, body))  # Round 20: the stretched tip.
 		var block := _first_block_along(c2, Vector2(cos(a), sin(a)))
 		var wrapped := r
 		if block.x > 0.0 and block.x < r:
@@ -679,7 +684,7 @@ func _first_crossing(a2: Vector2, b2: Vector2) -> Variant:
 # ---------------------------------------------------------------------------------------
 
 
-# Round 19: puts the spirit beacon at `pos` (clamped inside the map); the centre walks toward it. One at a time.
+# Round 19/20: puts the spirit beacon at `pos` (clamped inside the map); the zone stretches toward it. One at a time.
 func place_beacon(pos: Vector3) -> void:
 	_centre_ctl.place(pos)
 
@@ -693,7 +698,13 @@ func has_beacon() -> bool:
 	return _centre_ctl.has_beacon()
 
 
-# Round 19: the centre is handled by BorderCentre (anchored once the border forms, moved only by a beacon).
+# Round 20: the stretch (see BorderCentre): is one under way, where is its tip, and how far from the centre can it go.
+func stretch_info() -> Dictionary:
+	var c := _centre_ctl
+	return {"on": c.stretching, "tip": c.tip, "holding": c.holding, "hold_left": c.hold_left, "max": c.max_distance()}
+
+
+# Round 19/20: the centre is handled by BorderCentre (anchored once the border forms; a beacon stretches the zone).
 func _update_centre(rescued: Array[Person], delta: float) -> void:
 	_centre_ctl.update(rescued, delta)
 

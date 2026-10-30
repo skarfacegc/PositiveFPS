@@ -38,6 +38,7 @@ var minimap: Minimap
 var arrows: GapArrows
 var border: Border
 var beacon_marker: BeaconMarker  # Round 19: the beacon in the world (both looks).
+var reach_guide: ReachGuide  # Round 20: the placeholder look's reach ring, preview and tip travel.
 var landmarks: Landmarks  # Round 19: the three landmarks and their boosts.
 var rating: Dictionary = {}  # Round 19: the dawn rating, set when the night ends (see DawnRating).
 # Round 12a: the grabs of dimmed people (see grabs.gd).
@@ -121,6 +122,8 @@ func _ready() -> void:
 	landmarks.build()
 	beacon_marker = BeaconMarker.new()
 	add_child(beacon_marker)
+	reach_guide = ReachGuide.new()
+	add_child(reach_guide)
 
 	grabs = Grabs.new()
 	add_child(grabs)
@@ -204,6 +207,7 @@ func _process(delta: float) -> void:
 	landmarks.apply_boosts(people, border)
 	hud.set_landmarks(landmarks.held_lines(), Config.LANDMARK_NAMES.size(), landmarks.held_flags())
 	beacon_marker.sync(border.beacon_pos(), delta, border.centre)
+	reach_guide.sync(border, player)
 	_update_spirit_hud()
 	_update_target_mood()
 	intro.check_level(self, delta)
@@ -238,8 +242,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_zoom_target = clampf(_zoom_target + step, Config.TD_ZOOM_MIN, Config.TD_ZOOM_MAX)
 
 
-# Round 19: E. Puts the spirit beacon at the cursor's ground point for BEACON_SPIRIT_COST spirit (the border's
-# centre then walks toward it). Refused (nothing changes, a short notice shows) without a border or
+# Round 19: E. Puts the spirit beacon at the cursor's ground point for BEACON_SPIRIT_COST spirit (the zone then
+# stretches toward it, round 20). Refused (nothing changes, a short notice shows) without a border or
 # without enough spirit. A new beacon replaces the old one and costs again. Returns true when it was placed.
 func try_place_beacon() -> bool:
 	if not running or not player.has_aim():
