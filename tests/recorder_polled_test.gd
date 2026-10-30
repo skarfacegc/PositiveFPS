@@ -100,25 +100,6 @@ func test_saving_a_shot_shrinks_wide_pictures_and_keeps_narrow_ones() -> void:
 	assert_int(got_narrow.get_height()).is_equal(50)
 
 
-func test_a_twirl_is_logged_when_the_twirl_clock_restarts() -> void:
-	var s: Dictionary = await _start(true)
-	var td: TopDownMain = s["td"]
-	var rec: Recorder = td.recorder
-	td.player.twirl_age = 99.0
-	rec._last_twirl_age = 99.0
-	rec._process(0.01)
-	assert_int(_of_type(_events(td), "twirl").size()).is_equal(0)
-	td.player.twirl_age = 0.0
-	rec._process(0.01)
-	var twirls := _of_type(_events(td), "twirl")
-	assert_int(twirls.size()).is_equal(1)
-	assert_int((twirls[0]["pos"] as Array).size()).is_equal(2)
-	# The clock running on does not log it again.
-	td.player.twirl_age = 0.5
-	rec._process(0.01)
-	assert_int(_of_type(_events(td), "twirl").size()).is_equal(1)
-
-
 func test_the_sample_counts_stages_rescued_shelter_guards_pressers_and_the_sealed_border() -> void:
 	var s: Dictionary = await _start(true)
 	var td: TopDownMain = s["td"]
@@ -194,7 +175,7 @@ func test_relapses_and_avoided_grabs_are_logged_and_rescued_people_do_not_log_st
 	var s: Dictionary = await _start(true)
 	var td: TopDownMain = s["td"]
 	td.people[2].relapsed.emit()
-	td.grabs.grab_avoided.emit(td.people[3], true)
+	td.grabs.grab_avoided.emit(td.people[3])
 	td.people[4].is_rescued = true
 	td.people[4].stage_changed.emit(0, 1)
 	var events := _events(td)
@@ -203,7 +184,6 @@ func test_relapses_and_avoided_grabs_are_logged_and_rescued_people_do_not_log_st
 	assert_float(relapses[0]["id"]).is_equal(2.0)
 	var avoided := _of_type(events, "grab_avoided")
 	assert_int(avoided.size()).is_equal(1)
-	assert_bool(avoided[0]["perfect"]).is_true()
 	assert_float(avoided[0]["id"]).is_equal(3.0)
 	for e: Dictionary in _of_type(events, "sink"):
 		assert_float(e["id"]).is_not_equal(4.0)

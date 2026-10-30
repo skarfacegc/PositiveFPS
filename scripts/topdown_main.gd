@@ -22,7 +22,7 @@ const BLOCK_POSITIONS: Array[Vector3] = [
 	Vector3(-6, 0, 24) * Config.WORLD_SCALE + Vector3(0, 1, 0),
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
-const HINT := "WASD move | Shift run | Space twirl | Click to lock on | G/Q burst | R restart | M menu | [F4] look"
+const HINT := "WASD move | Shift run | Click to lock on | G/Q burst | R restart | M menu | [F4] look"
 
 var ground: PaintedGround
 var player: TopDownPlayer
@@ -122,7 +122,6 @@ func _ready() -> void:
 	player.burst_fired.connect(_on_burst_fired)
 	player.dim_changed.connect(_on_player_dim_changed)
 	grabs.grab_landed.connect(_on_grab_landed)
-	grabs.grab_avoided.connect(_on_grab_avoided)
 
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -362,8 +361,7 @@ func _update_target_mood() -> void:
 func _update_spirit_hud() -> void:
 	hud.set_spirit(player.spirit, player.is_dim)
 	hud.set_burst(player.burst_cooldown, player.has_burst_spirit())
-	hud.set_twirl(player.twirl_cooldown)
-	spirit_meter.set_values(player.spirit, player.is_dim, player.twirl_cooldown)
+	spirit_meter.set_values(player.spirit, player.is_dim)
 
 
 # Round 13b: builds the communication overlays on the HUD (the feedback layer sits behind the HUD text) and connects the
@@ -488,11 +486,6 @@ func _on_grab_landed(_p: Person) -> void:
 	hud.show_alert("Grabbed! -%d spirit" % roundi(Config.GRAB_SPIRIT_DRAIN))
 	spirit_meter.moment(-Config.GRAB_SPIRIT_DRAIN, SpiritMeter.Moment.LOSS)
 	feedback.pulse_player(SpiritMeter.Moment.LOSS)
-
-
-func _on_grab_avoided(_p: Person, perfect: bool) -> void:
-	if perfect:
-		hud.show_alert("Perfect twirl!")
 
 
 # The camera follows the player from above and behind, looking at a point just north of them (round 10: orthographic, at

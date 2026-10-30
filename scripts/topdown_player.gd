@@ -28,19 +28,12 @@ var burst_cooldown: float = 0.0
 # Round 12a: spirit (0..SPIRIT_MAX) and the dim state (spirit hit 0; it ends at DIM_EXIT_SPIRIT).
 var spirit: float = Config.SPIRIT_START
 var is_dim: bool = false
-# The twirl: seconds until it can be used again, seconds of dash left, seconds since the last one began (large when
-# there has not been one), and where it began.
-var twirl_cooldown: float = 0.0
-var twirl_left: float = 0.0
-var twirl_age: float = 99.0
-var twirl_from := Vector3.ZERO
 
 # The look: draws the body and the ring under the feet from this state (see scripts/looks/player_look.gd).
 var look: PlayerLook
 # Turns a window mouse position into the camera's own view coordinates. Empty (the default) when the camera renders
 # at window size. The styled look renders the 3D view smaller (see ViewPipeline.window_to_view) and sets this.
 var mouse_mapper: Callable = Callable()
-var _twirl_dir := Vector3.ZERO
 var _fire_cooldown := 0.0
 var _aim_point := Vector3.ZERO
 var _has_aim := false
@@ -95,8 +88,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		_click_lock()
 	elif event.is_action_pressed("burst") and can_burst():
 		_burst()
-	elif event.is_action_pressed("twirl"):
-		_twirl()
 	elif event.is_action_pressed("toggle_debug"):
 		debug_toggled.emit()
 
@@ -106,9 +97,6 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= 9.8 * delta
 	if burst_cooldown > 0.0:
 		burst_cooldown -= delta
-	twirl_age += delta
-	if twirl_cooldown > 0.0:
-		twirl_cooldown = maxf(0.0, twirl_cooldown - delta)
 
 	if not active:
 		velocity.x = 0.0
@@ -125,13 +113,6 @@ func _physics_process(delta: float) -> void:
 		speed *= Config.DIM_MOVE_MULT
 	velocity.x = dir.x * speed
 	velocity.z = dir.z * speed
-	if twirl_left > 0.0:
-		# The dash replaces walking: TWIRL_DISTANCE metres over TWIRL_TIME seconds (the last step may be shorter).
-		var step := minf(delta, twirl_left)
-		var dash := _twirl_dir * (Config.TWIRL_DISTANCE / Config.TWIRL_TIME) * (step / delta)
-		velocity.x = dash.x
-		velocity.z = dash.z
-		twirl_left -= step
 	move_and_slide()
 
 	_face_aim()
@@ -362,38 +343,6 @@ func _set_spirit(value: float) -> void:
 		dim_changed.emit(is_dim)
 		if look != null:
 			look.sync()
-
-
-# ---- Twirl (round 12a)
-# --------------------------------------------------------------------------------------------------------------
-
-
-func is_twirling() -> bool:
-	return twirl_left > 0.0
-
-
-# Space: dash TWIRL_DISTANCE metres in the move direction (or the facing direction when standing still).
-func _twirl() -> void:
-	if twirl_cooldown > 0.0 or twirl_left > 0.0:
-		return
-	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	var dir := Vector3(input_dir.x, 0.0, input_dir.y)
-	if dir.length() < 0.01:
-		dir = -global_transform.basis.z
-		dir.y = 0.0
-	_twirl_dir = dir.normalized()
-	twirl_from = global_position
-	twirl_left = Config.TWIRL_TIME
-	twirl_age = 0.0
-	twirl_cooldown = Config.TWIRL_COOLDOWN
-
-
-# The small joy burst of a perfect twirl: radius TWIRL_BURST_RADIUS, a fraction of the normal burst joy, free.
-func mini_burst() -> void:
-	for p: Person in people:
-		if _flat_dist(global_position, p.global_position) <= Config.TWIRL_BURST_RADIUS:
-			p.receive_joy(p.affinity, Config.TD_BURST_JOY * Config.TWIRL_BURST_JOY_FRACTION, 0.0, global_position)
-	look.play_burst(Config.TWIRL_BURST_RADIUS, Config.TD_BURST_TIME)
 
 
 # Joy burst: everyone close by gets a best-match hit, then a ring expands from the player's feet. It costs spirit.

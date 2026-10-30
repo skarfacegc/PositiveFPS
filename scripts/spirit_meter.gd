@@ -3,9 +3,8 @@ extends Control
 
 # Round 13b: the spirit meter, bottom centre (SPIRIT_METER_WIDTH wide), drawn over the HUD's spirit bar. It shows
 # spirit as a fill, a tick for what the joy burst costs (above the bar, a small burst glyph) and a tick for where dim
-# ends (below the bar, a small moon), and a small arc beside it for the twirl cooldown. When spirit is gained (a
-# rescue), spent (the burst) or lost (a grab) the meter flashes and a number floats up from it ("+20", "-30", "-25").
-# Screen-space UI, so it shows in both looks.
+# ends (below the bar, a small moon). When spirit is gained (a rescue), spent (the burst) or lost (a grab) the meter
+# flashes and a number floats up from it ("+20", "-30", "-25"). Screen-space UI, so it shows in both looks.
 
 enum Moment { GAIN, SPEND, LOSS }
 
@@ -13,8 +12,6 @@ const POPUP_FONT_SIZE := 26
 
 var spirit: float = Config.SPIRIT_START
 var is_dim: bool = false
-# 0 while the twirl is cooling down, 1 when it is ready (the arc fills as the cooldown runs out).
-var twirl_frac: float = 1.0
 # The flash over the bar (0 to 1) and its colour, and the floating numbers: {"text", "colour", "left"}.
 var flash: float = 0.0
 var flash_colour := Color.WHITE
@@ -32,14 +29,12 @@ func _ready() -> void:
 	offset_bottom = -110.0 + Config.SPIRIT_METER_HEIGHT
 
 
-# Sets the numbers it draws and redraws. `twirl_cooldown` is the seconds left before the next twirl.
-func set_values(new_spirit: float, dim: bool, twirl_cooldown: float) -> void:
-	var frac := 1.0 - clampf(twirl_cooldown / Config.TWIRL_COOLDOWN, 0.0, 1.0)
-	if not is_equal_approx(spirit, new_spirit) or is_dim != dim or not is_equal_approx(twirl_frac, frac):
+# Sets the numbers it draws and redraws.
+func set_values(new_spirit: float, dim: bool) -> void:
+	if not is_equal_approx(spirit, new_spirit) or is_dim != dim:
 		_dirty = true
 	spirit = new_spirit
 	is_dim = dim
-	twirl_frac = frac
 
 
 # A spirit moment: flash the meter and float `amount` (positive or negative) up from it. `kind` is a Moment.
@@ -128,7 +123,6 @@ func _draw() -> void:
 		f.a = 0.55 * flash
 		draw_rect(bar.grow(3.0 * flash), f)
 	_draw_ticks(h)
-	_draw_twirl(h)
 	_draw_popups()
 
 
@@ -153,18 +147,6 @@ func _draw_ticks(h: float) -> void:
 	var mc := Vector2(dx, h + 14.0)
 	draw_circle(mc, 6.0, dim_col)
 	draw_circle(mc + Vector2(2.6, -1.8), 5.2, Color(0.07, 0.06, 0.1, 1.0))
-
-
-# The twirl cooldown: a ring beside the bar that fills as the twirl comes back, green and full when it is ready.
-func _draw_twirl(h: float) -> void:
-	var c := Vector2(size.x + 34.0, h * 0.5)
-	var ready_now := twirl_frac >= 1.0
-	draw_arc(c, 13.0, 0.0, TAU, 28, Color(0.3, 0.3, 0.34, 0.8), 3.0, true)
-	var col := Color(0.6, 1.0, 0.65) if ready_now else Color(0.8, 0.8, 0.85)
-	if twirl_frac > 0.0:
-		draw_arc(c, 13.0, -PI * 0.5, -PI * 0.5 + TAU * twirl_frac, 28, col, 3.5, true)
-	if ready_now:
-		draw_circle(c, 4.0, col)
 
 
 func _draw_popups() -> void:

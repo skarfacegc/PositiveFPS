@@ -79,12 +79,8 @@ func test_spirit_bar_and_label_show_spirit_and_dim() -> void:
 	assert_str(hud.spirit_label.text).contains("DIM")
 
 
-func test_twirl_text_and_the_burst_needing_spirit() -> void:
+func test_the_burst_text_needs_spirit_then_says_ready() -> void:
 	var hud: Hud = _make_hud()
-	hud.set_twirl(0.0)
-	assert_str(hud.twirl_label.text).is_equal("Twirl [Space]: READY")
-	hud.set_twirl(0.9)
-	assert_str(hud.twirl_label.text).is_equal("Twirl [Space]: 0.9s")
 	hud.set_burst(0.0, false)
 	assert_str(hud.burst_label.text).is_equal("Joy burst [G]: needs 30 spirit")
 	hud.set_burst(0.0, true)

@@ -14,12 +14,12 @@ const HOW_TO_PLAY_TEXT := (
 	+ "[b]Helping:[/b] Point at a person and joy flies to them automatically. Guarded people only accept joy from "
 	+ "the front (the glowing wedge on the ground shows where joy gets in), skittish people flee if you run at them, "
 	+ "and glum people take extra joy when they look up.\n"
-	+ "[b]The gloom:[/b] Dimmed people press on your border and reach for you. Where they push, border folk falter "
-	+ "and gaps open. Re-joy a faltering person to close the gap.\n"
+	+ "[b]The gloom:[/b] Dimmed people press on your border and reach for you (a glowing ring warns of a lunge: step "
+	+ "out of reach). Where they push, border folk falter and gaps open. Re-joy a faltering person to close the gap.\n"
 	+ "[b]Spirit:[/b] Helping people fills it; a joy burst costs some. At zero you go dim. Recover inside your border.\n"
 	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered (breaks after a few hits) · "
 	+ "! faltering.\n"
-	+ "[b]Keys:[/b] WASD move · Shift run · Space twirl (dodge a grab) · G or Q joy burst · Mouse point at people "
+	+ "[b]Keys:[/b] WASD move · Shift run · G or Q joy burst · Mouse point at people "
 	+ "(F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look · R restart · M menu"
 )
 

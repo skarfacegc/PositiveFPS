@@ -87,7 +87,8 @@ func test_how_to_play_panel_is_visible_and_names_the_sections() -> void:
 	assert_str(text).contains("How to play")
 	assert_str(text).contains("Goal")
 	assert_str(text).contains("Spirit")
-	assert_str(text).contains("Space twirl")
+	assert_str(text).contains("step out of reach")
+	assert_bool(text.contains("twirl")).is_false()
 
 
 func test_every_key_named_in_the_keys_line_is_bound() -> void:
@@ -99,7 +100,6 @@ func test_every_key_named_in_the_keys_line_is_bound() -> void:
 		"move_left",
 		"move_right",
 		"run",
-		"twirl",
 		"burst",
 		"cycle_targeting",
 		"toggle_debug",

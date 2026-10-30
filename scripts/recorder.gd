@@ -38,7 +38,6 @@ var _flush_timer: float = 0.0
 var _shot_timer: float = 0.0
 var _joy_landed: int = 0
 var _last_target: Person = null
-var _last_twirl_age: float = 99.0
 var _shield_down := PackedFloat32Array()
 var _gap_pos: Array[Vector3] = []
 var _gap_id: Array[int] = []
@@ -138,15 +137,11 @@ func _process(delta: float) -> void:
 	if _file == null or ended_reason != "" or not _main.running:
 		return
 	t += delta
-	# Per-frame work is two comparisons; everything else waits for its timer.
+	# Per-frame work is one comparison; everything else waits for its timer.
 	var target: Person = _main.player.target
 	if target != _last_target:
 		_last_target = target
 		emit_event("target_change", _target_fields())
-	var age: float = _main.player.twirl_age
-	if age < _last_twirl_age:
-		emit_event("twirl", {"pos": _pos(_main.player.global_position)})
-	_last_twirl_age = age
 	_poll_timer += delta
 	if _poll_timer >= Config.RECORD_POLL_SECONDS:
 		_poll_timer = 0.0
@@ -412,8 +407,8 @@ func _on_grab_landed(p: Person) -> void:
 	emit_event("grab", {"id": _id(p), "spirit": snappedf(_main.player.spirit, 0.1)})
 
 
-func _on_grab_avoided(p: Person, perfect: bool) -> void:
-	emit_event("grab_avoided", {"id": _id(p), "perfect": perfect})
+func _on_grab_avoided(p: Person) -> void:
+	emit_event("grab_avoided", {"id": _id(p)})
 
 
 # ---- files -----------------------------------------------------------------------------------------------------------

@@ -111,7 +111,7 @@ def analyse(events, quiet_window=5.0):
 
     # Events counted into the second they happened in (the sample row whose t is the next whole second up).
     kinds = ("sink_dimmed", "sink_other", "lift", "rescue", "relapse", "gap_open", "gap_close", "grab", "grab_avoided",
-             "umbrella_pop", "guarded_glance", "shelter_block", "burst", "twirl", "target_change", "player_dim")
+             "umbrella_pop", "guarded_glance", "shelter_block", "burst", "target_change", "player_dim")
     for row in rows:
         for k in kinds:
             row["n_" + k] = 0
@@ -187,7 +187,7 @@ def report(res, folder):
     add("")
     add("THREAT CADENCE (events per minute over %.0f s)" % dur)
     for k in ("sink_other", "sink_dimmed", "gap_open", "grab", "player_dim", "relapse", "rescue", "umbrella_pop",
-              "guarded_glance", "burst", "twirl"):
+              "guarded_glance", "burst"):
         c = res["counts"].get(k, 0)
         add("  %-15s %4d total  %5.2f /min" % (k, c, per_minute(c, dur)))
     add("  all threats (%s): %d, %.2f /min" % (", ".join(THREAT_TYPES), len(res["threats"]),
