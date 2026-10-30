@@ -1257,3 +1257,47 @@ menu now go through `_leave_level` so tests can intercept the scene change.
 
 **Playtest questions:** does the loop hold still after a big push? Does the 2–8 s recovery feel right? Do slot changes
 feel calmer? Is the umbrella readable now?
+
+## Round 18 playtest and round 19 design (2026-10-29)
+
+**Recording** (first one: `recordings/20261029-203645` in the round 18 playtest copy, seed 42, placeholder look):
+- Won ("The landmark is ours!") at 1:20 of a 3:00 night, with 31 rescued. The night never got past "rising".
+- All pressure was in the first 13 s: 7 gaps opened while the first ring formed and all closed by 13 s (median 2.9 s
+  open). After that: no gaps, grabs, umbrella pops, guarded moments, relapses or player dim; 4 dimmed sinks; spirit
+  94–100%.
+- Quiet time (only routine sinks) was 51% of the game. Target changes: about 70/min while rescuing, 33/min later.
+- The recorder works in a real window (screenshots saved, REC mark shown), resolving the round 18 flag.
+
+**Feedback:**
+- **The landmark win ends the level too early.** Pushing the border to the landmark early ends the game quickly. The
+  user isn't sure "capture = win" is the right mechanic. Idea: several landmarks per level, each giving a boost
+  rather than winning.
+- **Moving the border costs nothing.** "It's too easy to move the thing across the map; there's nothing I need to do
+  beyond stand there."
+- Border: slot swaps felt calmer. Hold-still and recovery weren't commented on separately (see above).
+- Umbrella: not noticed this game (it barely came up).
+- Tension: "Yes, it went flat" after the start, matching the recording.
+
+**Interview answers:**
+- Win goal: not sure yet; design before building.
+- Moving the border should cost **spirit**. Ideas: place a marker that moves the centre; a spirit-based effect that
+  **splits the zone in two** to capture several zones.
+- Landmark boosts: stronger joy element and border boosts appeal. Deeper boosts tie into the advancement/tech tree
+  discussion, which stays deliberately postponed.
+- Round 19 is **design first, build after**: write options, decide together, then build.
+
+**Small fixes queued for the next build:**
+- The menu's "Record this game" checkbox sits off-screen at normal window sizes (anchored to the menu container, not
+  the window; it shows top-left only in a very large window). Add a test that it's inside the window.
+- The minimap covers the "Rescued" counter in the top-left.
+- Old recorder test folders were left in `user://rec_tests` (from 2026-10-28 test runs); check the tests clean up.
+
+**Round 19 design questions (to decide with the user):**
+1. What wins the level if landmarks don't? (survive to dawn / hold several landmarks at dawn / territory at dawn /
+   a dawn rating built from these)
+2. How does spirit move the border? (a placed marker the centre walks toward; channelling while standing; how fast;
+   what the centre does with no marker: stay anchored instead of following the player)
+3. Splitting the zone in two: cost, how people divide, and whether it's round 19 or later.
+4. Landmarks: how many per level, which boosts (joy element, border), and whether they can be lost.
+5. Tension after the opening: does spending spirit on movement create enough decisions, or does gloom variety
+   (parked under "Later") come next?
