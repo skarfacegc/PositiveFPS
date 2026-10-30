@@ -68,14 +68,17 @@ func _ready() -> void:
 	record_toggle.text = "Record this game (for review)"
 	record_toggle.button_pressed = Recorder.enabled
 	record_toggle.add_theme_font_size_override("font_size", 20)
-	# In the top right corner, so the centred column and the how-to-play panel keep their room.
+	# In the top right corner of the window, so the centred column and the how-to-play panel keep their room. A
+	# Control under a CanvasLayer anchors to the window (the viewport), not to the menu, whose size is the scene's.
 	record_toggle.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	record_toggle.offset_left = -340
 	record_toggle.offset_right = -16
 	record_toggle.offset_top = 16
 	record_toggle.offset_bottom = 52
 	record_toggle.toggled.connect(_on_record_toggled)
-	add_child(record_toggle)
+	var window_layer := CanvasLayer.new()
+	add_child(window_layer)
+	window_layer.add_child(record_toggle)
 	how_to_play = _make_how_to_play()
 	box.add_child(how_to_play)
 
