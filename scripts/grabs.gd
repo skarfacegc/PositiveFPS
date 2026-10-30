@@ -6,13 +6,12 @@ extends Node
 # person's look from Person.grab_frac) is followed by a short lunge toward the player (at most GRAB_LUNGE_DISTANCE).
 # If the player is within GRAB_HIT_RANGE of the grabber when the lunge ends, the grab lands and drains GRAB_SPIRIT_DRAIN
 # spirit. Each person then waits GRAB_COOLDOWN (counted from the end of the wind-up).
-# The twirl avoids a grab: invulnerable while it lasts, and a twirl that began within TWIRL_PERFECT_WINDOW before the
-# grab would have landed (the player was in reach when it began) is a perfect twirl, which also gives a small joy burst.
+# The way to avoid a grab is to be out of reach when the lunge ends (the wind-up is the warning).
 
 # A grab landed on the player.
 signal grab_landed(person: Person)
-# A grab that would have hit was avoided by a twirl. `perfect` is true when it also triggered the small joy burst.
-signal grab_avoided(person: Person, perfect: bool)
+# A lunge ended out of reach, so the grab missed.
+signal grab_avoided(person: Person)
 
 # Seconds into each grabber's wind-up, each lunge as {"from", "to", "left"}, and seconds left of each person's cooldown.
 var _windup: Dictionary = {}
@@ -96,21 +95,13 @@ func _advance_lunge(p: Person, player: TopDownPlayer, delta: float) -> void:
 	_resolve(p, player)
 
 
-# The lunge ended: does it land, or did a twirl avoid it?
+# The lunge ended: the grab lands when the player is still in reach, otherwise it misses.
 func _resolve(p: Person, player: TopDownPlayer) -> void:
-	var would_hit := GloomSim.flat_dist(p.global_position, player.global_position) <= Config.GRAB_HIT_RANGE
-	if player.twirl_age <= Config.TWIRL_PERFECT_WINDOW:
-		var from := GloomSim.flat_dist(p.global_position, player.twirl_from)
-		if from <= Config.GRAB_HIT_RANGE:
-			player.mini_burst()
-			grab_avoided.emit(p, true)
-			return
-		if would_hit:
-			grab_avoided.emit(p, false)
+	if GloomSim.flat_dist(p.global_position, player.global_position) > Config.GRAB_HIT_RANGE:
+		grab_avoided.emit(p)
 		return
-	if would_hit:
-		player.lose_spirit(Config.GRAB_SPIRIT_DRAIN)
-		grab_landed.emit(p)
+	player.lose_spirit(Config.GRAB_SPIRIT_DRAIN)
+	grab_landed.emit(p)
 
 
 # Turns the grabber toward the player and tells the look which way that is.

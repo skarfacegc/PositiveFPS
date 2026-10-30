@@ -2,7 +2,7 @@ extends GdUnitTestSuite
 
 # Round 13b, communication: the gap markers (who, how urgent, how far along), the gloom leaking in, the spirit meter and
 # its moments, the mood icons, the sheltering tether and the blocked-joy feedback. Level tests drive real input (hover
-# targeting with the mouse, G for the burst, Space for the twirl, WASD); the effects are read from the data model of
+# targeting with the mouse, G for the burst, WASD); the effects are read from the data model of
 # FeedbackLayer, SpiritMeter and the minimap rather than from pixels.
 
 
@@ -294,23 +294,6 @@ func test_a_grab_that_lands_shows_a_loss_moment() -> void:
 	assert_int(td.feedback.player_pulses[td.feedback.player_pulses.size() - 1]["kind"]).is_equal(
 		SpiritMeter.Moment.LOSS
 	)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_the_twirl_arc_empties_on_a_twirl_and_fills_back() -> void:
-	var s: Dictionary = await _quiet_level()
-	var runner: GdUnitSceneRunner = s["runner"]
-	var td: TopDownMain = s["td"]
-	await runner.simulate_frames(3)
-	assert_float(td.spirit_meter.twirl_frac).is_equal(1.0)
-	runner.simulate_key_pressed(KEY_SPACE)
-	await runner.simulate_frames(3)
-	assert_float(td.spirit_meter.twirl_frac).is_less(0.2)
-	await runner.simulate_frames(50)
-	var half: float = td.spirit_meter.twirl_frac
-	assert_float(half).is_between(0.3, 0.9)
-	await runner.simulate_frames(60)
-	assert_float(td.spirit_meter.twirl_frac).is_equal(1.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

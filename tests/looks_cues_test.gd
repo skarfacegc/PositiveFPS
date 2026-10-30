@@ -174,7 +174,6 @@ func test_the_styled_drawing_helpers_run() -> void:
 		StyleUi.rect(ci, Rect2(3, 3, 40, 20), c, Color.WHITE)
 		StyleUi.cut_rect(ci, Rect2(3, 3, 40, 20), c, Color.WHITE)
 		StyleUi.panel(ci, Rect2(10, 10, 100, 40), c, Color.WHITE)
-		StyleUi.disc(ci, Vector2(60, 60), 14.0, c, Color.WHITE)
 		StyleUi.ring(ci, Vector2(100, 100), 30.0, c, Color.WHITE, 3)
 		StyleUi.ring(ci, Vector2(100, 100), 30.0, c, Color.WHITE, 3, 0.55)
 		StyleUi.ring(ci, Vector2(100, 100), 30.0, c, Color.WHITE, 3, 1.0, -1.5, 1.0)
@@ -224,7 +223,7 @@ func test_the_styled_overlays_draw_every_cue_and_swap_with_f4() -> void:
 	td.feedback.snaps.append({"a": dimmed.chest_position(), "b": ward.chest_position(), "left": 0.2})
 	td.feedback.motes.append({"pos": td.player.global_position, "vel": Vector3.ZERO, "age": 0.5, "life": 1.0})
 	td.spirit_meter.moment(20.0, SpiritMeter.Moment.GAIN)
-	td.spirit_meter.set_values(30.0, true, 3.0)
+	td.spirit_meter.set_values(30.0, true)
 	td.intro.enabled = true
 	td.intro.current = Intro.Prompt.GUARDED
 	td.intro.time_left = 2.0
@@ -236,7 +235,7 @@ func test_the_styled_overlays_draw_every_cue_and_swap_with_f4() -> void:
 	assert_int(td.feedback.sparks.size()).is_greater(0)
 	assert_int(td.feedback.dim_rings.size()).is_greater(0)
 	assert_float(td.prompts.alpha).is_greater(0.0)
-	td.spirit_meter.set_values(80.0, false, 0.0)
+	td.spirit_meter.set_values(80.0, false)
 	await runner.simulate_frames(4)
 	# The placeholder look restores the prompt bar's own drawing.
 	td.set_look(Looks.Mode.PLACEHOLDER)

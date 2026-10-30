@@ -14,12 +14,12 @@ const HOW_TO_PLAY_TEXT := (
 	+ "[b]Helping:[/b] Point at a person and joy flies to them automatically. Guarded people only accept joy from "
 	+ "the front (the glowing wedge on the ground shows where joy gets in), skittish people flee if you run at them, "
 	+ "and glum people take extra joy when they look up.\n"
-	+ "[b]The gloom:[/b] Dimmed people press on your border and reach for you. Where they push, border folk falter "
-	+ "and gaps open. Re-joy a faltering person to close the gap.\n"
+	+ "[b]The gloom:[/b] Dimmed people press on your border and reach for you (a glowing ring warns of a lunge: step "
+	+ "out of reach). Where they push, border folk falter and gaps open. Re-joy a faltering person to close the gap.\n"
 	+ "[b]Spirit:[/b] Helping people fills it; a joy burst costs some. At zero you go dim. Recover inside your border.\n"
 	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered (breaks after a few hits) · "
 	+ "! faltering.\n"
-	+ "[b]Keys:[/b] WASD move · Shift run · Space twirl (dodge a grab) · G or Q joy burst · Mouse point at people "
+	+ "[b]Keys:[/b] WASD move · Shift run · G or Q joy burst · Mouse point at people "
 	+ "(F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look · R restart · M menu"
 )
 
@@ -68,14 +68,17 @@ func _ready() -> void:
 	record_toggle.text = "Record this game (for review)"
 	record_toggle.button_pressed = Recorder.enabled
 	record_toggle.add_theme_font_size_override("font_size", 20)
-	# In the top right corner, so the centred column and the how-to-play panel keep their room.
+	# In the top right corner of the window, so the centred column and the how-to-play panel keep their room. A
+	# Control under a CanvasLayer anchors to the window (the viewport), not to the menu, whose size is the scene's.
 	record_toggle.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	record_toggle.offset_left = -340
 	record_toggle.offset_right = -16
 	record_toggle.offset_top = 16
 	record_toggle.offset_bottom = 52
 	record_toggle.toggled.connect(_on_record_toggled)
-	add_child(record_toggle)
+	var window_layer := CanvasLayer.new()
+	add_child(window_layer)
+	window_layer.add_child(record_toggle)
 	how_to_play = _make_how_to_play()
 	box.add_child(how_to_play)
 

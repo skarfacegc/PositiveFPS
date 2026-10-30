@@ -65,6 +65,16 @@ static func projectiles(td: TopDownMain) -> Array[JoyProjectile]:
 	return out
 
 
+# Closes every recorder still open under `node`. A test that did not leave its level keeps the session file open until
+# the level is freed, which is after after_test, and Windows will not delete an open file. Recorder.end only writes the
+# last line and closes the file; the level is freed later, as before.
+static func close_open_recorders(node: Node) -> void:
+	if node is Recorder:
+		(node as Recorder).end("test")
+	for child: Node in node.get_children():
+		close_open_recorders(child)
+
+
 # Frees a level a test loaded through the menu, so a later suite does not inherit it (see menu_test.gd).
 static func leave_loaded_scene(td: TopDownMain) -> void:
 	td.queue_free()

@@ -15,8 +15,16 @@ func before_test() -> void:
 func after_test() -> void:
 	Recorder.enabled = false
 	Recorder.base_dir_override = ""
+	TopDownTestUtil.close_open_recorders(get_tree().root)
 	_remove_tree(_base)
-	DirAccess.remove_absolute(_base)
+	# Removed by name through the parent's handle. The shared parent goes too once it is empty (remove fails,
+	# harmlessly, while another test's folder is still in it).
+	var rec_dir := DirAccess.open("user://rec_tests")
+	if rec_dir != null:
+		rec_dir.remove(_base.get_file())
+	var user_dir := DirAccess.open("user://")
+	if user_dir != null:
+		user_dir.remove("rec_tests")
 
 
 func _remove_tree(path: String) -> void:
@@ -25,9 +33,9 @@ func _remove_tree(path: String) -> void:
 		return
 	for sub: String in dir.get_directories():
 		_remove_tree(path.path_join(sub))
-		DirAccess.remove_absolute(path.path_join(sub))
+		dir.remove(sub)
 	for f: String in dir.get_files():
-		DirAccess.remove_absolute(path.path_join(f))
+		dir.remove(f)
 
 
 # Loads a level with the recorder on or off, with the people parked away.
@@ -54,6 +62,8 @@ func _read_file(td: TopDownMain) -> Array[Dictionary]:
 		var line := file.get_line()
 		if line != "":
 			out.append(JSON.parse_string(line))
+	# Closed here: an open handle would keep the events file locked, and after_test must be able to delete it.
+	file.close()
 	return out
 
 

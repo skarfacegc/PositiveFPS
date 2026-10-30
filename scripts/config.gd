@@ -472,7 +472,7 @@ const BORDER_INTACT_DRAIN_FRACTION := 0.25
 const BORDER_SHOVE_RANGE := 4.0
 const BORDER_SHOVE_AMOUNT := 1.5 * WORLD_SCALE
 
-# ---- Round 12a: spirit, going dim, grabs and the twirl
+# ---- Round 12a: spirit, going dim and grabs
 # Spirit is the player's spendable resource (0..SPIRIT_MAX). Rescues fill it, the joy burst spends it, a grab drains it.
 const SPIRIT_MAX := 100.0
 const SPIRIT_START := 50.0
@@ -507,14 +507,6 @@ const GRAB_COOLDOWN := 2.5
 const GRAB_SPIRIT_DRAIN := 25.0
 const GRAB_LEAN := 0.5  # Radians the grabber leans back at the end of the wind-up.
 const GRAB_RING_COLOUR := Color(0.85, 0.2, 0.25, 0.5)
-# The twirl (Space): a short dash with a cooldown. Twirling within TWIRL_PERFECT_WINDOW before a grab would land avoids
-# it and gives a small joy burst (radius and half the normal joy, no spirit cost).
-const TWIRL_DISTANCE := 3.0
-const TWIRL_TIME := 0.2
-const TWIRL_COOLDOWN := 1.5
-const TWIRL_PERFECT_WINDOW := 0.25
-const TWIRL_BURST_RADIUS := 2.5
-const TWIRL_BURST_JOY_FRACTION := 0.5
 # The dimmed-person haze of the placeholder look (a soft dark disc on the ground), radius in metres.
 const DIM_AURA_RADIUS := 1.7
 const DIM_AURA_COLOUR := Color(0.05, 0.05, 0.08, 0.38)
@@ -710,6 +702,10 @@ const BORDER_WRAP_TENT := 3
 const BORDER_SLOT_HYSTERESIS := 0.15
 # A stretch sealed by the map edge shorter than this is opened again (its neighbours would stand too close).
 const BORDER_MIN_SEAL_RUN := BORDER_TARGET_SPACING
+
+# ---- Round 19: cleanup (scripts/hud.gd, topdown_main.gd)
+# The Rescued counter sits this many pixels below the bottom of the minimap, so the minimap never covers it.
+const RESCUED_BELOW_MINIMAP_GAP := 10.0
 
 # ---- Round 16: the border near the map edge (scripts/border.gd) ----
 # The border stays on the map: its loop is clamped to this distance from the middle (the same limit people wander to).

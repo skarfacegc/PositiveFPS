@@ -79,12 +79,8 @@ func test_spirit_bar_and_label_show_spirit_and_dim() -> void:
 	assert_str(hud.spirit_label.text).contains("DIM")
 
 
-func test_twirl_text_and_the_burst_needing_spirit() -> void:
+func test_the_burst_text_needs_spirit_then_says_ready() -> void:
 	var hud: Hud = _make_hud()
-	hud.set_twirl(0.0)
-	assert_str(hud.twirl_label.text).is_equal("Twirl [Space]: READY")
-	hud.set_twirl(0.9)
-	assert_str(hud.twirl_label.text).is_equal("Twirl [Space]: 0.9s")
 	hud.set_burst(0.0, false)
 	assert_str(hud.burst_label.text).is_equal("Joy burst [G]: needs 30 spirit")
 	hud.set_burst(0.0, true)
@@ -107,3 +103,13 @@ func test_the_rec_mark_is_built_once_shown_and_hidden() -> void:
 	hud.set_recording(true)
 	assert_object(hud.rec_label).is_same(mark)
 	assert_bool(mark.visible).is_true()
+
+
+func test_the_rescued_counter_is_clear_of_the_minimap_and_inside_the_window_at_1280_by_720() -> void:
+	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
+	await runner.simulate_frames(5)
+	var td: TopDownMain = runner.scene()
+	var rescued_rect := td.hud.rescued_label.get_global_rect()
+	assert_bool(td.minimap.get_global_rect().intersects(rescued_rect)).is_false()
+	assert_bool(Rect2(Vector2.ZERO, Vector2(1280, 720)).encloses(rescued_rect)).is_true()
+	await TopDownTestUtil.leave_loaded_scene(td)

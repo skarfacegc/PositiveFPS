@@ -36,7 +36,6 @@ static func draw_spirit(m: SpiritMeter) -> void:
 			m.draw_rect(Rect2(x, 0.0, c, h), f)
 			x += 2.0 * c
 	_ticks(m, c, h)
-	_twirl(m, c, h)
 	_popups(m, c)
 	m.draw_set_transform(Vector2.ZERO)
 
@@ -90,20 +89,6 @@ static func _ticks(m: SpiritMeter, c: float, h: float) -> void:
 			var inside := Vector2(i, j).length() <= 3.2 and Vector2(i - 1.3, j + 0.9).length() > 2.8
 			if inside:
 				StyleUi.put(m, moon + Vector2i(i, j), c, dim_col)
-
-
-# The twirl cooldown: a dithered track with the filled arc over it, and a gold dot when it is ready.
-static func _twirl(m: SpiritMeter, c: float, h: float) -> void:
-	var at := Vector2(m.size.x + 34.0, h * 0.5)
-	var ready_now := m.twirl_frac >= 1.0
-	var edge := StyleUi.INK
-	StyleUi.ring(m, at, 13.0, c, edge, 5)
-	StyleUi.ring(m, at, 13.0, c, Color(0.45, 0.45, 0.52, 0.9), 3, 1.0, 0.0, TAU, true)
-	var col := Color(0.6, 1.0, 0.65) if ready_now else Color(0.85, 0.85, 0.9)
-	if m.twirl_frac > 0.0:
-		StyleUi.ring(m, at, 13.0, c, col, 3, 1.0, -PI * 0.5, -PI * 0.5 + TAU * m.twirl_frac)
-	if ready_now:
-		StyleUi.disc(m, at, 2.0 * c, c, col)
 
 
 # The floating numbers: the same text, over a thick ink edge, rising in cell steps.

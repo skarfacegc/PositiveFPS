@@ -150,16 +150,6 @@ static func panel(ci: CanvasItem, r: Rect2, c: float, fill: Color, rim: Color = 
 	cut_rect(ci, r.grow(-2.0 * c), c, fill)
 
 
-# A filled disc of `radius` window pixels, in cell rows.
-static func disc(ci: CanvasItem, centre: Vector2, radius: float, c: float, col: Color) -> void:
-	var mid := cell_of(centre, c)
-	var rc := radius / c
-	var reach := ceili(rc)
-	for j: int in range(-reach, reach + 1):
-		var w := floori(sqrt(maxf(rc * rc - float(j * j), 0.0)) + 0.5)
-		run(ci, mid + Vector2i(-w, j), 2 * w + 1, false, c, col)
-
-
 # A ring (or an arc) of cells: `thick` cells wide, `flatten` squashes it vertically, from angle `a0` to `a1` (radians,
 # from the +x axis, clockwise on screen). `checker` leaves every other cell out (a dithered track).
 static func ring(

@@ -5,10 +5,9 @@ var night_label: Label
 var night_bar: ProgressBar
 var element_label: Label
 var burst_label: Label
-# Round 12a: spirit (a label and a bar above the burst indicator) and the twirl cooldown (beside the burst indicator).
+# Round 12a: spirit (a label and a bar above the burst indicator).
 var spirit_label: Label
 var spirit_bar: ProgressBar
-var twirl_label: Label
 var hint_label: Label
 var rescued_label: Label
 var targeting_label: Label
@@ -87,13 +86,6 @@ func _ready() -> void:
 	spirit_bar.visible = false
 	add_child(spirit_bar)
 
-	# Twirl cooldown text (SpiritMeter also draws an arc), above the burst indicator (see set_twirl).
-	twirl_label = Label.new()
-	twirl_label.add_theme_font_size_override("font_size", 22)
-	twirl_label.position = Vector2(20, 572)
-	twirl_label.visible = false
-	add_child(twirl_label)
-
 	# Controls hint under the element label (set by the level, see set_hint).
 	hint_label = Label.new()
 	hint_label.add_theme_font_size_override("font_size", 16)
@@ -112,11 +104,10 @@ func _ready() -> void:
 	targeting_label.visible = false
 	add_child(targeting_label)
 
-	# Rescued counter, top left.
+	# Rescued counter. The level places it under the minimap (see place_rescued_below).
 	rescued_label = Label.new()
 	rescued_label.text = "Rescued: 0 / %d" % Config.TD_PEOPLE_COUNT
 	rescued_label.add_theme_font_size_override("font_size", 24)
-	rescued_label.position = Vector2(20, 20)
 	add_child(rescued_label)
 
 	# Shows that the F3 debug overlay is on. Hidden unless it is (see set_debug_on).
@@ -204,6 +195,11 @@ func set_rescued(n: int, total: int) -> void:
 	rescued_label.text = "Rescued: %d / %d" % [n, total]
 
 
+# Puts the Rescued counter at the left edge, `y` pixels from the top (the level passes the bottom of the minimap).
+func place_rescued_below(y: float) -> void:
+	rescued_label.position = Vector2(20, y)
+
+
 # Shows the "[F3] debug" hint while the debug overlay is on.
 func set_debug_on(on: bool) -> void:
 	debug_hint_label.visible = on
@@ -255,17 +251,6 @@ func set_spirit(spirit: float, is_dim: bool) -> void:
 	else:
 		spirit_label.text = "Spirit %d / %d" % [roundi(spirit), roundi(Config.SPIRIT_MAX)]
 		spirit_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.5))
-
-
-# Shows the twirl cooldown: READY in green, otherwise the seconds left in grey.
-func set_twirl(cooldown_left: float) -> void:
-	twirl_label.visible = true
-	if cooldown_left <= 0.0:
-		twirl_label.text = "Twirl [Space]: READY"
-		twirl_label.add_theme_color_override("font_color", Color(0.6, 1, 0.6))
-	else:
-		twirl_label.text = "Twirl [Space]: %.1fs" % cooldown_left
-		twirl_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 
 
 # Shows the joy burst cooldown: READY in green when it can be used, otherwise the seconds left in grey. `has_spirit`

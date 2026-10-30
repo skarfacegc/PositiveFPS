@@ -87,7 +87,8 @@ func test_how_to_play_panel_is_visible_and_names_the_sections() -> void:
 	assert_str(text).contains("How to play")
 	assert_str(text).contains("Goal")
 	assert_str(text).contains("Spirit")
-	assert_str(text).contains("Space twirl")
+	assert_str(text).contains("step out of reach")
+	assert_bool(text.contains("twirl")).is_false()
 
 
 func test_every_key_named_in_the_keys_line_is_bound() -> void:
@@ -99,7 +100,6 @@ func test_every_key_named_in_the_keys_line_is_bound() -> void:
 		"move_left",
 		"move_right",
 		"run",
-		"twirl",
 		"burst",
 		"cycle_targeting",
 		"toggle_debug",
@@ -123,6 +123,33 @@ func test_how_to_play_panel_does_not_overlap_the_buttons_at_1280_by_720() -> voi
 	_find_buttons(menu, buttons)
 	for btn: Button in buttons:
 		assert_bool(panel_rect.intersects(btn.get_global_rect())).is_false()
+
+
+func _record_toggle_fits_in_the_window_at(size: Vector2i) -> void:
+	get_window().size = size
+	await get_tree().process_frame
+	var runner := scene_runner(MENU)
+	(runner.scene() as Control).size = Vector2(size)
+	await runner.simulate_frames(10)
+	var menu := runner.scene() as Control
+	var toggle: CheckBox = menu.get("record_toggle")
+	var toggle_rect := toggle.get_global_rect()
+	var view := Rect2(Vector2.ZERO, Vector2(size))
+	assert_bool(view.encloses(toggle_rect)).is_true()
+	var buttons: Array = []
+	_find_buttons(menu, buttons)
+	# The check box is a Button too: the push buttons (Play, Look) are the ones it must not cover.
+	for btn: Button in buttons:
+		if btn != toggle:
+			assert_bool(toggle_rect.intersects(btn.get_global_rect())).is_false()
+
+
+func test_the_record_toggle_is_inside_the_window_at_1280_by_720() -> void:
+	await _record_toggle_fits_in_the_window_at(Vector2i(1280, 720))
+
+
+func test_the_record_toggle_is_inside_the_window_at_1920_by_1080() -> void:
+	await _record_toggle_fits_in_the_window_at(Vector2i(1920, 1080))
 
 
 func test_key_1_starts_the_level() -> void:
