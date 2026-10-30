@@ -1,7 +1,7 @@
 extends GdUnitTestSuite
 
 # Round 19: the spirit beacon. Without a beacon the border's centre stays anchored; E places a beacon for spirit and the
-# centre walks to it slowly.
+# zone stretches toward it (round 20: a tip reaches out, holds, then snaps back).
 
 const ANCHOR_DRIFT_BOUND := 0.05
 
@@ -88,25 +88,191 @@ func test_e_places_a_beacon_at_the_cursor_and_costs_spirit() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_centre_walks_to_the_beacon_at_the_pull_speed_then_the_beacon_clears() -> void:
+func test_the_tip_stretches_toward_the_beacon_at_the_pull_speed_and_the_centre_stays() -> void:
 	var s: Dictionary = await _formed()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
-	var reached: Array[int] = [0]
-	td.border.beacon_reached.connect(func() -> void: reached[0] += 1)
-	td.border.place_beacon(Vector3(30, 0, 4))
 	var c0 := td.border.centre
-	await runner.simulate_frames(120)
-	var walked := GloomSim.flat_dist(td.border.centre, c0)
-	print("PROBE beacon walk in 2 s = %.2f m (speed %.2f m/s)" % [walked, Config.BEACON_PULL_SPEED])
-	assert_float(walked).is_equal_approx(Config.BEACON_PULL_SPEED * 2.0, 0.15)
+	td.border.place_beacon(Vector3(30, 0, 4))
+	var tip0: Vector3 = td.border.stretch_info()["tip"]
+	await runner.simulate_frames(60)
+	var info: Dictionary = td.border.stretch_info()
+	var tip1: Vector3 = info["tip"]
+	var moved := GloomSim.flat_dist(tip1, tip0)
+	print("PROBE tip travel in 1 s = %.2f m (speed %.2f m/s)" % [moved, Config.BEACON_PULL_SPEED])
+	assert_float(moved).is_equal_approx(Config.BEACON_PULL_SPEED, 0.12)
 	assert_bool(td.border.has_beacon()).is_true()
-	var left := GloomSim.flat_dist(td.border.centre, td.border.beacon_pos())
-	await runner.simulate_frames(int(left / Config.BEACON_PULL_SPEED * 60.0) + 60)
-	assert_bool(td.border.has_beacon()).is_false()
+	assert_float(GloomSim.flat_dist(td.border.centre, c0)).is_less(0.01)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_zone_covers_ground_toward_the_tip_that_the_circle_did_not() -> void:
+	var s: Dictionary = await _formed()
+	var td: TopDownMain = s["td"]
+	var runner: GdUnitSceneRunner = s["runner"]
+	await runner.simulate_frames(180)
+	var c := td.border.centre
+	var far := c + Vector3(1.0, 0.0, 0.0) * (BorderCentre.circle_radius(6) + 3.0)
+	assert_float(td.border.cover_at(far)).is_equal(0.0)
+	td.border.place_beacon(c + Vector3(60, 0, 0))
+	await runner.simulate_frames(900)
+	assert_bool(td.border.polygon.is_empty()).is_false()
+	assert_float(td.border.cover_at(far)).is_greater(0.0)
+	var tip: Vector3 = td.border.stretch_info()["tip"]
+	assert_bool(Geometry2D.is_point_in_polygon(Vector2(tip.x - 1.0, tip.z), td.border.polygon)).is_true()
+	# The body stays round the old centre: the point just behind the centre is still inside.
+	assert_bool(Geometry2D.is_point_in_polygon(Vector2(c.x - 1.0, c.z), td.border.polygon)).is_true()
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_tip_stops_at_the_maximum_reach_holds_then_the_zone_snaps_to_a_circle_at_the_tip() -> void:
+	var s: Dictionary = await _formed()
+	var td: TopDownMain = s["td"]
+	var runner: GdUnitSceneRunner = s["runner"]
+	var snaps: Array[Vector3] = []
+	var reached: Array[int] = [0]
+	td.border.zone_snapped.connect(func(_from: Vector3, to: Vector3) -> void: snaps.append(to))
+	td.border.beacon_reached.connect(func() -> void: reached[0] += 1)
+	var c0 := td.border.centre
+	td.border.place_beacon(c0 + Vector3(60, 0, 0))
+	var limit: float = td.border.stretch_info()["max"]
+	await runner.simulate_frames(1200)  # 20 s: the tip has arrived and is holding
+	var info: Dictionary = td.border.stretch_info()
+	assert_bool(info["holding"]).is_true()
 	assert_int(reached[0]).is_equal(1)
-	assert_float(GloomSim.flat_dist(td.border.centre, Vector3(30, 0, 4))).is_less(0.5)
+	var tip: Vector3 = info["tip"]
+	assert_float(GloomSim.flat_dist(tip, c0)).is_equal_approx(limit, 0.3)
+	assert_bool(td.border.has_beacon()).is_true()
+	assert_float(GloomSim.flat_dist(td.border.centre, c0)).is_less(0.01)
+	await runner.simulate_frames(int(Config.BEACON_STRETCH_HOLD * 60.0) + 30)
+	assert_int(snaps.size()).is_equal(1)
+	assert_bool(td.border.has_beacon()).is_false()
+	assert_bool(td.border.stretch_info()["on"]).is_false()
+	assert_float(GloomSim.flat_dist(td.border.centre, tip)).is_less(0.01)
 	assert_bool(td.beacon_marker.visible).is_false()
+	# A circle again: the loop's radii are all close to each other.
+	var cx := Vector2(td.border.centre.x, td.border.centre.z)
+	var lo := INF
+	var hi := 0.0
+	for pt: Vector2 in td.border.polygon:
+		lo = minf(lo, pt.distance_to(cx))
+		hi = maxf(hi, pt.distance_to(cx))
+	assert_float(hi - lo).is_less(hi * 0.35)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_a_beacon_nearer_than_the_reach_stops_the_tip_at_the_beacon() -> void:
+	var s: Dictionary = await _formed()
+	var td: TopDownMain = s["td"]
+	var runner: GdUnitSceneRunner = s["runner"]
+	var c0 := td.border.centre
+	td.border.place_beacon(c0 + Vector3(0, 0, 9))
+	await runner.simulate_frames(600)
+	var info: Dictionary = td.border.stretch_info()
+	assert_bool(info["holding"]).is_true()
+	var tip: Vector3 = info["tip"]
+	assert_float(GloomSim.flat_dist(tip, td.border.beacon_pos())).is_less(0.5)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_reach_grows_with_the_people_rescued() -> void:
+	assert_float(BorderCentre.reach_beyond(20)).is_greater(BorderCentre.reach_beyond(10))
+	assert_float(BorderCentre.reach_beyond(10) - BorderCentre.reach_beyond(5)).is_equal_approx(
+		Config.BEACON_REACH_PER_PERSON * 5.0, 0.001
+	)
+	var s: Dictionary = await _formed()
+	var td: TopDownMain = s["td"]
+	var runner: GdUnitSceneRunner = s["runner"]
+	td.border.place_beacon(td.border.centre + Vector3(60, 0, 0))
+	var few: float = td.border.stretch_info()["max"]
+	for j: int in range(6):
+		var p: Person = td.people[20 + j]
+		TopDownTestUtil.place(p, td.border.centre + Vector3(2.0 + float(j), 0.0, -3.0), p.affinity, 0.0)
+		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
+	await runner.simulate_frames(10)
+	var many: float = td.border.stretch_info()["max"]
+	print("PROBE max reach with 6 people %.1f m, with 12 people %.1f m" % [few, many])
+	assert_float(many).is_greater(few + 3.0)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_reach_never_squeezes_the_body_below_its_minimum_and_the_loop_keeps_its_length() -> void:
+	for people: int in [3, 6, 12, 30, 52]:
+		var radius := BorderCentre.circle_radius(people)
+		var far := BorderCentre.feasible_distance(radius)
+		var body := radius * Config.BEACON_BODY_MIN
+		var hull := BorderCentre.hull_perimeter(body, Config.BEACON_TIP_WIDTH * body, far)
+		assert_float(hull).is_equal_approx(TAU * radius, TAU * radius * 0.01)
+		assert_float(far).is_greater(radius)
+	var s: Dictionary = await _formed()
+	var td: TopDownMain = s["td"]
+	var runner: GdUnitSceneRunner = s["runner"]
+	await runner.simulate_frames(180)
+	var r0 := td.border._mean_radius()
+	td.border.place_beacon(td.border.centre + Vector3(60, 0, 0))
+	await runner.simulate_frames(1000)
+	var cx := Vector2(td.border.centre.x, td.border.centre.z)
+	var back := INF
+	for pt: Vector2 in td.border.polygon:
+		back = minf(back, pt.distance_to(cx))
+	print("PROBE body radius before %.2f m, smallest during the stretch %.2f m" % [r0, back])
+	assert_float(back).is_greater(BorderCentre.circle_radius(6) * 0.5)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_a_new_beacon_during_a_stretch_turns_the_tip_from_where_it_is() -> void:
+	var s: Dictionary = await _formed()
+	var td: TopDownMain = s["td"]
+	var runner: GdUnitSceneRunner = s["runner"]
+	var starts: Array[int] = [0]
+	td.border.stretch_started.connect(func(_b: Vector3, _t: Vector3) -> void: starts[0] += 1)
+	var c0 := td.border.centre
+	td.border.place_beacon(c0 + Vector3(60, 0, 0))
+	await runner.simulate_frames(300)
+	var before: Vector3 = td.border.stretch_info()["tip"]
+	td.border.place_beacon(c0 + Vector3(0, 0, 60))
+	assert_int(starts[0]).is_equal(2)
+	var now: Vector3 = td.border.stretch_info()["tip"]
+	assert_float(GloomSim.flat_dist(now, before)).is_less(0.01)
+	assert_bool(td.border.stretch_info()["holding"]).is_false()
+	await runner.simulate_frames(120)
+	var after: Vector3 = td.border.stretch_info()["tip"]
+	assert_float(after.z - c0.z).is_greater(0.5)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_hull_is_a_teardrop_from_the_tip_to_the_body() -> void:
+	var body := 10.0
+	var width := 4.0
+	var reach := 25.0
+	assert_float(BorderCentre.hull_radius(body, width, reach, 0.0)).is_equal_approx(reach, 0.001)
+	assert_float(BorderCentre.hull_radius(body, width, reach, PI)).is_equal(0.0)
+	var last := reach
+	for k: int in range(1, 40):
+		var r := BorderCentre.hull_radius(body, width, reach, float(k) * 0.02)
+		if r == 0.0:
+			break
+		assert_float(r).is_less_equal(last + 0.0001)
+		assert_float(r).is_greater_equal(body - 0.001)
+		last = r
+	# No tip beyond the body: no stretch.
+	assert_float(BorderCentre.hull_radius(body, width, 9.0, 0.0)).is_equal(0.0)
+
+
+func test_the_reach_guide_draws_in_the_placeholder_look_and_hides_in_the_styled_look() -> void:
+	var s: Dictionary = await _formed()
+	var td: TopDownMain = s["td"]
+	var runner: GdUnitSceneRunner = s["runner"]
+	td.border.place_beacon(td.border.centre + Vector3(60, 0, 0))
+	await runner.simulate_frames(120)
+	var mesh: ImmediateMesh = td.reach_guide._mesh
+	assert_int(mesh.get_surface_count()).is_equal(1)
+	td.set_look(Looks.Mode.STYLED)
+	await runner.simulate_frames(3)
+	assert_int(mesh.get_surface_count()).is_equal(0)
+	td.set_look(Looks.Mode.PLACEHOLDER)
+	await runner.simulate_frames(3)
+	assert_int(mesh.get_surface_count()).is_equal(1)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

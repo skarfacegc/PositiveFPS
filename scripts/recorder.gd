@@ -111,6 +111,8 @@ func attach(main: TopDownMain) -> bool:
 	main.grabs.grab_avoided.connect(_on_grab_avoided)
 	main.beacon_placed.connect(_on_beacon_placed)
 	main.border.beacon_reached.connect(_on_beacon_reached)
+	main.border.stretch_started.connect(_on_stretch_started)
+	main.border.zone_snapped.connect(_on_zone_snapped)
 	for lm: Landmark in main.landmarks.items:
 		lm.claimed.connect(_on_landmark.bind(lm, "landmark_claimed"))
 		lm.lost.connect(_on_landmark.bind(lm, "landmark_lost"))
@@ -143,7 +145,20 @@ func _on_landmark(lm: Landmark, type: String) -> void:
 
 
 func _on_beacon_reached() -> void:
-	emit_event("beacon_reached", {"pos": _pos(_main.border.centre)})
+	var tip: Vector3 = _main.border.stretch_info()["tip"]
+	emit_event("beacon_reached", {"pos": _pos(tip)})
+
+
+# Round 20: a stretch began (where the tip is aimed and how far it can go) and the zone snapped back to a circle.
+func _on_stretch_started(beacon: Vector3, tip_target: Vector3) -> void:
+	var reach: float = _main.border.stretch_info()["max"]
+	emit_event(
+		"zone_stretch", {"beacon": _pos(beacon), "tip_target": _pos(tip_target), "max_reach": snappedf(reach, 0.1)}
+	)
+
+
+func _on_zone_snapped(from: Vector3, to: Vector3) -> void:
+	emit_event("zone_snap", {"from": _pos(from), "to": _pos(to), "people": _main.rescued_count})
 
 
 func is_open() -> bool:

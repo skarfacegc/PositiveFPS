@@ -30,7 +30,9 @@ def synthetic():
            {"t": 25.0, "type": "sink", "to": "dimmed", "id": 4}, {"t": 6.0, "type": "target_change", "target": 3},
            {"t": 7.0, "type": "target_change", "target": 4},
            {"t": 8.0, "type": "beacon_placed", "pos": [10.0, -4.0], "cost": 30.0, "spirit_after": 20.0},
+           {"t": 8.0, "type": "zone_stretch", "beacon": [10.0, -4.0], "tip_target": [9.0, -3.5], "max_reach": 31.5},
            {"t": 20.0, "type": "beacon_reached", "pos": [10.0, -4.0]},
+           {"t": 28.0, "type": "zone_snap", "from": [0.0, 0.0], "to": [9.0, -3.5], "people": 9},
            {"t": 21.0, "type": "landmark_claimed", "name": "Garden", "held": 1},
            {"t": 26.0, "type": "landmark_lost", "name": "Garden", "held": 0},
            {"t": 29.9, "type": "win", "title": "Dawn", "rescued": 9, "lights": 2, "people_share": 0.52,
@@ -59,6 +61,15 @@ class AnalyseTest(unittest.TestCase):
         self.assertEqual(len(res["beacons_reached"]), 1)
         text = ar.report(res, "x")
         self.assertIn("SPIRIT BEACONS: 1 placed (30 spirit spent), 1 reached", text)
+
+    def test_the_stretching_zone_is_reported(self):
+        res = ar.analyse(synthetic())
+        self.assertEqual(len(res["stretches"]), 1)
+        self.assertEqual(len(res["snaps"]), 1)
+        text = ar.report(res, "x")
+        self.assertIn("STRETCHING ZONE: 1 stretches, 1 snaps back to a circle", text)
+        self.assertIn("max reach 31.5 m", text)
+        self.assertIn("snap at t=28 s", text)
 
     def test_landmarks_and_the_dawn_rating_are_reported(self):
         res = ar.analyse(synthetic())

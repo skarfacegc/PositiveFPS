@@ -731,12 +731,32 @@ const RECORD_PRESS_RADIUS := 3.0
 # The border's centre stays anchored once the border forms. E places a spirit beacon at the cursor's ground point for
 # BEACON_SPIRIT_COST spirit; the centre walks toward it at BEACON_PULL_SPEED (m/s, territory) and the beacon clears when
 # the centre is within BEACON_ARRIVE_RADIUS of it. One beacon at a time; a new one replaces the old (and costs again).
-const BEACON_SPIRIT_COST := 30.0
+const BEACON_SPIRIT_COST := 50.0  # Round 20: was 30 (spirit sat near 90 in the round 19 playtest).
 const BEACON_PULL_SPEED := 0.8 * WORLD_SCALE
 const BEACON_ARRIVE_RADIUS := 0.3
 const BEACON_COLOUR := Color(0.55, 0.85, 1.0)
 const BEACON_NO_SPIRIT_TEXT := "Not enough spirit"
 const BEACON_NO_BORDER_TEXT := "Rescue three people to form a border first"
+
+# ---- Round 20: stretching zone (scripts/border_centre.gd, reach_guide.gd). ----
+# A beacon no longer walks the centre. The zone stretches: the body stays round the old centre and a tip reaches toward
+# the beacon at BEACON_PULL_SPEED. The tip can go BEACON_REACH_BASE + BEACON_REACH_PER_PERSON x (people rescued) metres
+# past the plain circle's edge. When it stops (at the beacon or at the maximum reach) it holds for BEACON_STRETCH_HOLD
+# seconds, then the zone snaps back to a circle centred at the tip and the beacon clears. BEACON_TIP_WIDTH is the tip
+# circle's radius as a share of the body radius. The loop's length is fixed by the people, so a longer tip squeezes the
+# body: BEACON_BODY_MIN is how small the body may get (a share of the plain radius), which caps the reach. The rest is
+# the placeholder look's reach guide.
+const BEACON_REACH_BASE := 3.0 * WORLD_SCALE
+const BEACON_REACH_PER_PERSON := 0.35 * WORLD_SCALE
+const BEACON_STRETCH_HOLD := 20.0
+const BEACON_TIP_WIDTH := 0.4
+const BEACON_BODY_MIN := 0.6
+const BEACON_GUIDE_Y := 0.18
+const BEACON_GUIDE_RING_COLOUR := Color(0.55, 0.85, 1.0, 0.35)
+const BEACON_GUIDE_PREVIEW_COLOUR := Color(0.55, 0.85, 1.0, 0.45)
+const BEACON_GUIDE_CAPPED_COLOUR := Color(1.0, 0.6, 0.45, 0.8)
+const BEACON_GUIDE_PATH_COLOUR := Color(0.75, 0.95, 1.0, 0.9)
+const BEACON_GUIDE_TIP_COLOUR := Color(1.0, 1.0, 0.85, 0.95)
 
 # ---- Round 19: landmarks (scripts/landmark.gd, landmarks.gd, topdown_main.gd). ----
 # Three landmarks, far enough from the start that the natural ring (LANDMARK_START_REACH from the middle) cannot reach
