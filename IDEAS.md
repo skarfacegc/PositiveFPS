@@ -1292,6 +1292,11 @@ feel calmer? Is the umbrella readable now?
 - The minimap covers the "Rescued" counter in the top-left.
 - Old recorder test folders were left in `user://rec_tests` (from 2026-10-28 test runs); check the tests clean up.
 
+**Decided after the interview: remove the twirl.** The spin/dodge "feels kinda useless" (the recording had zero twirls
+and zero grabs). Remove the twirl (Space), its HUD line, spirit cost and recorder event. Keep grabs by dimmed people:
+the wind-up warning stays, and the player avoids a grab by stepping out of reach before the lunge (no perfect-dodge
+reward). The old code stays in git history if a dodge is wanted later.
+
 **Round 19 design questions (to decide with the user):**
 1. What wins the level if landmarks don't? (survive to dawn / hold several landmarks at dawn / territory at dawn /
    a dawn rating built from these)
