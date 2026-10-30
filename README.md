@@ -56,8 +56,9 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
 - **Inside the border the land changes.** The ground is painted warm (it fills in slowly), and blocks inside are
   beautified after a few seconds. A grey person deep inside the border lightens instead of dimming.
 - **The border stays put (round 19).** Once it forms, its centre no longer follows you or the people who push it. Press
-  **E** to place a **spirit beacon** at the mouse (30 spirit, one at a time, a new one replaces the old and costs again):
-  the border's centre slowly walks to it (about 1.1 m a second) and the beacon clears when it arrives.
+  **E** to place a **spirit beacon** at the mouse (50 spirit, one at a time, a new one replaces the old and costs again):
+  the zone stretches toward it (about 1.1 m a second, reaching further the more people you've rescued), holds for 20 s,
+  then snaps back to a circle at the tip.
 - **Three landmarks** stand far from the start, so you need beacons to reach them: the **bandstand** (music joy x1.5),
   the **garden** (nature joy x1.5) and the **bell tower** (border members within 17 m lose 40% less to the gloom).
   Beautify one inside the border and keep it for 3 seconds to hold it; it loses its boost the moment the border drops
