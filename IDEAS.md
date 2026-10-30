@@ -1380,3 +1380,37 @@ held), `compare.png`, `overview`, `beacon_closeup`, `{bandstand,garden,bell}_{un
 read at night; the beacon's pull dashes are easy to miss in busy ground; the boost motes use wall-clock time so they are not
 frame-exact in screenshots. Landmark labels and the Rescued counter still use the plain font. Both landmark and beacon shapes
 are generic building forms (dome-on-posts, tree-and-arch, tower-with-spire) with no borrowed specific design.
+
+## Round 19 build (2026-10-29)
+
+Built as two parallel worktree parts, then graphics checkpoint 3 and a coverage top-up, then one full gate (451 tests
+plus coverage tests, 99.7%, determinism OK).
+
+**A. Beacon, landmarks, dawn win** (`45cf1d9`, `640d8a4`; merge `e0517a9`):
+- The centre is anchored once the border forms (`scripts/border_centre.gd`). In the stand-at-the-edge-and-push test
+  it drifted 4.00 m before and 0.00 m now.
+- Beacon (E, `scripts/beacon_marker.gd`): `BEACON_SPIRIT_COST` 30, `BEACON_PULL_SPEED` 0.8 × WORLD_SCALE (about
+  1.14 m/s), one at a time. Crossing to a far landmark takes about 45–55 s of the 180 s night.
+- Landmarks (`scripts/landmarks.gd`): bandstand (music ×1.5), garden (nature ×1.5) and bell tower (gloom loss ×0.6
+  within about 17 m), each 45–49 m from the start. The claim hold is 3 s (was 10).
+- Dawn rating (`scripts/dawn_rating.gd`): 1 light for reaching dawn; 2 for two of 40% people, 20% ground and
+  1 landmark; 3 for 60% people plus 2 landmarks. A round-18-style game gets 2.
+- Moving the landmarks changed the seeded spawn layout. One edge-pressure test had passed only because the old centre
+  drifted; it now uses six members, with the same assertion.
+
+**B. Cleanup** (`03f8a33`..`6427cce`; merge `fa6b83e`): twirl removed (grabs avoided by being out of reach), the
+record checkbox is on a CanvasLayer so it stays in the window, the Rescued counter sits under the minimap, and the
+recorder tests remove their `user://rec_tests` folders. About 737 old test folders from earlier runs are still in
+`%APPDATA%\Godot\app_userdata\PositiveFPS\rec_tests` (the user may delete them).
+
+**Merge:** both parts edited the controls, HUD hint and README keys; kept the beacon, dropped the twirl. Adding
+"E spirit beacon" to the menu key list made the how-to-play panel too tall at 720p, so E is only in the in-game hint
+and README for now.
+
+**Coverage** (`5b13516`): tests for the beacon refusal after the round ends, the spawn and wander fallbacks, the
+border-slot fallback and the empty styled spirit meter.
+
+**Playtest questions:** is the beacon speed and cost a real decision? Are all three landmarks reachable, and is
+losing one fair? Is the 3 s claim too quick? Are 2 and 3 lights at the right difficulty? Does tension now carry past
+the opening (compare with round 18: 51% quiet, threats only in the first 13 s, win at 1:20)? Do the styled landmarks
+and beacon read clearly?
