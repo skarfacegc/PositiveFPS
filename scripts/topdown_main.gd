@@ -37,7 +37,7 @@ var hud: Hud
 var minimap: Minimap
 var arrows: GapArrows
 var border: Border
-var beacon_marker: BeaconMarker  # Round 19: the beacon in the world (placeholder marker).
+var beacon_marker: BeaconMarker  # Round 19: the beacon in the world (both looks).
 var landmarks: Landmarks  # Round 19: the three landmarks and their boosts.
 var rating: Dictionary = {}  # Round 19: the dawn rating, set when the night ends (see DawnRating).
 # Round 12a: the grabs of dimmed people (see grabs.gd).
@@ -202,8 +202,8 @@ func _process(delta: float) -> void:
 	ground.update_paint(people, delta)
 	landmarks.update(delta, border)
 	landmarks.apply_boosts(people, border)
-	hud.set_landmarks(landmarks.held_lines(), Config.LANDMARK_NAMES.size())
-	beacon_marker.sync(border.beacon_pos(), delta)
+	hud.set_landmarks(landmarks.held_lines(), Config.LANDMARK_NAMES.size(), landmarks.held_flags())
+	beacon_marker.sync(border.beacon_pos(), delta, border.centre)
 	_update_spirit_hud()
 	_update_target_mood()
 	intro.check_level(self, delta)
@@ -292,10 +292,12 @@ func set_look(new_mode: int) -> void:
 	for b: Building in border.buildings:
 		b.rebuild_look()
 	landmarks.rebuild_look()
+	beacon_marker.rebuild_look()
 	player.rebuild_look()
 	for p: Person in people:
 		p.rebuild_look()
 	minimap.rebuild_look()
+	hud.rebuild_look()
 	# Graphics checkpoint 2: the screen-space UI has a styled drawing too.
 	feedback.rebuild_look()
 	spirit_meter.rebuild_look()
@@ -959,7 +961,7 @@ func _end_round(title: String) -> void:
 		recorder.on_round_end(title)
 	player.active = false
 	hud.set_night_progress(night.progress())
-	hud.show_end(title, _detail_text())
+	hud.show_end(title, _detail_text(), rating)
 
 
 # What the rating would be right now (people rescued, ground held, landmarks held).

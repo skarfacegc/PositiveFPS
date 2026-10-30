@@ -190,12 +190,19 @@ func _render() -> void:
 		if u > 0.5:
 			_ring(at, 3.4 + 2.0 * u, look.line_colour(true))
 	for k: int in range(landmark_pts.size()):
-		_star(landmark_pts[k], look.landmark_colour())
-		if k < held_landmarks.size() and held_landmarks[k]:
+		var held := k < held_landmarks.size() and held_landmarks[k]
+		var star_halo := look.halo_colour("landmark")
+		if star_halo.a > 0.0:
+			_star(landmark_pts[k], star_halo, 1.4)
+		_star(landmark_pts[k], look.landmark_state_colour(held))
+		if held:
 			_ring(landmark_pts[k], 5.6, look.landmark_colour())
 	if beacon_pos != Vector2.INF:
-		_ring(beacon_pos, 3.4, Config.BEACON_COLOUR)
-		_disc(beacon_pos, 1.4, Config.BEACON_COLOUR)
+		var beacon_halo := look.halo_colour("beacon")
+		if beacon_halo.a > 0.0:
+			_ring(beacon_pos, 4.3, beacon_halo)
+		_ring(beacon_pos, 3.4, look.beacon_colour())
+		_marker(beacon_pos, 1.4, look.beacon_colour(), "beacon")
 	_marker(player_pos, 2.2, look.player_colour(), "player")
 	for k: int in range(view_pts.size()):
 		_line(view_pts[k], view_pts[(k + 1) % view_pts.size()], look.view_colour())
@@ -288,14 +295,15 @@ func _fill_rect(r: Rect2, col: Color) -> void:
 
 
 # A five-point star, drawn in pixels at the landmark.
-func _star(w: Vector2, col: Color) -> void:
+func _star(w: Vector2, col: Color, grow: float = 1.0) -> void:
 	var c := _to_px(w)
 	var pts := PackedVector2Array()
 	for i: int in range(10):
-		var r := 3.6 if i % 2 == 0 else 1.6
+		var r := (3.6 if i % 2 == 0 else 1.6) * grow
 		var a := -PI / 2.0 + TAU * float(i) / 10.0
 		pts.append(c + Vector2(cos(a), sin(a)) * r)
-	for py: int in range(floori(c.y - 4.0), ceili(c.y + 4.0) + 1):
-		for px: int in range(floori(c.x - 4.0), ceili(c.x + 4.0) + 1):
+	var reach := 4.0 * grow
+	for py: int in range(floori(c.y - reach), ceili(c.y + reach) + 1):
+		for px: int in range(floori(c.x - reach), ceili(c.x + reach) + 1):
 			if Geometry2D.is_point_in_polygon(Vector2(px + 0.5, py + 0.5), pts):
 				_put(px, py, col)

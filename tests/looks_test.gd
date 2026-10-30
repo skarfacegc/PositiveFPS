@@ -350,7 +350,7 @@ func test_the_landmark_ring_grows_in_the_styled_look() -> void:
 	lm.update(0.0, false)
 	var look := lm.look as LandmarkLookStyled
 	assert_bool(look._glow.visible).is_false()
-	assert_str(look._label.text).is_equal("Landmark")
+	assert_str(look._label.text).is_equal("Bandstand")
 	lm.update(Config.BORDER_LANDMARK_HOLD * 0.5, true)
 	assert_bool(look._glow.visible).is_true()
 	assert_str(look._label.text).contains("50%")

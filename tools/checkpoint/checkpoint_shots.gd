@@ -16,6 +16,7 @@ const FAR := Vector3(31.0, 0.0, 31.0)
 
 var out_dir: String = "res://design/renders/checkpoint_02"
 var stats_only: bool = false
+var scenario_set: String = "checkpoint2"
 var ring_radius: float = 6.6
 var ring_count: int = 16
 var ring_centre := Vector3(14.5, 0.0, -14.0)
@@ -33,6 +34,8 @@ func _ready() -> void:
 			out_dir = args[i + 1]
 		if args[i] == "--stats-only":
 			stats_only = true
+		if args[i] == "--set" and i + 1 < args.size():
+			scenario_set = args[i + 1]
 		if args[i] == "--count" and i + 1 < args.size():
 			ring_count = int(args[i + 1])
 		if args[i] == "--cx" and i + 1 < args.size():
@@ -53,6 +56,10 @@ func _ready() -> void:
 	add_child(main)
 	DisplayServer.window_set_title(TITLE)
 	await get_tree().process_frame
+	if scenario_set == "round19":
+		await _run_round19()
+		_quit()
+		return
 	_build_scenario()
 	if stats_only:
 		_print_stats()
@@ -194,7 +201,7 @@ func _add_cues(first: int) -> void:
 		main.border.faltering.append(falterer)
 	dim_hit = people[first + 4]
 	dim_hit.joy = dim_hit.joy_needed() * 0.4
-	main.spirit_meter.set_values(72.0, false, 0.0)
+	main.spirit_meter.set_values(72.0, false)
 
 
 # Places `p` at `spot`, facing `dir`, with `mood`.
@@ -384,7 +391,7 @@ func _cut(full: Image, view: Dictionary) -> Image:
 	if view.has("world"):
 		var w: Vector3 = view["world"]
 		var size: Vector2i = view["size"]
-		var sp := main.world_to_screen(Vector3(w.x, 1.0, w.z))
+		var sp := main.world_to_screen(Vector3(w.x, maxf(w.y, 1.0), w.z))
 		var x := clampi(int(sp.x) - size.x / 2, 0, 1280 - size.x)
 		var y := clampi(int(sp.y) - size.y / 2, 0, 720 - size.y)
 		rect = Rect2i(x, y, size.x, size.y)
@@ -458,3 +465,219 @@ func _time_frames(frames: int) -> float:
 	for i: int in range(frames):
 		await get_tree().process_frame
 	return float(Time.get_ticks_usec() - t0) / 1000.0 / float(frames)
+
+
+# ---- Graphics checkpoint 3: the round 19 scenario (spirit beacon, three landmarks, dawn rating screen) -------------------
+# `--set round19`. A ring of rescued people forms the border; a beacon stands east of its centre with the pull line to
+# it; the three landmarks are put in each state through their own API (unheld, claiming, held); the end screens are shown
+# through the HUD with ratings made by DawnRating. The rules are frozen (running = false), so the states are scripted.
+
+const R19_NAMES: Array[String] = ["bandstand", "garden", "bell"]
+const R19_SHEET_PAIRS: Array[String] = [
+	"overview",
+	"beacon_closeup",
+	"bandstand_held",
+	"garden_held",
+	"bell_held",
+	"landmark_hud",
+	"minimap_beacon",
+	"dawn_3",
+	"dawn_1"
+]
+
+var r19_beacon := Vector3.ZERO
+var r19_views: Array[Dictionary] = []
+
+
+func _run_round19() -> void:
+	_build_round19_scenario()
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
+	_make_round19_views()
+	for mode: int in [Looks.Mode.PLACEHOLDER, Looks.Mode.STYLED]:
+		if Looks.mode != mode:
+			main.set_look(mode)
+		var label := Looks.mode_name().to_lower()
+		await _settle(12)
+		for view: Dictionary in r19_views:
+			var view_name: String = view["name"]
+			var prep: String = view["prep"]
+			var arg: int = view.get("arg", -1)
+			_r19_prepare(prep, arg)
+			await _settle(14)
+			_r19_prepare(prep, arg)
+			var full := await _grab()
+			_save(view_name, label, _cut(full, view))
+		print("TIMING ", label, " fallback=", Looks.placeholder_fallback_count())
+	_write_sheets_round19()
+	print("SAVED ", out_dir)
+
+
+func _build_round19_scenario() -> void:
+	var people := main.people
+	for p: Person in people:
+		p.global_position = FAR
+		p.gloom = 0.45
+		p.mood = Person.Mood.NONE
+	for i: int in range(ring_count):
+		var a := TAU * float(i) / float(ring_count) + 0.3
+		var p := people[i]
+		p.gloom = 0.0
+		p.global_position = ring_centre + Vector3(cos(a), 0.0, sin(a)) * ring_radius
+		p.receive_joy(p.affinity, Config.JOY_MAX * 2.0, 0.0)
+	main.player.global_position = ring_centre + Vector3(0.5, 0.0, 1.5)
+	main.night.elapsed = Config.NIGHT_LENGTH * 0.25
+	for i: int in range(settle_frames):
+		main._process(1.0 / 60.0)
+	main.running = false
+	main.player.spirit = 80.0
+	main.border.place_beacon(main.border.centre + Vector3(14.0, 0.0, 5.0))
+	r19_beacon = main.border.beacon_pos()
+	# Two wistful people beside each landmark, for scale.
+	for k: int in range(R19_NAMES.size()):
+		for j: int in range(2):
+			var p := people[ring_count + k * 2 + j]
+			p.global_position = Config.LANDMARK_POSITIONS[k] + Vector3(float(j * 2 - 1) * 3.4, 0.0, 3.8)
+			p.gloom = 0.25
+			p.joy = 0.0
+	for child: Node in main.get_children():
+		if child is Label3D:
+			child.queue_free()
+	main.border._time = Config.BORDER_GAP_PULSE_SECONDS * 0.5
+	main.border._draw_lines()
+	main._update_light()
+	for p: Person in people:
+		p._update_visuals()
+
+
+func _make_round19_views() -> void:
+	var mid_beacon := main.border.centre.lerp(r19_beacon, 0.5)
+	r19_views = [
+		{"name": "overview", "prep": "overview"},
+		{"name": "beacon_closeup", "prep": "beacon", "world": mid_beacon, "size": Vector2i(640, 360), "scale": 2},
+	]
+	for k: int in range(R19_NAMES.size()):
+		var at: Vector3 = Config.LANDMARK_POSITIONS[k]
+		var mid := Vector3(at.x, Config.LANDMARK_SIZES[k].y * 0.8, at.z)
+		for state: String in ["unheld", "claiming", "held"]:
+			r19_views.append(
+				{
+					"name": "%s_%s" % [R19_NAMES[k], state],
+					"prep": "landmark_" + state,
+					"arg": k,
+					"world": mid,
+					"size": Vector2i(480, 300),
+					"scale": 2
+				}
+			)
+	r19_views.append({"name": "landmark_hud", "prep": "hud", "rect": Rect2i(980, 70, 300, 200), "scale": 3})
+	r19_views.append({"name": "minimap_beacon", "prep": "hud", "rect": Rect2i(10, 10, 270, 270), "scale": 3})
+	r19_views.append({"name": "dawn_3", "prep": "dawn", "arg": 3})
+	r19_views.append({"name": "dawn_2", "prep": "dawn", "arg": 2})
+	r19_views.append({"name": "dawn_1", "prep": "dawn", "arg": 1})
+	r19_views.append({"name": "dawn_lost", "prep": "dawn", "arg": 0})
+
+
+# Puts the scenario in the state a view needs. Called twice per view (before and after the settle frames).
+func _r19_prepare(prep: String, arg: int) -> void:
+	main.hud.end_panel.visible = false
+	var held: Array[bool] = [false, false, false]
+	var claiming := -1
+	var show_beacon := false
+	var focus := ring_centre + Vector3(0.5, 0.0, 1.5)
+	if prep == "overview":
+		held = [true, false, false]
+		show_beacon = true
+		focus = main.border.centre.lerp(r19_beacon, 0.4)
+	elif prep == "beacon":
+		show_beacon = true
+		focus = main.border.centre.lerp(r19_beacon, 0.5)
+	elif prep == "hud":
+		held = [true, false, true]
+		show_beacon = true
+	elif prep == "dawn":
+		held = [true, true, arg >= 3]
+	elif prep.begins_with("landmark_"):
+		var at: Vector3 = Config.LANDMARK_POSITIONS[arg]
+		focus = at + Vector3(7.0, 0.0, -1.0)
+		if prep == "landmark_held":
+			held[arg] = true
+		elif prep == "landmark_claiming":
+			claiming = arg
+	main.player.global_position = Vector3(focus.x, 0.0, focus.z)
+	_r19_landmark_states(held, claiming)
+	main.beacon_marker.sync(main.border.beacon_pos() if show_beacon else Vector3.INF, 0.3, main.border.centre)
+	if prep == "dawn":
+		_r19_show_end(arg)
+
+
+func _r19_landmark_states(held: Array[bool], claiming: int) -> void:
+	for i: int in range(held.size()):
+		var lm := main.landmarks.items[i]
+		if held[i]:
+			lm.hold = Config.BORDER_LANDMARK_HOLD
+			lm.update(0.0, true)
+		elif i == claiming:
+			lm.hold = Config.BORDER_LANDMARK_HOLD * 0.5
+			lm.update(0.0, true)
+		else:
+			lm.hold = 0.0
+			lm.update(0.0, false)
+	main.hud.set_landmarks(main.landmarks.held_lines(), Config.LANDMARK_NAMES.size(), main.landmarks.held_flags())
+
+
+# The end screen for `lights` dawn lights (0 for a lost round).
+func _r19_show_end(lights: int) -> void:
+	if lights == 0:
+		main.rating = {}
+		main.hud.show_end("The border fell", main._detail_text(), {})
+		return
+	var r: Dictionary = {}
+	if lights == 3:
+		r = DawnRating.rate(42, Config.TD_PEOPLE_COUNT, 0.46, 3)
+	elif lights == 2:
+		r = DawnRating.rate(31, Config.TD_PEOPLE_COUNT, 0.32, 1)
+	else:
+		r = DawnRating.rate(14, Config.TD_PEOPLE_COUNT, 0.1, 0)
+	main.rating = r
+	main.hud.show_end("Dawn: %d of 3 dawn lights" % (r["lights"] as int), main._detail_text(), r)
+
+
+# contact_sheet.png (styled), contact_sheet_compare.png (placeholder | styled), compare.png (the overview pair) and
+# landmarks_sheet.png (the three landmarks by state, styled).
+func _write_sheets_round19() -> void:
+	var names: Array[String] = []
+	for view: Dictionary in r19_views:
+		names.append(view["name"])
+	var cols := 3
+	var cell := Vector2i(640, 360)
+	var rows := ceili(float(names.size()) / float(cols))
+	var sheet := Image.create(cell.x * cols, cell.y * rows, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color(0.1, 0.09, 0.12))
+	for i: int in range(names.size()):
+		var by_look: Dictionary = shots[names[i]]
+		_fit(by_look["styled"] as Image, sheet, Vector2i((i % cols) * cell.x, (i / cols) * cell.y), cell)
+	sheet.save_png(ProjectSettings.globalize_path("%s/contact_sheet.png" % out_dir))
+	var compare := Image.create(cell.x * 2, cell.y * R19_SHEET_PAIRS.size(), false, Image.FORMAT_RGBA8)
+	compare.fill(Color(0.1, 0.09, 0.12))
+	for i: int in range(R19_SHEET_PAIRS.size()):
+		var by_look: Dictionary = shots[R19_SHEET_PAIRS[i]]
+		_fit(by_look["placeholder"] as Image, compare, Vector2i(0, i * cell.y), cell)
+		_fit(by_look["styled"] as Image, compare, Vector2i(cell.x, i * cell.y), cell)
+	compare.save_png(ProjectSettings.globalize_path("%s/contact_sheet_compare.png" % out_dir))
+	var landmarks_cell := Vector2i(640, 400)
+	var lm_sheet := Image.create(landmarks_cell.x * 3, landmarks_cell.y * 3, false, Image.FORMAT_RGBA8)
+	lm_sheet.fill(Color(0.1, 0.09, 0.12))
+	var states: Array[String] = ["unheld", "claiming", "held"]
+	for k: int in range(R19_NAMES.size()):
+		for j: int in range(states.size()):
+			var by_look: Dictionary = shots["%s_%s" % [R19_NAMES[k], states[j]]]
+			_fit(by_look["styled"] as Image, lm_sheet, Vector2i(k * landmarks_cell.x, j * landmarks_cell.y), landmarks_cell)
+	lm_sheet.save_png(ProjectSettings.globalize_path("%s/landmarks_sheet.png" % out_dir))
+	var both := Image.create(2560, 720, false, Image.FORMAT_RGBA8)
+	var over: Dictionary = shots["overview"]
+	var left: Image = over["placeholder"]
+	var right: Image = over["styled"]
+	both.blit_rect(left, Rect2i(0, 0, 1280, 720), Vector2i(0, 0))
+	both.blit_rect(right, Rect2i(0, 0, 1280, 720), Vector2i(1280, 0))
+	both.save_png(ProjectSettings.globalize_path("%s/compare.png" % out_dir))
+	right.save_png(ProjectSettings.globalize_path("%s/overview.png" % out_dir))

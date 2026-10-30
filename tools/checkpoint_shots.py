@@ -3,6 +3,8 @@
 
 Usage:
     python tools/checkpoint_shots.py [--out DIR]     # default DIR: design/renders/checkpoint_02
+    python tools/checkpoint_shots.py --set round19   # graphics checkpoint 3: beacon, landmarks, dawn screens
+                                                     # (default DIR: design/renders/checkpoint_03)
 
 It launches the GAME (the real level, not design/style_test) in a labelled window through
 tools/checkpoint/checkpoint_shots.tscn. The scenario is scripted through the game's own API (fixed seed: a ring of
@@ -33,12 +35,22 @@ VIEWS = ["overview", "gap_closeup", "wedge_closeup", "shield_closeup", "ui_close
          "zoom_max", "sealed_edge", "sealed_minimap"]
 EXPECTED = (["overview.png", "compare.png", "contact_sheet.png", "contact_sheet_compare.png", "timings.txt"]
             + ["%s_%s.png" % (v, look) for v in VIEWS for look in ("placeholder", "styled")])
+# Graphics checkpoint 3 (--set round19): the beacon, each landmark unheld / claiming / held, the HUD panel, the minimap
+# and the four end screens.
+VIEWS_R19 = (["overview", "beacon_closeup"]
+             + ["%s_%s" % (n, s) for n in ("bandstand", "garden", "bell") for s in ("unheld", "claiming", "held")]
+             + ["landmark_hud", "minimap_beacon", "dawn_3", "dawn_2", "dawn_1", "dawn_lost"])
+EXPECTED_R19 = (["overview.png", "compare.png", "contact_sheet.png", "contact_sheet_compare.png", "landmarks_sheet.png"]
+                + ["%s_%s.png" % (v, look) for v in VIEWS_R19 for look in ("placeholder", "styled")])
 
 
 def main():
     parser = argparse.ArgumentParser(description="Render the checkpoint screenshots in both looks.")
-    parser.add_argument("--out", default=os.path.join("design", "renders", "checkpoint_02"))
+    parser.add_argument("--set", dest="shot_set", choices=("checkpoint2", "round19"), default="checkpoint2")
+    parser.add_argument("--out", default=None)
     args = parser.parse_args()
+    if args.out is None:
+        args.out = os.path.join("design", "renders", "checkpoint_03" if args.shot_set == "round19" else "checkpoint_02")
     out_abs = os.path.abspath(os.path.join(ROOT, args.out))
     exe = godot_gui()
     if not exe or not os.path.exists(exe):
@@ -48,6 +60,8 @@ def main():
     os.makedirs(out_abs, exist_ok=True)
     env = dict(os.environ, POSITIVEFPS_TEST="1")
     cmd = [exe, "--path", ROOT, "res://tools/checkpoint/checkpoint_shots.tscn", "--", "--out", out_abs.replace("\\", "/")]
+    if args.shot_set == "round19":
+        cmd += ["--set", "round19"]
     try:
         proc = subprocess.run(cmd, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace",
                               timeout=200)
@@ -57,7 +71,8 @@ def main():
     for line in proc.stdout.splitlines():
         if line.startswith(("TIMING", "SAVED", "GAPS", "SEALED")) or "ERROR" in line:
             print(line)
-    missing = [name for name in EXPECTED if not os.path.exists(os.path.join(out_abs, name))]
+    expected = EXPECTED_R19 if args.shot_set == "round19" else EXPECTED
+    missing = [name for name in expected if not os.path.exists(os.path.join(out_abs, name))]
     if missing:
         print("ERROR: missing outputs: " + ", ".join(missing), file=sys.stderr)
         return 1

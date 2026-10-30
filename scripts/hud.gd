@@ -21,6 +21,9 @@ var end_label: Label
 var rec_label: Label
 # Round 19: the held landmarks and their boosts (top right, under the REC mark).
 var landmark_label: Label
+# Graphics checkpoint 3: the styled drawings of the landmark panel and the end screen (nothing in the placeholder look).
+var landmark_panel: StyledPanel
+var dawn_panel: StyledPanel
 var _alert_tween: Tween
 # Round 12b: the target's element and mood, kept so either can change the label alone.
 var _target_affinity: int = -1
@@ -119,6 +122,14 @@ func _ready() -> void:
 	landmark_label.offset_bottom = 170
 	landmark_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(landmark_label)
+	landmark_panel = StyledPanel.new()
+	landmark_panel.kind = StyledPanel.Kind.LANDMARKS
+	landmark_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	landmark_panel.offset_left = -270
+	landmark_panel.offset_right = -20
+	landmark_panel.offset_top = 90
+	landmark_panel.offset_bottom = 90 + 164
+	add_child(landmark_panel)
 
 	# Rescued counter. The level places it under the minimap (see place_rescued_below).
 	rescued_label = Label.new()
@@ -169,6 +180,23 @@ func _ready() -> void:
 	end_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	end_label.add_theme_font_size_override("font_size", 32)
 	end_panel.add_child(end_label)
+	dawn_panel = StyledPanel.new()
+	dawn_panel.kind = StyledPanel.Kind.DAWN
+	dawn_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	end_panel.add_child(dawn_panel)
+	rebuild_look()
+
+
+# Graphics checkpoint 3: in the styled look the landmark panel and the end screen are drawn by StyledPanel (pixel
+# panels with icons) and the plain Labels are hidden; the placeholder look shows the Labels.
+func rebuild_look() -> void:
+	var styled := Looks.is_styled()
+	landmark_label.visible = not styled
+	end_label.visible = not styled
+	landmark_panel.visible = styled
+	dawn_panel.visible = styled
+	landmark_panel.rebuild_look()
+	dawn_panel.rebuild_look()
 
 
 # Shows how far the night has gone: 0 at dusk, 1 at dawn.
@@ -238,7 +266,8 @@ func set_hint(text: String) -> void:
 
 
 # Round 19: the landmark panel: "Landmarks 1 of 3" and a line (with the boost) for each one held.
-func set_landmarks(lines: Array[String], total: int) -> void:
+func set_landmarks(lines: Array[String], total: int, held: Array[bool] = []) -> void:
+	landmark_panel.set_landmarks(held)
 	var text := "Landmarks %d of %d" % [lines.size(), total]
 	if not lines.is_empty():
 		text += "\n" + "\n".join(lines)
@@ -305,6 +334,7 @@ func show_alert(text: String) -> void:
 
 
 # Shows the end screen: a title, then the detail lines (dawn lights, the reasons, buildings).
-func show_end(title: String, detail: String) -> void:
+func show_end(title: String, detail: String, rating: Dictionary = {}) -> void:
+	dawn_panel.set_dawn(title, detail, rating)
 	end_label.text = title + "\n\n" + detail + "\n\nPress R to play again, M for the menu"
 	end_panel.visible = true

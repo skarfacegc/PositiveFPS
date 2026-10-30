@@ -66,6 +66,16 @@ func landmark_colour() -> Color:
 	return Color("#ffd24a")
 
 
+# Graphics checkpoint 3: a held landmark is a gold star (with its ring); one not yet held is a dimmed grey-violet star.
+func landmark_state_colour(held: bool) -> Color:
+	return landmark_colour() if held else Color("#9c97ad")
+
+
+# The spirit beacon: the teal-white of its flame in the world, outlined like the other markers.
+func beacon_colour() -> Color:
+	return Color("#9cf0dc")
+
+
 func player_colour() -> Color:
 	return Color("#ffe27a")
 

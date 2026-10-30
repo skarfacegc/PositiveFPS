@@ -1349,3 +1349,34 @@ then landmarks and win). Cleanup 4 as a parallel Haiku agent. Visuals 5 as a Son
 full gate, the determinism check and the baseline update.
 
 **Playtest:** record the game. Compare with round 18's baseline: 51% quiet, all threats in the first 13 s, win at 1:20.
+
+## Graphics checkpoint 3 (2026-10-29)
+Brought the styled look up to round 19. Gameplay rules unchanged.
+
+**Styled:**
+- Spirit beacon (`style_beacon.gd`, `beacon_marker.gd`): a small stone-and-timber lantern post with a teal-white flame, a slender
+  beam, a dithered pulse ring and glow, and orbiting motes. The centre's pull is a line of small bright dashes marching from the
+  border's centre to the beacon, shrinking at both ends. Teal sets it apart from the gold landmarks and coral gaps. The minimap marks
+  it with an ink-outlined teal ring and dot (`MinimapLook.beacon_colour()`); a not-yet-held landmark star is now grey-violet.
+- Landmarks (`style_landmarks.gd`, `landmark_look_styled.gd`): three silhouettes built twice, as a grey ruin and a warm alive
+  version, dithered together by the claim hold. Bandstand: wide low dome on posts with bunting and a drum. Garden: round tree,
+  flowered bed and a blossom arch. Bell tower: tall narrow tower with a belfry and a red spire. Unheld they are still and weathered
+  (a missing post, a dead tree, a bell on the ground). Held: gold beam, lit ring and a boost cue (notes over the bandstand, petals
+  over the garden, a swinging bell and a pulsing calming ring of the real bell radius). Labels carry the real name and boost.
+  A landmark's block no longer draws the generic kiosk (`BuildingLookStyled` keeps only the post lantern).
+- Dawn rating screen (`style_dawn.gd`, `style_glyphs.gd`, `styled_panel.gd`): parchment panel, three pixel dawn lights (lit honey
+  sun with rays, or a grey rayless sun), the reason lines with pixel icons (person, cobbles, star) and a tick when each goal is met.
+  The landmark panel (top right) lists all three with pixel icons, lit or grey, and the boost each gives.
+- HUD: nothing references the removed twirl. In styled mode the landmark Label and the end-screen Label are hidden and the
+  `StyledPanel` drawings replace them (`Hud.rebuild_look()`, called from `set_look`).
+- Placeholder look: unchanged and working. `checkpoint_shots.gd` had a stale `set_values` call from the twirl removal; fixed.
+
+**Screenshots:** `design/renders/checkpoint_03/` (`python tools/checkpoint_shots.py --set round19`, both looks):
+`contact_sheet_compare.png` (placeholder | styled), `contact_sheet.png`, `landmarks_sheet.png` (three landmarks by unheld / claiming /
+held), `compare.png`, `overview`, `beacon_closeup`, `{bandstand,garden,bell}_{unheld,claiming,held}`, `landmark_hud`,
+`minimap_beacon`, `dawn_3`, `dawn_2`, `dawn_1`, `dawn_lost`. Tests: `looks_round19_test.gd`.
+
+**Rough spots:** the dawn light icons read a little like small hills with checkered rays; the bandstand ruin is dark and hard to
+read at night; the beacon's pull dashes are easy to miss in busy ground; the boost motes use wall-clock time so they are not
+frame-exact in screenshots. Landmark labels and the Rescued counter still use the plain font. Both landmark and beacon shapes
+are generic building forms (dome-on-posts, tree-and-arch, tower-with-spire) with no borrowed specific design.

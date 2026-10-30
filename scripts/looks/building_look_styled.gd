@@ -10,7 +10,6 @@ const ROOFS: Array[String] = ["#ad6249", "#5f86b0", "#c0604f", "#7f9d62"]
 const SHUTTERS: Array[String] = ["#5f86b0", "#c0604f", "#7f9d62", "#5f86b0"]
 const DOORS: Array[String] = ["#5f86b0", "#c0604f", "#7f9d62", "#c0604f"]
 const EXTRA_HEIGHT := 1.0
-const LANDMARK_EXTRA_HEIGHT := 0.7
 
 # The two versions (the whimsical one is null until it is first shown).
 var industrial: Node3D
@@ -27,6 +26,8 @@ func is_styled() -> bool:
 
 
 func sync(_delta: float = 0.0) -> void:
+	if industrial == null:
+		return
 	var mix := clampf(subject.tint, 0.0, 1.0)
 	if is_equal_approx(mix, _applied):
 		return
@@ -47,32 +48,24 @@ func set_post(on: bool) -> void:
 
 
 func _build() -> void:
-	var idx := int(absf(subject.centre.x * 7.0 + subject.centre.y * 13.0)) % 4
-	var extra := LANDMARK_EXTRA_HEIGHT if subject.is_landmark else EXTRA_HEIGHT
-	_dims = Vector3(minf(size.x, 4.0) - 0.1, size.y + extra, minf(size.z, 4.0) - 0.4)
 	if subject.is_landmark:
-		_opts = {
-			"kiosk": true,
-			"nwin": 1,
-			"roof": "#5f86b0",
-			"shutter": "#c0604f",
-			"door": "#c0604f",
-			"tank": true,
-			"tankside": -1.0,
-			"stack": true,
-			"landmark": true
-		}
-	else:
-		_opts = {
-			"kiosk": true,
-			"nwin": 1,
-			"roof": ROOFS[idx],
-			"shutter": SHUTTERS[idx],
-			"door": DOORS[idx],
-			"tank": idx % 2 == 0,
-			"tankside": 1.0 if idx < 2 else -1.0,
-			"stack": idx == 1
-		}
+		# Graphics checkpoint 3: a landmark's building is drawn by its own look (LandmarkLookStyled); only the
+		# border-post lantern and ring belong to the block.
+		_build_post_marker()
+		set_post(subject.post)
+		return
+	var idx := int(absf(subject.centre.x * 7.0 + subject.centre.y * 13.0)) % 4
+	_dims = Vector3(minf(size.x, 4.0) - 0.1, size.y + EXTRA_HEIGHT, minf(size.z, 4.0) - 0.4)
+	_opts = {
+		"kiosk": true,
+		"nwin": 1,
+		"roof": ROOFS[idx],
+		"shutter": SHUTTERS[idx],
+		"door": DOORS[idx],
+		"tank": idx % 2 == 0,
+		"tankside": 1.0 if idx < 2 else -1.0,
+		"stack": idx == 1
+	}
 	industrial = _make_version(true)
 	_build_post_marker()
 	set_post(subject.post)

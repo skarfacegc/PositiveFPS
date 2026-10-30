@@ -46,6 +46,16 @@ func landmark_colour() -> Color:
 	return Color.WHITE
 
 
+# Round 19: the colour of a landmark's star, lit when `held`. The placeholder look draws both the same.
+func landmark_state_colour(_held: bool) -> Color:
+	return landmark_colour()
+
+
+# Round 19: the colour of the spirit beacon's marker (the same pale blue in both looks until the styled one).
+func beacon_colour() -> Color:
+	return Config.BEACON_COLOUR
+
+
 func player_colour() -> Color:
 	return Color.WHITE
 
@@ -54,7 +64,7 @@ func view_colour() -> Color:
 	return Color.WHITE
 
 
-# The outline round a marker of this kind ("member", "dimmed" or "player"). Alpha 0 means none.
+# The outline round a marker of this kind ("member", "dimmed", "landmark", "beacon" or "player"). Alpha 0 means none.
 func halo_colour(_kind: String) -> Color:
 	return Color(0, 0, 0, 0)
 
