@@ -1,11 +1,16 @@
 class_name LandmarkLookPlaceholder
 extends LandmarkLook
 
-# The placeholder landmark: a beacon pillar, a fixed outline ring with a disc inside that grows with the hold
-# progress, and a label.
+# The placeholder landmark: a pillar, a fixed outline ring with a disc inside that grows with the hold progress, a
+# label, and (round 19) a simple shape of its own on top: a flat canopy for the bandstand, a ball for the garden, a
+# tall box for the bell tower. Held or not shows in the pillar's colour (gold when held, grey when not) and the label.
+
+const UNHELD_COLOUR := Color(0.62, 0.62, 0.66)
 
 var _disc: MeshInstance3D
 var _label: Label3D
+var _pillar_mat: StandardMaterial3D
+var _shape_mat: StandardMaterial3D
 
 
 func sync() -> void:
@@ -13,20 +18,37 @@ func sync() -> void:
 		return
 	var frac := subject.progress()
 	_disc.scale = Vector3(frac, 1.0, frac)
-	var shown := subject.beautified or subject.hold > 0.0
-	_label.text = "Landmark held %d%%" % roundi(frac * 100.0) if shown else "Landmark"
+	var name_text := subject.landmark_name()
+	var held := subject.is_held()
+	_pillar_mat.albedo_color = Config.BORDER_BEACON_COLOUR if held else UNHELD_COLOUR
+	_shape_mat.albedo_color = Config.LANDMARK_COLOURS[subject.index] if held else UNHELD_COLOUR
+	if held:
+		_label.text = "%s HELD: %s" % [name_text, subject.boost_text()]
+	elif subject.beautified or subject.hold > 0.0:
+		_label.text = "%s %d%%" % [name_text, roundi(frac * 100.0)]
+	else:
+		_label.text = name_text
 
 
 func _build() -> void:
+	var height := Config.LANDMARK_SIZES[subject.index].y
+	_pillar_mat = _unshaded(UNHELD_COLOUR)
 	var beacon := MeshInstance3D.new()
 	var pillar := CylinderMesh.new()
 	pillar.top_radius = 0.15
 	pillar.bottom_radius = 0.15
 	pillar.height = 9.0
 	beacon.mesh = pillar
-	beacon.position = Vector3(0, Config.BORDER_LANDMARK_SIZE.y + 4.5, 0)
-	beacon.material_override = _unshaded(Config.BORDER_BEACON_COLOUR)
+	beacon.position = Vector3(0, height + 4.5, 0)
+	beacon.material_override = _pillar_mat
 	add_child(beacon)
+
+	_shape_mat = _unshaded(UNHELD_COLOUR)
+	var shape := MeshInstance3D.new()
+	shape.mesh = _shape_mesh(subject.index)
+	shape.position = Vector3(0, height + 1.2, 0)
+	shape.material_override = _shape_mat
+	add_child(shape)
 
 	var ring := MeshInstance3D.new()
 	var torus := TorusMesh.new()
@@ -48,12 +70,30 @@ func _build() -> void:
 	add_child(_disc)
 
 	_label = Label3D.new()
-	_label.position = Vector3(0, Config.BORDER_LANDMARK_SIZE.y + 9.6, 0)
+	_label.position = Vector3(0, height + 9.6, 0)
 	_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_label.font_size = 96
 	_label.pixel_size = 0.012
 	_label.no_depth_test = true
 	add_child(_label)
+
+
+# Each landmark's own simple shape: a flat canopy (bandstand), a ball (garden), a tall box (bell tower).
+func _shape_mesh(index: int) -> Mesh:
+	if index == Landmarks.GARDEN:
+		var ball := SphereMesh.new()
+		ball.radius = 1.0
+		ball.height = 2.0
+		return ball
+	if index == Landmarks.BELL_TOWER:
+		var tall := BoxMesh.new()
+		tall.size = Vector3(1.2, 2.4, 1.2)
+		return tall
+	var canopy := CylinderMesh.new()
+	canopy.top_radius = 2.2
+	canopy.bottom_radius = 2.2
+	canopy.height = 0.3
+	return canopy
 
 
 func _unshaded(colour: Color) -> StandardMaterial3D:

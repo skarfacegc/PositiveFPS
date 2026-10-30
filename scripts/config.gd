@@ -420,10 +420,10 @@ const BORDER_TINT_SECONDS := 2.0
 const BORDER_BUILDING_COLOUR := Color(0.92, 0.7, 0.55)
 # The ground inside the border goes this colour (warm cream), and outside it stays grey.
 const BORDER_GROUND_COLOUR := Color(0.93, 0.84, 0.66)
-# The landmark: one special block away from the start. Win when it is beautified and held this long (seconds).
-const BORDER_LANDMARK_POS := Vector3(18, 0, -16) * WORLD_SCALE
+# The landmarks (round 19: three, see "Round 19: landmarks"). BORDER_LANDMARK_SIZE is the reference size the looks use
+# for label heights; BORDER_LANDMARK_HOLD is the claim hold: seconds a landmark must stay beautified to be held.
 const BORDER_LANDMARK_SIZE := Vector3(4, 3.5, 4)
-const BORDER_LANDMARK_HOLD := 10.0
+const BORDER_LANDMARK_HOLD := 3.0
 const BORDER_LANDMARK_COLOUR := Color(0.78, 0.66, 0.6)
 const BORDER_BEACON_COLOUR := Color(1.0, 0.85, 0.45)
 # The border line: intact is warm gold, a gap flickers between grey and red.
@@ -679,15 +679,7 @@ const HOVER_DIRECT_RADIUS := 1.0
 const DIM_ARRIVAL_MIN_GAP := 9.0
 
 # ---- Round 18: border movement (scripts/border.gd, border_slots.gd) ----
-# The centre follows the people's centroid only when it is further than this from the centre (territory, metres) ...
-const BORDER_CENTRE_DEAD_ZONE := 4.0 * WORLD_SCALE
-# ... scaled by how lopsided the loop is: no dead zone while the raw radii are even (a fresh ring is tracked exactly),
-# the
-# full one when they range by this much (metres). A lopsided loop is what pulls the centroid off the centre.
-const BORDER_CENTRE_DEAD_SPREAD := 2.0 * BORDER_PUSH
-# ... and only for loops bigger than the smallest circle: it fades in as the mean radius grows from BORDER_MIN_RADIUS
-# to twice
-# that, so a small group's loop always stays centred on them.
+# (Round 19: the centre no longer follows the centroid once the border forms; see "Round 19: beacon".)
 # Raw radii ease toward the mean of their four neighbours at this rate, per second (bumps relax).
 const BORDER_RELAX_RATE := 1.5
 # Members walk at BORDER_WALK_SPEED, but at most this many times their distance to the slot per second (they ease in).
@@ -734,6 +726,48 @@ const RECORD_FLUSH_SECONDS := 3.0
 const RECORD_SHOT_SECONDS := 18.0
 const RECORD_SHOT_WIDTH := 960
 const RECORD_PRESS_RADIUS := 3.0
+
+# ---- Round 19: beacon (scripts/border_centre.gd, topdown_main.gd). ----
+# The border's centre stays anchored once the border forms. E places a spirit beacon at the cursor's ground point for
+# BEACON_SPIRIT_COST spirit; the centre walks toward it at BEACON_PULL_SPEED (m/s, territory) and the beacon clears when
+# the centre is within BEACON_ARRIVE_RADIUS of it. One beacon at a time; a new one replaces the old (and costs again).
+const BEACON_SPIRIT_COST := 30.0
+const BEACON_PULL_SPEED := 0.8 * WORLD_SCALE
+const BEACON_ARRIVE_RADIUS := 0.3
+const BEACON_COLOUR := Color(0.55, 0.85, 1.0)
+const BEACON_NO_SPIRIT_TEXT := "Not enough spirit"
+const BEACON_NO_BORDER_TEXT := "Rescue three people to form a border first"
+
+# ---- Round 19: landmarks (scripts/landmark.gd, landmarks.gd, topdown_main.gd). ----
+# Three landmarks, far enough from the start that the natural ring (LANDMARK_START_REACH from the middle) cannot reach
+# them: the player needs beacons. Each is held while beautified inside the border for BORDER_LANDMARK_HOLD seconds, and
+# loses its boost the moment the border drops it. Index order: bandstand, garden, bell tower.
+const LANDMARK_NAMES: Array[String] = ["Bandstand", "Garden", "Bell tower"]
+const LANDMARK_POSITIONS: Array[Vector3] = [
+	Vector3(27, 0, -21) * WORLD_SCALE, Vector3(-29, 0, 17) * WORLD_SCALE, Vector3(6, 0, 31) * WORLD_SCALE
+]
+# Collision size (footprint 4 x 4 like the other blocks) and plain colour of each landmark's block.
+const LANDMARK_SIZES: Array[Vector3] = [Vector3(4, 2.6, 4), Vector3(4, 1.0, 4), Vector3(4, 7.0, 4)]
+const LANDMARK_COLOURS: Array[Color] = [Color(0.55, 0.62, 0.85), Color(0.55, 0.8, 0.5), Color(0.85, 0.72, 0.4)]
+const LANDMARK_START_REACH := 28.0 * WORLD_SCALE
+# Boosts while held: music joy x1.5 (bandstand), nature joy x1.5 (garden), and border members within
+# LANDMARK_BELL_RADIUS of the bell tower take x0.6 of the gloom's drain (bell tower).
+const LANDMARK_MUSIC_MULT := 1.5
+const LANDMARK_NATURE_MULT := 1.5
+const LANDMARK_BELL_LOSS_MULT := 0.6
+const LANDMARK_BELL_RADIUS := 12.0 * WORLD_SCALE
+# Short boost text per landmark, for the HUD panel and the placeholder labels.
+const LANDMARK_BOOST_TEXT: Array[String] = ["music joy x1.5", "nature joy x1.5", "gloom loss x0.6 nearby"]
+
+# ---- Round 19: dawn rating (scripts/dawn_rating.gd). ----
+# The level is won by reaching dawn. 1 light for that; 2 lights when at least two of the three lower goals are met
+# (share of people rescued, share of the plaza held, landmarks held); 3 lights when DAWN_PEOPLE_HIGH of the people are
+# rescued AND DAWN_LANDMARKS_HIGH landmarks are held at dawn. (Round 18's quick push: 52% rescued and one landmark = 2.)
+const DAWN_PEOPLE_LOW := 0.4
+const DAWN_GROUND_LOW := 0.2
+const DAWN_LANDMARKS_LOW := 1
+const DAWN_PEOPLE_HIGH := 0.6
+const DAWN_LANDMARKS_HIGH := 2
 
 static var intro_override: int = -1
 

@@ -19,6 +19,8 @@ var end_panel: ColorRect
 var end_label: Label
 # Round 18: the small "REC" mark shown while the gameplay recorder is on (built the first time it is needed).
 var rec_label: Label
+# Round 19: the held landmarks and their boosts (top right, under the REC mark).
+var landmark_label: Label
 var _alert_tween: Tween
 # Round 12b: the target's element and mood, kept so either can change the label alone.
 var _target_affinity: int = -1
@@ -103,6 +105,20 @@ func _ready() -> void:
 	targeting_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	targeting_label.visible = false
 	add_child(targeting_label)
+
+	# Round 19: the held landmarks, top right under the targeting label and the REC mark.
+	landmark_label = Label.new()
+	landmark_label.add_theme_font_size_override("font_size", 18)
+	landmark_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.5))
+	landmark_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	landmark_label.add_theme_constant_override("outline_size", 5)
+	landmark_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	landmark_label.offset_left = -360
+	landmark_label.offset_right = -20
+	landmark_label.offset_top = 90
+	landmark_label.offset_bottom = 170
+	landmark_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	add_child(landmark_label)
 
 	# Rescued counter. The level places it under the minimap (see place_rescued_below).
 	rescued_label = Label.new()
@@ -221,6 +237,15 @@ func set_hint(text: String) -> void:
 	hint_label.text = text
 
 
+# Round 19: the landmark panel: "Landmarks 1 of 3" and a line (with the boost) for each one held.
+func set_landmarks(lines: Array[String], total: int) -> void:
+	var text := "Landmarks %d of %d" % [lines.size(), total]
+	if not lines.is_empty():
+		text += "\n" + "\n".join(lines)
+	if landmark_label.text != text:
+		landmark_label.text = text
+
+
 # Round 18: shows or hides the red "REC" mark (top right, under the targeting label).
 func set_recording(on: bool) -> void:
 	if rec_label == null:
@@ -279,7 +304,7 @@ func show_alert(text: String) -> void:
 	_alert_tween.tween_property(alert_label, "modulate:a", 0.0, 2.0)
 
 
-# Shows the end screen: a title, then the detail lines (landmark, beautified share, buildings, rescued).
+# Shows the end screen: a title, then the detail lines (dawn lights, the reasons, buildings).
 func show_end(title: String, detail: String) -> void:
 	end_label.text = title + "\n\n" + detail + "\n\nPress R to play again, M for the menu"
 	end_panel.visible = true

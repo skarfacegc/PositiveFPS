@@ -12,6 +12,9 @@ extends Node3D
 #   - inside the loop the ground is painted (see PaintedGround.set_region) and blocks are beautified (see Building).
 #   - protection is the depth inside the loop (see cover_at).
 
+# Round 19: the centre reached the beacon (it has cleared).
+signal beacon_reached
+
 # Inner members are placed on a golden-angle spiral, so they spread out without a random number.
 const GOLDEN_ANGLE := 2.39996323
 
@@ -36,7 +39,8 @@ var inner: Array[Person] = []
 # One entry per slot segment: true when that stretch is a gap.
 var segment_gap: Array[bool] = []
 var buildings: Array[Building] = []
-var landmark_building: Building = null
+# Round 19: the landmark blocks, in registration order (the order of Config.LANDMARK_NAMES).
+var landmark_buildings: Array[Building] = []
 # Round 12a: how much faster the border loses ground (1 normally, DIM_LOSS_MULT while the player is dim), and whether
 # the line should flicker to show it. Set by set_player_dim().
 var loss_mult: float = 1.0
@@ -81,6 +85,8 @@ var _tracker := GapTracker.new()
 var _mids_cache: Array[Vector3] = []
 # Round 18: the slot code (layout, who stands where, gaps) lives in border_slots.gd.
 var _slots: BorderSlots = BorderSlots.new(self)
+# Round 19: the centre and the spirit beacon (border_centre.gd).
+var _centre_ctl: BorderCentre = BorderCentre.new(self)
 var _debug_on: bool = false
 var _debug_labels: Array[Label3D] = []
 
@@ -128,7 +134,7 @@ func register_building(
 	b.attach(body, box, colour)
 	buildings.append(b)
 	if is_landmark:
-		landmark_building = b
+		landmark_buildings.append(b)
 
 
 # Call every frame, before people move. Recomputes the centre, the loop, the slots and the gaps, moves the rescued
@@ -350,8 +356,9 @@ func gap_count() -> int:
 	return n
 
 
-func landmark_beautified() -> bool:
-	return landmark_building != null and landmark_building.beautified
+# True while landmark block number `index` (Config.LANDMARK_NAMES order) is beautified.
+func landmark_beautified(index: int = 0) -> bool:
+	return index < landmark_buildings.size() and landmark_buildings[index].beautified
 
 
 func beautified_building_count() -> int:
@@ -672,37 +679,23 @@ func _first_crossing(a2: Vector2, b2: Vector2) -> Variant:
 # ---------------------------------------------------------------------------------------
 
 
-# The centre follows the centroid of the rescued people at BORDER_CENTRE_FOLLOW metres a second. It snaps to the first
-# centroid it sees, so the first rescue is the starting point.
+# Round 19: puts the spirit beacon at `pos` (clamped inside the map); the centre walks toward it. One at a time.
+func place_beacon(pos: Vector3) -> void:
+	_centre_ctl.place(pos)
+
+
+# Where the beacon is, or Vector3.INF when there is none.
+func beacon_pos() -> Vector3:
+	return _centre_ctl.beacon
+
+
+func has_beacon() -> bool:
+	return _centre_ctl.has_beacon()
+
+
+# Round 19: the centre is handled by BorderCentre (anchored once the border forms, moved only by a beacon).
 func _update_centre(rescued: Array[Person], delta: float) -> void:
-	if rescued.is_empty():
-		return
-	# Round 10: a post pulls the centre like three rescued people (see BORDER_POST_WORTH), so the loop does not slide
-	# away from a landmark or a captured block that no member stands beside.
-	var sum := Vector3.ZERO
-	for p: Person in rescued:
-		sum += Vector3(p.position.x, 0.0, p.position.z)
-	var weight := float(rescued.size())
-	for pt: Vector3 in _post_points:
-		sum += pt * float(Config.BORDER_POST_WORTH)
-		weight += float(Config.BORDER_POST_WORTH)
-	var target := sum / weight
-	if not _has_centre:
-		centre = target
-		_has_centre = true
-		return
-	var to := Vector3(target.x - centre.x, 0.0, target.z - centre.z)
-	# Round 18: the centre ignores a centroid within BORDER_CENTRE_DEAD_ZONE of it (a one-sided bump pulls the centroid
-	# off the middle, and following it made the whole loop creep toward the last pushed side). Beyond that it follows at
-	# BORDER_CENTRE_FOLLOW, aiming at the dead zone's edge, so it never jumps.
-	var spread: float = _raw_radii.max() - _raw_radii.min()
-	var lopsided := clampf(spread / Config.BORDER_CENTRE_DEAD_SPREAD, 0.0, 1.0)
-	var big := clampf((_mean_radius() - Config.BORDER_MIN_RADIUS) / Config.BORDER_MIN_RADIUS, 0.0, 1.0)
-	var dead := Config.BORDER_CENTRE_DEAD_ZONE * lopsided * big
-	var excess := to.length() - dead
-	if excess <= 0.0:
-		return
-	centre += to.normalized() * minf(excess, Config.BORDER_CENTRE_FOLLOW * delta)
+	_centre_ctl.update(rescued, delta)
 
 
 # Round 12b: tracks how long each border member has been faltering. A member who recovers is forgotten; one who has

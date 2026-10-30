@@ -276,7 +276,7 @@ func test_before_a_border_a_dim_player_recovers_only_near_the_landmark() -> void
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	var player: TopDownPlayer = td.player
-	var landmark := Config.BORDER_LANDMARK_POS
+	var landmark := Config.LANDMARK_POSITIONS[0]
 	player.global_position = Vector3(landmark.x, 0.0, landmark.z + 5.0)
 	_go_dim(td)
 	assert_bool(td.border.active).is_false()

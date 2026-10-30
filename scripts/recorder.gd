@@ -109,6 +109,11 @@ func attach(main: TopDownMain) -> bool:
 	main.player.dim_changed.connect(_on_player_dim)
 	main.grabs.grab_landed.connect(_on_grab_landed)
 	main.grabs.grab_avoided.connect(_on_grab_avoided)
+	main.beacon_placed.connect(_on_beacon_placed)
+	main.border.beacon_reached.connect(_on_beacon_reached)
+	for lm: Landmark in main.landmarks.items:
+		lm.claimed.connect(_on_landmark.bind(lm, "landmark_claimed"))
+		lm.lost.connect(_on_landmark.bind(lm, "landmark_lost"))
 	main.hud.set_recording(true)
 	emit_event(
 		"session_start",
@@ -127,6 +132,18 @@ func attach(main: TopDownMain) -> bool:
 	_flush()
 	print("Recording to ", session_dir)
 	return true
+
+
+func _on_beacon_placed(pos: Vector3, cost: float, spirit_after: float) -> void:
+	emit_event("beacon_placed", {"pos": _pos(pos), "cost": cost, "spirit_after": snappedf(spirit_after, 0.1)})
+
+
+func _on_landmark(lm: Landmark, type: String) -> void:
+	emit_event(type, {"name": lm.landmark_name(), "held": _main.landmarks.held_count()})
+
+
+func _on_beacon_reached() -> void:
+	emit_event("beacon_reached", {"pos": _pos(_main.border.centre)})
 
 
 func is_open() -> bool:
@@ -202,17 +219,23 @@ func end(reason: String) -> void:
 		_main.hud.set_recording(false)
 
 
-# The round ended in `title` (TopDownMain._end_round): the dawn, win and loss events, then session_end.
+# The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn is the win
+# (round 19) and carries the rating and its parts.
 func on_round_end(title: String) -> void:
 	if _file == null or ended_reason != "":
 		return
-	var kind := "dawn"
-	if title.begins_with("The border fell"):
-		kind = "loss"
-	elif title.begins_with("The landmark"):
+	var fields := {"title": title, "rescued": _main.rescued_count}
+	var kind := "loss"
+	if not title.begins_with("The border fell"):
 		kind = "win"
-	var held := snappedf(_main.landmark.progress(), 0.01)
-	emit_event(kind, {"title": title, "rescued": _main.rescued_count, "landmark": held})
+		var r: Dictionary = _main.rating if not _main.rating.is_empty() else _main._current_rating()
+		var people_share: float = r["people"]
+		var ground_share: float = r["ground"]
+		fields["lights"] = r["lights"]
+		fields["people_share"] = snappedf(people_share, 0.01)
+		fields["ground_share"] = snappedf(ground_share, 0.01)
+		fields["landmarks_held"] = r["landmarks"]
+	emit_event(kind, fields)
 	end(kind)
 
 

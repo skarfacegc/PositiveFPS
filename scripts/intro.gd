@@ -11,7 +11,7 @@ extends RefCounted
 # With `enabled` false (the default in automated tests, see Config.intro_on()) everything is available at once and
 # no prompt ever shows.
 
-enum Prompt { GAP, GUARDED, SKITTISH, GLUM, SHELTERED, SPIRIT_LOW, DIM, DIM_HELP }
+enum Prompt { GAP, GUARDED, SKITTISH, GLUM, SHELTERED, SPIRIT_LOW, DIM, DIM_HELP, BEACON_SPIRIT, BEACON_BORDER }
 
 var enabled: bool = true
 var night: NightCycle
@@ -24,6 +24,7 @@ var anchor := Vector3.INF
 # Every prompt that was shown or queued this level, so each appears once.
 var shown: Dictionary = {}
 var _queued_anchor: Dictionary = {}
+var _check_timer: float = 0.0
 
 
 func _init(night_cycle: NightCycle = null, is_enabled: bool = true) -> void:
@@ -56,6 +57,47 @@ func request(id: int, at: Vector3 = Vector3.INF) -> bool:
 	if current < 0:
 		_next()
 	return true
+
+
+# Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the intro
+# off too, so tests can read `current`.
+func notice(id: int) -> void:
+	queue.erase(id)
+	current = id
+	anchor = Vector3.INF
+	time_left = Config.PROMPT_SECONDS
+
+
+# Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
+# INTRO_CHECK_SECONDS. (Moved here from topdown_main.gd in round 19.)
+func check_level(main: TopDownMain, delta: float) -> void:
+	if not enabled:
+		return
+	_check_timer += delta
+	if _check_timer < Config.INTRO_CHECK_SECONDS:
+		return
+	_check_timer = 0.0
+	if dimmed_allowed() and not main.feedback.markers.is_empty():
+		var faltering: Person = main.feedback.markers[0]["person"]
+		request(Prompt.GAP, faltering.global_position)
+	var view := main.get_viewport().get_visible_rect().grow(-40.0)
+	for p: Person in main.people:
+		if GloomSim.is_dimmed(p) and view.has_point(main.world_to_screen(p.global_position)):
+			request(Prompt.DIM_HELP)
+	for p: Person in main.people:
+		if p.is_rescued:
+			continue
+		var m := p.active_mood()
+		if (m == Person.Mood.NONE and not p.sheltered) or not view.has_point(main.world_to_screen(p.global_position)):
+			continue
+		if m != Person.Mood.NONE:
+			request(prompt_for_mood(m))
+		if p.sheltered:
+			request(Prompt.SHELTERED)
+	if main.player.is_dim:
+		request(Prompt.DIM)
+	elif main.player.spirit < Config.BURST_SPIRIT_COST:
+		request(Prompt.SPIRIT_LOW)
 
 
 # Counts the current prompt down and moves on to the next one in the queue.
@@ -104,6 +146,10 @@ static func text_for(id: int) -> String:
 			return "Spirit low — rescue people to refill"
 		Prompt.DIM_HELP:
 			return Config.DIM_HELP_TEXT
+		Prompt.BEACON_SPIRIT:
+			return Config.BEACON_NO_SPIRIT_TEXT
+		Prompt.BEACON_BORDER:
+			return Config.BEACON_NO_BORDER_TEXT
 	return "You're dim — rest inside your border"
 
 

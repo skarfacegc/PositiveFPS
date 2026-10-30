@@ -3,8 +3,12 @@ extends Node3D
 
 # The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a centre
 # (see border.gd). Gloom cannot cross an intact stretch of it. Inside the border the ground and the blocks are
-# beautified. The light goes from dusk to dawn (night.gd); the level ends at dawn, or earlier when the landmark is held
-# (win) or the border falls (lose).
+# beautified. The light goes from dusk to dawn (night.gd); the level ends at dawn (a win, rated in dawn lights, see
+# dawn_rating.gd) or earlier when the border falls (lose). Round 19: three landmarks give boosts while held
+# (landmarks.gd).
+
+# Round 19: a spirit beacon was placed (where, its cost, and the spirit left).
+signal beacon_placed(pos: Vector3, cost: float, spirit_after: float)
 
 # Obstacle blocks are 4 x 2 x 4. Their centres are fixed (round 13a: the round 12 spots times Config.WORLD_SCALE,
 # within +-36), and the middle stays clear.
@@ -22,7 +26,8 @@ const BLOCK_POSITIONS: Array[Vector3] = [
 	Vector3(-6, 0, 24) * Config.WORLD_SCALE + Vector3(0, 1, 0),
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
-const HINT := "WASD move | Shift run | Click to lock on | G/Q burst | R restart | M menu | [F4] look"
+const HINT_PLAY := "WASD move | Shift run | Click to lock on | G/Q burst | E beacon"
+const HINT := HINT_PLAY + " | R restart | M menu | [F4] look"
 
 var ground: PaintedGround
 var player: TopDownPlayer
@@ -32,7 +37,9 @@ var hud: Hud
 var minimap: Minimap
 var arrows: GapArrows
 var border: Border
-var landmark: Landmark
+var beacon_marker: BeaconMarker  # Round 19: the beacon in the world (placeholder marker).
+var landmarks: Landmarks  # Round 19: the three landmarks and their boosts.
+var rating: Dictionary = {}  # Round 19: the dawn rating, set when the night ends (see DawnRating).
 # Round 12a: the grabs of dimmed people (see grabs.gd).
 var grabs: Grabs
 # Round 12b: the moods of wistful and gloomy people and the sheltering of dimmed people (see moods.gd).
@@ -62,7 +69,7 @@ var debug_on: bool = false
 var _sun: DirectionalLight3D
 var _env: Environment
 var _obstacles: Array[StaticBody3D] = []
-var _landmark_body: StaticBody3D
+var _landmark_bodies: Array[StaticBody3D] = []
 var _rng := RandomNumberGenerator.new()
 # Wander state for each person: a Dictionary of {"target": Vector3, "timer": float}.
 var _wander: Dictionary = {}
@@ -73,11 +80,11 @@ var _cover_timer := 0.0
 # The frame F4 last flipped the look (the key press can arrive twice in one frame, see Known gotchas).
 var _look_frame: int = -1
 # Seconds since the intro last checked for its one-time prompts.
-var _intro_timer: float = 0.0
 # Round 14: the wheel zoom. The ortho size the camera is easing toward, and the frame the last zoom step was taken (the
 # key press can arrive twice in one frame, see Known gotchas).
 var _zoom_target: float = Config.TD_CAMERA_ORTHO_SIZE
 var _zoom_frame: int = -1
+var _beacon_frame: int = -1
 # The ortho size the label scales were last set for (they are only rewritten when the zoom moves).
 var _scaled_for_size: float = -1.0
 # Round 14: game time that passed in the night (the clock for the staggered arrivals) and the clock value when a person
@@ -103,13 +110,17 @@ func _ready() -> void:
 	add_child(border)
 	border.setup(ground)
 	for body: StaticBody3D in _obstacles:
-		var is_landmark := body == _landmark_body
-		var size := Config.BORDER_LANDMARK_SIZE if is_landmark else BLOCK_SIZE
-		var colour := Config.BORDER_LANDMARK_COLOUR if is_landmark else BLOCK_COLOUR
+		var lm_index := _landmark_bodies.find(body)
+		var is_landmark := lm_index >= 0
+		var size := Config.LANDMARK_SIZES[lm_index] if is_landmark else BLOCK_SIZE
+		var colour := Config.LANDMARK_COLOURS[lm_index] if is_landmark else BLOCK_COLOUR
 		border.register_building(body, Vector2(BLOCK_SIZE.x, BLOCK_SIZE.z) * 0.5, is_landmark, size, colour)
 
-	landmark = Landmark.new()
-	add_child(landmark)
+	landmarks = Landmarks.new()
+	add_child(landmarks)
+	landmarks.build()
+	beacon_marker = BeaconMarker.new()
+	add_child(beacon_marker)
 
 	grabs = Grabs.new()
 	add_child(grabs)
@@ -189,10 +200,13 @@ func _process(delta: float) -> void:
 	for p: Person in people:
 		p.tick(delta)
 	ground.update_paint(people, delta)
-	landmark.update(delta, border.landmark_beautified())
+	landmarks.update(delta, border)
+	landmarks.apply_boosts(people, border)
+	hud.set_landmarks(landmarks.held_lines(), Config.LANDMARK_NAMES.size())
+	beacon_marker.sync(border.beacon_pos(), delta)
 	_update_spirit_hud()
 	_update_target_mood()
-	_update_intro(delta)
+	intro.check_level(self, delta)
 	_update_feedback(delta)
 	if debug_on:
 		_update_debug_hint()
@@ -209,6 +223,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		if frame != _look_frame:
 			_look_frame = frame
 			toggle_look()
+	elif event.is_action_pressed("place_beacon"):
+		# gdUnit delivers a key press twice: one beacon per frame.
+		var beacon_frame := Engine.get_process_frames()
+		if beacon_frame != _beacon_frame:
+			_beacon_frame = beacon_frame
+			try_place_beacon()
 	elif event.is_action_pressed("zoom_in") or event.is_action_pressed("zoom_out"):
 		# Round 14: one wheel notch per frame (a repeated delivery in the same frame counts once).
 		var frame := Engine.get_process_frames()
@@ -216,6 +236,26 @@ func _unhandled_input(event: InputEvent) -> void:
 			_zoom_frame = frame
 			var step := -Config.TD_ZOOM_STEP if event.is_action_pressed("zoom_in") else Config.TD_ZOOM_STEP
 			_zoom_target = clampf(_zoom_target + step, Config.TD_ZOOM_MIN, Config.TD_ZOOM_MAX)
+
+
+# Round 19: E. Puts the spirit beacon at the cursor's ground point for BEACON_SPIRIT_COST spirit (the border's
+# centre then walks toward it). Refused (nothing changes, a short notice shows) without a border or
+# without enough spirit. A new beacon replaces the old one and costs again. Returns true when it was placed.
+func try_place_beacon() -> bool:
+	if not running or not player.has_aim():
+		return false
+	if not border.formed:
+		intro.notice(Intro.Prompt.BEACON_BORDER)
+		return false
+	if player.is_dim or player.spirit < Config.BEACON_SPIRIT_COST:
+		intro.notice(Intro.Prompt.BEACON_SPIRIT)
+		return false
+	player.lose_spirit(Config.BEACON_SPIRIT_COST)
+	border.place_beacon(player.aim_point())
+	spirit_meter.moment(-Config.BEACON_SPIRIT_COST, SpiritMeter.Moment.SPEND)
+	feedback.pulse_player(SpiritMeter.Moment.SPEND)
+	beacon_placed.emit(border.beacon_pos(), Config.BEACON_SPIRIT_COST, player.spirit)
+	return true
 
 
 # Leaves the level for `scene_path` (empty = start this level again) after telling the recorder why. Tests set
@@ -251,7 +291,7 @@ func set_look(new_mode: int) -> void:
 	border.rebuild_look()
 	for b: Building in border.buildings:
 		b.rebuild_look()
-	landmark.rebuild_look()
+	landmarks.rebuild_look()
 	player.rebuild_look()
 	for p: Person in people:
 		p.rebuild_look()
@@ -326,7 +366,7 @@ func _update_cover(delta: float) -> void:
 			p.protection = GloomSim.protection_for(p.cover)
 
 
-# Round 12a: a dim player recovers spirit only inside the border (or near the landmark before a border exists), and a
+# Round 12a: a dim player recovers spirit only inside the border (or near a landmark before a border exists), and a
 # dim player makes the border and the paint lose ground faster.
 func _update_dim(delta: float) -> void:
 	border.set_player_dim(player.is_dim)
@@ -337,7 +377,7 @@ func _update_dim(delta: float) -> void:
 
 # Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
 # DIM_RECOVER_DEPTH times the depth protection) inside the border, nothing outside it. Before any border exists, the
-# full rate within LANDMARK_RECOVER_RADIUS of the landmark.
+# full rate within LANDMARK_RECOVER_RADIUS of any landmark.
 func dim_recovery_rate() -> float:
 	var pos := player.global_position
 	if border.active:
@@ -345,7 +385,7 @@ func dim_recovery_rate() -> float:
 			return 0.0
 		var depth := border.cover_at(pos)
 		return Config.DIM_RECOVER_RATE * (Config.DIM_RECOVER_BASE + Config.DIM_RECOVER_DEPTH * depth)
-	if _flat_dist(pos, Config.BORDER_LANDMARK_POS) <= Config.LANDMARK_RECOVER_RADIUS:
+	if Landmarks.near_any(pos, Config.LANDMARK_RECOVER_RADIUS):
 		return Config.DIM_RECOVER_RATE
 	return 0.0
 
@@ -445,37 +485,6 @@ func _try_dim_sink() -> bool:
 	return true
 
 
-# Round 13b: asks the intro for its one-time prompts when something first happens. Checked every INTRO_CHECK_SECONDS.
-func _update_intro(delta: float) -> void:
-	if not intro.enabled:
-		return
-	_intro_timer += delta
-	if _intro_timer < Config.INTRO_CHECK_SECONDS:
-		return
-	_intro_timer = 0.0
-	if intro.dimmed_allowed() and not feedback.markers.is_empty():
-		var faltering: Person = feedback.markers[0]["person"]
-		intro.request(Intro.Prompt.GAP, faltering.global_position)
-	var view := get_viewport().get_visible_rect().grow(-40.0)
-	for p: Person in people:
-		if GloomSim.is_dimmed(p) and view.has_point(world_to_screen(p.global_position)):
-			intro.request(Intro.Prompt.DIM_HELP)
-	for p: Person in people:
-		if p.is_rescued:
-			continue
-		var m := p.active_mood()
-		if (m == Person.Mood.NONE and not p.sheltered) or not view.has_point(world_to_screen(p.global_position)):
-			continue
-		if m != Person.Mood.NONE:
-			intro.request(Intro.prompt_for_mood(m))
-		if p.sheltered:
-			intro.request(Intro.Prompt.SHELTERED)
-	if player.is_dim:
-		intro.request(Intro.Prompt.DIM)
-	elif player.spirit < Config.BURST_SPIRIT_COST:
-		intro.request(Intro.Prompt.SPIRIT_LOW)
-
-
 func _on_player_dim_changed(dim: bool) -> void:
 	if dim:
 		hud.show_alert("You went dim! Get inside the border to recover")
@@ -527,6 +536,7 @@ func view_half_extents() -> Vector2:
 func _update_readability(delta: float) -> void:
 	var screen := get_viewport().get_visible_rect()
 	if minimap.tick(delta):
+		minimap.held_landmarks = landmarks.held_flags()
 		minimap.refresh_from(ground, border, people, player.global_position, _view_centre(), view_half_extents())
 	arrows.update_arrows(
 		camera,
@@ -615,13 +625,14 @@ func _build_level() -> void:
 		add_child(block)
 		_obstacles.append(block)
 
-	# The landmark: a taller block (its base on the floor), away from the start.
-	var lm_pos := Config.BORDER_LANDMARK_POS
-	_landmark_body = _make_body(
-		Config.BORDER_LANDMARK_SIZE, Vector3(lm_pos.x, Config.BORDER_LANDMARK_SIZE.y / 2.0, lm_pos.z)
-	)
-	add_child(_landmark_body)
-	_obstacles.append(_landmark_body)
+	# The landmarks (round 19: three): blocks of their own height, far from the start.
+	for k: int in range(Config.LANDMARK_NAMES.size()):
+		var at := Config.LANDMARK_POSITIONS[k]
+		var lm_size := Config.LANDMARK_SIZES[k]
+		var lm_body := _make_body(lm_size, Vector3(at.x, lm_size.y / 2.0, at.z))
+		add_child(lm_body)
+		_obstacles.append(lm_body)
+		_landmark_bodies.append(lm_body)
 
 
 func _make_plaza_look() -> void:
@@ -693,8 +704,10 @@ func _near_block(p: Vector3, margin: float) -> bool:
 	for block: Vector3 in BLOCK_POSITIONS:
 		if absf(p.x - block.x) < reach and absf(p.z - block.z) < reach:
 			return true
-	var lm := Config.BORDER_LANDMARK_POS
-	return absf(p.x - lm.x) < reach and absf(p.z - lm.z) < reach
+	for lm: Vector3 in Config.LANDMARK_POSITIONS:
+		if absf(p.x - lm.x) < reach and absf(p.z - lm.z) < reach:
+			return true
+	return false
 
 
 # Moves every unrescued person for this frame. Dimmed people drift toward the rescued person they are assigned to
@@ -928,14 +941,14 @@ func _on_person_relapsed(p: Person) -> void:
 	hud.show_alert("Someone lost their joy!")
 
 
-# The end conditions, in order: the border falling loses, holding the landmark wins, and dawn ends the level.
+# The end conditions, in order: the border falling loses, and dawn ends the level (a win, rated in dawn lights).
 func _check_end() -> void:
 	if border.formed and rescued_count < Config.BORDER_MIN_PEOPLE:
 		_end_round("The border fell")
-	elif landmark.is_held():
-		_end_round("The landmark is ours!")
 	elif night.is_over():
-		_end_round("Dawn")
+		rating = _current_rating()
+		var lights: int = rating["lights"]
+		_end_round("Dawn: %d of 3 dawn lights" % lights)
 
 
 func _end_round(title: String) -> void:
@@ -949,11 +962,20 @@ func _end_round(title: String) -> void:
 	hud.show_end(title, _detail_text())
 
 
-# The lines on the end screen: the landmark, how much of the plaza is painted, the buildings and the rescued count.
+# What the rating would be right now (people rescued, ground held, landmarks held).
+func _current_rating() -> Dictionary:
+	return DawnRating.rate(rescued_count, Config.TD_PEOPLE_COUNT, ground.beautified_fraction(), landmarks.held_count())
+
+
+# The lines on the end screen: the dawn lights (at dawn) with the reasons, then the buildings beautified.
 func _detail_text() -> String:
-	var held := "yes" if landmark.is_held() else "no"
-	var plaza := roundi(ground.beautified_fraction() * 100.0)
-	return (
-		"Landmark held: %s\nPlaza beautified: %d%%\nBuildings beautified: %d of %d\nPeople rescued: %d"
-		% [held, plaza, border.beautified_building_count(), border.buildings.size(), rescued_count]
-	)
+	var r: Dictionary = rating if not rating.is_empty() else _current_rating()
+	var lights: int = r["lights"]
+	var lines: Array[String] = []
+	if not rating.is_empty():
+		lines.append("Dawn lights: " + DawnRating.lights_text(lights))
+	lines.append_array(r["lines"] as Array[String])
+	lines.append("%d of %d buildings beautified" % [border.beautified_building_count(), border.buildings.size()])
+	if not rating.is_empty():
+		lines.append(DawnRating.hint_for(lights))
+	return "\n".join(lines)

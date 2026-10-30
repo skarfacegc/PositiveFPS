@@ -136,14 +136,22 @@ func test_a_dimmed_person_outside_the_border_cannot_get_inside_it() -> void:
 	TopDownTestUtil.place(target, Vector3(0, 0, -8), 0, 0.0)
 	target.receive_joy(0, Config.JOY_MAX, 0.0)
 	var group: Array[Person] = [target]
-	var spots: Array[Vector3] = [Vector3(2, 0, -8), Vector3(-1, 0, -6), Vector3(-1, 0, -10)]
+	# Round 19: the centre no longer drifts, so the line must hold by itself: six members round the radius-4.3 minimum loop
+	# leave no gap (four did, and only the old drifting centre moved the loop away from the dimmed person).
+	var spots: Array[Vector3] = [
+		Vector3(2, 0, -8),
+		Vector3(-1, 0, -6),
+		Vector3(-1, 0, -10),
+		Vector3(-2, 0, -8),
+		Vector3(1, 0, -6),
+	]
 	for i: int in range(spots.size()):
 		var p: Person = td.people[i + 1]
 		TopDownTestUtil.place(p, spots[i], (i + 1) % 3, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
 		group.append(p)
 	# The dimmed person joins once the group's border is in.
-	var dimmed: Person = td.people[4]
+	var dimmed: Person = td.people[8]
 	TopDownTestUtil.place(dimmed, Vector3(-25, 0, 25), 1, 0.0)
 	await runner.simulate_frames(360)
 	TopDownTestUtil.place(dimmed, Vector3(0, 0, -4), 1, 0.9)

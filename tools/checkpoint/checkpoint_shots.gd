@@ -279,10 +279,10 @@ func _print_stats() -> void:
 	print("STATS members=", b.member_count, " gaps=", b.gap_count(), " rescued=", main.rescued_count)
 	print("STATS segment_gap=", b.segment_gap, " spacing=", b.spacing, " perimeter=", b.perimeter, " posts=", b.post_count)
 	print("STATS beautified buildings=", b.beautified_building_count(), " landmark=", b.landmark_beautified())
-	print("STATS landmark hold=", main.landmark.progress(), " gap_spot=", gap_spot, " player=", main.player.global_position)
+	print("STATS landmark hold=", main.landmarks.items[0].progress(), " gap_spot=", gap_spot, " player=", main.player.global_position)
 	for g: Vector3 in b.gap_midpoints():
 		print("STATS gap at ", g, " on screen ", main.world_to_screen(g))
-	print("STATS landmark on screen ", main.world_to_screen(Config.BORDER_LANDMARK_POS))
+	print("STATS landmark on screen ", main.world_to_screen(Config.LANDMARK_POSITIONS[0]))
 	print("STATS plaza centre ", b.centre)
 
 

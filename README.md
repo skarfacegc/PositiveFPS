@@ -7,8 +7,9 @@ mode was retired.)
 
 ## How to play
 
-- **Goal:** Bring joy to the gloomy townsfolk. Everyone you help joins a living border around your town. Enclose the
-  landmark (the beacon) and hold it for 10 seconds before dawn.
+- **Goal:** Bring joy to the gloomy townsfolk. Everyone you help joins a living border around your town. Survive
+  until dawn: the level is won at dawn and rated in **dawn lights** (1 to 3) from the people rescued, the ground held and
+  the landmarks held.
 - **Helping:** Point at a person and joy flies to them automatically. Guarded people only accept joy from the front,
   skittish people flee if you run at them, and glum people take extra joy when they look up.
 - **The gloom:** Dimmed people press on your border and reach for you. Where they push, border folk falter and gaps
@@ -54,12 +55,18 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
   push on one person is a push on one stretch.
 - **Inside the border the land changes.** The ground is painted warm (it fills in slowly), and blocks inside are
   beautified after a few seconds. A grey person deep inside the border lightens instead of dimming.
-- **The landmark** is the taller block with a beacon, 18 m east and 16 m north of the plaza centre. Beautify it and hold
-  the border around it for 10 seconds to win.
+- **The border stays put (round 19).** Once it forms, its centre no longer follows you or the people who push it. Press
+  **E** to place a **spirit beacon** at the mouse (30 spirit, one at a time, a new one replaces the old and costs again):
+  the border's centre slowly walks to it (about 1.1 m a second) and the beacon clears when it arrives.
+- **Three landmarks** stand far from the start, so you need beacons to reach them: the **bandstand** (music joy x1.5),
+  the **garden** (nature joy x1.5) and the **bell tower** (border members within 17 m lose 40% less to the gloom).
+  Beautify one inside the border and keep it for 3 seconds to hold it; it loses its boost the moment the border drops
+  it. The top right lists the landmarks you hold.
 - **Losing**: if the border has formed and fewer than three people are rescued, the border falls.
 - **Calm opening**: the first quarter of the night is calm (almost no grey pressure), then it builds toward midnight.
-- **Dusk to dawn**: a bar at the top shows the night. The level ends at dawn. The end screen says whether the landmark
-  was held, how much of the plaza is painted, how many buildings are beautified, and how many people were rescued.
+- **Dusk to dawn**: a bar at the top shows the night. The level ends at dawn, and reaching dawn wins. The end screen gives
+  1 to 3 **dawn lights** and why: 1 for reaching dawn; 2 when two of "40% of the people rescued", "20% of the plaza held"
+  and "one landmark held" are met; 3 when 60% of the people are rescued and two landmarks are held at dawn.
 
 ## Spirit, going dim and the dance with the gloom (round 12a)
 
@@ -74,7 +81,7 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
   grey. Dimmed people ignore a dim player and go back to pressing the border. While you are dim the
   border loses ground 1.5 times faster and its line flickers, so the cause is clear.
 - **Recovering.** A dim player recovers 10 spirit a second, scaled by how deep inside the border they stand (30% at the
-  line up to 100% a metre in), and only inside the border. Before a border exists, stand within 6 m of the landmark.
+  line up to 100% a metre in), and only inside the border. Before a border exists, stand within 6 m of a landmark.
   At 30 spirit you are back to normal.
 
 ## Reading the person: moods and sheltering (round 12b)
@@ -100,7 +107,7 @@ element, and F3 labels it above the person.
 
 ## Controls
 
-- **WASD** move, **Shift** run.
+- **WASD** move, **Shift** run, **E** place a spirit beacon at the mouse (30 spirit).
 - **Click** a person to lock on (in lock-on mode). The default is **hover**: the person under the mouse becomes the
   target. **F2** cycles the modes: lock-on, hover (default) and auto (the most urgent person in range).
 - Every shot uses the target's element, so it is always a best match. Music is quick and small, art is slow and big
