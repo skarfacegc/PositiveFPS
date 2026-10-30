@@ -7,9 +7,15 @@ extends PersonLook
 var body_mat: StandardMaterial3D
 var body: MeshInstance3D
 var wisp: CPUParticles3D
+# Graphics checkpoint 4: the body, marker and wisps hang from this node, which the walk bobs, sways and leans.
+var rig: Node3D
 
 
 func _build_body() -> void:
+	gait.legs = false
+	gait_every = 2
+	rig = Node3D.new()
+	visual.add_child(rig)
 	# The person's body: a capsule whose colour shows how grey they are.
 	body = MeshInstance3D.new()
 	var body_mesh := CapsuleMesh.new()
@@ -19,7 +25,7 @@ func _build_body() -> void:
 	body.position = Vector3(0, 0.9, 0)
 	body_mat = StandardMaterial3D.new()
 	body.material_override = body_mat
-	visual.add_child(body)
+	rig.add_child(body)
 
 	# The coloured marker above the head shows the affinity.
 	var marker := MeshInstance3D.new()
@@ -32,7 +38,7 @@ func _build_body() -> void:
 	marker_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	marker_mat.albedo_color = Config.ELEMENT_COLORS[subject.affinity]
 	marker.material_override = marker_mat
-	visual.add_child(marker)
+	rig.add_child(marker)
 
 	# Dimmed wisps drift up from dimmed people (only while the person is at the dimmed level).
 	wisp = CPUParticles3D.new()
@@ -56,7 +62,14 @@ func _build_body() -> void:
 	wisp_mesh.material = wisp_mat
 	wisp.mesh = wisp_mesh
 	wisp.emitting = false
-	visual.add_child(wisp)
+	rig.add_child(wisp)
+
+
+# The capsule has no legs: the walk is a bob, a sway over the standing foot and a lean into the way it goes (the capsule
+# faces -z, so a forward lean is a negative rotation about x).
+func _pose_gait() -> void:
+	rig.position = Vector3(gait.sway, gait.bob, 0.0)
+	rig.rotation = Vector3(-gait.pitch, gait.yaw, gait.roll)
 
 
 func play_bounce() -> void:

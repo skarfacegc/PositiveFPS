@@ -5,11 +5,19 @@ extends Node3D
 # body and the ring under the feet from the player's public state (its target). The base class holds the joy burst ring
 # that expands from the feet, which both looks share. A subclass draws the body: _build_body, sync and is_styled.
 
+# Graphics checkpoint 4: the walk. The player's walk speed is Config.TD_MOVE_SPEED and its run Config.TD_RUN_SPEED; the
+# gait counts a run from just above the walk to just below the run speed. The leg is the styled body's (model units),
+# whose scale is the world size of one unit.
+const LEG_LENGTH := 0.7
+const BODY_SCALE := 1.1
+
 var subject: TopDownPlayer
+var gait := Gait.new()
 
 
 func setup(player: TopDownPlayer) -> void:
 	subject = player
+	gait.configure(0, LEG_LENGTH, BODY_SCALE, Config.TD_MOVE_SPEED * 1.12, Config.TD_RUN_SPEED * 0.93)
 	_build_body()
 
 
@@ -20,6 +28,19 @@ func is_styled() -> bool:
 
 # Reads the player's state (the target's element sets the ring colour). Called every physics tick.
 func sync() -> void:
+	pass
+
+
+# Graphics checkpoint 4: follows the player's movement over `delta` seconds (every physics tick) and poses the body.
+func advance(delta: float) -> void:
+	if subject == null:
+		return
+	if gait.follow(subject, delta):
+		_pose_gait()
+
+
+# Puts the gait's pose on the body. Overridden by each look.
+func _pose_gait() -> void:
 	pass
 
 

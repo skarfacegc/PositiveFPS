@@ -7,6 +7,7 @@ extends PlayerLook
 
 var _ring: MeshInstance3D
 var _last_affinity: int = -2
+var _parts: Dictionary = {}
 
 
 func is_styled() -> bool:
@@ -27,7 +28,10 @@ func _build_body() -> void:
 	# The model faces +z; the player faces -z.
 	model.rotation.y = PI
 	add_child(model)
-	var parts: Dictionary = {}
-	StylePeople.build_player(model, parts)
-	_ring = parts["ring"]
+	StylePeople.build_player(model, _parts)
+	_ring = _parts["ring"]
 	sync()
+
+
+func _pose_gait() -> void:
+	StyleWalk.apply(gait, _parts)

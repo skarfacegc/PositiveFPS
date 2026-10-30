@@ -102,6 +102,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = 0.0
 		velocity.z = 0.0
 		move_and_slide()
+		look.advance(delta)
 		return
 
 	_update_aim()
@@ -118,6 +119,7 @@ func _physics_process(delta: float) -> void:
 	_face_aim()
 	_fire_cooldown -= delta
 	_update_target(delta)
+	look.advance(delta)
 	look.sync()
 	_try_fire()
 

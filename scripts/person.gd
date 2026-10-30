@@ -267,6 +267,8 @@ func tick(delta: float) -> void:
 			_rescue()
 		else:
 			_check_level()
+	if look != null:
+		look.advance(delta)
 	_update_visuals()
 	_update_debug_label()
 

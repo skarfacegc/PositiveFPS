@@ -9,6 +9,12 @@ extends Node3D
 # Which of the three states the person is drawn in.
 enum Kind { GREY, JOYFUL, DIMMED }
 
+# Graphics checkpoint 4: the standing body's leg in model units, and the speeds (m/s) a run starts and is complete at,
+# which people rarely reach (the player's run is further up, see PlayerLook).
+const LEG_LENGTH := 0.62
+const RUN_FROM := 3.0
+const RUN_FULL := 4.2
+
 var subject: Person
 # The drawn parts of the person, scaled by Config.PERSON_VISUAL_SCALE. The collision and hit radius are not scaled.
 var visual: Node3D
@@ -37,12 +43,19 @@ var glint: MeshInstance3D
 var guard_wedge: MeshInstance3D
 var wedge_mat: StandardMaterial3D
 var wedge_open: bool = false
+# Graphics checkpoint 4: the walk. The gait follows the person's real movement (see Gait); a look applies its pose in
+# _pose_gait.
+var gait := Gait.new()
+# How many frames pass between updates of the gait (1 in the styled look, 2 in the placeholder look).
+var gait_every: int = 1
 var _grace_mat: StandardMaterial3D
 # +1 leans the body back as the rules say; the styled bodies face the other way and flip it.
 var _lean_sign: float = 1.0
 var _grab_mat: StandardMaterial3D
 # Seeded random numbers for purely cosmetic jitter (floating number positions), so runs repeat.
 var _fx_rng := RandomNumberGenerator.new()
+var _carry: float = 0.0
+var _frames: int = 0
 
 
 # Round 14: the label follows the person's ui_scale (the zoom). Called only when the scale changes
@@ -58,6 +71,7 @@ func setup(person: Person) -> void:
 	visual = Node3D.new()
 	visual.scale = Vector3.ONE * Config.PERSON_VISUAL_SCALE
 	add_child(visual)
+	gait.configure(subject.look_seed, LEG_LENGTH, Config.PERSON_VISUAL_SCALE, RUN_FROM, RUN_FULL)
 	_build_body()
 
 	# Shows the joy percentage, a warning, or a smiley.
@@ -95,6 +109,28 @@ func setup(person: Person) -> void:
 # True for the styled look.
 func is_styled() -> bool:
 	return false
+
+
+# Graphics checkpoint 4: follows the person's movement over `delta` seconds (called by Person.tick) and poses the body.
+func advance(delta: float) -> void:
+	if subject == null or visual == null:
+		return
+	# The plain capsules update every other frame (it is only a bob and a lean): half the cost for 60 people.
+	_carry += delta
+	_frames += 1
+	if _frames < gait_every:
+		return
+	gait.heavy = 1.0 if kind == Kind.DIMMED else 0.0
+	var span := _carry
+	_carry = 0.0
+	_frames = 0
+	if gait.follow(subject, span):
+		_pose_gait()
+
+
+# Puts the gait's pose on the body. Overridden by each look.
+func _pose_gait() -> void:
+	pass
 
 
 # Reads the person's state and updates what is drawn. Called by the person every tick and on every change.

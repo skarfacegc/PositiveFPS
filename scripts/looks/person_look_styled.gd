@@ -70,11 +70,22 @@ func _sync_body() -> void:
 	elif shown == Kind.JOYFUL:
 		var rocking := _bounce == null or not _bounce.is_valid() or not _bounce.is_running()
 		if rocking:
-			_holders[Kind.JOYFUL].position.y = absf(sin(seconds * 3.0 + float(subject.look_seed))) * 0.05
+			# The idle rock fades out as the person walks (the gait bobs them instead).
+			var idle := absf(sin(seconds * 3.0 + float(subject.look_seed))) * 0.05
+			_holders[Kind.JOYFUL].position.y = idle * (1.0 - gait.move)
 		_holders[Kind.JOYFUL].rotation.z = wave * 0.12 if warning else 0.0
 	else:
 		var soot: Node3D = _parts[Kind.DIMMED]["soot"]
 		soot.rotation.y = seconds * 0.5
+
+
+# Graphics checkpoint 4: the walk. The pose goes on the body that is showing; a body that was hidden while the person
+# walked is put right when it shows again.
+func _pose_gait() -> void:
+	var shown := shown_kind()
+	if _holders[shown] == null:
+		return
+	StyleWalk.apply(gait, _parts[shown])
 
 
 # ---- Graphics checkpoint 2: the cues on the ground (see StyleCues). The shared base builds the placeholder shapes; the
@@ -159,8 +170,10 @@ func _holder(k: int) -> Node3D:
 	if _holders[k] != null:
 		return _holders[k]
 	var holder := Node3D.new()
+	var rig := Node3D.new()
 	var body := Node3D.new()
-	holder.add_child(body)
+	holder.add_child(rig)
+	rig.add_child(body)
 	visual.add_child(holder)
 	var parts: Dictionary = {}
 	var pose := subject.look_seed % 3
@@ -172,6 +185,12 @@ func _holder(k: int) -> Node3D:
 			StylePeople.build_joy(body, subject.affinity, outfit, parts)
 		_:
 			StylePeople.build_dimmed(body, parts)
+	# The smoke pool is on the ground: it stays out of the rig, which leans and bobs.
+	var haze: Node3D = parts.get("haze")
+	if haze != null:
+		body.remove_child(haze)
+		holder.add_child(haze)
+	parts["rig"] = rig
 	_bodies[k] = body
 	_holders[k] = holder
 	_parts[k] = parts

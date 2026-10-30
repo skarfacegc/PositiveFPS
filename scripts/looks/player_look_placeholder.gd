@@ -6,6 +6,8 @@ extends PlayerLook
 
 # The body material (round 10: saffron, a colour no person uses). Exposed so tests can check it.
 var body_mat: StandardMaterial3D
+# Graphics checkpoint 4: the body and its nose hang from this node, which the walk bobs, sways and leans.
+var rig: Node3D
 var _ring_mat: StandardMaterial3D
 
 
@@ -19,7 +21,16 @@ func sync() -> void:
 		_ring_mat.albedo_color = Config.ELEMENT_COLORS[subject.target.affinity]
 
 
+# The capsule has no legs: the walk is a bob, a sway and a lean (it faces -z, so forward leans about x the other way).
+func _pose_gait() -> void:
+	rig.position = Vector3(gait.sway, gait.bob, 0.0)
+	rig.rotation = Vector3(-gait.pitch, gait.yaw, gait.roll)
+
+
 func _build_body() -> void:
+	gait.legs = false
+	rig = Node3D.new()
+	add_child(rig)
 	# Body: a capsule, with a small nose in front so facing is visible.
 	var body := MeshInstance3D.new()
 	var body_mesh := CapsuleMesh.new()
@@ -30,7 +41,7 @@ func _build_body() -> void:
 	body_mat = StandardMaterial3D.new()
 	body_mat.albedo_color = Config.TD_PLAYER_COLOUR
 	body.material_override = body_mat
-	add_child(body)
+	rig.add_child(body)
 
 	var nose := MeshInstance3D.new()
 	var nose_mesh := BoxMesh.new()
@@ -40,7 +51,7 @@ func _build_body() -> void:
 	var nose_mat := StandardMaterial3D.new()
 	nose_mat.albedo_color = Color(0.4, 0.4, 0.42)
 	nose.material_override = nose_mat
-	add_child(nose)
+	rig.add_child(nose)
 
 	# Element ring under the feet.
 	var ring := MeshInstance3D.new()

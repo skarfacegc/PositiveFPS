@@ -30,9 +30,14 @@ static func build_grey(root: Node3D, aff: int, v: int, parts: Dictionary) -> voi
 	var scarf := StyleKit.mat(tint, 0, 0.0, 0.12)
 	var pip := StyleKit.mat(StyleKit.hexc(AFF_PIP[aff]), 0, 0.0, 0.35)
 	var pips: Array[MeshInstance3D] = []
+	var legs: Array[Node3D] = []
+	var free_arms: Array[Node3D] = []
+	var free_sides: Array[int] = []
 	for sx: float in [-0.12, 0.12]:
-		StyleKit.box(root, Vector3(0.2, 0.62, 0.22), Vector3(sx, 0.31, 0), pants)
-		StyleKit.box(root, Vector3(0.22, 0.1, 0.3), Vector3(sx, 0.05, 0.04), cap)
+		var leg := _leg(root, Vector3(sx, 0.62, 0))
+		StyleKit.box(leg, Vector3(0.2, 0.62, 0.22), Vector3(0, -0.31, 0), pants)
+		StyleKit.box(leg, Vector3(0.22, 0.1, 0.3), Vector3(0, -0.57, 0.04), cap)
+		legs.append(leg)
 	StyleKit.box(root, Vector3(0.54, 0.86, 0.36), Vector3(0, 1.0, 0), coat)
 	StyleKit.box(root, Vector3(0.58, 0.14, 0.4), Vector3(0, 0.6, 0), coat_d)
 	StyleKit.box(root, Vector3(0.62, 0.12, 0.36), Vector3(0, 1.38, 0), coat_d)
@@ -59,6 +64,8 @@ static func build_grey(root: Node3D, aff: int, v: int, parts: Dictionary) -> voi
 			arm.rotation.z = sx * 0.04
 			StyleKit.box(arm, Vector3(0.13, 0.74, 0.17), Vector3(0, -0.37, 0), coat)
 			StyleKit.sph(arm, 0.08, Vector3(0, -0.78, 0), skin, Vector3.ONE, 5)
+			free_arms.append(arm)
+			free_sides.append(0)
 	StyleKit.sph(root, 0.04, Vector3(0.14, 1.0, 0.19), brass, Vector3.ONE, 5, false)
 	pips.append(StyleKit.sph(root, 0.09, Vector3(-0.15, 1.28, 0.2), pip, Vector3.ONE, 5, false))
 	StyleKit.sph(root, 0.23, Vector3(0, 1.66, 0.01), skin, Vector3.ONE, 8)
@@ -68,6 +75,7 @@ static func build_grey(root: Node3D, aff: int, v: int, parts: Dictionary) -> voi
 	StyleKit.box(root, Vector3(0.3, 0.03, 0.16), Vector3(0, 1.8, 0.23), cap, Vector3.ZERO, false)
 	pips.append(StyleKit.sph(root, 0.06, Vector3(0.0, 1.86, 0.25), pip, Vector3.ONE, 5, false))
 	parts["pips"] = pips
+	_rig_parts(parts, legs, free_arms, free_sides)
 
 
 # ---- Joyful person. `parts["glow"]` gets the meshes that glow during the grace period.
@@ -81,6 +89,9 @@ static func build_joy(root: Node3D, aff: int, v: int, parts: Dictionary) -> void
 	var glow: Array[MeshInstance3D] = []
 	var lean := 1.0 if v % 2 == 0 else -1.0
 	var hop := 0.14 if v == 0 else (0.0 if v == 1 else 0.07)
+	var legs: Array[Node3D] = []
+	var free_arms: Array[Node3D] = []
+	var free_sides: Array[int] = []
 	for sx: float in [-1.0, 1.0]:
 		var leg := Node3D.new()
 		leg.position = Vector3(sx * 0.14, 0.62 + hop, 0)
@@ -89,6 +100,7 @@ static func build_joy(root: Node3D, aff: int, v: int, parts: Dictionary) -> void
 		root.add_child(leg)
 		StyleKit.box(leg, Vector3(0.22, 0.62, 0.24), Vector3(0, -0.31, 0), pants)
 		StyleKit.box(leg, Vector3(0.24, 0.1, 0.3), Vector3(0, -0.57, 0.03), boots)
+		legs.append(leg)
 	var up := Node3D.new()
 	up.position = Vector3(0, 0.62 + hop, 0)
 	up.rotation.z = 0.15 * lean
@@ -106,6 +118,8 @@ static func build_joy(root: Node3D, aff: int, v: int, parts: Dictionary) -> void
 			arm.rotation.z = sx * (2.55 if v != 1 else 2.0)
 		else:
 			arm.rotation.z = sx * (1.5 if v == 2 else 0.5)  # other arm flung out or relaxed
+			free_arms.append(arm)
+			free_sides.append(0 if sx < 0.0 else 1)
 		up.add_child(arm)
 		StyleKit.box(arm, Vector3(0.14, 0.62, 0.17), Vector3(0, -0.28, 0), coat)
 		StyleKit.sph(arm, 0.085, Vector3(0, -0.62, 0), skin, Vector3.ONE, 5)
@@ -125,6 +139,7 @@ static func build_joy(root: Node3D, aff: int, v: int, parts: Dictionary) -> void
 	)
 	_hat_joy(head, aff)
 	parts["glow"] = glow
+	_rig_parts(parts, legs, free_arms, free_sides)
 
 
 # ---- Dimmed person. `parts["soot"]` is the node holding the drifting soot motes.
@@ -135,8 +150,14 @@ static func build_dimmed(root: Node3D, parts: Dictionary) -> void:
 	var cap := StyleKit.mat(StyleKit.hexc("#20222a"))
 	var boots := StyleKit.mat(StyleKit.hexc("#1d1f25"))
 	var soot_mat := StyleKit.mat(StyleKit.hexc("#6a707d"))
+	var legs: Array[Node3D] = []
+	var free_arms: Array[Node3D] = []
+	var free_sides: Array[int] = []
 	for sx: float in [-0.13, 0.13]:
-		StyleKit.box(root, Vector3(0.2, 0.3, 0.26), Vector3(sx, 0.15, 0.0), boots)
+		# The boots hang from the hip under the long coat, so they swing like legs (a shuffle).
+		var leg := _leg(root, Vector3(sx, 0.62, 0))
+		StyleKit.box(leg, Vector3(0.2, 0.3, 0.26), Vector3(0, -0.47, 0.0), boots)
+		legs.append(leg)
 	# long coat skirt
 	StyleKit.box(root, Vector3(0.62, 0.62, 0.42), Vector3(0, 0.5, -0.02), coat)
 	var up := Node3D.new()
@@ -153,6 +174,8 @@ static func build_dimmed(root: Node3D, parts: Dictionary) -> void:
 		up.add_child(arm)
 		StyleKit.box(arm, Vector3(0.15, 0.7, 0.18), Vector3(0, -0.34, 0), coat)
 		StyleKit.sph(arm, 0.08, Vector3(0, -0.72, 0), skin, Vector3.ONE, 5)
+		free_arms.append(arm)
+		free_sides.append(0 if sx < 0.0 else 1)
 	var head := Node3D.new()
 	head.position = Vector3(0, 0.8, 0.12)
 	head.rotation.x = 0.12
@@ -181,6 +204,7 @@ static func build_dimmed(root: Node3D, parts: Dictionary) -> void:
 	haze.name = "Smoke"
 	parts["soot"] = soot
 	parts["haze"] = haze
+	_rig_parts(parts, legs, free_arms, free_sides)
 
 
 # The dark smoke haze under a dimmed person (one dithered dark glow, shared).
@@ -204,9 +228,14 @@ static func build_player(root: Node3D, parts: Dictionary) -> void:
 	var wood_d := StyleKit.mat(StyleKit.hexc("#4a2418"))
 	var satchel := StyleKit.mat(StyleKit.hexc("#7a4a2c"))
 	var eye := StyleKit.mat(StyleKit.hexc("#2a1f1c"))
+	var legs: Array[Node3D] = []
+	var free_arms: Array[Node3D] = []
+	var free_sides: Array[int] = []
 	for sx: float in [-0.16, 0.16]:
-		StyleKit.box(body, Vector3(0.25, 0.7, 0.27), Vector3(sx, 0.35, 0), pants)
-		StyleKit.box(body, Vector3(0.27, 0.14, 0.34), Vector3(sx, 0.07, 0.03), wood_d)
+		var leg := _leg(body, Vector3(sx, 0.7, 0))
+		StyleKit.box(leg, Vector3(0.25, 0.7, 0.27), Vector3(0, -0.35, 0), pants)
+		StyleKit.box(leg, Vector3(0.27, 0.14, 0.34), Vector3(0, -0.63, 0.03), wood_d)
+		legs.append(leg)
 	StyleKit.box(body, Vector3(0.66, 0.9, 0.44), Vector3(0, 1.1, 0), coat)
 	StyleKit.box(body, Vector3(0.8, 0.42, 0.52), Vector3(0, 0.62, 0), coat_d)
 	for sx: float in [-1.0, 1.0]:
@@ -217,6 +246,8 @@ static func build_player(root: Node3D, parts: Dictionary) -> void:
 		body.add_child(arm)
 		StyleKit.box(arm, Vector3(0.17, 0.7, 0.2), Vector3(0, -0.33, 0), coat)
 		StyleKit.sph(arm, 0.095, Vector3(0, -0.72, 0), skin, Vector3.ONE, 5)
+		free_arms.append(arm)
+		free_sides.append(0 if sx < 0.0 else 1)
 	StyleKit.sph(body, 0.26, Vector3(0, 1.78, 0.02), skin, Vector3.ONE, 8)
 	_face(body, 1.8, eye, 1.2)
 	# scarf: collar + streaming tails
@@ -270,6 +301,9 @@ static func build_player(root: Node3D, parts: Dictionary) -> void:
 	rmi2.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(rmi2)
 	parts["ring"] = rmi2
+	_rig_parts(parts, legs, free_arms, free_sides)
+	parts["rig"] = body
+	parts["rig_scale"] = body.scale.x
 	var ol := OmniLight3D.new()
 	ol.light_color = Color(1.0, 0.8, 0.45)
 	ol.light_energy = 0.9
@@ -277,6 +311,30 @@ static func build_player(root: Node3D, parts: Dictionary) -> void:
 	ol.shadow_enabled = false
 	ol.position = Vector3(0, 1.8, 0.4)
 	root.add_child(ol)
+
+
+# A leg: a pivot at the hip, to hang the leg's boxes from (so it can swing, see StyleWalk).
+static func _leg(parent: Node3D, hip: Vector3) -> Node3D:
+	var leg := Node3D.new()
+	leg.position = hip
+	parent.add_child(leg)
+	return leg
+
+
+# Records the swinging parts of a body for StyleWalk: the two legs (index 0 is the -x side), the arms that swing and
+# which side each is on, and every one's resting rotation.
+static func _rig_parts(parts: Dictionary, legs: Array[Node3D], arms: Array[Node3D], sides: Array[int]) -> void:
+	parts["legs"] = legs
+	var leg_base: Array[Vector3] = []
+	for leg: Node3D in legs:
+		leg_base.append(leg.rotation)
+	parts["leg_base"] = leg_base
+	parts["arms"] = arms
+	parts["arm_sides"] = sides
+	var arm_base: Array[Vector3] = []
+	for a: Node3D in arms:
+		arm_base.append(a.rotation)
+	parts["arm_base"] = arm_base
 
 
 static func _face(p: Node3D, y: float, em: Material, scl: float = 1.0) -> void:
