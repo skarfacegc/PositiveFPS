@@ -1445,3 +1445,29 @@ reached; spirit averaged 87–97 and never fell below 45. 2 landmarks claimed an
 Still open, watch in the next recording: no gaps in rising or midnight, and bursts and umbrellas unused. Round 19's
 styled flags (guarded icon, canopy, dawn suns, bandstand ruin, beacon dashes) also stay open; the styled look changes
 only in a graphics checkpoint.
+
+## Round 20 build (2026-10-30)
+
+Built in two parallel parts from `457bacb`; both merged without conflicts.
+
+**A. Stretching zone and beacon** (`fc2f2c5`; merge `b04d53b`): a beacon no longer walks the centre. The zone becomes a
+teardrop: the body stays round the old centre, the tip travels at `BEACON_PULL_SPEED`, stops at the beacon or the
+maximum reach, holds `BEACON_STRETCH_HOLD` (20 s), then the zone snaps to a circle at the tip.
+`BEACON_SPIRIT_COST` is 50 (was 30). Reach past the edge is `BEACON_REACH_BASE` plus `BEACON_REACH_PER_PERSON` a
+person: about 15 m at 30 people and 22 m at 52. The member loop has a fixed length, so `feasible_distance()` also caps
+the tip to keep the body at `BEACON_BODY_MIN` (0.6) of its radius; this limits reach at low head counts. All zone
+users read the one polygon from `Border._organic_polygon`. `scripts/reach_guide.gd` draws the reach ring, preview and
+stretch progress in the placeholder look.
+
+**B. Landmark clarity and minimap clouds** (`e221434`; merge `57ab18c`): the panel states each boost, claim and loss
+raise notices, the placeholder pillar pulses, and held and unheld landmarks differ on the minimap. Unrescued people
+show as soft clouds from a 5 x 5 grid recounted every 0.5 s. The minimap effects are placeholder-only.
+
+**Coverage** (`693a435`): two tests for the base minimap landmark colour and the unbuilt landmark look.
+
+`scripts/border.gd` (997 lines) and `scripts/topdown_main.gd` (999) are at the 1000-line cap: the next addition to
+either needs a split.
+
+**Playtest questions:** does the stretch let the player hold two places at once? Does the 50 cost bite? How long do
+gaps stay open after a snap, and do landmarks at the old edge drop? Are boosts and losses now clear? Are the minimap
+clouds useful?

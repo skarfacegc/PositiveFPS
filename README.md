@@ -107,7 +107,7 @@ element, and F3 labels it above the person.
 
 ## Controls
 
-- **WASD** move, **Shift** run, **E** place a spirit beacon at the mouse (30 spirit).
+- **WASD** move, **Shift** run, **E** place a spirit beacon at the mouse (50 spirit); the zone stretches toward it, then snaps to a circle there.
 - **Click** a person to lock on (in lock-on mode). The default is **hover**: the person under the mouse becomes the
   target. **F2** cycles the modes: lock-on, hover (default) and auto (the most urgent person in range).
 - Every shot uses the target's element, so it is always a best match. Music is quick and small, art is slow and big
