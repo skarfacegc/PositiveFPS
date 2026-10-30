@@ -244,6 +244,20 @@ func test_the_styled_overlays_draw_every_cue_and_swap_with_f4() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
+# Graphics checkpoint 3 coverage: an empty spirit meter in the styled look has no fill to draw (StyleHud._fill returns
+# before it). Whether the empty frame looks right is for the screenshot checkpoint; this checks the path runs.
+func test_an_empty_spirit_meter_draws_its_frame_in_the_styled_look() -> void:
+	var s: Dictionary = await _start(true)
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	td.player.lose_spirit(td.player.spirit)
+	td.spirit_meter.queue_redraw()
+	await runner.simulate_frames(3)
+	assert_bool(Looks.is_styled()).is_true()
+	assert_float(td.spirit_meter.spirit).is_equal(0.0)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
 func test_the_styled_gap_arrow_draws() -> void:
 	Looks.set_mode(Looks.Mode.STYLED)
 	var arrows: GapArrows = auto_free(GapArrows.new())

@@ -159,6 +159,17 @@ func test_the_beacon_is_clamped_inside_the_map() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
+func test_a_beacon_is_refused_once_the_round_is_over() -> void:
+	var s: Dictionary = await _formed()
+	var td: TopDownMain = s["td"]
+	var before := td.player.spirit
+	td.running = false
+	assert_bool(td.try_place_beacon()).is_false()
+	assert_bool(td.border.has_beacon()).is_false()
+	assert_float(td.player.spirit).is_equal(before)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
 func test_the_minimap_shows_the_beacon() -> void:
 	var s: Dictionary = await _formed()
 	var td: TopDownMain = s["td"]

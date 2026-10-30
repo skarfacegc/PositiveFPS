@@ -159,6 +159,41 @@ func test_shove_bulges_the_line_toward_a_player_within_range_and_ignores_one_far
 	assert_float(border._raw_radii[0]).is_equal_approx(before + Config.BORDER_SHOVE_AMOUNT, 0.001)
 
 
+# Round 19 coverage: a post takes BORDER_POST_WORTH slots in a row. Once posts split the free slots, a later post can
+# find no run left; it is then not placed, its slots stay spare, and the members take the nearest spare slot.
+func test_a_run_of_free_slots_has_no_taken_slot_in_it() -> void:
+	var taken: Array[bool] = [false, false, true, false, false, false, false, false]
+	assert_bool(BorderSlots.run_free(taken, 0)).is_false()  # slots 0, 1, 2: slot 2 is taken
+	assert_bool(BorderSlots.run_free(taken, 1)).is_false()  # slots 1, 2, 3
+	assert_bool(BorderSlots.run_free(taken, 3)).is_true()  # slots 3, 4, 5
+	assert_bool(BorderSlots.run_free(taken, 7)).is_true()  # slots 7, 0, 1: wraps round the loop
+
+
+func test_a_post_with_no_run_of_free_slots_is_left_out_and_the_member_takes_the_nearest_spare() -> void:
+	var border := _organic_border()
+	var r := 6.0 * Config.WORLD_SCALE
+	var n := Config.BORDER_SAMPLES
+	border.polygon = Border.circle_polygon(Vector2.ZERO, r, n)
+	border.active = true
+	# Three beautified blocks on the line, at loop points 5, 29 and 15 of 48. One rescued person (at point 0) and three
+	# posts make ten slots: the first post takes slots 0-2, the second 5-7, and the third finds only 3, 4, 8 and 9 free
+	# (no three in a row), so it is left out.
+	for j: int in [5, 29, 15]:
+		var a := TAU * float(j) / float(n)
+		_block(border, Vector2(cos(a), sin(a)) * r, Vector2(0.5, 0.5), true)
+	var rescued: Array[Person] = [_person_at(Vector3(r, 0.0, 0.0))]
+	border._assign_members(rescued)
+	assert_int(border.post_count).is_equal(2)
+	assert_bool(border.buildings[0].post).is_true()
+	assert_bool(border.buildings[1].post).is_true()
+	assert_bool(border.buildings[2].post).is_false()
+	# The lone member takes the nearest spare slot: slot 9, nine spacings round the loop.
+	assert_int(border.member_count).is_equal(1)
+	var target: Vector3 = border._targets[rescued[0]]
+	var want := border._point_at_open(border._phase + 9.0 * border.spacing)
+	assert_float(Vector2(target.x, target.z).distance_to(want)).is_less(0.05)
+
+
 func test_the_loop_keeps_the_perimeter_at_two_point_six_metres_per_person_once_it_settles() -> void:
 	# Round 11: ten people at 2.6 m each is a perimeter of about 26 m. Round 13a: times WORLD_SCALE.
 	var border := _organic_border()
