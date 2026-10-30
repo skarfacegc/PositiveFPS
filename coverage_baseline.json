@@ -2,6 +2,7 @@
   "line_files": {
     "scripts/bloom.gd": 100.0,
     "scripts/border.gd": 99.6,
+    "scripts/border_slots.gd": 99.6,
     "scripts/building.gd": 100.0,
     "scripts/config.gd": 100.0,
     "scripts/controls.gd": 100.0,
@@ -56,6 +57,7 @@
     "scripts/painted_ground.gd": 100.0,
     "scripts/person.gd": 100.0,
     "scripts/prompt_bar.gd": 100.0,
+    "scripts/recorder.gd": 98.4,
     "scripts/spirit_meter.gd": 100.0,
     "scripts/topdown_main.gd": 99.3,
     "scripts/topdown_player.gd": 100.0

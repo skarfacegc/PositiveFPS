@@ -979,7 +979,8 @@ cause (suspected: border slots clamped to the map edge collapse onto the same po
 nothing spreading them back out), and fix it so the wall bends along the edge, slots stay evenly spaced, and crowded
 people drift out to the nearest gap. Regression test: spacing holds and no gaps open for a while after the push.
 
-**Round 16 housekeeping: remove the hard-coded username from paths.** Four committed files hard-code
+**Round 16 housekeeping: remove the hard-coded username from paths.** (Done in round 18 part D: `tools/godot_path.py`.)
+Four committed files hard-code
 `C:/Users/amw1/...` paths: `design/style_test/main.gd` (render output dir), `design/style_test/run.sh`,
 `tools/run_tests.py` and `tools/checkpoint_shots.py` (Godot WinGet install dir). Replace them with paths relative to the
 project (`res://`, or relative to the script's location) and find Godot via the `GODOT` env var / `PATH`, falling back to
@@ -1210,3 +1211,49 @@ blooms and joy numbers: not in this checkpoint's brief (they were already listed
 about 3 ms of it; typical play shows far fewer cues). The sealed edge on the minimap sits on the circle's rim, so it is
 hard to see there. Worn umbrella is still the faintest icon. `looks_cues_test.gd` is a new suite because `looks_test.gd`
 hit the 20-public-method lint cap.
+
+## Round 18 build (2026-10-29)
+
+Built as four parallel worktree parts plus two sequential steps, then one full gate.
+
+**A. Border movement** (`349b839`): the slot code moved to `scripts/border_slots.gd` (`BorderSlots`, owned by Border as
+`_slots`); gdlintrc max-file-lines is back to 1000 (border.gd is 993 lines, so the next addition needs another split).
+Config block "Round 18: border movement":
+- No creep: the centre ignores a centroid offset inside a dead zone (`BORDER_CENTRE_DEAD_ZONE` 4 × WORLD_SCALE, scaled
+  by lopsidedness and loop size). Drift after a push went from 10.0 m to 0.00 m.
+- Ease back: members slow near their slot (`BORDER_ARRIVE_GAIN` 4); the loop settles in about 0.3–1.9 s after a push
+  (before: never within 12 s).
+- Thin tongues: raw radii relax toward their neighbours (`BORDER_RELAX_RATE` 1.5/s), except sides pressed to the map
+  edge; radii are trimmed to `BORDER_WALL_SLACK` 1.1 × the edge distance; single-ray block spikes spread as a tent
+  (`BORDER_WRAP_TENT` 3).
+- Calmer swaps: the slot offset is kept unless another saves 15% (`BORDER_SLOT_HYSTERESIS`); posts hold out to 1.5 ×
+  reach (`BORDER_POST_HOLD`), which stopped a 27/30-member flicker.
+- Short sealed stretches under one spacing reopen (`BORDER_MIN_SEAL_RUN`).
+- Tests: `tests/border_motion_test.gd` (6). Two of them (no pass-through while growing, sides a spacing apart) also
+  pass on the old code, so they are guards, not discriminators.
+
+**B. Gameplay recorder** (`97c5066`): menu checkbox "Record this game (for review)" or `-- --record`. Writes
+`recordings/YYYYMMDD-HHMMSS/events.jsonl` plus periodic screenshots; `tools/analyse_recording.py` summarises quiet time,
+threat cadence, gap durations and decision density.
+
+**C. Clearer umbrella** (`a9247ef`): wear pips, a tether to the sheltered person, a pop when the umbrella breaks and a
+regrow ring. Styled tether, burst and regrow ring are placeholder-only until a graphics checkpoint.
+
+**D. Tooling** (`9bd48c8`): the determinism check runs its two passes concurrently; `tools/godot_path.py` removes
+hard-coded user paths; `POSITIVEFPS_PARALLEL_PART=1` skips the timing pass for part commits.
+
+**Rename** (`c262bb1`): "dark" → "dimmed" (and "darkness" → "gloom") in code identifiers, e.g. `is_dimmed`,
+`TD_DIMMED_DRIFT_SPEED`, `PersonLook.Kind.DIMMED`. Colour words (`GOLD_DARK`, `DIM_DARK`, dark panels) are kept.
+
+**Coverage** (`e8af9dc`): 20 tests (mostly recorder) restored line coverage to 99.7%; 416 tests in total. Restart and
+menu now go through `_leave_level` so tests can intercept the scene change.
+
+**Rough spots:**
+- Shove bulges fade within seconds now, so territory captured by pushing out is held for less time. Check that pushing
+  still captures buildings.
+- The 60-person border timing test runs close to its 4.5 ms budget and flaked under load (4.7 ms); it passed in the gate.
+- A test suite with a script error is silently skipped by the runner (follow-up task suggested).
+- Recorder screenshots are not yet confirmed in a real window.
+
+**Playtest questions:** does the loop hold still after a big push? Does the 2–8 s recovery feel right? Do slot changes
+feel calmer? Is the umbrella readable now?
