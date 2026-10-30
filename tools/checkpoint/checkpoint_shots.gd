@@ -10,12 +10,13 @@ extends Node
 # process quits by itself.
 
 const TITLE := "PositiveFPS — RENDERING CHECKPOINT SCREENSHOTS (closes automatically)"
-const HARD_TIMEOUT := 170.0
+const HARD_TIMEOUT := 170.0  # seconds before the run quits by itself (`--timeout` changes it)
 const FAR := Vector3(31.0, 0.0, 31.0)
 # The ring of rescued people: centre, radius and how many. With these numbers the border has one gap (see stats).
 
 var out_dir: String = "res://design/renders/checkpoint_02"
 var stats_only: bool = false
+var hard_timeout: float = HARD_TIMEOUT
 var scenario_set: String = "checkpoint2"
 var ring_radius: float = 6.6
 var ring_count: int = 16
@@ -32,6 +33,8 @@ func _ready() -> void:
 	for i: int in range(args.size()):
 		if args[i] == "--out" and i + 1 < args.size():
 			out_dir = args[i + 1]
+		if args[i] == "--timeout" and i + 1 < args.size():
+			hard_timeout = float(args[i + 1])
 		if args[i] == "--stats-only":
 			stats_only = true
 		if args[i] == "--set" and i + 1 < args.size():
@@ -48,7 +51,7 @@ func _ready() -> void:
 			settle_frames = int(args[i + 1])
 		if args[i] == "--radius" and i + 1 < args.size():
 			ring_radius = float(args[i + 1])
-	get_tree().create_timer(HARD_TIMEOUT).timeout.connect(_quit)
+	get_tree().create_timer(hard_timeout).timeout.connect(_quit)
 	DisplayServer.window_set_title(TITLE)
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Looks.set_mode(Looks.Mode.PLACEHOLDER)
@@ -58,6 +61,10 @@ func _ready() -> void:
 	await get_tree().process_frame
 	if scenario_set == "round19":
 		await _run_round19()
+		_quit()
+		return
+	if scenario_set == "round20":
+		await call("_run_round20")  # defined by checkpoint_round20.gd, which extends this script
 		_quit()
 		return
 	_build_scenario()

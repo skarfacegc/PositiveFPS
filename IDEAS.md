@@ -1471,3 +1471,35 @@ either needs a split.
 **Playtest questions:** does the stretch let the player hold two places at once? Does the 50 cost bite? How long do
 gaps stay open after a snap, and do landmarks at the old edge drop? Are boosts and losses now clear? Are the minimap
 clouds useful?
+
+## Graphics checkpoint 4 (2026-10-30)
+Brought the styled look up to round 20, improved the walk, and fixed the round 19 flags. Gameplay rules unchanged.
+
+**Styled (was placeholder only):**
+- Reach guide (`style_reach.gd`): dithered teal reach ring, a pull line and disc toward the cursor, a coral line and cross when
+  the cursor is past the reach, a bright path and tip disc during a stretch, coral dashes on to the beacon, and a 28-tick
+  hold countdown ring that empties toward the snap.
+- Minimap: the clouds are a dusk-violet mist; held and unheld landmark stars were already styled (gold with a ring vs grey).
+- Landmark claim and loss pulse: a gold ring out on a claim, a grey ring with a coral rim in on a loss.
+- Claim, loss and relapse notices: a parchment banner with a pixel star in the notice colour (the plain label is hidden).
+- The teardrop zone and the snap read fine in the styled ground and border (checked in `zone_travel`, `zone_hold`,
+  `zone_snapped`).
+
+**Walk:** the step cycle is tied to ground distance (planted feet stay put, tested), the stride follows the speed, it eases
+in and out, standing shifts weight, a run differs from a walk (shorter stance, lean, spring, arm swing), strafing and
+backing away swing the legs sideways or backward, and each person has their own cadence, phase and bounce from a hash of
+`look_seed` (no random numbers). The placeholder capsules bob, sway and lean with the same gait. Standing people update 10
+times a second so 60 of them stay cheap.
+
+**Round 19 flags:** guarded icon: fixed (a chevron on the shield, no cross). Canopy: fixed (the styled look skips it, so only
+the umbrella badge shows). Dawn suns: fixed (round suns with eight rays, no ground band). Bandstand ruin: lighter. Beacon
+dashes: bigger with an ink edge. All judged from the screenshots, not yet by playing.
+
+**Screenshots:** `design/renders/checkpoint_04/` (`python tools/checkpoint_shots.py --set round20`, both looks):
+`contact_sheet.png`, `contact_sheet_compare.png`, `compare.png`, `walk_sheet.png`, `reach_*`, `zone_*`, `minimap_*`,
+`landmark_claimed|lost`, `alert_claimed|lost`, `walk_grey|joy|dimmed|player`, `run_player`, `walk_crowd`, `flag_*`.
+
+**Rough spots:** the walk is judged from stills only; the player's "walk" (7.6 m/s) is a jog in body proportions, so it
+bounds. Unrescued people who turn dimmed in the scenario drew coral grab rings at the screen edge of the first two reach
+shots. `test_perf_a_full_border_of_sixty_people_updates_within_the_frame_budget` read 4.5 to 5.1 ms on the unchanged round 20
+code on this machine under load (budget 4.5, calibrated at 2.5 to 2.9), and 4.7 to 4.9 with this change.

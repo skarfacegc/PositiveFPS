@@ -5,6 +5,8 @@ Usage:
     python tools/checkpoint_shots.py [--out DIR]     # default DIR: design/renders/checkpoint_02
     python tools/checkpoint_shots.py --set round19   # graphics checkpoint 3: beacon, landmarks, dawn screens
                                                      # (default DIR: design/renders/checkpoint_03)
+    python tools/checkpoint_shots.py --set round20   # graphics checkpoint 4: reach guide, zone, minimap, walk
+                                                     # (default DIR: design/renders/checkpoint_04)
 
 It launches the GAME (the real level, not design/style_test) in a labelled window through
 tools/checkpoint/checkpoint_shots.tscn. The scenario is scripted through the game's own API (fixed seed: a ring of
@@ -18,7 +20,7 @@ the look in place (F4), in the styled look:
     timings.txt                            average ms per frame of each look (vsync off)
 
 Needs a real window (no headless): it is titled "PositiveFPS - RENDERING CHECKPOINT SCREENSHOTS (closes automatically)",
-never captures the mouse and quits by itself (hard limit 170 s here, 200 s for this script). The Godot executable is the
+never captures the mouse and quits by itself (hard limit 170 s here, 200 s for this script; the round20 set allows 600 s and 650 s). The Godot executable is the
 non-console one next to the console one used by run_tests.py (tools/godot_path.py; GODOT_GUI overrides it).
 Only the Python standard library is used.
 """
@@ -44,13 +46,24 @@ EXPECTED_R19 = (["overview.png", "compare.png", "contact_sheet.png", "contact_sh
                 + ["%s_%s.png" % (v, look) for v in VIEWS_R19 for look in ("placeholder", "styled")])
 
 
+# Graphics checkpoint 4 (--set round20): the round 20 pieces, the walk strips and the round 19 flags.
+VIEWS_R20 = ["reach_in_range", "reach_capped", "minimap_clouds", "landmark_claimed", "alert_claimed", "landmark_lost",
+             "alert_lost", "zone_travel", "reach_travel_close", "zone_hold", "zone_snapped", "minimap_after",
+             "walk_grey", "walk_joy", "walk_dimmed", "walk_player", "run_player", "walk_crowd", "flag_wedge_closeup",
+             "flag_shield_closeup", "flag_ui_closeup", "flag_dawn"]
+EXPECTED_R20 = (["overview.png", "compare.png", "contact_sheet.png", "contact_sheet_compare.png", "walk_sheet.png"]
+                + ["%s_%s.png" % (v, look) for v in VIEWS_R20 for look in ("placeholder", "styled")])
+
+
 def main():
     parser = argparse.ArgumentParser(description="Render the checkpoint screenshots in both looks.")
-    parser.add_argument("--set", dest="shot_set", choices=("checkpoint2", "round19"), default="checkpoint2")
+    parser.add_argument("--set", dest="shot_set", choices=("checkpoint2", "round19", "round20"),
+                        default="checkpoint2")
     parser.add_argument("--out", default=None)
     args = parser.parse_args()
     if args.out is None:
-        args.out = os.path.join("design", "renders", "checkpoint_03" if args.shot_set == "round19" else "checkpoint_02")
+        folder = {"round19": "checkpoint_03", "round20": "checkpoint_04"}.get(args.shot_set, "checkpoint_02")
+        args.out = os.path.join("design", "renders", folder)
     out_abs = os.path.abspath(os.path.join(ROOT, args.out))
     exe = godot_gui()
     if not exe or not os.path.exists(exe):
@@ -59,19 +72,22 @@ def main():
         return 2
     os.makedirs(out_abs, exist_ok=True)
     env = dict(os.environ, POSITIVEFPS_TEST="1")
-    cmd = [exe, "--path", ROOT, "res://tools/checkpoint/checkpoint_shots.tscn", "--", "--out", out_abs.replace("\\", "/")]
-    if args.shot_set == "round19":
-        cmd += ["--set", "round19"]
+    scene = "checkpoint_round20.tscn" if args.shot_set == "round20" else "checkpoint_shots.tscn"
+    cmd = [exe, "--path", ROOT, "res://tools/checkpoint/" + scene, "--", "--out", out_abs.replace("\\", "/")]
+    if args.shot_set in ("round19", "round20"):
+        cmd += ["--set", args.shot_set]
+    if args.shot_set == "round20":
+        cmd += ["--timeout", "600"]
     try:
         proc = subprocess.run(cmd, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace",
-                              timeout=200)
+                              timeout=650 if args.shot_set == "round20" else 200)
     except subprocess.TimeoutExpired:
         print("ERROR: the screenshot run timed out", file=sys.stderr)
         return 2
     for line in proc.stdout.splitlines():
         if line.startswith(("TIMING", "SAVED", "GAPS", "SEALED")) or "ERROR" in line:
             print(line)
-    expected = EXPECTED_R19 if args.shot_set == "round19" else EXPECTED
+    expected = {"round19": EXPECTED_R19, "round20": EXPECTED_R20}.get(args.shot_set, EXPECTED)
     missing = [name for name in expected if not os.path.exists(os.path.join(out_abs, name))]
     if missing:
         print("ERROR: missing outputs: " + ", ".join(missing), file=sys.stderr)
