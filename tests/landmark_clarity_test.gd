@@ -99,6 +99,21 @@ func test_the_placeholder_minimap_marks_a_held_landmark_apart_from_one_not_held(
 	assert_bool(look.landmark_state_colour(false).is_equal_approx(Config.TD_MINIMAP_LANDMARK_UNHELD_COLOUR)).is_true()
 
 
+func test_the_base_minimap_look_draws_held_and_unheld_landmarks_in_one_colour() -> void:
+	var look := MinimapLook.new()
+	assert_bool(look.landmark_state_colour(true).is_equal_approx(look.landmark_colour())).is_true()
+	assert_bool(look.landmark_state_colour(false).is_equal_approx(look.landmark_colour())).is_true()
+	assert_bool(look.landmark_state_colour(false).is_equal_approx(Color.WHITE)).is_true()
+
+
+func test_a_landmark_look_that_is_not_built_yet_ignores_a_claim_and_a_sync() -> void:
+	var look: LandmarkLookPlaceholder = auto_free(LandmarkLookPlaceholder.new())
+	look.play_change(true)
+	look.play_change(false)
+	look.sync()
+	assert_bool(look.pulse_running()).is_false()
+
+
 func test_the_styled_look_draws_no_clouds_and_keeps_its_own_landmark_marks() -> void:
 	assert_float(MinimapLook.new().cloud_colour().a).is_equal(0.0)
 	assert_float(MinimapLookStyled.new().cloud_colour().a).is_equal(0.0)
