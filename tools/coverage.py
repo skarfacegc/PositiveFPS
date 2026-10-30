@@ -854,13 +854,16 @@ def main():
 
     os.makedirs(HITS_DIR, exist_ok=True)
     print("== Running the test suite (headless) against the instrumented copy")
+    problems = []  # broken scripts and skipped suites (run_tests.integrity_problems), listed again at the end
     try:
         code, results, _report_dir = run_tests.run_suite(BUILD, report_root=REPORTS_DIR, workers=args.workers,
-                                                         cov_dir=HITS_DIR)
+                                                         cov_dir=HITS_DIR, problems=problems)
     except (RuntimeError, OSError) as err:
         print("ERROR: " + str(err), file=sys.stderr)
         return 2
     if results is None:
+        for p in problems:
+            print("BROKEN " + p, file=sys.stderr)
         print("ERROR: no test results were written; see the Godot output above.", file=sys.stderr)
         return 2
 
@@ -880,7 +883,9 @@ def main():
     failed = [r for r in results if not r["ok"]]
     for r in failed:
         print("FAIL %s::%s  %s" % (r["file"], r["name"], " | ".join(r["messages"])[:400]))
-    tests_ok = not failed and code == 0
+    for p in problems:
+        print("BROKEN " + p)
+    tests_ok = not failed and not problems and code == 0
     save_clean_run(fp, code, results, stats, hits)
 
     if args.update_baseline:

@@ -183,9 +183,44 @@ def plan_units(tests, weights, with_perf=True):
 SCRIPT_PROBLEM = re.compile(r"Parse Error|SCRIPT ERROR|Failed to load script|Failed to compile|Compile Error", re.I)
 
 
+ANSI_CODE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+# The line after a SCRIPT ERROR names the script: "at: GDScript::reload (res://tests/x_test.gd:6)" for a parse error.
+SCRIPT_AT = re.compile(r"^\s*at: .*?\(res://([^)]+)\)")
+FAILED_LOAD = re.compile(r'Failed to load script "res://([^"]+)"')
+
+
 def script_problems(output):
     """Lines of Godot output that show a test or game script failed to parse or load."""
     return [ln.strip() for ln in output.splitlines() if SCRIPT_PROBLEM.search(ln)][:12]
+
+
+def broken_scripts(output):
+    """{"tests/x_test.gd:6": "Parse Error: ..."} for each script a SCRIPT ERROR or failed load in `output` names."""
+    found = {}
+    pending = None  # the message of a SCRIPT ERROR whose "at:" line has not come yet
+    for raw in output.splitlines():
+        ln = ANSI_CODE.sub("", raw).strip()
+        at = SCRIPT_AT.match(ln)
+        if pending and at:
+            found.setdefault(at.group(1), pending)
+            pending = None
+            continue
+        pending = ln[len("SCRIPT ERROR:"):].strip() if ln.startswith("SCRIPT ERROR:") else None
+        load = FAILED_LOAD.search(ln)
+        if load and not any(key.split(":")[0] == load.group(1) for key in found):
+            found[load.group(1)] = "failed to load"
+    return found
+
+
+def output_problems(outputs):
+    """One problem string per broken script across all the Godot outputs, file and line first; raw lines otherwise."""
+    problems = []
+    for out in outputs:
+        named = broken_scripts(out)
+        lines = ["%s: %s" % kv for kv in named.items()] if named else \
+            ["script error in Godot output: " + ln for ln in script_problems(out)]
+        problems += [p for p in lines if p not in problems]
+    return problems
 
 
 def integrity_problems(project, results, outputs, skip_perf=False):
@@ -195,7 +230,7 @@ def integrity_problems(project, results, outputs, skip_perf=False):
     (1) any script error in the Godot output is a problem, and (2) every discovered suite must report, with at
     least as many tests as the file declares (the timing tests are not expected when skip_perf is set).
     """
-    problems = ["script error in Godot output: " + ln for out in outputs for ln in script_problems(out)]
+    problems = output_problems(outputs)
     ran = {}
     for r in results or []:
         ran[r["file"]] = ran.get(r["file"], 0) + 1
@@ -205,9 +240,9 @@ def integrity_problems(project, results, outputs, skip_perf=False):
         if not names:
             continue
         if suite not in ran:
-            problems.append("suite %s did not report any results (skipped?)" % suite)
+            problems.append("tests/%s.gd: suite did not report any results (skipped?)" % suite)
         elif ran[suite] < len(names):
-            problems.append("suite %s ran %d of its %d tests" % (suite, ran[suite], len(names)))
+            problems.append("tests/%s.gd: suite ran %d of its %d tests" % (suite, ran[suite], len(names)))
     return problems
 
 
@@ -311,11 +346,12 @@ def parse_results(xml_path):
     return results
 
 
-def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=False):
+def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=False, problems=None):
     """Runs the whole suite on `project`. Returns (exit code, list of test result dicts or None, report dir).
 
     workers=1 runs everything in one Godot process; more runs units in parallel (see the module docstring).
     cov_dir: a folder where each process writes its coverage hits (used by tools/coverage.py).
+    problems: a list that receives the integrity problems (broken scripts, skipped suites), for the caller's summary.
     """
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     report_root = report_root or os.path.join(project, "reports")
@@ -345,12 +381,17 @@ def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=F
             outputs += perf_outputs
             results.sort(key=lambda r: (r["file"], r["name"]))
         results = results or None
-    if results is not None and not perf_only:
-        problems = integrity_problems(project, results, outputs, skip_perf=skip_perf)
-        for p in problems:
-            print("ERROR: " + p, flush=True)
-        if problems:
-            code = max(code, 1)
+    # With no results at all (gdUnit aborted the whole run) only the script errors can say which file is to blame.
+    if results is not None:
+        found = integrity_problems(project, results, outputs, skip_perf=skip_perf)
+    else:
+        found = output_problems(outputs)
+    for p in found:
+        print("ERROR: " + p, flush=True)
+    if found:
+        code = max(code, 1)
+    if problems is not None:
+        problems.extend(found)
     return code, results, report_dir
 
 
@@ -365,12 +406,16 @@ def main():
                         help="after the run, write each test's duration to tools/test_weights.json")
     args = parser.parse_args()
     project = os.path.abspath(args.project)
+    problems = []
     try:
-        code, results, report_dir = run_suite(project, workers=args.workers, perf_only=args.perf_only)
+        code, results, report_dir = run_suite(project, workers=args.workers, perf_only=args.perf_only,
+                                              problems=problems)
     except (RuntimeError, OSError) as err:
         print("ERROR: " + str(err), file=sys.stderr)
         return 2
     if results is None:
+        for p in problems:
+            print("BROKEN " + p, file=sys.stderr)
         print("ERROR: no results.xml written; see the Godot output above.", file=sys.stderr)
         return 2
     failed = [r for r in results if not r["ok"]]
@@ -381,10 +426,14 @@ def main():
             fh.write("\n")
         print("Wrote %s" % WEIGHTS_FILE)
     print("")
-    print("Tests: %d passed, %d failed (reports: %s)" % (len(results) - len(failed), len(failed), report_dir))
+    broken = (", %d broken or skipped" % len(problems)) if problems else ""
+    print("Tests: %d passed, %d failed%s (reports: %s)" % (len(results) - len(failed), len(failed), broken,
+                                                          report_dir))
     for r in failed:
         print("FAIL %s::%s  %s" % (r["file"], r["name"], " | ".join(r["messages"])[:400]))
-    return 1 if failed or code != 0 else 0
+    for p in problems:  # last, so a dropped suite cannot hide above a summary that says "0 failed"
+        print("BROKEN " + p)
+    return 1 if failed or problems or code != 0 else 0
 
 
 if __name__ == "__main__":

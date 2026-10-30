@@ -115,6 +115,13 @@ t_ratchet`.
   `Failed to load script` or a compile error, or when a discovered `tests/*_test.gd` suite reports no results or fewer
   tests than it declares (`integrity_problems()`, used by the serial and parallel paths, so `coverage.py` gets it too).
   `tools/test_gate.py` proves it with a deliberately broken suite in a temporary project under `.scratch/`.
+- 2026-10-29: Loud report for dropped suites (after round 18). The exit code was already non-zero, but the last line
+  still read "N passed, 0 failed" with the errors far above it. Now `broken_scripts()` reads the file and line from the
+  `at:` line after each `SCRIPT ERROR` (or from `Failed to load script`). The summary counts the problems
+  ("0 failed, 2 broken or skipped"), and `BROKEN <file>:<line>: <message>` lines come last in `run_tests.py` and
+  `coverage.py`. `run_suite(problems=[...])` hands the list to the caller. `tools/test_run_tests.py` runs the CLI on
+  `tools/fixtures/warning_error_suite.gd`, a suite that breaks only under warnings-as-errors (`int()` on a Variant).
+  The fixture sits outside `tests/` and has a `.gdignore`, so the real run never loads it.
 
 ## Future idea (2026-10-26): change-based test selection (test impact analysis)
 For small turns, run only the tests likely to be affected; releases and significant reviews still run the full suite.
