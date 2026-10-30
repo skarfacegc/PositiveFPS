@@ -74,7 +74,9 @@ class BrokenSuiteEndToEndTest(unittest.TestCase):
     """The real CLI on a scratch project with one good suite and the broken fixture: non-zero exit, file named last."""
 
     def setUp(self):
-        self.project = os.path.join(run_tests.ROOT, ".scratch", "run_tests_broken_%d" % os.getpid())
+        # One folder per test: on Windows the previous test's folder can still be locked when the next one starts.
+        self.project = os.path.join(run_tests.ROOT, ".scratch",
+                                    "run_tests_broken_%d_%s" % (os.getpid(), self._testMethodName))
         remove_tree(self.project)
         tests_dir = os.path.join(self.project, "tests")
         os.makedirs(tests_dir)
