@@ -703,6 +703,10 @@ const BORDER_SLOT_HYSTERESIS := 0.15
 # A stretch sealed by the map edge shorter than this is opened again (its neighbours would stand too close).
 const BORDER_MIN_SEAL_RUN := BORDER_TARGET_SPACING
 
+# ---- Round 19: cleanup (scripts/hud.gd, topdown_main.gd)
+# The Rescued counter sits this many pixels below the bottom of the minimap, so the minimap never covers it.
+const RESCUED_BELOW_MINIMAP_GAP := 10.0
+
 # ---- Round 16: the border near the map edge (scripts/border.gd) ----
 # The border stays on the map: its loop is clamped to this distance from the middle (the same limit people wander to).
 # Where it runs along the edge it is sealed (closed by the map, never a gap, no slots).

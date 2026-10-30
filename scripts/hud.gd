@@ -104,11 +104,10 @@ func _ready() -> void:
 	targeting_label.visible = false
 	add_child(targeting_label)
 
-	# Rescued counter, top left.
+	# Rescued counter. The level places it under the minimap (see place_rescued_below).
 	rescued_label = Label.new()
 	rescued_label.text = "Rescued: 0 / %d" % Config.TD_PEOPLE_COUNT
 	rescued_label.add_theme_font_size_override("font_size", 24)
-	rescued_label.position = Vector2(20, 20)
 	add_child(rescued_label)
 
 	# Shows that the F3 debug overlay is on. Hidden unless it is (see set_debug_on).
@@ -194,6 +193,11 @@ func set_targeting(mode: int) -> void:
 
 func set_rescued(n: int, total: int) -> void:
 	rescued_label.text = "Rescued: %d / %d" % [n, total]
+
+
+# Puts the Rescued counter at the left edge, `y` pixels from the top (the level passes the bottom of the minimap).
+func place_rescued_below(y: float) -> void:
+	rescued_label.position = Vector2(20, y)
 
 
 # Shows the "[F3] debug" hint while the debug overlay is on.

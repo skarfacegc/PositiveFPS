@@ -143,6 +143,7 @@ func _ready() -> void:
 	minimap.size = Vector2.ONE * floorf(Config.TD_MINIMAP_WIDTH_FRACTION * screen_w)
 	minimap.position = Vector2(16, 16)
 	hud.add_child(minimap)
+	hud.place_rescued_below(minimap.position.y + minimap.size.y + Config.RESCUED_BELOW_MINIMAP_GAP)
 	arrows = GapArrows.new()
 	hud.add_child(arrows)
 	_build_feedback()
