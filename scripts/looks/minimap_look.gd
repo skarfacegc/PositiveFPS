@@ -51,6 +51,11 @@ func landmark_state_colour(_held: bool) -> Color:
 	return landmark_colour()
 
 
+# Round 20: the colour of the soft people clouds (minimap.gd). Alpha 0 means the look draws none (the styled look).
+func cloud_colour() -> Color:
+	return Color(0, 0, 0, 0)
+
+
 # Round 19: the colour of the spirit beacon's marker (the same pale blue in both looks until the styled one).
 func beacon_colour() -> Color:
 	return Config.BEACON_COLOUR

@@ -757,7 +757,7 @@ const LANDMARK_NATURE_MULT := 1.5
 const LANDMARK_BELL_LOSS_MULT := 0.6
 const LANDMARK_BELL_RADIUS := 12.0 * WORLD_SCALE
 # Short boost text per landmark, for the HUD panel and the placeholder labels.
-const LANDMARK_BOOST_TEXT: Array[String] = ["music joy x1.5", "nature joy x1.5", "gloom loss x0.6 nearby"]
+const LANDMARK_BOOST_TEXT: Array[String] = ["music x1.5", "nature x1.5", "gloom slowed x0.6 nearby"]
 
 # ---- Round 19: dawn rating (scripts/dawn_rating.gd). ----
 # The level is won by reaching dawn. 1 light for that; 2 lights when at least two of the three lower goals are met
@@ -768,6 +768,30 @@ const DAWN_GROUND_LOW := 0.2
 const DAWN_LANDMARKS_LOW := 1
 const DAWN_PEOPLE_HIGH := 0.6
 const DAWN_LANDMARKS_HIGH := 2
+
+# ---- Round 20: landmark clarity (scripts/landmark.gd, landmarks.gd, looks/landmark_look_placeholder.gd, hud.gd,
+# looks/minimap_look_placeholder.gd, topdown_main.gd). ----
+# A claim or a loss shows a notice across the top (HUD alert). A loss is held longer and coloured as a break.
+const LANDMARK_CLAIM_COLOUR := Color(1.0, 0.88, 0.5)
+const LANDMARK_LOSS_COLOUR := Color(0.95, 0.42, 0.36)
+const LANDMARK_LOSS_SECONDS := 2.5
+# The minimap star of a landmark that is not held (a held one is gold with its ring), placeholder look.
+const TD_MINIMAP_LANDMARK_UNHELD_COLOUR := Color(0.34, 0.32, 0.31)
+
+# ---- Round 20: minimap clouds (scripts/minimap.gd, looks/minimap_look_placeholder.gd). ----
+# Unrescued people are binned into a coarse MINIMAP_CLOUD_CELLS x MINIMAP_CLOUD_CELLS grid of the plaza. A cell with at
+# least MINIMAP_CLOUD_MIN_COUNT people gets one soft blob at its centre: wider and stronger the more people it holds
+# (radius = base + per-person x sqrt(count), capped; alpha = max x count / full, capped). The bins are recounted every
+# MINIMAP_CLOUD_SECONDS (twice a second), not every picture refresh.
+const MINIMAP_CLOUD_SECONDS := 0.5
+const MINIMAP_CLOUD_CELLS := 5
+const MINIMAP_CLOUD_MIN_COUNT := 3
+const MINIMAP_CLOUD_FULL_COUNT := 12
+const MINIMAP_CLOUD_BASE_RADIUS_PX := 12.0
+const MINIMAP_CLOUD_RADIUS_PER_PERSON_PX := 3.0
+const MINIMAP_CLOUD_MAX_RADIUS_PX := 30.0
+const MINIMAP_CLOUD_MAX_ALPHA := 0.55
+const MINIMAP_CLOUD_COLOUR := Color(0.36, 0.46, 0.78)
 
 static var intro_override: int = -1
 

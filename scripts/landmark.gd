@@ -42,6 +42,15 @@ func boost_text() -> String:
 	return Config.LANDMARK_BOOST_TEXT[index]
 
 
+# Round 20: the notice when it is claimed, and when the border drops it (names the boost that is gained or lost).
+func claim_text() -> String:
+	return "Claimed the %s: %s" % [landmark_name(), boost_text()]
+
+
+func loss_text() -> String:
+	return "Lost the %s boost: %s" % [landmark_name(), boost_text()]
+
+
 # Holds the landmark: while `is_beautified` (the landmark block is inside the border) the hold grows, otherwise it
 # resets (and the boost goes at once). Emits `claimed` and `lost` when the held state flips.
 func update(delta: float, is_beautified: bool) -> void:
@@ -57,6 +66,8 @@ func update(delta: float, is_beautified: bool) -> void:
 			claimed.emit()
 		else:
 			lost.emit()
+		if look != null:
+			look.play_change(held)  # Round 20: the landmark itself reacts to the change (a pulse, placeholder look).
 	if look != null:
 		look.sync()
 

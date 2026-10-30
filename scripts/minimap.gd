@@ -2,7 +2,8 @@ class_name Minimap
 extends Control
 
 # The round minimap (round 10), top-left, about TD_MINIMAP_WIDTH_FRACTION of the screen width. It shows the whole
-# plaza in a circle: warm and grey ground, buildings, the border line, the gaps (coral), the border members (cream
+# plaza in a circle: warm and grey ground, soft people clouds (round 20: where unrescued people cluster, binned into a
+# coarse grid and recounted twice a second), buildings, the border line, the gaps (coral), the border members (cream
 # dots), the dimmed people (dimmed dots), the landmark (a star), the player (a bright dot) and the camera's view
 # rectangle.
 #
@@ -35,6 +36,9 @@ var building_warm: Array[bool] = []
 var blips: Array[Dictionary] = []
 # Round 13b: a marker on each open gap, {"pos": Vector2, "urgency": 0..1}; it grows and brightens with urgency.
 var gap_markers: Array[Dictionary] = []
+# Round 20: the people clouds. Unrescued people binned into a coarse grid: for each cell with enough people, {"centre":
+# Vector2 (world), "count": int, "radius": float (picture pixels)}. Recounted every MINIMAP_CLOUD_SECONDS (see tick).
+var cloud_cells: Array[Dictionary] = []
 
 # The look: the palette and the frame (see scripts/looks/minimap_look.gd). The picture itself is built here.
 var look: MinimapLook
@@ -42,6 +46,10 @@ var _image: Image
 var _texture: ImageTexture
 var _ground: PaintedGround
 var _timer: float = Config.TD_MINIMAP_REFRESH_SECONDS
+# Round 20: the cloud's alpha for each picture pixel (RESOLUTION x RESOLUTION, row by row; 0 where there is none).
+var _cloud_alpha := PackedFloat32Array()
+var _cloud_age: float = 0.0
+var _cloud_due: bool = true
 
 
 func _ready() -> void:
@@ -78,11 +86,19 @@ func tick(delta: float) -> bool:
 		blips[i]["left"] = left
 		if left <= 0.0:
 			blips.remove_at(i)
+	_cloud_age += delta
+	if _cloud_age >= Config.MINIMAP_CLOUD_SECONDS:
+		_cloud_due = true
 	_timer += delta
 	if _timer < Config.TD_MINIMAP_REFRESH_SECONDS:
 		return false
 	_timer = 0.0
 	return true
+
+
+# Round 20: true when the people clouds are due a recount (at the next refresh_from).
+func clouds_due() -> bool:
+	return _cloud_due
 
 
 # Reads the level into the data model and redraws the picture. `view_half` is the half size of the camera's view on
@@ -136,7 +152,68 @@ func refresh_from(
 	for b: Building in border.buildings:
 		building_rects.append(Rect2(b.centre - b.half, b.half * 2.0))
 		building_warm.append(b.beautified)
+	if _cloud_due:
+		refresh_clouds(people)
 	_render()
+
+
+# Round 20: bins the unrescued people into the coarse grid and paints a soft blob for each busy cell. Called by
+# refresh_from when a recount is due (twice a second); tests call it directly.
+func refresh_clouds(people: Array[Person]) -> void:
+	_cloud_due = false
+	_cloud_age = 0.0
+	var n := Config.MINIMAP_CLOUD_CELLS
+	var cell_m := float(Config.TD_PLAZA_SIZE) / float(n)
+	var half := Config.TD_PLAZA_SIZE * 0.5
+	var counts := PackedInt32Array()
+	counts.resize(n * n)
+	for p: Person in people:
+		if p.is_rescued:
+			continue
+		var ix := clampi(floori((p.position.x + half) / cell_m), 0, n - 1)
+		var iz := clampi(floori((p.position.z + half) / cell_m), 0, n - 1)
+		counts[iz * n + ix] += 1
+	cloud_cells.clear()
+	for iz: int in range(n):
+		for ix: int in range(n):
+			var count := counts[iz * n + ix]
+			if count < Config.MINIMAP_CLOUD_MIN_COUNT:
+				continue
+			var centre := Vector2(-half + (ix + 0.5) * cell_m, -half + (iz + 0.5) * cell_m)
+			var radius := minf(
+				Config.MINIMAP_CLOUD_BASE_RADIUS_PX + Config.MINIMAP_CLOUD_RADIUS_PER_PERSON_PX * sqrt(float(count)),
+				Config.MINIMAP_CLOUD_MAX_RADIUS_PX
+			)
+			cloud_cells.append({"centre": centre, "count": count, "radius": radius})
+	_paint_clouds()
+
+
+# Round 20: the alpha of the people clouds at picture pixel (px, py), 0 to 1. Zero outside every blob.
+func cloud_alpha_at(px: int, py: int) -> float:
+	if _cloud_alpha.size() != RESOLUTION * RESOLUTION or px < 0 or py < 0 or px >= RESOLUTION or py >= RESOLUTION:
+		return 0.0
+	return _cloud_alpha[py * RESOLUTION + px]
+
+
+# Round 20: fills the cloud alpha map. Each blob falls off smoothly from its centre to its edge (1 - d^2)^2, and
+# overlapping blobs combine (1 - (1 - a)(1 - b)), so a patch reads as one soft cloud, never as dots.
+func _paint_clouds() -> void:
+	_cloud_alpha.resize(RESOLUTION * RESOLUTION)
+	_cloud_alpha.fill(0.0)
+	for cell: Dictionary in cloud_cells:
+		var at: Vector2 = cell["centre"]
+		var c := _to_px(at)
+		var r: float = cell["radius"]
+		var count: int = cell["count"]
+		var peak := Config.MINIMAP_CLOUD_MAX_ALPHA * minf(1.0, float(count) / float(Config.MINIMAP_CLOUD_FULL_COUNT))
+		for py: int in range(maxi(0, floori(c.y - r)), mini(RESOLUTION, ceili(c.y + r) + 1)):
+			for px: int in range(maxi(0, floori(c.x - r)), mini(RESOLUTION, ceili(c.x + r) + 1)):
+				var d := Vector2(px + 0.5, py + 0.5).distance_to(c) / r
+				if d >= 1.0:
+					continue
+				var f := 1.0 - d * d
+				var i := py * RESOLUTION + px
+				_cloud_alpha[i] = 1.0 - (1.0 - _cloud_alpha[i]) * (1.0 - peak * f * f)
 
 
 # Round 12b: a blip at a world point (x, z) for MINIMAP_BLIP_SECONDS, drawn as a ring (someone became dimmed).
@@ -160,11 +237,17 @@ func _render() -> void:
 	if _image == null:
 		return
 	_image.fill(Color(0.0, 0.0, 0.0, 0.0))
+	var cloud := look.cloud_colour()
+	var clouds_on := cloud.a > 0.0 and _cloud_alpha.size() == RESOLUTION * RESOLUTION
 	for py: int in range(RESOLUTION):
 		for px: int in range(RESOLUTION):
 			if _in_circle(Vector2(px + 0.5, py + 0.5)):
 				var w := _to_world(Vector2(px + 0.5, py + 0.5))
-				_image.set_pixel(px, py, _ground_colour(w, px, py))
+				var col := _ground_colour(w, px, py)
+				# Round 20: the people clouds sit on the ground, under the buildings and every marker.
+				if clouds_on and _cloud_alpha[py * RESOLUTION + px] > 0.0:
+					col = col.lerp(cloud, _cloud_alpha[py * RESOLUTION + px] * cloud.a)
+				_image.set_pixel(px, py, col)
 	for i: int in range(building_rects.size()):
 		_fill_rect(building_rects[i], look.building_colour(building_warm[i]))
 	var n := border_pts.size()

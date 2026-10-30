@@ -26,5 +26,10 @@ func sync() -> void:
 	pass
 
 
+# Round 20: the landmark was just claimed (`held` true) or lost (false). The placeholder pulses; the base does nothing.
+func play_change(_held: bool) -> void:
+	pass
+
+
 func _build() -> void:
 	pass

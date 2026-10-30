@@ -119,6 +119,9 @@ func _ready() -> void:
 	landmarks = Landmarks.new()
 	add_child(landmarks)
 	landmarks.build()
+	for lm: Landmark in landmarks.items:  # Round 20: a claim or a loss is announced on the HUD.
+		lm.claimed.connect(_on_landmark_claimed.bind(lm))
+		lm.lost.connect(_on_landmark_lost.bind(lm))
 	beacon_marker = BeaconMarker.new()
 	add_child(beacon_marker)
 
@@ -941,6 +944,15 @@ func _on_person_relapsed(p: Person) -> void:
 	border.on_relapse(p)
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)
 	hud.show_alert("Someone lost their joy!")
+
+
+# Round 20: a landmark was claimed (its boost is on) or lost (its boost is off): a notice across the top.
+func _on_landmark_claimed(lm: Landmark) -> void:
+	hud.show_alert(lm.claim_text(), Config.LANDMARK_CLAIM_COLOUR)
+
+
+func _on_landmark_lost(lm: Landmark) -> void:
+	hud.show_alert(lm.loss_text(), Config.LANDMARK_LOSS_COLOUR, Config.LANDMARK_LOSS_SECONDS)
 
 
 # The end conditions, in order: the border falling loses, and dawn ends the level (a win, rated in dawn lights).

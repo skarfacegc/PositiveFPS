@@ -9,8 +9,26 @@ const UNHELD_COLOUR := Color(0.62, 0.62, 0.66)
 
 var _disc: MeshInstance3D
 var _label: Label3D
+var _pillar: MeshInstance3D
 var _pillar_mat: StandardMaterial3D
 var _shape_mat: StandardMaterial3D
+var _pulse: Tween
+
+
+# Round 20: a claim or a loss makes the pillar swell and settle, so the change is seen on the landmark itself.
+func play_change(_held: bool) -> void:
+	if _pillar == null:
+		return
+	if _pulse != null and _pulse.is_valid():
+		_pulse.kill()
+	_pulse = create_tween()
+	_pulse.tween_property(_pillar, "scale", Vector3(3.0, 1.0, 3.0), 0.15)
+	_pulse.tween_property(_pillar, "scale", Vector3.ONE, 0.6)
+
+
+# True while the pulse is still running (tests).
+func pulse_running() -> bool:
+	return _pulse != null and _pulse.is_valid() and _pulse.is_running()
 
 
 func sync() -> void:
@@ -33,15 +51,15 @@ func sync() -> void:
 func _build() -> void:
 	var height := Config.LANDMARK_SIZES[subject.index].y
 	_pillar_mat = _unshaded(UNHELD_COLOUR)
-	var beacon := MeshInstance3D.new()
+	_pillar = MeshInstance3D.new()
 	var pillar := CylinderMesh.new()
 	pillar.top_radius = 0.15
 	pillar.bottom_radius = 0.15
 	pillar.height = 9.0
-	beacon.mesh = pillar
-	beacon.position = Vector3(0, height + 4.5, 0)
-	beacon.material_override = _pillar_mat
-	add_child(beacon)
+	_pillar.mesh = pillar
+	_pillar.position = Vector3(0, height + 4.5, 0)
+	_pillar.material_override = _pillar_mat
+	add_child(_pillar)
 
 	_shape_mat = _unshaded(UNHELD_COLOUR)
 	var shape := MeshInstance3D.new()
