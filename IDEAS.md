@@ -1535,3 +1535,28 @@ code on this machine under load (budget 4.5, calibrated at 2.5 to 2.9), and 4.7 
 Still open: the walk and styled look need checking in play, including dimmed people and whether the player's walk reads
 as a jog. Spirit is plentiful late on and bursts go unused. Changes to the reach guide here apply to the placeholder
 look; the styled guide follows in the next graphics checkpoint.
+
+## Round 21 build (2026-10-30)
+
+Built in two parallel parts from `807c3c8`; both merged without conflicts.
+
+**A. Stretch safety and preview** (`3d94da0`, `f4fc5d6`; merge `cdaa0d5`): the headless reproduction did not confirm the
+thinning hypothesis: spacing stays under the gap threshold during a stretch. The reproduced cause is the tip sweeping
+over dimmed people, which puts them inside the border where nothing holds them back, and they drain the members (24 to
+2 in 16 s). The recording could not be proved to be this case: a gap pair was already open before that beacon and the
+relapses clustered on the flank. `BorderCentre.plan_toward` is now the one plan for the stretch and the preview; reach
+keeps `BEACON_DIM_CLEARANCE` from dimmed people, and E is refused with no spirit spent when less than `BEACON_MIN_GAIN`
+is left. If people are lost, the tip walks back rather than jumping, and the snap lands at the tip. The 10 m snap in the
+loss was this retraction, not a wrong target. A stretch that has nothing left to hold falls back with no snap. The
+placeholder guide now previews the actual zone outline. A dimmed person close to the border collapses it with or
+without a stretch; that is not addressed. No rule refuses a stretch while gaps are open.
+
+**B. Readable minimap clouds** (`43ee2c3`; merge `f9e1600`): darker colour, solid core, blobs centred on their people,
+glide between recounts, and crowds outside the circle drawn at the rim.
+
+**Split:** `scripts/border_shape.gd` and `DawnRating.detail_text`; `border.gd` is 974 lines, `topdown_main.gd` is 994.
+
+**Coverage** (`4d8927c`): two tests for the reach guide's idle and zero-length paths.
+
+**Playtest questions:** is E refused or cut short too often near dimmed people at midnight? Do the preview outline and
+its text make sense? Are the clouds readable? The walk and the styled look still need checking in play.
