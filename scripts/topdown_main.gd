@@ -985,15 +985,6 @@ func _current_rating() -> Dictionary:
 	return DawnRating.rate(rescued_count, Config.TD_PEOPLE_COUNT, ground.beautified_fraction(), landmarks.held_count())
 
 
-# The lines on the end screen: the dawn lights (at dawn) with the reasons, then the buildings beautified.
+# The lines on the end screen (built by DawnRating.detail_text).
 func _detail_text() -> String:
-	var r: Dictionary = rating if not rating.is_empty() else _current_rating()
-	var lights: int = r["lights"]
-	var lines: Array[String] = []
-	if not rating.is_empty():
-		lines.append("Dawn lights: " + DawnRating.lights_text(lights))
-	lines.append_array(r["lines"] as Array[String])
-	lines.append("%d of %d buildings beautified" % [border.beautified_building_count(), border.buildings.size()])
-	if not rating.is_empty():
-		lines.append(DawnRating.hint_for(lights))
-	return "\n".join(lines)
+	return DawnRating.detail_text(self)
