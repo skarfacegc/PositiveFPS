@@ -1560,3 +1560,10 @@ glide between recounts, and crowds outside the circle drawn at the rim.
 
 **Playtest questions:** is E refused or cut short too often near dimmed people at midnight? Do the preview outline and
 its text make sense? Are the clouds readable? The walk and the styled look still need checking in play.
+
+**Grey-screen bug (round 21 playtest, fixed):** the "non graphical" playtest was not the new reach guide. Styled turns
+the window's own 3D drawing off (`Viewport.disable_3d`, because the pixel view draws the world); leaving a level while
+styled (M to the menu) never switched it back, so the next Placeholder level in the same run drew only the HUD on grey.
+A fresh Placeholder start was fine, which is why round 20 looked normal. Reproduced in a real window (Styled, menu,
+Placeholder) with screenshots, and `ViewPipeline.apply` now switches 3D drawing back on in the placeholder look.
+Regression test: `looks_test.gd` `test_placeholder_level_after_styled_level_draws_the_world`.

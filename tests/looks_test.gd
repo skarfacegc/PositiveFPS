@@ -407,3 +407,17 @@ func test_the_styled_minimap_shows_warm_territory_like_the_placeholder_one() -> 
 				assert_bool(styled_warm).is_false()
 	assert_int(warm_points).is_greater(20)
 	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+# Styled turns the window's own 3D drawing off (the pixel view draws the world instead). Leaving the level while styled
+# (back to the menu) used to leave it off, so the next Placeholder level showed a grey screen with only the HUD.
+func test_placeholder_level_after_styled_level_draws_the_world() -> void:
+	var s: Dictionary = await _start(true)
+	var first: TopDownMain = s["td"]
+	assert_bool(first.get_viewport().disable_3d).is_true()
+	await TopDownTestUtil.leave_loaded_scene(first)
+	var s2: Dictionary = await _start(false)
+	var second: TopDownMain = s2["td"]
+	assert_bool(second.pipeline.styled).is_false()
+	assert_bool(second.get_viewport().disable_3d).is_false()
+	await TopDownTestUtil.leave_loaded_scene(second)

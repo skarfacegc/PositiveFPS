@@ -36,6 +36,9 @@ func apply(main: TopDownMain) -> void:
 		_enter_styled()
 	else:
 		_leave_styled()
+		# The window's 3D drawing is switched off while styled and the window outlives the level: a level left
+		# while styled (back to the menu) leaves it off, which showed a grey screen under the HUD (round 21).
+		_main.get_viewport().disable_3d = false
 
 
 # A window position as the camera sees it (its own view size).
