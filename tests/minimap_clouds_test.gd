@@ -30,21 +30,22 @@ func _map() -> Minimap:
 func test_the_clouds_bin_unrescued_people_and_skip_sparse_cells_and_rescued_people() -> void:
 	var m := _map()
 	var people: Array[Person] = []
-	people.append_array(_crowd(Vector2(-40, -40), 4))
-	people.append(_person(Vector2(-40, -40), true))  # rescued: not counted
-	people.append_array(_crowd(Vector2(30, 30), 2))  # below the minimum: no cloud
+	people.append_array(_crowd(Vector2(-20, -20), 4))
+	people.append(_person(Vector2(-20, -20), true))  # rescued: not counted
+	people.append_array(_crowd(Vector2(20, 20), 2))  # below the minimum: no cloud
 	m.refresh_clouds(people)
 	assert_int(m.cloud_cells.size()).is_equal(1)
 	assert_int(m.cloud_cells[0]["count"]).is_equal(4)
+	# Round 21: the blob sits at the mean of its people (the four people of the crowd average to its middle).
 	var centre: Vector2 = m.cloud_cells[0]["centre"]
-	assert_vector(centre).is_equal(Vector2(-40, -40))
+	assert_vector(centre).is_equal_approx(Vector2(-20, -20), Vector2(0.001, 0.001))
 
 
 func test_a_bigger_crowd_makes_a_wider_and_stronger_cloud() -> void:
 	var m := _map()
 	var people: Array[Person] = []
-	people.append_array(_crowd(Vector2(-40, -40), 3))
-	people.append_array(_crowd(Vector2(40, 40), 12))
+	people.append_array(_crowd(Vector2(-20, -20), 3))
+	people.append_array(_crowd(Vector2(20, 20), 12))
 	m.refresh_clouds(people)
 	assert_int(m.cloud_cells.size()).is_equal(2)
 	var small: Dictionary = m.cloud_cells[0]
@@ -59,12 +60,14 @@ func test_a_bigger_crowd_makes_a_wider_and_stronger_cloud() -> void:
 	var a_small := m.cloud_alpha_at(int(small_px.x), int(small_px.y))
 	var a_big := m.cloud_alpha_at(int(big_px.x), int(big_px.y))
 	assert_float(a_small).is_greater(0.0)
+	# Round 21: a dense cell is stronger than a sparse one, and reaches the higher peak (12 of 12 people).
 	assert_float(a_big).is_greater(a_small)
+	assert_float(absf(a_big - Config.MINIMAP_CLOUD_MAX_ALPHA)).is_less(0.01)
 
 
 func test_the_cloud_is_soft_strongest_at_its_centre_and_gone_beyond_its_edge() -> void:
 	var m := _map()
-	var people: Array[Person] = _crowd(Vector2(-40, -40), 12)
+	var people: Array[Person] = _crowd(Vector2(-20, -20), 12)
 	m.refresh_clouds(people)
 	var cell: Dictionary = m.cloud_cells[0]
 	var radius: float = cell["radius"]
@@ -115,6 +118,79 @@ func test_the_picture_shows_the_cloud_on_the_ground_under_the_markers() -> void:
 	assert_float(absf(far.b - grey.b)).is_less(0.005)
 
 
+# --- Round 21: readability -------------------------------------------------------------------------------------------
+
+
+# A crowd in a corner of the square is outside the map circle. Its blob is pulled in to the rim in that direction, so
+# the crowd still shows, inside the circle.
+func test_a_crowd_in_a_map_corner_is_drawn_at_the_rim_inside_the_circle() -> void:
+	var m := _map()
+	m.refresh_clouds(_crowd(Vector2(-42, -42), 4))
+	assert_int(m.cloud_cells.size()).is_equal(1)
+	var at: Vector2 = m.cloud_cells[0]["centre"]
+	var rim := Config.TD_PLAZA_SIZE * 0.5 * Config.MINIMAP_CLOUD_RIM
+	assert_float(absf(at.length() - rim)).is_less(0.01)
+	assert_bool(at.x < 0.0 and at.y < 0.0).is_true()
+	assert_bool(m._in_circle(m._to_px(at))).is_true()
+
+
+# Between recounts a blob glides from where it was to where its crowd now is, over several frames, instead of jumping.
+func test_between_recounts_a_cloud_glides_to_its_new_place() -> void:
+	var m := _map()
+	m.refresh_clouds(_crowd(Vector2(-27, -20), 3))  # the first recount snaps into place
+	var before: Vector2 = m._cloud_shown[6]["pos"]
+	m.refresh_clouds(_crowd(Vector2(-24, -21), 3))  # same cell, a little further in
+	var target: Vector2 = m.cloud_cells[0]["centre"]
+	m.tick(0.1)
+	var mid: Vector2 = m._cloud_shown[6]["pos"]
+	assert_float(mid.distance_to(before)).is_greater(0.0)
+	assert_float(mid.distance_to(target)).is_less(before.distance_to(target))
+	m.tick(4.0)
+	var settled: Vector2 = m._cloud_shown[6]["pos"]
+	assert_float(settled.distance_to(target)).is_less(0.01)
+
+
+# A crowd that thins out or leaves fades away over a moment, and a new crowd fades in, rather than popping.
+func test_a_cloud_fades_in_and_out_rather_than_popping() -> void:
+	var m := _map()
+	m.refresh_clouds(_crowd(Vector2(-20, -20), 12))
+	m.refresh_clouds([] as Array[Person])
+	m.tick(0.1)
+	assert_bool(m._cloud_shown.has(6)).is_true()
+	var fading: float = m._cloud_shown[6]["peak"]
+	assert_float(fading).is_greater(0.0)
+	assert_float(fading).is_less(Config.MINIMAP_CLOUD_MAX_ALPHA)
+	# A new crowd elsewhere (cell 18) fades in while the old cloud is still fading out.
+	m.refresh_clouds(_crowd(Vector2(20, 20), 12))
+	m.tick(0.1)
+	var growing: float = m._cloud_shown[18]["peak"]
+	assert_float(growing).is_greater(0.0)
+	assert_float(growing).is_less(Config.MINIMAP_CLOUD_MAX_ALPHA)
+	m.tick(5.0)
+	assert_bool(m._cloud_shown.has(6)).is_false()
+	var settled_peak: float = m._cloud_shown[18]["peak"]
+	assert_float(absf(settled_peak - Config.MINIMAP_CLOUD_MAX_ALPHA)).is_less(0.001)
+
+
+# The cloud has to show against the grey ground at its strongest: a rough contrast ratio (on sRGB values) of at least 2.
+func test_the_cloud_at_full_strength_stands_out_from_the_grey_ground() -> void:
+	var m := _map()
+	add_child(m)
+	m.look = MinimapLookPlaceholder.new()
+	m.refresh_clouds(_crowd(Vector2(-20, -20), 12))
+	m._render()
+	var at: Vector2 = m.cloud_cells[0]["centre"]
+	var c := m._to_px(at)
+	var on_cloud := m._image.get_pixel(int(c.x), int(c.y))
+	var ground := m._image.get_pixel(100, 64)
+	var ratio := (_luminance(ground) + 0.05) / (_luminance(on_cloud) + 0.05)
+	assert_float(ratio).is_greater_equal(2.0)
+
+
+static func _luminance(c: Color) -> float:
+	return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
+
+
 # --- Performance ----------------------------------------------------------------------------------------------------
 
 
@@ -139,5 +215,8 @@ func test_perf_the_cloud_recount_with_sixty_people_is_cheap() -> void:
 	print("MINIMAP clouds recount with 60 people in 20 cells: %.3f ms" % per_recount_ms)
 	# Round 20: the worst case measured about 1.9 ms per recount (plain, alone, in a scratch run). Budget = measured x 1.5,
 	# rounded up to 3 ms. The recount runs twice a second, so this is well inside the frame budget.
+	# Round 21: the recount now only bins the people and sets the blobs' targets (about 0.05 ms). Painting the alpha map
+	# moved to the picture refresh, repainted at most every MINIMAP_CLOUD_PAINT_SECONDS (about 1.8 ms each, measured in
+	# a scratch run). The budget is unchanged.
 	if OS.get_environment("POSITIVEFPS_PERF_ENFORCE") == "1":
 		assert_float(per_recount_ms).is_less(3.0)
