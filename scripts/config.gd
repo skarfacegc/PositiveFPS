@@ -822,18 +822,27 @@ const TD_MINIMAP_LANDMARK_UNHELD_COLOUR := Color(0.34, 0.32, 0.31)
 
 # ---- Round 20: minimap clouds (scripts/minimap.gd, looks/minimap_look_placeholder.gd). ----
 # Unrescued people are binned into a coarse MINIMAP_CLOUD_CELLS x MINIMAP_CLOUD_CELLS grid of the plaza. A cell with at
-# least MINIMAP_CLOUD_MIN_COUNT people gets one soft blob at its centre: wider and stronger the more people it holds
-# (radius = base + per-person x sqrt(count), capped; alpha = max x count / full, capped). The bins are recounted every
-# MINIMAP_CLOUD_SECONDS (twice a second), not every picture refresh.
+# least MINIMAP_CLOUD_MIN_COUNT people gets one soft blob at the centre of its people (kept inside the map circle at
+# MINIMAP_CLOUD_RIM of its radius): wider and stronger the more people it holds (radius = base + per-person x
+# sqrt(count), capped; peak alpha = max x count / full, capped). The bins are recounted every MINIMAP_CLOUD_SECONDS
+# (twice a second), not every picture refresh. Between recounts each blob eases toward its new place, size and strength
+# over MINIMAP_CLOUD_EASE_SECONDS (time constant), so nothing snaps; the picture repaints the clouds at most every
+# MINIMAP_CLOUD_PAINT_SECONDS. Round 21 (item 3, readability): the colour is a deep blue that is darker than the grey
+# ground (the old one was about the same value as the ground and read as nothing); the blob is solid to
+# MINIMAP_CLOUD_CORE of its radius and only softens at the edge; the peak alpha is higher and reached by fewer people.
 const MINIMAP_CLOUD_SECONDS := 0.5
 const MINIMAP_CLOUD_CELLS := 5
 const MINIMAP_CLOUD_MIN_COUNT := 3
-const MINIMAP_CLOUD_FULL_COUNT := 12
+const MINIMAP_CLOUD_FULL_COUNT := 8
 const MINIMAP_CLOUD_BASE_RADIUS_PX := 12.0
 const MINIMAP_CLOUD_RADIUS_PER_PERSON_PX := 3.0
 const MINIMAP_CLOUD_MAX_RADIUS_PX := 30.0
-const MINIMAP_CLOUD_MAX_ALPHA := 0.55
-const MINIMAP_CLOUD_COLOUR := Color(0.36, 0.46, 0.78)
+const MINIMAP_CLOUD_MAX_ALPHA := 0.8
+const MINIMAP_CLOUD_CORE := 0.4
+const MINIMAP_CLOUD_EASE_SECONDS := 0.4
+const MINIMAP_CLOUD_PAINT_SECONDS := 0.2
+const MINIMAP_CLOUD_RIM := 0.9
+const MINIMAP_CLOUD_COLOUR := Color(0.08, 0.12, 0.36)
 
 static var intro_override: int = -1
 

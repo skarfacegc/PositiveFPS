@@ -12,6 +12,7 @@ extends Control
 # data model below, so tests can check what is on the map without reading pixels.
 
 const RESOLUTION := Config.TD_MINIMAP_RESOLUTION
+const CLOUD_PROFILE_STEPS := 64
 
 # ---- The data model (world metres, x and z; the plaza is centred on the origin) ---- The border loop, as points in
 # order, and for each segment whether it is a gap.
@@ -37,7 +38,8 @@ var blips: Array[Dictionary] = []
 # Round 13b: a marker on each open gap, {"pos": Vector2, "urgency": 0..1}; it grows and brightens with urgency.
 var gap_markers: Array[Dictionary] = []
 # Round 20: the people clouds. Unrescued people binned into a coarse grid: for each cell with enough people, {"centre":
-# Vector2 (world), "count": int, "radius": float (picture pixels)}. Recounted every MINIMAP_CLOUD_SECONDS (see tick).
+# Vector2 (world, the mean of its people, kept inside the map circle), "count": int, "radius": float (picture pixels),
+# "peak": float (alpha at the centre)}. Recounted every MINIMAP_CLOUD_SECONDS (see tick).
 var cloud_cells: Array[Dictionary] = []
 
 # The look: the palette and the frame (see scripts/looks/minimap_look.gd). The picture itself is built here.
@@ -50,6 +52,18 @@ var _timer: float = Config.TD_MINIMAP_REFRESH_SECONDS
 var _cloud_alpha := PackedFloat32Array()
 var _cloud_age: float = 0.0
 var _cloud_due: bool = true
+# Round 21: each busy cell's blob. `_cloud_targets` holds where the last recount put it (cell index -> {"pos", "radius",
+# "peak"}); `_cloud_shown` holds what is drawn now, which eases toward the targets every frame (see _ease_clouds).
+var _cloud_targets: Dictionary = {}
+var _cloud_shown: Dictionary = {}
+# Set when the drawn clouds have changed, so the alpha map is only repainted then.
+var _cloud_dirty: bool = false
+# Round 21: seconds until the drawn clouds may be repainted in a picture refresh (see MINIMAP_CLOUD_PAINT_SECONDS).
+var _cloud_paint_left: float = 0.0
+# Round 21: the blob falloff table (see _build_cloud_profile), built on the first paint.
+var _cloud_profile := PackedFloat32Array()
+# Round 21: false until the first recount, which snaps its blobs into place (see refresh_clouds).
+var _cloud_started: bool = false
 
 
 func _ready() -> void:
@@ -86,9 +100,11 @@ func tick(delta: float) -> bool:
 		blips[i]["left"] = left
 		if left <= 0.0:
 			blips.remove_at(i)
+	_cloud_paint_left -= delta
 	_cloud_age += delta
 	if _cloud_age >= Config.MINIMAP_CLOUD_SECONDS:
 		_cloud_due = true
+	_ease_clouds(delta)
 	_timer += delta
 	if _timer < Config.TD_MINIMAP_REFRESH_SECONDS:
 		return false
@@ -157,63 +173,149 @@ func refresh_from(
 	_render()
 
 
-# Round 20: bins the unrescued people into the coarse grid and paints a soft blob for each busy cell. Called by
-# refresh_from when a recount is due (twice a second); tests call it directly.
+# Round 20: bins the unrescued people into the coarse grid and sets one blob per busy cell, at the mean of its people.
+# Called by refresh_from when a recount is due (twice a second); tests call it directly. It only sets where the blobs
+# should go (`_cloud_targets`): tick eases the drawn blobs toward them, and the picture repaints them.
+# Round 21: the first recount of a level snaps the blobs into place; later new blobs fade in from nothing.
 func refresh_clouds(people: Array[Person]) -> void:
 	_cloud_due = false
 	_cloud_age = 0.0
 	var n := Config.MINIMAP_CLOUD_CELLS
 	var cell_m := float(Config.TD_PLAZA_SIZE) / float(n)
 	var half := Config.TD_PLAZA_SIZE * 0.5
+	var rim := half * Config.MINIMAP_CLOUD_RIM
 	var counts := PackedInt32Array()
 	counts.resize(n * n)
+	var sums := PackedVector2Array()
+	sums.resize(n * n)
 	for p: Person in people:
 		if p.is_rescued:
 			continue
 		var ix := clampi(floori((p.position.x + half) / cell_m), 0, n - 1)
 		var iz := clampi(floori((p.position.z + half) / cell_m), 0, n - 1)
 		counts[iz * n + ix] += 1
+		sums[iz * n + ix] += Vector2(p.position.x, p.position.z)
 	cloud_cells.clear()
-	for iz: int in range(n):
-		for ix: int in range(n):
-			var count := counts[iz * n + ix]
-			if count < Config.MINIMAP_CLOUD_MIN_COUNT:
-				continue
-			var centre := Vector2(-half + (ix + 0.5) * cell_m, -half + (iz + 0.5) * cell_m)
-			var radius := minf(
-				Config.MINIMAP_CLOUD_BASE_RADIUS_PX + Config.MINIMAP_CLOUD_RADIUS_PER_PERSON_PX * sqrt(float(count)),
-				Config.MINIMAP_CLOUD_MAX_RADIUS_PX
-			)
-			cloud_cells.append({"centre": centre, "count": count, "radius": radius})
-	_paint_clouds()
+	_cloud_targets.clear()
+	for idx: int in range(n * n):
+		var count := counts[idx]
+		if count < Config.MINIMAP_CLOUD_MIN_COUNT:
+			continue
+		var centre := sums[idx] / float(count)
+		# A crowd in a corner of the square is outside the map circle: its blob sits at the rim in that direction.
+		if centre.length() > rim:
+			centre = centre.normalized() * rim
+		var radius := minf(
+			Config.MINIMAP_CLOUD_BASE_RADIUS_PX + Config.MINIMAP_CLOUD_RADIUS_PER_PERSON_PX * sqrt(float(count)),
+			Config.MINIMAP_CLOUD_MAX_RADIUS_PX
+		)
+		var peak := Config.MINIMAP_CLOUD_MAX_ALPHA * minf(1.0, float(count) / float(Config.MINIMAP_CLOUD_FULL_COUNT))
+		cloud_cells.append({"centre": centre, "count": count, "radius": radius, "peak": peak})
+		_cloud_targets[idx] = {"pos": centre, "radius": radius, "peak": peak}
+	if not _cloud_started:
+		_cloud_started = true
+		for idx: int in _cloud_targets:
+			var goal: Dictionary = _cloud_targets[idx]
+			_cloud_shown[idx] = goal.duplicate()
+	_cloud_dirty = true
+
+
+# Round 21: moves each drawn blob toward its target (exponential ease, time constant MINIMAP_CLOUD_EASE_SECONDS). A
+# blob with no target fades out and is dropped. Sets `_cloud_dirty` only when something visibly moved.
+func _ease_clouds(delta: float) -> void:
+	if _cloud_targets.is_empty() and _cloud_shown.is_empty():
+		return
+	var k := 1.0 - exp(-delta / Config.MINIMAP_CLOUD_EASE_SECONDS)
+	for idx: int in _cloud_targets:
+		if not _cloud_shown.has(idx):
+			_cloud_shown[idx] = {
+				"pos": _cloud_targets[idx]["pos"], "radius": _cloud_targets[idx]["radius"], "peak": 0.0
+			}
+	var moved := false
+	for idx: int in _cloud_shown.keys():
+		var s: Dictionary = _cloud_shown[idx]
+		var t: Dictionary = _cloud_targets.get(idx, {"pos": s["pos"], "radius": s["radius"], "peak": 0.0})
+		var pos: Vector2 = s["pos"]
+		var radius: float = s["radius"]
+		var peak: float = s["peak"]
+		var goal_pos: Vector2 = t["pos"]
+		var goal_radius: float = t["radius"]
+		var goal_peak: float = t["peak"]
+		var next_pos := pos.lerp(goal_pos, k)
+		var next_radius := lerpf(radius, goal_radius, k)
+		var next_peak := lerpf(peak, goal_peak, k)
+		if not _cloud_targets.has(idx) and next_peak < 0.002:
+			_cloud_shown.erase(idx)
+			moved = true
+			continue
+		if (
+			next_pos.distance_squared_to(pos) > 0.0001
+			or absf(next_radius - radius) > 0.01
+			or absf(next_peak - peak) > 0.001
+		):
+			moved = true
+		s["pos"] = next_pos
+		s["radius"] = next_radius
+		s["peak"] = next_peak
+	if moved:
+		_cloud_dirty = true
 
 
 # Round 20: the alpha of the people clouds at picture pixel (px, py), 0 to 1. Zero outside every blob.
 func cloud_alpha_at(px: int, py: int) -> float:
+	_update_cloud_alpha(true)
 	if _cloud_alpha.size() != RESOLUTION * RESOLUTION or px < 0 or py < 0 or px >= RESOLUTION or py >= RESOLUTION:
 		return 0.0
 	return _cloud_alpha[py * RESOLUTION + px]
 
 
-# Round 20: fills the cloud alpha map. Each blob falls off smoothly from its centre to its edge (1 - d^2)^2, and
-# overlapping blobs combine (1 - (1 - a)(1 - b)), so a patch reads as one soft cloud, never as dots.
+# Round 21: repaints the cloud alpha map only when the drawn clouds have changed since the last paint.
+func _update_cloud_alpha(force: bool = false) -> void:
+	if _cloud_dirty and (force or _cloud_paint_left <= 0.0):
+		_paint_clouds()
+		_cloud_dirty = false
+		_cloud_paint_left = Config.MINIMAP_CLOUD_PAINT_SECONDS
+
+
+# Round 20: fills the cloud alpha map from the drawn blobs. Each blob is solid to MINIMAP_CLOUD_CORE of its radius and
+# then fades smoothly (smoothstep) to nothing at its edge, so it is a soft patch, not a dot. Overlapping blobs combine
+# (1 - (1 - a)(1 - b)), so a crowd spread over two cells reads as one cloud.
+# Round 21: painted from the eased blobs (`_cloud_shown`), and only when they changed (see `_cloud_dirty`).
 func _paint_clouds() -> void:
 	_cloud_alpha.resize(RESOLUTION * RESOLUTION)
 	_cloud_alpha.fill(0.0)
-	for cell: Dictionary in cloud_cells:
-		var at: Vector2 = cell["centre"]
-		var c := _to_px(at)
-		var r: float = cell["radius"]
-		var count: int = cell["count"]
-		var peak := Config.MINIMAP_CLOUD_MAX_ALPHA * minf(1.0, float(count) / float(Config.MINIMAP_CLOUD_FULL_COUNT))
+	if _cloud_profile.size() != CLOUD_PROFILE_STEPS:
+		_build_cloud_profile()
+	for idx: int in _cloud_shown:
+		var s: Dictionary = _cloud_shown[idx]
+		var peak: float = s["peak"]
+		if peak <= 0.0:
+			continue
+		var shown_at: Vector2 = s["pos"]
+		var c := _to_px(shown_at)
+		var r: float = s["radius"]
+		var inv_r2 := 1.0 / (r * r)
 		for py: int in range(maxi(0, floori(c.y - r)), mini(RESOLUTION, ceili(c.y + r) + 1)):
+			var dy := float(py) + 0.5 - c.y
 			for px: int in range(maxi(0, floori(c.x - r)), mini(RESOLUTION, ceili(c.x + r) + 1)):
-				var d := Vector2(px + 0.5, py + 0.5).distance_to(c) / r
-				if d >= 1.0:
+				var dx := float(px) + 0.5 - c.x
+				var d2 := (dx * dx + dy * dy) * inv_r2
+				if d2 >= 1.0:
 					continue
-				var f := 1.0 - d * d
+				var f := _cloud_profile[mini(int(d2 * CLOUD_PROFILE_STEPS), CLOUD_PROFILE_STEPS - 1)]
 				var i := py * RESOLUTION + px
-				_cloud_alpha[i] = 1.0 - (1.0 - _cloud_alpha[i]) * (1.0 - peak * f * f)
+				_cloud_alpha[i] = 1.0 - (1.0 - _cloud_alpha[i]) * (1.0 - peak * f)
+
+
+# Round 21: the blob's falloff, tabulated by squared distance from the centre (0 to 1 across the radius), so the paint
+# loop needs no square root or smoothstep per pixel. Entry k is the falloff at the middle of its slice.
+func _build_cloud_profile() -> void:
+	_cloud_profile.resize(CLOUD_PROFILE_STEPS)
+	var core := Config.MINIMAP_CLOUD_CORE
+	for k: int in range(CLOUD_PROFILE_STEPS):
+		var d := sqrt((float(k) + 0.5) / float(CLOUD_PROFILE_STEPS))
+		var t := clampf((d - core) / (1.0 - core), 0.0, 1.0)
+		_cloud_profile[k] = 1.0 - t * t * (3.0 - 2.0 * t)
 
 
 # Round 12b: a blip at a world point (x, z) for MINIMAP_BLIP_SECONDS, drawn as a ring (someone became dimmed).
@@ -236,6 +338,7 @@ func _draw() -> void:
 func _render() -> void:
 	if _image == null:
 		return
+	_update_cloud_alpha()
 	_image.fill(Color(0.0, 0.0, 0.0, 0.0))
 	var cloud := look.cloud_colour()
 	var clouds_on := cloud.a > 0.0 and _cloud_alpha.size() == RESOLUTION * RESOLUTION
