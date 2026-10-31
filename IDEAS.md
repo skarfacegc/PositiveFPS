@@ -1503,3 +1503,35 @@ dashes: bigger with an ink edge. All judged from the screenshots, not yet by pla
 bounds. Unrescued people who turn dimmed in the scenario drew coral grab rings at the screen edge of the first two reach
 shots. `test_perf_a_full_border_of_sixty_people_updates_within_the_frame_budget` read 4.5 to 5.1 ms on the unchanged round 20
 code on this machine under load (budget 4.5, calibrated at 2.5 to 2.9), and 4.7 to 4.9 with this change.
+
+## Round 20 playtest and round 21 plan (2026-10-30)
+
+**Recordings (seed 42):**
+- `20261030-204520` (styled look): the first loss, at 2:08. One beacon at t=98 s with about 23 people, just as gaps
+  began. 50 gaps in midnight, 25 relapses, rescued fell from 23 to 2. No landmarks. At the snap (t=125 s, 8 rescued) the
+  centre moved about 10 m rather than to the tip that had reached the beacon, so the reach cap probably pulled the tip
+  back as the head count fell (not confirmed).
+- `20261030-204912` (placeholder look): a win, 34 rescued, 2 of 3 lights (people 57%, ground 17%, Garden held). Two
+  beacons at t=63 s and t=97 s with 24–30 people, both before the gaps began, and both snapped to the beacon. 6 relapses,
+  38 gaps in easing, spirit at 100 through easing, no bursts.
+- `20261030-204510` was a 6 s restart.
+
+**Feedback:**
+- The player felt the stretch broke the border in the loss.
+- The stretch is still unclear: "I didn't really understand the circle and the line."
+- The minimap clouds are hard to read.
+- The walk went unnoticed in the first session. The walk and the styled look were not checked up close, so both carry
+  over to the next playtest.
+
+**Round 21 plan:**
+1. **Protect the border from the stretch.** Confirm the cause of the collapse in a headless reproduction. Stop a stretch
+   turning gaps into a collapse, for example by refusing or shrinking a stretch the border can't support, with a clear
+   reason shown. Check the snap target when the head count falls.
+2. **Make the stretch readable.** Replace the ring and line with a preview of the zone shape the player will get, so
+   the aim shows the outcome and not a measurement.
+3. **Readable minimap clouds.**
+4. **Split `scripts/border.gd` and `scripts/topdown_main.gd`** as needed, since both are at the 1000-line cap.
+
+Still open: the walk and styled look need checking in play, including dimmed people and whether the player's walk reads
+as a jog. Spirit is plentiful late on and bursts go unused. Changes to the reach guide here apply to the placeholder
+look; the styled guide follows in the next graphics checkpoint.
