@@ -758,6 +758,28 @@ const BEACON_GUIDE_CAPPED_COLOUR := Color(1.0, 0.6, 0.45, 0.8)
 const BEACON_GUIDE_PATH_COLOUR := Color(0.75, 0.95, 1.0, 0.9)
 const BEACON_GUIDE_TIP_COLOUR := Color(1.0, 1.0, 0.85, 0.95)
 
+# ---- Round 21: stretch safety (scripts/border_centre.gd, reach_guide.gd). ----
+# The round 20 playtest lost its border after a stretch. Reproduced headless: the tip swept over dimmed people, which
+# put them INSIDE the border (nothing holds them back there and the new ground has no paint), they drained the members,
+# members relapsed, the head count and the reach fell, and the loop shrank. A stretch now stops short of the dimmed:
+# its tip keeps BEACON_DIM_CLEARANCE metres from every dimmed person it would otherwise swallow. A stretch that could
+# gain less than BEACON_MIN_GAIN past the circle's edge for that reason is refused (no spirit spent). When people are
+# lost the tip walks back at BEACON_PULL_SPEED instead of jumping, and the stretch ends (the zone does NOT snap) once it
+# is back inside BEACON_MIN_GAIN of the circle. BEACON_PLAN_SECONDS is how long a plan is reused (per-frame cost).
+const BEACON_DIM_CLEARANCE := 1.5 * WORLD_SCALE
+const BEACON_MIN_GAIN := 2.0 * WORLD_SCALE
+const BEACON_PLAN_SECONDS := 0.1
+const BEACON_DIM_TEXT := "Dimmed people are in the way"
+const BEACON_FAR_TEXT := "Too far for this many people"
+const BEACON_BLOCKED_TEXT := "Dimmed people block the stretch"
+const BEACON_FELL_BACK_TEXT := "The stretch fell back"
+# The preview of the zone the stretch will make (reach_guide.gd, placeholder look): outline, fill, tip marker, label.
+const BEACON_GUIDE_OUTLINE_WIDTH := 0.4
+const BEACON_GUIDE_FILL_COLOUR := Color(0.55, 0.85, 1.0, 0.14)
+const BEACON_GUIDE_LIMITED_FILL_COLOUR := Color(1.0, 0.6, 0.45, 0.14)
+const BEACON_GUIDE_LABEL_COLOUR := Color(1.0, 1.0, 0.92)
+const BEACON_GUIDE_LABEL_SIZE := 0.03
+
 # ---- Round 19: landmarks (scripts/landmark.gd, landmarks.gd, topdown_main.gd). ----
 # Three landmarks, far enough from the start that the natural ring (LANDMARK_START_REACH from the middle) cannot reach
 # them: the player needs beacons. Each is held while beautified inside the border for BORDER_LANDMARK_HOLD seconds, and

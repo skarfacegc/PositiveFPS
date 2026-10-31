@@ -11,7 +11,20 @@ extends RefCounted
 # With `enabled` false (the default in automated tests, see Config.intro_on()) everything is available at once and
 # no prompt ever shows.
 
-enum Prompt { GAP, GUARDED, SKITTISH, GLUM, SHELTERED, SPIRIT_LOW, DIM, DIM_HELP, BEACON_SPIRIT, BEACON_BORDER }
+enum Prompt {
+	GAP,
+	GUARDED,
+	SKITTISH,
+	GLUM,
+	SHELTERED,
+	SPIRIT_LOW,
+	DIM,
+	DIM_HELP,
+	BEACON_SPIRIT,
+	BEACON_BORDER,
+	BEACON_BLOCKED,
+	BEACON_FELL_BACK
+}
 
 var enabled: bool = true
 var night: NightCycle
@@ -150,6 +163,10 @@ static func text_for(id: int) -> String:
 			return Config.BEACON_NO_SPIRIT_TEXT
 		Prompt.BEACON_BORDER:
 			return Config.BEACON_NO_BORDER_TEXT
+		Prompt.BEACON_BLOCKED:
+			return Config.BEACON_BLOCKED_TEXT
+		Prompt.BEACON_FELL_BACK:
+			return Config.BEACON_FELL_BACK_TEXT
 	return "You're dim — rest inside your border"
 
 

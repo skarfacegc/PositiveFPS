@@ -113,6 +113,7 @@ func attach(main: TopDownMain) -> bool:
 	main.border.beacon_reached.connect(_on_beacon_reached)
 	main.border.stretch_started.connect(_on_stretch_started)
 	main.border.zone_snapped.connect(_on_zone_snapped)
+	main.border.stretch_ended.connect(func(reason: String) -> void: emit_event("stretch_end", {"reason": reason}))
 	for lm: Landmark in main.landmarks.items:
 		lm.claimed.connect(_on_landmark.bind(lm, "landmark_claimed"))
 		lm.lost.connect(_on_landmark.bind(lm, "landmark_lost"))

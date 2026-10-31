@@ -16,6 +16,8 @@ extends Node3D
 signal beacon_reached
 signal stretch_started(beacon: Vector3, tip_target: Vector3)
 signal zone_snapped(from: Vector3, to: Vector3)
+# Round 21: a stretch ended without a snap because the border could no longer support it (`reason` is plain words).
+signal stretch_ended(reason: String)
 
 # Inner members are placed on a golden-angle spiral, so they spread out without a random number.
 const GOLDEN_ANGLE := 2.39996323
@@ -145,9 +147,12 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 	_time += delta
 	_strength = strength
 	var rescued: Array[Person] = []
+	_centre_ctl.dimmed.clear()
 	for p: Person in people:
 		if p.is_rescued:
 			rescued.append(p)
+		elif GloomSim.is_dimmed(p):
+			_centre_ctl.dimmed.append(Vector2(p.position.x, p.position.z))  # Round 21: the tip keeps clear of them.
 	_update_centre(rescued, delta)
 	_apply_pending_pushes()
 	_update_falter(rescued, delta)
@@ -420,53 +425,13 @@ static func perimeter_of(pts: PackedVector2Array) -> float:
 	return total
 
 
-# Round 16: pulls every point onto the map (within BORDER_MAP_LIMIT of the middle) and returns, per segment (point j to
-# point j + 1), whether the segment runs along the map edge: both ends sit on the same side.
+# Round 16/18: the map-edge seal rules live in border_shape.gd (split out in round 21 to stay under the line cap).
 static func clamp_to_map(pts: PackedVector2Array) -> Array[float]:
-	var lim := Config.BORDER_MAP_LIMIT
-	var band := Config.BORDER_SEAL_BAND
-	var n := pts.size()
-	for i: int in range(n):
-		pts[i] = Vector2(clampf(pts[i].x, -lim, lim), clampf(pts[i].y, -lim, lim))
-	var out: Array[float] = []
-	for j: int in range(n):
-		var a := pts[j]
-		var b := pts[(j + 1) % n]
-		var near := INF  # The largest distance of the two ends from the closest edge they share.
-		near = minf(near, maxf(lim + a.x, lim + b.x))
-		near = minf(near, maxf(lim - a.x, lim - b.x))
-		near = minf(near, maxf(lim + a.y, lim + b.y))
-		near = minf(near, maxf(lim - a.y, lim - b.y))
-		out.append(clampf(1.0 - near / band, 0.0, 1.0))
-	return out
+	return BorderShape.clamp_to_map(pts)
 
 
-# Round 18: a sealed stretch (a run of neighbouring segments with a seal weight above 0) shorter than `min_len` metres
-# is
-# opened again: the members on either side of it would stand nearer than the spacing. Sets those weights to 0. A loop
-# that is sealed all the way round is left alone.
 static func drop_short_seals(pts: PackedVector2Array, sealed: Array[float], min_len: float) -> void:
-	var n := pts.size()
-	var start := -1
-	for j: int in range(n):
-		if sealed[j] <= 0.0:
-			start = j  # A segment with no seal: runs are counted from just after it.
-			break
-	if start < 0:
-		return
-	var run: Array[int] = []
-	var run_len := 0.0
-	for off: int in range(1, n + 1):
-		var j := (start + off) % n
-		if sealed[j] > 0.0:
-			run.append(j)
-			run_len += pts[j].distance_to(pts[(j + 1) % n])
-		if sealed[j] <= 0.0 or off == n:
-			if run_len < min_len:
-				for q: int in run:
-					sealed[q] = 0.0
-			run.clear()
-			run_len = 0.0
+	BorderShape.drop_short_seals(pts, sealed, min_len)
 
 
 # Round 16: the length of a closed loop of points, counting each segment by how much of it is open (see clamp_to_map).
@@ -701,7 +666,19 @@ func has_beacon() -> bool:
 # Round 20: the stretch (see BorderCentre): is one under way, where is its tip, and how far from the centre can it go.
 func stretch_info() -> Dictionary:
 	var c := _centre_ctl
-	return {"on": c.stretching, "tip": c.tip, "holding": c.holding, "hold_left": c.hold_left, "max": c.max_distance()}
+	return {
+		"on": c.stretching,
+		"tip": c.tip,
+		"holding": c.holding,
+		"hold_left": c.hold_left,
+		"max": c.max_distance(),
+		"radius": BorderCentre.circle_radius(member_count + inner_count),
+	}
+
+
+# Round 21: what a stretch toward `aim` would do now (see BorderCentre.plan_toward): reach, outline, reason, refused.
+func plan_stretch(aim: Vector3) -> Dictionary:
+	return _centre_ctl.plan_toward(aim)
 
 
 # Round 19/20: the centre is handled by BorderCentre (anchored once the border forms; a beacon stretches the zone).
