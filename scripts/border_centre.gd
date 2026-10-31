@@ -13,6 +13,9 @@ extends RefCounted
 # keeps its place and turns toward the new one. Border._organic_polygon asks stretch_radius() for each ray, so the
 # territory, ground, landmarks and slots all follow the stretched polygon.
 
+# Round 21: body radius by (circle radius, reach), see body_for.
+static var _body_cache: Dictionary = {}
+
 # Where the beacon is (x, z, y = 0), or Vector3.INF when there is none.
 var beacon := Vector3.INF
 # True from placing a beacon until the snap. The tip is where the stretch reaches now (x, z, y = 0).
@@ -22,9 +25,16 @@ var tip := Vector3.ZERO
 var holding: bool = false
 var hold_left: float = 0.0
 var b: Border
+# Round 21: where the dimmed people are (x, z), set by Border.update every frame; the tip keeps clear of them.
+var dimmed: Array[Vector2] = []
 var _people: int = 0
 var _cap_people: int = -1
 var _cap_value: float = 0.0
+var _clock: float = 0.0
+# Round 21: the plan for the last aim asked about (see plan_toward), reused for BEACON_PLAN_SECONDS.
+var _plan_key := Vector3.INF
+var _plan_at: float = -1.0e9
+var _plan: Dictionary = {}
 
 
 func _init(border: Border) -> void:
@@ -100,27 +110,148 @@ func clear() -> void:
 	holding = false
 
 
-# Where the tip is heading: toward the beacon, no farther than the maximum reach from the centre.
+# Where the tip is heading: toward the beacon, no farther than the plan allows (the maximum reach, and round 21 the
+# dimmed people it must not swallow).
 func target() -> Vector3:
 	if not has_beacon():
 		return tip
 	var dir := _flat_dir(b.centre, beacon)
-	var d := minf(_flat_dist(b.centre, beacon), max_distance())
+	var d: float = plan_toward(beacon)["reach"]
 	return Vector3(b.centre.x + dir.x * d, 0.0, b.centre.z + dir.y * d)
+
+
+# Round 21: what a stretch toward `aim` would do right now: {"reach" (how far the tip would get from the centre), "dir"
+# (angle of the stretch), "radius" (the plain circle), "reason" ("" when nothing holds it back, else the plain-words
+# reason it stops short), "refused" (dimmed people leave less than BEACON_MIN_GAIN to gain), "outline" (the zone it
+# makes, a polygon at the loop's sample angles)}. Used for the real stretch and for the preview, so they cannot
+# disagree. Reused for BEACON_PLAN_SECONDS while the aim and head count are unchanged.
+func plan_toward(aim: Vector3) -> Dictionary:
+	var lim := Config.BORDER_MAP_LIMIT
+	var spot := Vector3(clampf(aim.x, -lim, lim), 0.0, clampf(aim.z, -lim, lim))
+	var to := Vector2(spot.x - b.centre.x, spot.z - b.centre.z)
+	var key := Vector3(roundf(to.angle() * 100.0), roundf(to.length() * 4.0), float(_people))
+	if not _plan.is_empty() and key == _plan_key and _clock - _plan_at < Config.BEACON_PLAN_SECONDS:
+		return _plan
+	var radius := circle_radius(_people)
+	var wanted := to.length()
+	var cap := max_distance()
+	var reach := minf(wanted, cap)
+	var reason := ""
+	if wanted > cap:
+		reason = Config.BEACON_FAR_TEXT
+	var clear := _clear_reach(to.angle(), radius, reach)
+	var refused := false
+	if clear < reach:
+		reach = clear
+		reason = Config.BEACON_DIM_TEXT
+		refused = reach < radius + Config.BEACON_MIN_GAIN
+	_plan_key = key
+	_plan_at = _clock
+	_plan = {
+		"reach": reach,
+		"dir": to.angle(),
+		"radius": radius,
+		"reason": reason,
+		"refused": refused,
+		"outline": outline(Vector2(b.centre.x, b.centre.z), radius, reach, to.angle())
+	}
+	return _plan
+
+
+# The farthest reach up to `upto` (toward angle `ang`) whose zone, for a circle of `radius`, leaves BEACON_DIM_CLEARANCE
+# round every dimmed person it would newly cover. Scans outward from the circle's edge in 24 steps and refines the
+# first violation by bisection. Dimmed people already inside the loop are not counted.
+func _clear_reach(ang: float, radius: float, upto: float) -> float:
+	var near: Array[Vector2] = []  # x = distance from the centre, y = angle off the stretch
+	var c2 := Vector2(b.centre.x, b.centre.z)
+	for q: Vector2 in dimmed:
+		var rel := q - c2
+		var d := rel.length()
+		if d > upto + Config.BEACON_DIM_CLEARANCE or Border.is_inside(b.polygon, q):
+			continue
+		near.append(Vector2(d, absf(wrapf(rel.angle() - ang, -PI, PI))))
+	if near.is_empty() or upto <= radius:
+		return upto
+	var steps := 24
+	var prev := radius
+	for i: int in range(1, steps + 1):
+		var reach := lerpf(radius, upto, float(i) / float(steps))
+		if _swallows(near, radius, reach):
+			var lo := prev
+			var hi := reach
+			for _k: int in range(6):
+				var mid := (lo + hi) * 0.5
+				if _swallows(near, radius, mid):
+					hi = mid
+				else:
+					lo = mid
+			return lo
+		prev = reach
+	return upto
+
+
+# True when the zone for `reach` covers (or comes within the clearance of) any of the dimmed people in `near`.
+func _swallows(near: Array[Vector2], radius: float, reach: float) -> bool:
+	var body := body_for(radius, reach)
+	for q: Vector2 in near:
+		var r := hull_radius(body, Config.BEACON_TIP_WIDTH * body, reach, q.y)
+		if r > 0.0 and r + Config.BEACON_DIM_CLEARANCE > q.x:
+			return true
+	return false
+
+
+# The body circle's radius when the loop (whose length is fixed by the people: TAU x `radius`) is a teardrop that
+# reaches `reach` from the centre. `radius` when the tip does not pass the circle; never below BEACON_BODY_MIN x
+# `radius`.
+static func body_for(radius: float, reach: float) -> float:
+	var key := int(radius * 50.0) * 100000 + int(reach * 20.0)
+	if _body_cache.has(key):
+		return _body_cache[key]
+	var budget := TAU * radius
+	var out := radius
+	if hull_perimeter(radius, Config.BEACON_TIP_WIDTH * radius, reach) > budget:
+		var lo := radius * Config.BEACON_BODY_MIN
+		var hi := radius
+		for _i: int in range(16):
+			var mid := (lo + hi) * 0.5
+			if hull_perimeter(mid, Config.BEACON_TIP_WIDTH * mid, reach) > budget:
+				hi = mid
+			else:
+				lo = mid
+		out = lo
+	if _body_cache.size() > 2000:
+		_body_cache.clear()
+	_body_cache[key] = out
+	return out
+
+
+# The zone a stretch of `reach` toward angle `ang` makes round `c`, as a polygon with one point at each of the loop's
+# sample angles (Config.BORDER_SAMPLES), for a plain circle of `radius`: the body, or the teardrop where it is larger.
+static func outline(c: Vector2, radius: float, reach: float, ang: float) -> PackedVector2Array:
+	var body := body_for(radius, reach)
+	var pts := PackedVector2Array()
+	for i: int in range(Config.BORDER_SAMPLES):
+		var a := TAU * float(i) / float(Config.BORDER_SAMPLES)
+		var r := maxf(body, hull_radius(body, Config.BEACON_TIP_WIDTH * body, reach, absf(wrapf(a - ang, -PI, PI))))
+		pts.append(c + Vector2(cos(a), sin(a)) * r)
+	return pts
 
 
 # Moves the tip for this frame (called from Border.update before the loop is built).
 func update(rescued: Array[Person], delta: float) -> void:
 	_people = rescued.size()
+	_clock += delta
 	if not b.formed:
 		_form(rescued, delta)
 		return
 	if not stretching:
 		return
 	var goal := target()
+	var step := Config.BEACON_PULL_SPEED * delta
+	if _fell_back(goal, plan_toward(beacon)):
+		return
 	if not holding:
 		var to := goal - tip
-		var step := Config.BEACON_PULL_SPEED * delta
 		if to.length() <= maxf(step, Config.BEACON_ARRIVE_RADIUS):
 			tip = goal
 			holding = true
@@ -130,10 +261,26 @@ func update(rescued: Array[Person], delta: float) -> void:
 			tip += to.normalized() * step
 		return
 	if _flat_dist(b.centre, tip) > _flat_dist(b.centre, goal):
-		tip = goal  # The reach shrank (people lost): the tip comes in with it.
+		# Round 21: the reach shrank (people lost, or dimmed people came near): the tip walks back, it does not jump.
+		var back := goal - tip
+		tip = goal if back.length() <= step else tip + back.normalized() * step
 	hold_left -= delta
 	if hold_left <= 0.0:
 		_snap()
+
+
+# Round 21: true (and the stretch ends with no snap) when a limit has pulled the goal back to within BEACON_MIN_GAIN of
+# the circle's edge and the tip is there: there is no stretch left to hold. Emits Border.stretch_ended with the reason.
+func _fell_back(goal: Vector3, plan: Dictionary) -> bool:
+	var reason: String = plan["reason"]
+	var radius: float = plan["radius"]
+	if reason == "" or _flat_dist(b.centre, goal) >= radius + Config.BEACON_MIN_GAIN:
+		return false
+	if _flat_dist(b.centre, tip) > _flat_dist(b.centre, goal) + 0.3:
+		return false  # Still walking back.
+	clear()
+	b.stretch_ended.emit(reason)
+	return true
 
 
 # The zone returns to a circle centred at the tip; the beacon clears.

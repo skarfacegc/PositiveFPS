@@ -16,6 +16,8 @@ extends Node3D
 signal beacon_reached
 signal stretch_started(beacon: Vector3, tip_target: Vector3)
 signal zone_snapped(from: Vector3, to: Vector3)
+# Round 21: a stretch ended without a snap because the border could no longer support it (`reason` is plain words).
+signal stretch_ended(reason: String)
 
 # Inner members are placed on a golden-angle spiral, so they spread out without a random number.
 const GOLDEN_ANGLE := 2.39996323
@@ -145,9 +147,12 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 	_time += delta
 	_strength = strength
 	var rescued: Array[Person] = []
+	_centre_ctl.dimmed.clear()
 	for p: Person in people:
 		if p.is_rescued:
 			rescued.append(p)
+		elif GloomSim.is_dimmed(p):
+			_centre_ctl.dimmed.append(Vector2(p.position.x, p.position.z))  # Round 21: the tip keeps clear of them.
 	_update_centre(rescued, delta)
 	_apply_pending_pushes()
 	_update_falter(rescued, delta)
@@ -661,7 +666,19 @@ func has_beacon() -> bool:
 # Round 20: the stretch (see BorderCentre): is one under way, where is its tip, and how far from the centre can it go.
 func stretch_info() -> Dictionary:
 	var c := _centre_ctl
-	return {"on": c.stretching, "tip": c.tip, "holding": c.holding, "hold_left": c.hold_left, "max": c.max_distance()}
+	return {
+		"on": c.stretching,
+		"tip": c.tip,
+		"holding": c.holding,
+		"hold_left": c.hold_left,
+		"max": c.max_distance(),
+		"radius": BorderCentre.circle_radius(member_count + inner_count),
+	}
+
+
+# Round 21: what a stretch toward `aim` would do now (see BorderCentre.plan_toward): reach, outline, reason, refused.
+func plan_stretch(aim: Vector3) -> Dictionary:
+	return _centre_ctl.plan_toward(aim)
 
 
 # Round 19/20: the centre is handled by BorderCentre (anchored once the border forms; a beacon stretches the zone).
