@@ -271,3 +271,34 @@ func test_the_plan_is_reused_for_a_moment_so_it_costs_little_per_frame() -> void
 	var b: Dictionary = td.border.plan_stretch(aim)
 	assert_bool(is_same(a, b)).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_reach_guide_draws_nothing_with_a_settled_border_and_no_aim() -> void:
+	var s: Dictionary = await _setup()
+	var td: TopDownMain = s["td"]
+	# The level's mouse picks an aim point even with no mouse motion, so clear it: this is the cursor-off-the-ground case.
+	td.player._has_aim = false
+	assert_bool(td.player.has_aim()).is_false()
+	assert_bool(td.border.active).is_true()
+	assert_bool(td.border.stretch_info()["on"]).is_false()
+	td.reach_guide.sync(td.border, td.player)
+	assert_int(td.reach_guide._mesh.get_surface_count()).is_equal(0)
+	var label: Label3D = td.reach_guide._label
+	assert_bool(label == null or not label.visible).is_true()
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_a_zero_length_line_adds_no_geometry_to_the_guide() -> void:
+	var s: Dictionary = await _setup()
+	var td: TopDownMain = s["td"]
+	var mesh: ImmediateMesh = td.reach_guide._mesh
+	# No frame runs between these calls, so the per-frame sync does not touch the mesh under the test.
+	mesh.clear_surfaces()
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	td.reach_guide._line(Vector2(5.0, 5.0), Vector2(5.0, 5.0), 0.3, Color.WHITE)
+	td.reach_guide._line(Vector2(0.0, 0.0), Vector2(1.0, 0.0), 0.3, Color.WHITE)
+	mesh.surface_end()
+	assert_int(mesh.get_surface_count()).is_equal(1)
+	# Only the real line is in the bounds: the degenerate one at (5, 5) added nothing.
+	assert_float(mesh.get_aabb().end.x).is_less(2.0)
+	await TopDownTestUtil.leave_loaded_scene(td)
