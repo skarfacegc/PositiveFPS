@@ -36,6 +36,7 @@ var hud: Hud
 # Round 10: the minimap (a circle, top-left) and the off-screen gap arrows (see minimap.gd and gap_arrows.gd).
 var minimap: Minimap
 var arrows: GapArrows
+var landmark_pointers: LandmarkPointers  # Round 22: the edge pointers toward unheld landmarks (placeholder look).
 var border: Border
 var beacon_marker: BeaconMarker  # Round 19: the beacon in the world (both looks).
 var reach_guide: ReachGuide  # Round 20: the placeholder look's reach ring, preview and tip travel.
@@ -162,6 +163,9 @@ func _ready() -> void:
 	minimap.position = Vector2(16, 16)
 	hud.add_child(minimap)
 	hud.place_rescued_below(minimap.position.y + minimap.size.y + Config.RESCUED_BELOW_MINIMAP_GAP)
+	landmark_pointers = LandmarkPointers.new()
+	hud.add_child(landmark_pointers)
+	landmark_pointers.setup(hud, minimap)
 	arrows = GapArrows.new()
 	hud.add_child(arrows)
 	_build_feedback()
@@ -561,6 +565,7 @@ func _update_readability(delta: float) -> void:
 		border.gap_urgencies(),
 		delta
 	)
+	landmark_pointers.update_from(self)  # Round 22: the edge pointers toward unheld landmarks.
 
 
 # Builds the target highlight: a flat warm ring that is shown under the target, hidden when there is none.

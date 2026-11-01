@@ -820,29 +820,45 @@ const LANDMARK_LOSS_SECONDS := 2.5
 # The minimap star of a landmark that is not held (a held one is gold with its ring), placeholder look.
 const TD_MINIMAP_LANDMARK_UNHELD_COLOUR := Color(0.34, 0.32, 0.31)
 
-# ---- Round 20: minimap clouds (scripts/minimap.gd, looks/minimap_look_placeholder.gd). ----
-# Unrescued people are binned into a coarse MINIMAP_CLOUD_CELLS x MINIMAP_CLOUD_CELLS grid of the plaza. A cell with at
-# least MINIMAP_CLOUD_MIN_COUNT people gets one soft blob at the centre of its people (kept inside the map circle at
-# MINIMAP_CLOUD_RIM of its radius): wider and stronger the more people it holds (radius = base + per-person x
-# sqrt(count), capped; peak alpha = max x count / full, capped). The bins are recounted every MINIMAP_CLOUD_SECONDS
-# (twice a second), not every picture refresh. Between recounts each blob eases toward its new place, size and strength
-# over MINIMAP_CLOUD_EASE_SECONDS (time constant), so nothing snaps; the picture repaints the clouds at most every
-# MINIMAP_CLOUD_PAINT_SECONDS. Round 21 (item 3, readability): the colour is a deep blue that is darker than the grey
-# ground (the old one was about the same value as the ground and read as nothing); the blob is solid to
-# MINIMAP_CLOUD_CORE of its radius and only softens at the edge; the peak alpha is higher and reached by fewer people.
+# ---- Round 22: minimap clouds (scripts/minimap.gd, looks/minimap_look_placeholder.gd). ----
+# Playtest (round 21): the clouds were good but should follow the crowd's real shape and be more pronounced. Unrescued
+# people are binned into a MINIMAP_CLOUD_CELLS x MINIMAP_CLOUD_CELLS grid of the plaza (15 x 15, about 6.7 m a cell; was
+# 5 x 5). A cell with at least MINIMAP_CLOUD_MIN_COUNT people gets one small soft blob at the mean of its people (kept
+# inside the map circle at MINIMAP_CLOUD_RIM of its radius). Blobs of neighbouring cells overlap and read as one shape.
+# The grid is 15 on purpose: the 60-person timing test puts its crowds 2 m across, 20 m apart, and only a grid whose
+# cell edges miss them keeps one blob per crowd (9 to 12 do not). Blob radius = base + per-person x sqrt(count), capped;
+# peak alpha = max x count / full, capped (so four people reach full strength). The bins are recounted every
+# MINIMAP_CLOUD_SECONDS, eased over MINIMAP_CLOUD_EASE_SECONDS and repainted at most every MINIMAP_CLOUD_PAINT_SECONDS.
 const MINIMAP_CLOUD_SECONDS := 0.5
-const MINIMAP_CLOUD_CELLS := 5
-const MINIMAP_CLOUD_MIN_COUNT := 3
-const MINIMAP_CLOUD_FULL_COUNT := 8
-const MINIMAP_CLOUD_BASE_RADIUS_PX := 12.0
-const MINIMAP_CLOUD_RADIUS_PER_PERSON_PX := 3.0
-const MINIMAP_CLOUD_MAX_RADIUS_PX := 30.0
-const MINIMAP_CLOUD_MAX_ALPHA := 0.8
-const MINIMAP_CLOUD_CORE := 0.4
+const MINIMAP_CLOUD_CELLS := 15
+const MINIMAP_CLOUD_MIN_COUNT := 2
+const MINIMAP_CLOUD_FULL_COUNT := 4
+const MINIMAP_CLOUD_BASE_RADIUS_PX := 6.0
+const MINIMAP_CLOUD_RADIUS_PER_PERSON_PX := 1.5
+const MINIMAP_CLOUD_MAX_RADIUS_PX := 12.0
+const MINIMAP_CLOUD_MAX_ALPHA := 0.9
+const MINIMAP_CLOUD_CORE := 0.55
 const MINIMAP_CLOUD_EASE_SECONDS := 0.4
 const MINIMAP_CLOUD_PAINT_SECONDS := 0.2
 const MINIMAP_CLOUD_RIM := 0.9
-const MINIMAP_CLOUD_COLOUR := Color(0.08, 0.12, 0.36)
+const MINIMAP_CLOUD_COLOUR := Color(0.06, 0.1, 0.34)
+
+# ---- Round 22: landmark pointers (scripts/landmark_pointers.gd, looks/minimap_look_placeholder.gd). ----
+# The landmarks were forgotten in round 21. Each landmark that is neither held nor on screen gets an edge pointer: a
+# small
+# arrow and "Name: boost" (a few words). The pointer sits on the screen edge inset by LANDMARK_POINTER_INSET and slides
+# along that inset rectangle to keep clear of the HUD panels. On the minimap an unheld landmark is a larger star with a
+# pale ring (placeholder look only; the styled look keeps its own).
+const LANDMARK_POINTER_INSET := 44.0
+const LANDMARK_POINTER_FONT_SIZE := 16
+const LANDMARK_POINTER_ARROW := 8.0
+const LANDMARK_POINTER_SLIDE_STEP := 10.0
+const LANDMARK_POINTER_CLEAR_MARGIN := 4.0
+const LANDMARK_POINTER_COLOUR := Color(1.0, 0.92, 0.7)
+const LANDMARK_POINTER_BG_COLOUR := Color(0.0, 0.0, 0.0, 0.5)
+const TD_MINIMAP_LANDMARK_UNHELD_GROW := 1.5
+const TD_MINIMAP_LANDMARK_UNHELD_RING_COLOUR := Color(1.0, 0.95, 0.8)
+const TD_MINIMAP_LANDMARK_UNHELD_RING_RADIUS := 6.4
 
 static var intro_override: int = -1
 

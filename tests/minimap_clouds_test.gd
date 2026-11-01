@@ -24,6 +24,16 @@ func _map() -> Minimap:
 	return auto_free(Minimap.new())
 
 
+# The index of the grid cell that holds world point `at` (the same binning as Minimap.refresh_clouds).
+func _cell(at: Vector2) -> int:
+	var n := Config.MINIMAP_CLOUD_CELLS
+	var cell_m := float(Config.TD_PLAZA_SIZE) / float(n)
+	var half := Config.TD_PLAZA_SIZE * 0.5
+	var ix := clampi(floori((at.x + half) / cell_m), 0, n - 1)
+	var iz := clampi(floori((at.y + half) / cell_m), 0, n - 1)
+	return iz * n + ix
+
+
 # --- Binning ---------------------------------------------------------------------------------------------------------
 
 
@@ -32,7 +42,7 @@ func test_the_clouds_bin_unrescued_people_and_skip_sparse_cells_and_rescued_peop
 	var people: Array[Person] = []
 	people.append_array(_crowd(Vector2(-20, -20), 4))
 	people.append(_person(Vector2(-20, -20), true))  # rescued: not counted
-	people.append_array(_crowd(Vector2(20, 20), 2))  # below the minimum: no cloud
+	people.append_array(_crowd(Vector2(20, 20), 1))  # below the minimum (2): no cloud
 	m.refresh_clouds(people)
 	assert_int(m.cloud_cells.size()).is_equal(1)
 	assert_int(m.cloud_cells[0]["count"]).is_equal(4)
@@ -74,10 +84,14 @@ func test_the_cloud_is_soft_strongest_at_its_centre_and_gone_beyond_its_edge() -
 	var at: Vector2 = cell["centre"]
 	var c := m._to_px(at)
 	var centre_alpha := m.cloud_alpha_at(int(c.x), int(c.y))
+	# Round 22: the core is solid out to MINIMAP_CLOUD_CORE of the radius, so the middle of the blob equals its centre;
+	# the soft shoulder starts past the core.
 	var half_alpha := m.cloud_alpha_at(int(c.x + radius * 0.5), int(c.y))
+	var shoulder_alpha := m.cloud_alpha_at(int(c.x + radius * 0.8), int(c.y))
 	var edge_alpha := m.cloud_alpha_at(int(c.x + radius * 0.95), int(c.y))
-	assert_float(centre_alpha).is_greater(half_alpha)
-	assert_float(half_alpha).is_greater(edge_alpha)
+	assert_float(absf(half_alpha - centre_alpha)).is_less(0.001)
+	assert_float(centre_alpha).is_greater(shoulder_alpha)
+	assert_float(shoulder_alpha).is_greater(edge_alpha)
 	assert_float(centre_alpha).is_less_equal(Config.MINIMAP_CLOUD_MAX_ALPHA + 0.0001)
 	assert_float(m.cloud_alpha_at(int(c.x + radius + 4.0), int(c.y))).is_equal(0.0)
 	assert_float(m.cloud_alpha_at(127, 127)).is_equal(0.0)
@@ -138,15 +152,16 @@ func test_a_crowd_in_a_map_corner_is_drawn_at_the_rim_inside_the_circle() -> voi
 func test_between_recounts_a_cloud_glides_to_its_new_place() -> void:
 	var m := _map()
 	m.refresh_clouds(_crowd(Vector2(-27, -20), 3))  # the first recount snaps into place
-	var before: Vector2 = m._cloud_shown[6]["pos"]
+	var cell := _cell(Vector2(-27, -20))
+	var before: Vector2 = m._cloud_shown[cell]["pos"]
 	m.refresh_clouds(_crowd(Vector2(-24, -21), 3))  # same cell, a little further in
 	var target: Vector2 = m.cloud_cells[0]["centre"]
 	m.tick(0.1)
-	var mid: Vector2 = m._cloud_shown[6]["pos"]
+	var mid: Vector2 = m._cloud_shown[cell]["pos"]
 	assert_float(mid.distance_to(before)).is_greater(0.0)
 	assert_float(mid.distance_to(target)).is_less(before.distance_to(target))
 	m.tick(4.0)
-	var settled: Vector2 = m._cloud_shown[6]["pos"]
+	var settled: Vector2 = m._cloud_shown[cell]["pos"]
 	assert_float(settled.distance_to(target)).is_less(0.01)
 
 
@@ -154,21 +169,23 @@ func test_between_recounts_a_cloud_glides_to_its_new_place() -> void:
 func test_a_cloud_fades_in_and_out_rather_than_popping() -> void:
 	var m := _map()
 	m.refresh_clouds(_crowd(Vector2(-20, -20), 12))
+	var old_cell := _cell(Vector2(-20, -20))
 	m.refresh_clouds([] as Array[Person])
 	m.tick(0.1)
-	assert_bool(m._cloud_shown.has(6)).is_true()
-	var fading: float = m._cloud_shown[6]["peak"]
+	assert_bool(m._cloud_shown.has(old_cell)).is_true()
+	var fading: float = m._cloud_shown[old_cell]["peak"]
 	assert_float(fading).is_greater(0.0)
 	assert_float(fading).is_less(Config.MINIMAP_CLOUD_MAX_ALPHA)
 	# A new crowd elsewhere (cell 18) fades in while the old cloud is still fading out.
 	m.refresh_clouds(_crowd(Vector2(20, 20), 12))
 	m.tick(0.1)
-	var growing: float = m._cloud_shown[18]["peak"]
+	var new_cell := _cell(Vector2(20, 20))
+	var growing: float = m._cloud_shown[new_cell]["peak"]
 	assert_float(growing).is_greater(0.0)
 	assert_float(growing).is_less(Config.MINIMAP_CLOUD_MAX_ALPHA)
 	m.tick(5.0)
-	assert_bool(m._cloud_shown.has(6)).is_false()
-	var settled_peak: float = m._cloud_shown[18]["peak"]
+	assert_bool(m._cloud_shown.has(old_cell)).is_false()
+	var settled_peak: float = m._cloud_shown[new_cell]["peak"]
 	assert_float(absf(settled_peak - Config.MINIMAP_CLOUD_MAX_ALPHA)).is_less(0.001)
 
 
@@ -189,6 +206,36 @@ func test_the_cloud_at_full_strength_stands_out_from_the_grey_ground() -> void:
 
 static func _luminance(c: Color) -> float:
 	return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
+
+
+# --- Round 22: the finer grid
+# ------------------------------------------------------------------------------------------
+
+
+# A pair of people is enough for a cloud now (the minimum is 2, was 3), so a small crowd split over two cells still
+# shows.
+func test_a_pair_of_people_makes_a_cloud() -> void:
+	var m := _map()
+	m.refresh_clouds(_crowd(Vector2(-20, -20), 2))
+	assert_int(m.cloud_cells.size()).is_equal(1)
+	assert_int(m.cloud_cells[0]["count"]).is_equal(2)
+
+
+# The clouds follow the crowd's outline: people along an L shape colour the L, and its empty inside corner stays clear.
+func test_the_cloud_follows_an_l_shaped_crowd_and_leaves_its_inside_corner_clear() -> void:
+	var m := _map()
+	var people: Array[Person] = []
+	for i: int in range(11):
+		people.append(_person(Vector2(-40.0 + 2.0 * float(i), -28.0)))  # along the row: x -40 to -20
+	for i: int in range(8):
+		people.append(_person(Vector2(-20.0, -28.0 + 2.0 * float(i))))  # up the column: z -28 to -14
+	m.refresh_clouds(people)
+	var on_row := m._to_px(Vector2(-30.0, -28.0))
+	var inside_corner := m._to_px(Vector2(-32.0, -14.0))
+	var on_row_alpha := m.cloud_alpha_at(int(on_row.x), int(on_row.y))
+	var corner_alpha := m.cloud_alpha_at(int(inside_corner.x), int(inside_corner.y))
+	assert_float(on_row_alpha).is_greater(0.4)
+	assert_float(corner_alpha).is_less(0.05)
 
 
 # --- Performance ----------------------------------------------------------------------------------------------------

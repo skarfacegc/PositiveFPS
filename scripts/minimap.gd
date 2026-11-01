@@ -380,9 +380,14 @@ func _render() -> void:
 		var star_halo := look.halo_colour("landmark")
 		if star_halo.a > 0.0:
 			_star(landmark_pts[k], star_halo, 1.4)
-		_star(landmark_pts[k], look.landmark_state_colour(held))
+		_star(landmark_pts[k], look.landmark_state_colour(held), look.landmark_star_grow(held))
 		if held:
 			_ring(landmark_pts[k], 5.6, look.landmark_colour())
+		else:
+			# Round 22: an unheld landmark may carry a ring of its own (placeholder look), so it is easy to find.
+			var unheld_ring := look.unheld_landmark_ring_colour()
+			if unheld_ring.a > 0.0:
+				_ring(landmark_pts[k], Config.TD_MINIMAP_LANDMARK_UNHELD_RING_RADIUS, unheld_ring)
 	if beacon_pos != Vector2.INF:
 		var beacon_halo := look.halo_colour("beacon")
 		if beacon_halo.a > 0.0:

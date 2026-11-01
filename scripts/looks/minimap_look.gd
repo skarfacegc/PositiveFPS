@@ -51,6 +51,16 @@ func landmark_state_colour(_held: bool) -> Color:
 	return landmark_colour()
 
 
+# Round 22: how many times larger a landmark's star is drawn (1 = the usual size). The base look keeps it the same.
+func landmark_star_grow(_held: bool) -> float:
+	return 1.0
+
+
+# Round 22: the ring drawn round a landmark that is not held. Alpha 0 means none (the base look and the styled look).
+func unheld_landmark_ring_colour() -> Color:
+	return Color(0, 0, 0, 0)
+
+
 # Round 20: the colour of the soft people clouds (minimap.gd). Alpha 0 means the look draws none (the styled look).
 func cloud_colour() -> Color:
 	return Color(0, 0, 0, 0)

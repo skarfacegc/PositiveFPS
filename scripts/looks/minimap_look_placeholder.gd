@@ -35,6 +35,15 @@ func landmark_state_colour(held: bool) -> Color:
 	return landmark_colour() if held else Config.TD_MINIMAP_LANDMARK_UNHELD_COLOUR
 
 
+# Round 22: an unheld landmark is a larger star with a pale ring round it, so it stands out from the grey ground.
+func landmark_star_grow(held: bool) -> float:
+	return 1.0 if held else Config.TD_MINIMAP_LANDMARK_UNHELD_GROW
+
+
+func unheld_landmark_ring_colour() -> Color:
+	return Config.TD_MINIMAP_LANDMARK_UNHELD_RING_COLOUR
+
+
 func cloud_colour() -> Color:
 	return Color(Config.MINIMAP_CLOUD_COLOUR.r, Config.MINIMAP_CLOUD_COLOUR.g, Config.MINIMAP_CLOUD_COLOUR.b, 1.0)
 
