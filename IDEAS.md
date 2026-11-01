@@ -1593,3 +1593,40 @@ began around 1:30, before the third snap. No landmarks, no bursts, spirit 98 thr
 
 Still open: the styled look was not re-checked; sound cues are not yet designed; the 60-person timing test is flaky
 against its 4.5 ms budget. Round 22 changes the placeholder look only.
+
+**Round 22 tooling** (from the review of how rounds have gone; build these first, they speed up the rest):
+1. **Godot run wrapper in `tools/`.** Every scripted Godot run gets a timeout and captured output, so a run that fails to
+   load cannot hang. Two stuck runs cost time in rounds 20 and 21, and one skewed the timing tests.
+2. **`tools/perf_compare.py`.** Alternates timing runs of two commits and reports each reading and the spread.
+3. **Round-over-round comparison in `tools/analyse_recording.py`.**
+4. **Skill: launch a playtest.** Refresh the detached copy, import, launch with `--record`, confirm it started, then
+   analyse every new recording, ignoring restarts of a few seconds. It must check for a game already open.
+5. **Skill: finish a merged round.** Check for leftover Godot processes and machine load, merge, run the gate,
+   determinism and baseline steps in order, send any baseline refusal to a test agent, search for stale player-facing
+   text, write the docs, refresh the playtest copy. It allows for this sequence running past the 10-minute limit.
+6. **Skill: brief a build agent.** One template for the base check, the rules, the commit trailer and "every Godot run
+   must end itself".
+
+**Round 22 housekeeping:**
+- **Decide the 60-person timing budget (user's call).** It reads about 4.2 ms on a quiet machine against 4.5 ms, and it
+  failed once at 4.565 ms in round 21 and passed on a re-run. The budget was set from 2.5–2.9 ms readings; find out
+  what changed before touching the number.
+- **Decide whether to push main (user's call).** `origin/main` is still at `235a5ab` (round 16), so it holds no backup
+  of later rounds, and it is why worktree agents need the base check.
+- Refresh `tools/test_weights.json`: `stretch_safety_test` takes about 112 s and is not listed.
+- Clear finished worktrees and branches: 14 under `.claude/worktrees`, with `tools/cleanup_worktrees.py` (use
+  `--dry-run` first). Some entries refuse deletion with "Permission denied", probably OneDrive.
+- Delete the two test recordings in `recordings/` (`20261031-080848`, `20261031-081102`). The Record setting is on in
+  the user's saved settings, so every normal game records until it is unticked.
+- `scripts/topdown_main.gd` is at 994 of 1000 lines: split it before adding round 22 code.
+- The how-to-play key list lacks E (the panel is tight at 720p), and "E moves the border" needs new words for shaping.
+- The full minimap redraw costs about 8 ms headless. Measure it in a real window before spending time on it.
+
+**Next graphics checkpoint:** port the stretch preview to the styled look (`style_reach.gd` keeps the old guide); check
+the styled clouds and notices in play; check dimmed people's walk; check whether the player's walk reads as a jog; the
+round 19 flag fixes have been judged from screenshots only.
+
+**Parked design (not round 22):** sound cues (the discussion is owed to the user), zone splitting, gloom variety, the
+tech tree and landmark boosts beyond today's, level goals and progression, one-starting-element balance. Also watch: a
+dimmed person close to the border collapses it with or without a stretch, and no rule refuses a stretch while gaps are
+open.
