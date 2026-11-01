@@ -16,6 +16,7 @@ var alpha: float = 0.0
 var prompt_id: int = -1
 var intro: Intro
 var main: TopDownMain
+var big: bool = false  # Round 22: a refusal or fall-back notice: larger, coral-edged, near the middle of the screen.
 var _rect := Rect2()
 var _showing: bool = false
 
@@ -37,10 +38,11 @@ func tick(screen: Rect2) -> void:
 		return
 	_showing = true
 	prompt_id = intro.current
-	text = Intro.text_for(prompt_id)
+	text = intro.current_text()
+	big = intro.big
 	icon = Intro.icon_for(prompt_id)
 	var fade := Config.PROMPT_FADE_SECONDS
-	var elapsed := Config.PROMPT_SECONDS - intro.time_left
+	var elapsed := intro.duration - intro.time_left
 	alpha = clampf(minf(elapsed / fade, intro.time_left / fade), 0.0, 1.0)
 	_rect = _place(screen)
 	queue_redraw()
@@ -49,10 +51,13 @@ func tick(screen: Rect2) -> void:
 # The bar's rectangle: near the prompt's world point when it is on screen, otherwise bottom centre.
 func _place(screen: Rect2) -> Rect2:
 	var font := ThemeDB.fallback_font
-	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x + 90.0
-	var size := Vector2(w, HEIGHT)
+	var fs := Config.NOTICE_FONT_SIZE if big else FONT_SIZE
+	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 90.0
+	var size := Vector2(w, Config.NOTICE_HEIGHT if big else HEIGHT)
 	var pos := Vector2(screen.size.x * 0.5 - w * 0.5, screen.size.y - BOTTOM_GAP)
-	if main != null and intro.anchor != Vector3.INF:
+	if big:
+		pos.y = screen.size.y * 0.3
+	elif main != null and intro.anchor != Vector3.INF:
 		var sp := main.world_to_screen(intro.anchor)
 		if screen.grow(-30.0).has_point(sp):
 			pos = Vector2(sp.x - w * 0.5, sp.y - 90.0)
@@ -77,11 +82,17 @@ func _draw() -> void:
 	self_modulate = Color.WHITE
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.08, 0.07, 0.12, 0.78 * alpha)
-	style.set_corner_radius_all(int(HEIGHT * 0.5))
+	style.set_corner_radius_all(int(_rect.size.y * 0.5))
 	style.border_color = Color(1.0, 0.88, 0.5, 0.55 * alpha)
 	style.set_border_width_all(2)
+	if big:
+		style.bg_color = Color(0.16, 0.05, 0.05, 0.9 * alpha)
+		style.border_color = Config.NOTICE_COLOUR
+		style.border_color.a = alpha
+		style.set_border_width_all(4)
 	draw_style_box(style, _rect)
-	var mid_y := _rect.position.y + HEIGHT * 0.5
+	var mid_y := _rect.position.y + _rect.size.y * 0.5
+	var fs := Config.NOTICE_FONT_SIZE if big else FONT_SIZE
 	var text_x := _rect.position.x + 24.0
 	if icon != MoodIcons.Kind.NONE:
 		var col := MoodIcons.colour_for(icon)
@@ -90,11 +101,5 @@ func _draw() -> void:
 		text_x = _rect.position.x + 56.0
 	var font := ThemeDB.fallback_font
 	draw_string(
-		font,
-		Vector2(text_x, mid_y + FONT_SIZE * 0.35),
-		text,
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		FONT_SIZE,
-		Color(1.0, 0.97, 0.88, alpha)
+		font, Vector2(text_x, mid_y + fs * 0.35), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1.0, 0.97, 0.88, alpha)
 	)

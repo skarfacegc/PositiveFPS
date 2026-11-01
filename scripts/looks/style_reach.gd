@@ -118,9 +118,6 @@ func _travel(c: Vector2, border: Border, info: Dictionary) -> void:
 	var beacon := border.beacon_pos()
 	if beacon != Vector3.INF and Vector2(beacon.x, beacon.z).distance_to(tip) > 1.0:
 		_set_dashes(tip, Vector2(beacon.x, beacon.z))
-	if info["holding"]:
-		var left: float = info["hold_left"]
-		_set_ticks(tip, clampf(left / Config.BEACON_STRETCH_HOLD, 0.0, 1.0))
 
 
 # Coral dashes from the tip on toward the beacon (the reach fell short of it).

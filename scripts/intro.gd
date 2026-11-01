@@ -23,7 +23,8 @@ enum Prompt {
 	BEACON_SPIRIT,
 	BEACON_BORDER,
 	BEACON_BLOCKED,
-	BEACON_FELL_BACK
+	BEACON_FELL_BACK,
+	ZONE_PULLED_IN
 }
 
 var enabled: bool = true
@@ -31,6 +32,12 @@ var night: NightCycle
 # The prompt on show (a Prompt value, or -1 for none), the seconds it has left, and the ones waiting.
 var current: int = -1
 var time_left: float = 0.0
+# Round 22: a notice (a refusal or a fall-back) stays NOTICE_SECONDS in a larger bar near the middle of the screen,
+# and may
+# carry its own words (the plan's reason). The ordinary prompts keep PROMPT_SECONDS.
+var duration: float = Config.PROMPT_SECONDS
+var big: bool = false
+var custom_text: String = ""
 var queue: Array[int] = []
 # Where the current prompt points in the world (Vector3.INF for none: it sits at the bottom centre).
 var anchor := Vector3.INF
@@ -59,7 +66,8 @@ func mood_active(mood: int) -> bool:
 	return night.progress() >= Config.MOOD_INTRO_FRACTIONS[clampi(mood, 0, Config.MOOD_INTRO_FRACTIONS.size() - 1)]
 
 
-# Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and always when the
+# Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and always when
+# the
 # intro is off). `at` is an optional world point the prompt sits near.
 func request(id: int, at: Vector3 = Vector3.INF) -> bool:
 	if not enabled or shown.has(id):
@@ -74,11 +82,19 @@ func request(id: int, at: Vector3 = Vector3.INF) -> bool:
 
 # Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the intro
 # off too, so tests can read `current`.
-func notice(id: int) -> void:
+func notice(id: int, words: String = "") -> void:
 	queue.erase(id)
 	current = id
 	anchor = Vector3.INF
-	time_left = Config.PROMPT_SECONDS
+	big = true
+	custom_text = words
+	duration = Config.NOTICE_SECONDS
+	time_left = duration
+
+
+# The words of the prompt on show (a notice may carry its own).
+func current_text() -> String:
+	return custom_text if custom_text != "" else text_for(current)
 
 
 # Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
@@ -121,6 +137,7 @@ func update(delta: float) -> void:
 	if time_left <= 0.0:
 		current = -1
 		anchor = Vector3.INF
+		_reset_look()
 		_next()
 
 
@@ -128,8 +145,15 @@ func _next() -> void:
 	if queue.is_empty():
 		return
 	current = queue.pop_front()
-	time_left = Config.PROMPT_SECONDS
+	_reset_look()
+	time_left = duration
 	anchor = _queued_anchor.get(current, Vector3.INF)
+
+
+func _reset_look() -> void:
+	big = false
+	custom_text = ""
+	duration = Config.PROMPT_SECONDS
 
 
 # The prompt for a mood (Person.Mood).
@@ -167,6 +191,8 @@ static func text_for(id: int) -> String:
 			return Config.BEACON_BLOCKED_TEXT
 		Prompt.BEACON_FELL_BACK:
 			return Config.BEACON_FELL_BACK_TEXT
+		Prompt.ZONE_PULLED_IN:
+			return Config.BEACON_PULLED_IN_TEXT
 	return "You're dim — rest inside your border"
 
 
@@ -183,4 +209,6 @@ static func icon_for(id: int) -> int:
 			return MoodIcons.Kind.CLOUD
 		Prompt.SHELTERED:
 			return MoodIcons.Kind.UMBRELLA
+		Prompt.BEACON_SPIRIT, Prompt.BEACON_BORDER, Prompt.BEACON_BLOCKED, Prompt.BEACON_FELL_BACK, Prompt.ZONE_PULLED_IN:
+			return MoodIcons.Kind.BANG
 	return MoodIcons.Kind.NONE
