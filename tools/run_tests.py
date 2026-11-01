@@ -61,6 +61,9 @@ PERF_PREFIX = "test_perf_"  # timing tests: see the module docstring
 # other agents' load would make the budget flaky. The coordinator's `gate.py --full` after the merge still enforces it.
 PARALLEL_PART_ENV = "POSITIVEFPS_PARALLEL_PART"
 PARALLEL_PART_NOTICE = ("perf pass skipped (parallel part); enforced by the coordinator's gate --full after merge")
+# A timing test prints its reading on a line starting with one of these; the serial pass echoes them (tools/perf_compare.py
+# reads them from this output). A new timing test that prints a reading must use one of these prefixes, or add its own.
+PERF_READING_PREFIXES = ("WORLD_SCALE", "MINIMAP", "PERF")
 OWN_UNIT_SECONDS = 3.0  # a test at least this slow gets a Godot process of its own
 _print_lock = threading.Lock()
 
@@ -304,7 +307,7 @@ def run_perf_pass(project, report_dir):
         print("serial timing unit %-55s exit %d" % (suite, unit_code), flush=True)
         outputs.append(out)
         for ln in out.splitlines():  # a timing test prints its measurement; show it
-            if ln.startswith("WORLD_SCALE"):
+            if ln.startswith(PERF_READING_PREFIXES):
                 print("  " + ln, flush=True)
         if parsed is None or unit_code not in (0, 100):
             print(out, flush=True)

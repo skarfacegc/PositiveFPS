@@ -98,5 +98,45 @@ class AnalyseTest(unittest.TestCase):
             self.assertEqual(ar.main([tmp]), 2)
 
 
+class CompareTest(unittest.TestCase):
+    def write(self, tmp, name, events):
+        folder = os.path.join(tmp, name)
+        os.makedirs(folder)
+        with open(os.path.join(folder, "events.jsonl"), "w", encoding="utf-8") as fh:
+            for e in events:
+                fh.write(json.dumps(e) + "\n")
+        return folder
+
+    def test_two_recordings_side_by_side_and_restarts_skipped(self):
+        short = [{"t": 0.0, "type": "session_start"}, sample(1.0), sample(2.0),
+                 {"t": 3.0, "type": "session_end", "outcome": "quit", "reason": "quit", "rescued": 0}]
+        with tempfile.TemporaryDirectory() as tmp:
+            a = self.write(tmp, "20261031-100000", synthetic())
+            restart = self.write(tmp, "20261031-101000", short)
+            b = self.write(tmp, "20261031-102000", synthetic())
+            table, skipped = ar.compare_recordings([a, restart, b])
+            self.assertEqual(len(skipped), 1)
+            self.assertIn("20261031-101000", skipped[0])
+            lines = table.splitlines()
+            self.assertIn("20261031-100000", lines[0])
+            self.assertIn("20261031-102000", lines[0])
+            self.assertNotIn("20261031-101000", table)
+            rows = {ln.split("  ")[0].strip(): ln for ln in lines[1:]}
+            self.assertIn("win", rows["outcome"])
+            self.assertIn("0:30", rows["length"])
+            self.assertIn("calm 1, rising 0", rows["gaps by phase"])
+            self.assertIn("1/1", rows["beacons placed/reached"])
+            self.assertIn("1/1", rows["landmarks claimed/lost"])
+            self.assertIn("relapses", table)
+
+    def test_compare_cli_and_all_restarts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a = self.write(tmp, "r1", synthetic())
+            self.assertEqual(ar.cli(["--compare", a]), 0)
+            only_short = self.write(tmp, "r2", [{"t": 0.0, "type": "session_start"}, sample(1.0)])
+            self.assertEqual(ar.cli(["--compare", only_short]), 2)
+            self.assertEqual(ar.cli(["--compare", os.path.join(tmp, "missing")]), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

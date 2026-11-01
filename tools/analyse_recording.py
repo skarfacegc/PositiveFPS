@@ -5,6 +5,7 @@ Usage:
     python tools/analyse_recording.py recordings/20261028-184243
     python tools/analyse_recording.py <session folder> --csv other/path/timeline.csv
     python tools/analyse_recording.py <session folder> --quiet-window 5
+    python tools/analyse_recording.py --compare recordings/A recordings/B [...]   # side by side; restarts under 10 s skipped
 
 The folder holds events.jsonl (see scripts/recorder.gd). Python standard library only.
 
@@ -274,5 +275,93 @@ def main(argv=None):
     return 0
 
 
+# ---- Round 22: round-over-round comparison (python tools/analyse_recording.py --compare A B [C ...]) ----------------
+# Kept at the end of the file, in new functions only, so it merges cleanly with the other report sections.
+RESTART_SECONDS = 10.0  # a recording shorter than this is a restart (menu start, quit at once) and is skipped
+
+
+def compare_column(res):
+    """The comparison figures of one analysed recording, as {row name: text}."""
+    end, rows = res["end"], res["rows"]
+    n = len(rows)
+    dur = res["duration"]
+    by_phase = []
+    for name, group in phases(rows).items():
+        by_phase.append("%s %d" % (name, sum(r["n_gap_open"] for r in group)))
+    lm_events = res["landmark_events"]
+    claims = sum(1 for e in lm_events if e["type"] == "landmark_claimed")
+    win = res["win"]
+    return {
+        "outcome": end.get("outcome", "?") if end else "no end (cut off)",
+        "length": "%d:%02d" % (dur // 60, dur % 60),
+        "rescued": str(end.get("rescued", "?")) if end else "?",
+        "dawn lights": str(win.get("lights", "?")) if win else "-",
+        "quiet % strict": "%.1f" % pct(sum(r["quiet"] for r in rows), n),
+        "gaps opened": str(res["counts"].get("gap_open", 0)),
+        "gaps by phase": ", ".join(by_phase) or "-",
+        "relapses": str(res["counts"].get("relapse", 0)),
+        "spirit mean": "%.1f" % statistics.fmean(r["spirit"] for r in rows),
+        "beacons placed/reached": "%d/%d" % (len(res["beacons_placed"]), len(res["beacons_reached"])),
+        "landmarks claimed/lost": "%d/%d" % (claims, len(lm_events) - claims),
+    }
+
+
+def compare_table(columns):
+    """columns: [(heading, {row: text})]. Returns the side by side table as text."""
+    names = list(columns[0][1].keys())
+    widths = [max(len(h), max(len(c[row]) for row in names)) for h, c in columns]
+    label_w = max(len(r) for r in names)
+    out = ["%-*s  %s" % (label_w, "", "  ".join("%-*s" % (w, h) for w, (h, _c) in zip(widths, columns)))]
+    for row in names:
+        out.append("%-*s  %s" % (label_w, row, "  ".join("%-*s" % (w, c[row]) for w, (_h, c) in zip(widths, columns))))
+    return "\n".join(out)
+
+
+def compare_recordings(folders, quiet_window=5.0, min_seconds=RESTART_SECONDS):
+    """Returns (table text, skipped notes). Recordings with no samples or shorter than min_seconds are skipped."""
+    columns, skipped = [], []
+    for folder in folders:
+        label = os.path.basename(os.path.normpath(folder))
+        try:
+            res = analyse(load_events(folder), quiet_window)
+        except OSError as err:
+            skipped.append("%s: cannot read events.jsonl (%s)" % (label, err))
+            continue
+        if not res["rows"] or res["duration"] < min_seconds:
+            skipped.append("%s: skipped, a restart or empty (%.0f s, under %.0f s)" % (label, res["duration"],
+                                                                                      min_seconds))
+            continue
+        columns.append((label, compare_column(res)))
+    if not columns:
+        return "", skipped
+    return compare_table(columns), skipped
+
+
+def compare_main(argv):
+    parser = argparse.ArgumentParser(prog="analyse_recording.py --compare",
+                                     description="Compare two or more recordings side by side.")
+    parser.add_argument("folders", nargs="+", help="session folders holding events.jsonl, oldest first")
+    parser.add_argument("--quiet-window", type=float, default=5.0)
+    parser.add_argument("--min-seconds", type=float, default=RESTART_SECONDS,
+                        help="recordings shorter than this are restarts and are skipped (default %(default)s)")
+    args = parser.parse_args(argv)
+    table, skipped = compare_recordings(args.folders, args.quiet_window, args.min_seconds)
+    for note in skipped:
+        print("NOTE: " + note, file=sys.stderr)
+    if not table:
+        print("ERROR: no usable recordings to compare", file=sys.stderr)
+        return 2
+    print(table)
+    return 0
+
+
+def cli(argv=None):
+    """`--compare A B ...` compares recordings; anything else is the single-recording report of main()."""
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "--compare":
+        return compare_main(argv[1:])
+    return main(argv)
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(cli())

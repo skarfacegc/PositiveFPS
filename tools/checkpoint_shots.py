@@ -20,17 +20,18 @@ the look in place (F4), in the styled look:
     timings.txt                            average ms per frame of each look (vsync off)
 
 Needs a real window (no headless): it is titled "PositiveFPS - RENDERING CHECKPOINT SCREENSHOTS (closes automatically)",
-never captures the mouse and quits by itself (hard limit 170 s here, 200 s for this script; the round20 set allows 600 s and 650 s). The Godot executable is the
+never captures the mouse and quits by itself (hard limit 170 s here, 200 s for this script; the round20 set allows 600 s and 650 s). The run goes
+through tools/godot_run.py: a timeout ends only the process tree it started, and the log is <out>/checkpoint_run.log. The Godot executable is the
 non-console one next to the console one used by run_tests.py (tools/godot_path.py; GODOT_GUI overrides it).
 Only the Python standard library is used.
 """
 import argparse
 import os
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from godot_path import godot_gui  # noqa: E402
+from godot_run import run as godot_run  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VIEWS = ["overview", "gap_closeup", "wedge_closeup", "shield_closeup", "ui_closeup", "minimap_closeup", "zoom_min",
@@ -78,13 +79,14 @@ def main():
         cmd += ["--set", args.shot_set]
     if args.shot_set == "round20":
         cmd += ["--timeout", "600"]
-    try:
-        proc = subprocess.run(cmd, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace",
-                              timeout=650 if args.shot_set == "round20" else 200)
-    except subprocess.TimeoutExpired:
-        print("ERROR: the screenshot run timed out", file=sys.stderr)
+    # tools/godot_run.py: hard timeout, output in a log file, ends only the process tree it started.
+    log_path = os.path.join(out_abs, "checkpoint_run.log")
+    result = godot_run(cmd, timeout=650 if args.shot_set == "round20" else 200, log_path=log_path, env=env)
+    print(result.summary())
+    if result.timed_out:
+        print("ERROR: the screenshot run timed out (log: %s)" % log_path, file=sys.stderr)
         return 2
-    for line in proc.stdout.splitlines():
+    for line in result.output().splitlines():
         if line.startswith(("TIMING", "SAVED", "GAPS", "SEALED")) or "ERROR" in line:
             print(line)
     expected = {"round19": EXPECTED_R19, "round20": EXPECTED_R20}.get(args.shot_set, EXPECTED)
