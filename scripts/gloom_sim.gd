@@ -43,13 +43,15 @@ static func update(
 			var exposure := 1.0 - q.protection
 			if q.is_rescued:
 				q.drain_joy(Config.SPREAD_DRAIN_RATE * delta * drain_multiplier * strength * exposure)
-			else:
+			elif q.calm_left <= 0.0:
 				q.gloom = clampf(q.gloom + Config.SPREAD_GLOOM_RATE * delta * strength * exposure, 0.0, 1.0)
 
 
 # Cover rules for one unrescued person. Growth is scaled by (1 - protection), so it only happens at the edges.
 # Contagion lowers gloom when the cover is high enough, scaled by protection. It never touches joy.
 static func _update_covered(p: Person, nearest: float, delta: float, strength: float) -> void:
+	if p.calm_left > 0.0:  # Round 22: a burst calmed them; no growth for a while.
+		return
 	var growth := Config.GLOOM_GROWTH + Config.GLOOM_GROWTH_PER_METER * nearest
 	# Round 11: the grey -> dimmed step (level 1) is slower. Light grey -> grey is not changed.
 	if Config.gloom_level(p.gloom) == 1:

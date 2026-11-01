@@ -21,6 +21,8 @@ static func setup() -> void:
 	_add_action("burst", [_key(KEY_G), _key(KEY_Q)])
 	# Round 19: place the spirit beacon at the cursor (costs spirit; the border's centre walks toward it).
 	_add_action("place_beacon", [_key(KEY_E)])
+	# Round 22: patch the gap (or strained spot) nearest the cursor for a while (costs spirit).
+	_add_action("patch_gap", [_key(KEY_F)])
 	# Cycles the targeting mode (lock-on, hover, auto).
 	_add_action("cycle_targeting", [_key(KEY_F2)])
 	# Shows cover and protection above each person, and a hint in the HUD (off by default).
@@ -39,6 +41,7 @@ static func setup() -> void:
 #   move_forward, move_back, move_left, move_right  -> left stick
 #   run                                             -> left stick click
 #   burst                                           -> top face button
+#   patch_gap                                       -> right face button (aim point from the right stick)
 #   place_beacon                                    -> left face button (aim point from the right stick)
 #   fire (lock on to a person)                      -> right trigger
 #   cycle_targeting                                 -> left shoulder button

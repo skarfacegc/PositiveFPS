@@ -52,6 +52,8 @@ var player_dim: bool = false
 
 # The look: draws the line, the haze and the gap glow from the state above (see scripts/looks/border_look.gd).
 var look: BorderLook
+# Round 22: the gap patches (set by GapPatch.attach); update() lets it seal gaps after the slots are worked out.
+var patch: GapPatch
 var _ground: PaintedGround
 var _has_centre: bool = false
 # Rescued people whose outward push has not been applied yet (see on_rescue).
@@ -165,6 +167,8 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 	else:
 		polygon = PackedVector2Array()
 	_assign_members(rescued)
+	if patch != null:
+		patch.apply(self)
 	_move_members(delta)
 	_update_buildings(delta)
 	_press_gloom(people, delta, strength)

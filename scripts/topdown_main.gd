@@ -26,7 +26,7 @@ const BLOCK_POSITIONS: Array[Vector3] = [
 	Vector3(-6, 0, 24) * Config.WORLD_SCALE + Vector3(0, 1, 0),
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
-const HINT_PLAY := "WASD move | Shift run | Click to lock on | G/Q burst | E beacon"
+const HINT_PLAY := "WASD move | Shift run | Click to lock on | G/Q burst | F patch gap | E beacon"
 const HINT := HINT_PLAY + " | R restart | M menu | [F4] look"
 
 var ground: PaintedGround
@@ -37,6 +37,7 @@ var hud: Hud
 var minimap: Minimap
 var arrows: GapArrows
 var border: Border
+var gap_patch: GapPatch  # Round 22: patches, border warning and burst marks.
 var beacon_marker: BeaconMarker  # Round 19: the beacon in the world (both looks).
 var reach_guide: ReachGuide  # Round 20: the placeholder look's reach ring, preview and tip travel.
 var landmarks: Landmarks  # Round 19: the three landmarks and their boosts.
@@ -165,6 +166,7 @@ func _ready() -> void:
 	arrows = GapArrows.new()
 	hud.add_child(arrows)
 	_build_feedback()
+	gap_patch = GapPatch.attach(self)
 	hud.set_hint(HINT)
 	hud.set_targeting(player.targeting_mode)
 	player.target_changed.connect(hud.set_target)
@@ -414,7 +416,7 @@ func _update_target_mood() -> void:
 
 func _update_spirit_hud() -> void:
 	hud.set_spirit(player.spirit, player.is_dim)
-	hud.set_burst(player.burst_cooldown, player.has_burst_spirit())
+	hud.set_burst(player.burst_cooldown, player.has_burst_spirit(), gap_patch.burst_targets)
 	spirit_meter.set_values(player.spirit, player.is_dim)
 
 

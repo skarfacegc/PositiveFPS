@@ -16,11 +16,12 @@ const HOW_TO_PLAY_TEXT := (
 	+ "and glum people take extra joy when they look up.\n"
 	+ "[b]The gloom:[/b] Dimmed people press on your border and reach for you (a glowing ring warns of a lunge: step "
 	+ "out of reach). Where they push, border folk falter and gaps open. Re-joy a faltering person to close the gap.\n"
-	+ "[b]Spirit:[/b] Helping people fills it; a joy burst costs some. At zero you go dim. Recover inside your border.\n"
+	+ "[b]Spirit:[/b] Helping fills it. G (joy burst) clears dimmed people off the border; F patches a gap. "
+	+ "At zero you go dim.\n"
 	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered (breaks after a few hits) · "
 	+ "! faltering.\n"
-	+ "[b]Keys:[/b] WASD move · Shift run · G or Q joy burst · Mouse point at people "
-	+ "(F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look · R restart · M menu"
+	+ "[b]Keys:[/b] WASD move · Shift run · G or Q burst · F patch gap · Mouse point at people "
+	+ "(F2 targeting) · Wheel zoom · F3 debug · F4 switch look · R restart · M menu"
 )
 
 # The look toggle (Placeholder / Styled). The choice lasts for the session (see Looks.mode).

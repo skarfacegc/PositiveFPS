@@ -780,6 +780,48 @@ const BEACON_GUIDE_LIMITED_FILL_COLOUR := Color(1.0, 0.6, 0.45, 0.14)
 const BEACON_GUIDE_LABEL_COLOUR := Color(1.0, 1.0, 0.92)
 const BEACON_GUIDE_LABEL_SIZE := 0.03
 
+# ---- Round 22: gap patch (scripts/gap_patch.gd). ----
+# F spends PATCH_SPIRIT_COST spirit to seal the gap (or the strained spot) nearest the cursor for PATCH_SECONDS. While
+# patched, gloom does not pass the gap (it counts as intact: dimmed people are pushed back) and border members within
+# PATCH_RADIUS of it lose joy at only PATCH_DRAIN_MULT of the usual rate. It buys time; it does not heal anyone.
+const PATCH_SPIRIT_COST := 25.0
+const PATCH_SECONDS := 12.0
+const PATCH_RADIUS := 4.0 * WORLD_SCALE
+const PATCH_REACH := 9.0 * WORLD_SCALE  # How far from the cursor the gap or strained spot may be.
+const PATCH_DRAIN_MULT := 0.15
+const PATCH_MAX := 4
+const PATCH_COLOUR := Color(0.35, 0.95, 0.85)
+const PATCH_SPIRIT_TEXT := "Patching a gap needs 25 spirit"
+const PATCH_NONE_TEXT := "No gap or strained spot near the cursor"
+const PATCH_ALREADY_TEXT := "That spot is already patched"
+const PATCH_MAX_TEXT := "Too many patches at once"
+
+# ---- Round 22: burst (scripts/burst_clear.gd, topdown_player.gd). ----
+# G/Q clears dimmed people off the border: within BURST_CLEAR_RADIUS of the player, every dimmed person within
+# BURST_BORDER_BAND of the line (outside pressing it, or inside through a gap) is pushed BURST_PUSH_DISTANCE away from
+# the border and lifted to the gloomy band (gloom BURST_LIFT_GLOOM, joy 0, then calm). Border members and other
+# people in range still get the joy hit (TD_BURST_JOY), so a strained stretch is topped up as well.
+const BURST_CLEAR_RADIUS := 8.0
+const BURST_BORDER_BAND := 3.5
+const BURST_PUSH_DISTANCE := 4.0
+const BURST_LIFT_GLOOM := 0.5
+# A cleared person is calm this long (no gloom gain, from growth or from a dimmed neighbour), so they do not sink
+# straight back and walk up to the line again.
+const BURST_CALM_SECONDS := 10.0
+const BURST_FX_SECONDS := 0.9
+const BURST_FX_COLOUR := Color(1.0, 0.9, 0.5)
+
+# ---- Round 22: border warning (scripts/border_warning.gd, gap_patch.gd, minimap.gd). ----
+# A border member whose joy has fallen below BORDER_WARN_START of the joy needed is under strain; the warning grows from
+# 0 there to 1 at MEMBER_FALTER_FRACTION, where the gap opens. A dimmed person outside within BORDER_WARN_PRESS_RANGE of
+# a member gives that member at least BORDER_WARN_PRESS_URGENCY. Worked out every BORDER_WARN_INTERVAL seconds.
+const BORDER_WARN_START := 0.97
+const BORDER_WARN_PRESS_RANGE := 4.0
+const BORDER_WARN_PRESS_URGENCY := 0.3
+const BORDER_WARN_INTERVAL := 0.1
+const BORDER_WARN_COLOUR_LOW := Color(1.0, 0.85, 0.3)
+const BORDER_WARN_COLOUR_HIGH := Color(1.0, 0.25, 0.2)
+
 # ---- Round 19: landmarks (scripts/landmark.gd, landmarks.gd, topdown_main.gd). ----
 # Three landmarks, far enough from the start that the natural ring (LANDMARK_START_REACH from the middle) cannot reach
 # them: the player needs beacons. Each is held while beautified inside the border for BORDER_LANDMARK_HOLD seconds, and

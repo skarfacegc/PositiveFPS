@@ -319,7 +319,7 @@ func set_spirit(spirit: float, is_dim: bool) -> void:
 
 # Shows the joy burst cooldown: READY in green when it can be used, otherwise the seconds left in grey. `has_spirit`
 # false (round 12a) shows that the burst needs spirit instead.
-func set_burst(cooldown_left: float, has_spirit: bool = true) -> void:
+func set_burst(cooldown_left: float, has_spirit: bool = true, targets: int = 0) -> void:
 	burst_label.visible = true
 	if not has_spirit:
 		burst_label.text = "Joy burst [G]: needs %d spirit" % roundi(Config.BURST_SPIRIT_COST)
@@ -327,6 +327,9 @@ func set_burst(cooldown_left: float, has_spirit: bool = true) -> void:
 	elif cooldown_left <= 0.0:
 		burst_label.text = "Joy burst [G]: READY"
 		burst_label.add_theme_color_override("font_color", Color(0.6, 1, 0.6))
+		if targets > 0:  # Round 22: it clears dimmed people off the border; say how many are in reach.
+			burst_label.text = "Joy burst [G]: READY - %d dimmed at the border" % targets
+			burst_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.5))
 	else:
 		burst_label.text = "Joy burst [G]: %.1fs" % cooldown_left
 		burst_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
