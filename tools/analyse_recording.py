@@ -141,6 +141,9 @@ def analyse(events, quiet_window=5.0):
         "grows": [e for e in real if e["type"] == "zone_grow"],
         "shrinks": [e for e in real if e["type"] == "zone_shrink"],
         "landmark_events": [e for e in real if e["type"] in ("landmark_claimed", "landmark_lost")],
+        "patches": [e for e in real if e["type"] == "gap_patched"],
+        "bursts": [e for e in real if e["type"] == "burst"],
+        "burst_clears": [e for e in real if e["type"] == "burst_clear"],
         "win": next((e for e in real if e["type"] == "win"), None),
     }
 
@@ -231,6 +234,16 @@ def report(res, folder):
         add("  zone_shrink at t=%.0f s, -%s sq m, zone now %s sq m (%s rescued)" % (
             e["t"], e.get("lost"), e.get("zone"), e.get("people")))
     add("")
+    patches, bursts, clears = res["patches"], res["bursts"], res["burst_clears"]
+    spent_patch = sum(e.get("cost", 0) for e in patches)
+    add("FIGHTING BACK (round 22): %d gap patches (%.0f spirit), %d bursts, %d dimmed people cleared off the border" % (
+        len(patches), spent_patch, len(bursts), sum(e.get("lifted", 0) for e in clears)))
+    for e in patches:
+        add("  patch at t=%.0f s (%s), pos %s, %s gaps open, spirit left %s" % (
+            e["t"], e.get("kind"), e.get("pos"), e.get("gaps_open"), e.get("spirit_after")))
+    for e in clears:
+        add("  burst at t=%.0f s lifted %s dimmed, %s joy hits, %s gaps open, spirit left %s" % (
+            e["t"], e.get("lifted"), e.get("joy_hits"), e.get("gaps_open"), e.get("spirit_after")))
     lm_events = res["landmark_events"]
     claims = sum(1 for e in lm_events if e["type"] == "landmark_claimed")
     add("LANDMARKS: %d claimed, %d lost" % (claims, len(lm_events) - claims))

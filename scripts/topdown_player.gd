@@ -13,6 +13,8 @@ signal targeting_changed(mode: int)
 signal debug_toggled
 # Emitted when the joy burst is used, with the player's position (the border shoves toward it).
 signal burst_fired(at: Vector3)
+# Round 22: the burst's report (see BurstClear.run), sent right after burst_fired.
+signal burst_cleared(report: Dictionary)
 # Emitted when the player goes dim (spirit reached 0) and when they leave it again.
 signal dim_changed(is_dim: bool)
 
@@ -22,6 +24,8 @@ var target: Person = null
 var active: bool = true
 # Set by topdown_main.gd after both the player and the people exist.
 var people: Array[Person] = []
+# Round 22: the border the burst clears dimmed people from (set by GapPatch.attach; null means the plain joy hit).
+var border: Border
 var camera: Camera3D
 # Seconds left before the joy burst can be used again. topdown_main.gd shows this on the HUD.
 var burst_cooldown: float = 0.0
@@ -360,15 +364,14 @@ func _set_spirit(value: float) -> void:
 func _burst() -> void:
 	burst_cooldown = Config.TD_BURST_COOLDOWN
 	lose_spirit(Config.BURST_SPIRIT_COST)
-	for p: Person in people:
-		if _flat_dist(global_position, p.global_position) <= Config.TD_BURST_RADIUS:
-			p.receive_joy(p.affinity, Config.TD_BURST_JOY, 0.0, global_position)
+	var report := BurstClear.run(people, global_position, border)
 	_spawn_burst_ring()
 	burst_fired.emit(global_position)
+	burst_cleared.emit(report)
 
 
 func _spawn_burst_ring() -> void:
-	look.play_burst(Config.TD_BURST_RADIUS, Config.TD_BURST_TIME)
+	look.play_burst(Config.BURST_CLEAR_RADIUS, Config.TD_BURST_TIME)
 
 
 # Distance between two points, ignoring height.

@@ -34,6 +34,11 @@ def synthetic():
            {"t": 20.0, "type": "beacon_reached", "pos": [10.0, -4.0]},
            {"t": 20.0, "type": "zone_grow", "tip": [9.0, -3.5], "gain": 41.5, "angle": 0.3, "people": 9, "zone": 210.0},
            {"t": 28.0, "type": "zone_shrink", "lost": 12.0, "people": 7, "zone": 198.0},
+           {"t": 16.0, "type": "gap_patched", "pos": [3.0, 4.0], "kind": "gap", "cost": 25.0, "spirit_after": 60.0,
+            "gaps_open": 2},
+           {"t": 17.0, "type": "burst", "pos": [3.0, 4.0]},
+           {"t": 17.0, "type": "burst_clear", "lifted": 2, "joy_hits": 5, "ids": [4, 9], "gaps_open": 1,
+            "spirit_after": 30.0},
            {"t": 21.0, "type": "landmark_claimed", "name": "Garden", "held": 1},
            {"t": 26.0, "type": "landmark_lost", "name": "Garden", "held": 0},
            {"t": 29.9, "type": "win", "title": "Dawn", "rescued": 9, "lights": 2, "people_share": 0.52,
@@ -62,6 +67,15 @@ class AnalyseTest(unittest.TestCase):
         self.assertEqual(len(res["beacons_reached"]), 1)
         text = ar.report(res, "x")
         self.assertIn("SPIRIT BEACONS: 1 placed (30 spirit spent), 1 reached", text)
+
+    def test_patches_and_burst_clears_are_reported(self):
+        res = ar.analyse(synthetic())
+        self.assertEqual(len(res["patches"]), 1)
+        self.assertEqual(len(res["burst_clears"]), 1)
+        text = ar.report(res, "x")
+        self.assertIn("FIGHTING BACK (round 22): 1 gap patches (25 spirit), 1 bursts, 2 dimmed people cleared", text)
+        self.assertIn("patch at t=16 s (gap)", text)
+        self.assertIn("burst at t=17 s lifted 2 dimmed, 5 joy hits", text)
 
     def test_the_stretching_zone_is_reported(self):
         res = ar.analyse(synthetic())

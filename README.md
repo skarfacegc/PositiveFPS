@@ -14,10 +14,13 @@ mode was retired.)
   skittish people flee if you run at them, and glum people take extra joy when they look up.
 - **The gloom:** Dimmed people press on your border and reach for you. Where they push, border folk falter and gaps
   open. Re-joy a faltering person to close the gap.
-- **Spirit:** Helping people fills it; a joy burst costs some. At zero you go dim. Recover inside your border.
+- **Spirit:** Helping people fills it; a joy burst and a gap patch cost some. At zero you go dim. Recover inside your border.
+- **Fighting back (round 22):** rings on border folk show where the border is about to break (amber, then red as it
+  gets urgent). **F** spends 25 spirit to patch the gap or strained spot nearest the cursor for 12 s; **G** or **Q**
+  clears dimmed people off the border.
 - **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered (its pips count the four hits left) · ! = faltering. The night
   introduces them one at a time, with a short one-time prompt each.
-- **Keys:** WASD move · Shift run · G or Q joy burst · Mouse point at people (F2 changes
+- **Keys:** WASD move · Shift run · G or Q joy burst · F patch gap · Mouse point at people (F2 changes
   targeting) · Mouse wheel zoom · F3 debug · F4 switch look · R restart · M menu
 
 ## How to run
@@ -113,8 +116,12 @@ element, and F3 labels it above the person.
   target. **F2** cycles the modes: lock-on, hover (default) and auto (the most urgent person in range).
 - Every shot uses the target's element, so it is always a best match. Music is quick and small, art is slow and big
   (it splashes), nature is a floating flower that blooms where it lands.
-- **G** or **Q** joy burst: everyone close by gets a best-match hit (short cooldown, costs 30 spirit). Used within 4 m
-  of the border, it also shoves the line outward toward you.
+- **G** or **Q** joy burst (8 s cooldown, costs 30 spirit): dimmed people pressing the border within 8 m are pushed back
+  4 m and lifted to gloomy (streaks show it; the HUD says how many are in reach), border folk in range get a joy top-up,
+  and used within 4 m of the border it also shoves the line outward toward you.
+- **F** patch gap (costs 25 spirit, lasts 12 s, up to 4 at once): point the cursor near an open gap or a red-ringed member.
+  A teal disc shows the sealed stretch: gloom does not pass it and members inside lose joy at 15% of the rate. It buys
+  time; it does not heal anyone. Refused (with a notice) when you are out of spirit or no gap is within 9 m of the cursor.
 - **F3** toggles the debug overlay: cover (`c`) and protection (`p`) above each person, a label per border segment (its
   spacing, and GAP where it is one), and the member, inner, post and night numbers at the top left, and the live floor-effect counts (for example
   `floor fx 12/40: ring 2, splat 3`, against the cap of 40). Off by default. If F3 does

@@ -26,7 +26,7 @@ const BLOCK_POSITIONS: Array[Vector3] = [
 	Vector3(-6, 0, 24) * Config.WORLD_SCALE + Vector3(0, 1, 0),
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
-const HINT_PLAY := "WASD move | Shift run | Click to lock on | G/Q burst | E beacon"
+const HINT_PLAY := "WASD move | Shift run | Click to lock on | G/Q burst | F patch gap | E beacon"
 const HINT := HINT_PLAY + " | R restart | M menu | [F4] look"
 
 var ground: PaintedGround
@@ -37,6 +37,7 @@ var hud: Hud
 var minimap: Minimap
 var arrows: GapArrows
 var border: Border
+var gap_patch: GapPatch  # Round 22: patches, border warning and burst marks.
 var beacon_marker: BeaconMarker  # Round 19: the beacon in the world (both looks).
 var reach_guide: ReachGuide  # Round 20: the placeholder look's reach ring, preview and tip travel.
 var landmarks: Landmarks  # Round 19: the three landmarks and their boosts.
@@ -169,6 +170,7 @@ func _ready() -> void:
 	arrows = GapArrows.new()
 	hud.add_child(arrows)
 	_build_feedback()
+	gap_patch = GapPatch.attach(self)
 	hud.set_hint(HINT)
 	hud.set_targeting(player.targeting_mode)
 	player.target_changed.connect(hud.set_target)
@@ -250,28 +252,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_zoom_target = clampf(_zoom_target + step, Config.TD_ZOOM_MIN, Config.TD_ZOOM_MAX)
 
 
-# Round 19: E. Puts the spirit beacon at the cursor's ground point for BEACON_SPIRIT_COST spirit (the zone then
-# stretches toward it, round 20). Refused (nothing changes, a short notice shows) without a border or
-# without enough spirit. A new beacon replaces the old one and costs again. Returns true when it was placed.
+# Round 19: E. See BeaconPlacement.
 func try_place_beacon() -> bool:
-	if not running or not player.has_aim():
-		return false
-	if not border.formed:
-		intro.notice(Intro.Prompt.BEACON_BORDER)
-		return false
-	if player.is_dim or player.spirit < Config.BEACON_SPIRIT_COST:
-		intro.notice(Intro.Prompt.BEACON_SPIRIT)
-		return false
-	var plan := border.plan_stretch(player.aim_point())  # Round 22: refused with the plan's reason; nothing is spent.
-	if plan["refused"]:
-		intro.notice(Intro.Prompt.BEACON_BLOCKED, str(plan["reason"]))
-		return false
-	player.lose_spirit(Config.BEACON_SPIRIT_COST)
-	border.place_beacon(player.aim_point())
-	spirit_meter.moment(-Config.BEACON_SPIRIT_COST, SpiritMeter.Moment.SPEND)
-	feedback.pulse_player(SpiritMeter.Moment.SPEND)
-	beacon_placed.emit(border.beacon_pos(), Config.BEACON_SPIRIT_COST, player.spirit)
-	return true
+	return BeaconPlacement.try_place(self)
 
 
 # Leaves the level for `scene_path` (empty = start this level again) after telling the recorder why. Tests set
@@ -419,7 +402,7 @@ func _update_target_mood() -> void:
 
 func _update_spirit_hud() -> void:
 	hud.set_spirit(player.spirit, player.is_dim)
-	hud.set_burst(player.burst_cooldown, player.has_burst_spirit())
+	hud.set_burst(player.burst_cooldown, player.has_burst_spirit(), gap_patch.burst_targets)
 	spirit_meter.set_values(player.spirit, player.is_dim)
 
 
