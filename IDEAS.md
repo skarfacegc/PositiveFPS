@@ -1567,3 +1567,29 @@ styled (M to the menu) never switched it back, so the next Placeholder level in 
 A fresh Placeholder start was fine, which is why round 20 looked normal. Reproduced in a real window (Styled, menu,
 Placeholder) with screenshots, and `ViewPipeline.apply` now switches 3D drawing back on in the placeholder look.
 Regression test: `looks_test.gd` `test_placeholder_level_after_styled_level_draws_the_world`.
+
+## Round 21 playtest and round 22 plan (2026-11-01)
+
+**Recording** (`20261101-071301`, seed 42, Placeholder look): a loss at 2:40. 5 beacons (250 spirit), 3 snaps, 2 stretches
+ended with "Dimmed people are in the way". About 30 held at 1:40, then a slow unravelling: 92 gaps, 46 relapses. Gaps
+began around 1:30, before the third snap. No landmarks, no bursts, spirit 98 through midnight.
+
+**Feedback:**
+- The stretch preview "worked really well". Shaping the zone is a solid mechanic; something more is needed for fun.
+- The walk looked much better.
+- The coral colouring went unnoticed, and the blocked message vanished before it could be read.
+- Clouds were good but should be more accurate and pronounced: finer blobs following the crowd's shape.
+- The loss felt unfair or helpless. Landmarks were forgotten.
+
+**Round 22 plan:**
+1. **Shaped zone.** No snap: each stretch stays part of the zone, and the rescued head count sets how much border can
+   be held. Rescue more people to expand further. Lose people and the zone slowly pulls in from its thinnest parts.
+2. **Fight back with spirit.** Patch a gap: spend spirit to seal it for a while. Rework the unused joy burst to clear
+   dimmed people off the border.
+3. **Feedback.** Show where the border is about to break, make gaining ground feel satisfying, keep landmarks in mind
+   with an on-screen pointer or map marker.
+4. **Readability.** Refusal messages stay long enough to read, a stronger limited-preview outline, finer and bolder
+   clouds.
+
+Still open: the styled look was not re-checked; sound cues are not yet designed; the 60-person timing test is flaky
+against its 4.5 ms budget. Round 22 changes the placeholder look only.
