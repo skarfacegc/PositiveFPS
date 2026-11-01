@@ -1667,3 +1667,66 @@ hold-and-snap code that no longer ran was removed.
 
 **Playtest questions:** does a shape feel worth building? Is pull-in fair? Does F or the burst stop a collapse in time, and
 do you use them? Do the rings feel constant at midnight? Are clouds at 15 x 15 too busy? Do the pointers help?
+
+## Round 22 playtest and round 23 plan (2026-11-01)
+
+Played `4d8ea8d` twice, recorded (`20261101-184308` placeholder, `20261101-184656` styled; a 1 s restart ignored).
+
+| | Game 1 | Game 2 |
+|---|---|---|
+| Outcome | win, 1 of 3 dawn lights | win, 1 of 3 dawn lights |
+| Rescued, 30 s mean before the last, then at the end | 33.5, then 22 | 44.1, then 15 |
+| Gaps in the last 45 s, of total | 98 of 117 | 87 of 99 |
+| Arms, ground gained, pull-ins | 4, +342 sq m, 0 | 4, +752 sq m, 0 |
+| Patches, bursts, dimmed cleared | 5, 2, 1 | 5, 1, 1 |
+| Landmarks | 0 | 0 |
+
+**The collapse is a mass relapse.** In game 2 the last 30 s window moved about 20 people from rescued to gloomy (rescued
+44.1 to 24.1, gloomy 10.2 to 29.3), and game 1 shows the same shape (33.5 to 24.9, 17.7 to 28.0). It falls in "easing",
+the phase meant to relax, and 0 pull-ins means the zone never shrank to match. Patches went down with up to 18 gaps open.
+Cause not yet known.
+
+**What the user said:**
+- Shaping: good, needs tuning. The text and growth indicators are large and distracting; no need to say it can't grow
+  when the player is far away. Reach is too short and growth too slow.
+- Patch and burst: hard to use. They didn't know when to use them and couldn't see the effect.
+- The end: too sudden. Ramp the pressure sooner.
+- Of the rings, clouds and pointers, only the 15 x 15 clouds helped. Landmarks aren't worth going to.
+
+### Gameplay
+
+- **Quieter shaping:** smaller text and growth markers; drop refusals that don't matter, such as far-away "can't grow".
+- **Shaping tuning:** more reach, faster growth; recheck the second-arm balance.
+- **When and did it work:** a clear cue for when patch and burst are worth using, and a visible result from each.
+- **Pressure curve:** find why the mass relapse happens, then build trouble up through rising and midnight, so the last
+  phase is no surge. Keep "easing" honest.
+- **Landmarks worth it:** a reason to go for them. Boosts beyond the current three still wait for the tech-tree talk, so
+  use what exists (dawn rating, stronger reward, nearer placement).
+
+### Infrastructure
+
+From this round's evidence:
+- **Split `config.gd` (999) and `border.gd` (996).** They block every round and were over the limit at the round 22 merge.
+- **Size warning:** lint warns from 950 lines, so limits show up before a merge, not during one.
+- **Coverage for parts:** three rounds running the baseline refused only after the full gate. Give part agents a quick
+  per-file check on the scripts they changed.
+- **One command for the round end:** `gate.py --full`, determinism, then baseline, stopping at the first failure and
+  surviving the 10-minute limit. Done by hand so far.
+- **Determinism:** 1088 lines differ in hit count, was 0 in round 21. Untested lead: pass 1 can be a saved run, not a
+  fresh one. Find the cause, and fail on a large jump if it stays meaningful.
+- **Frame time:** profile the 1.3 ms rise (5.5 ms against 4.2 ms) and measure the minimap redraw.
+- **Recording analysis:** add a pressure curve in 15 s steps with relapses and rescued, show gaps open and strain at each
+  patch and whether gaps fell afterwards, and leave restarts under 10 s out unless asked.
+- **Key list:** a test that every player action appears in how-to-play, and add the missing E.
+- **Worktree cleanup:** `cleanup_worktrees.py` doesn't list the 5 `.claude/worktrees/agent-*` folders left from
+  2026-10-28; make it report and remove orphans.
+- **Dashboard:** check whether finished agents show as running, and fix it.
+
+Not this round: styled-look art for the preview, patch and warnings (next graphics checkpoint) and the sound cue talk.
+
+### Build order
+
+1. **Part A, alone first:** the two splits, so later parts edit the new files. Sonnet.
+2. **In parallel, each in a worktree:** B pressure curve and diagnosis (Sonnet); C shaping quiet and tuning (Haiku);
+   D patch, burst and landmarks (Sonnet); E tooling (Sonnet).
+3. Merge, then the round-end checks, with coverage tests as needed.
