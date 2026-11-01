@@ -250,11 +250,14 @@ func test_perf_a_full_border_of_sixty_people_updates_within_the_frame_budget() -
 	# probes and parallel-gate load (the test once read 7.3 ms in a busy instrumented run). It is now measured where
 	# that noise is gone: plain (no probes), alone on the machine, after the parallel batch. Eight such runs measured
 	# 2.55, 2.56, 2.59, 2.65, 2.66, 2.68, 2.68, 2.94 ms (max 2.94). Budget = max x 1.5, rounded up to 4.5 ms.
-	# If a real change pushes this past 4.5 ms plain, that is a real slowdown: find it before touching the number.
+	# Round 22: 6.7 ms (was 4.5), recalibrated at the user's request after the test turned flaky. The same method on
+	# pre-round-22 code read 3.90, 4.00, 4.14, 4.20, 4.26, 4.28, 4.30, 4.44 ms (max 4.44), measured before any round 22
+	# code was merged, so its cost is not absorbed. Budget = max x 1.5, rounded up to 6.7 ms.
+	# If a real change pushes this past 6.7 ms plain, that is a real slowdown: find it before touching the number.
 	# The name starts with test_perf_, so tools/run_tests.py runs it alone, plain, after the parallel batch and sets
 	# POSITIVEFPS_PERF_ENFORCE=1. In the instrumented coverage run it still executes (its lines count) but is not timed.
 	if OS.get_environment("POSITIVEFPS_PERF_ENFORCE") == "1":
-		assert_float(per_frame_ms).is_less(4.5)
+		assert_float(per_frame_ms).is_less(6.7)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
