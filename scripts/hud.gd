@@ -351,6 +351,27 @@ func show_alert(text: String, colour: Color = Color(1, 0.6, 0.1), hold: float = 
 	_alert_tween.parallel().tween_property(alert_panel, "modulate:a", 0.0, 2.0)
 
 
+# Round 22: the HUD panels that an edge pointer keeps clear of (the landmark pointers, see landmark_pointers.gd).
+func layout_controls() -> Array[Control]:
+	var out: Array[Control] = [
+		night_label,
+		night_bar,
+		element_label,
+		burst_label,
+		spirit_label,
+		spirit_bar,
+		hint_label,
+		rescued_label,
+		targeting_label,
+		landmark_label,
+		landmark_panel,
+		alert_label,
+	]
+	if rec_label != null:
+		out.append(rec_label)
+	return out
+
+
 # Shows the end screen: a title, then the detail lines (dawn lights, the reasons, buildings).
 func show_end(title: String, detail: String, rating: Dictionary = {}) -> void:
 	dawn_panel.set_dawn(title, detail, rating)

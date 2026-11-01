@@ -800,14 +800,10 @@ const BEACON_GUIDE_LABEL_COLOUR := Color(1.0, 1.0, 0.92)
 const BEACON_GUIDE_LABEL_SIZE := 0.03
 
 # ---- Round 22: shaped zone (scripts/border_centre.gd, reach_guide.gd, intro.gd, prompt_bar.gd). ----
-# A finished stretch stays: its arm is kept as a per-ray radius profile and the next stretch grows from the shaped
-# zone.
-# The rescued head count sets how long the border can be (the loop length for the people at normal spacing); the body
-# never squeezes below BEACON_BODY_MIN, so a stretch is limited (or refused, with a reason) once the shape uses the
-# length. Lose people and the zone pulls in: each arm ray retreats toward the body by BEACON_PULL_IN_RATE metres a
-# second plus BEACON_PULL_IN_FRAC of how far it overextends (so the longest, thinnest tips retreat first), only while
-# the
-# loop is more than BEACON_PULL_IN_TOLERANCE over its length, so the border stays held.
+# A finished stretch stays and the next grows from the shaped zone. The head count sets the loop length; the body never
+# squeezes below BEACON_BODY_MIN, so a stretch is limited or refused at that length. Lose people and each
+# arm retreats by BEACON_PULL_IN_RATE m/s plus BEACON_PULL_IN_FRAC of its overextension while the loop is over by
+# BEACON_PULL_IN_TOLERANCE.
 const BEACON_PULL_IN_RATE := 0.3 * WORLD_SCALE
 const BEACON_PULL_IN_FRAC := 0.12
 const BEACON_PULL_IN_TOLERANCE := 0.04
@@ -816,19 +812,15 @@ const BEACON_MAX_ARMS := 6
 const BEACON_FULL_TEXT := "The border is at its full length - rescue more people to stretch further"
 const BEACON_INSIDE_TEXT := "That is inside the zone already"
 const BEACON_PULLED_IN_TEXT := "People lost - the zone is pulling in"
-# Refusals and fall-backs stay on screen this long (seconds) in a larger bar near the middle of the screen; the
-# ordinary
-# prompts keep PROMPT_SECONDS.
+# Refusals stay this long (seconds) in a larger bar; ordinary prompts keep PROMPT_SECONDS.
 const NOTICE_SECONDS := 4.0
 const NOTICE_FONT_SIZE := 28
 const NOTICE_HEIGHT := 56.0
 const NOTICE_COLOUR := Color(1.0, 0.62, 0.45)
-# Gaining ground: a pulse runs along the new arm and "+N sq m of ground" rises from the tip.
 const BEACON_PULSE_SECONDS := 1.8
 const BEACON_PULSE_COLOUR := Color(1.0, 0.95, 0.6, 0.95)
 const BEACON_PULSE_WIDTH := 0.9
 const BEACON_GAIN_TEXT := "+%d sq m of ground"
-# The limited preview: a thick coral outline, a strong tint, and the reason beside the cursor.
 const BEACON_LIMITED_OUTLINE_WIDTH := 0.9
 const BEACON_LIMITED_COLOUR := Color(1.0, 0.35, 0.25, 0.95)
 const BEACON_LIMITED_LABEL_COLOUR := Color(1.0, 0.7, 0.55)
@@ -918,31 +910,40 @@ const LANDMARK_LOSS_SECONDS := 2.5
 # The minimap star of a landmark that is not held (a held one is gold with its ring), placeholder look.
 const TD_MINIMAP_LANDMARK_UNHELD_COLOUR := Color(0.34, 0.32, 0.31)
 
-# ---- Round 20: minimap clouds (scripts/minimap.gd, looks/minimap_look_placeholder.gd). ----
-# Unrescued people are binned into a coarse MINIMAP_CLOUD_CELLS x MINIMAP_CLOUD_CELLS grid of the plaza. A cell with
-# at
-# least MINIMAP_CLOUD_MIN_COUNT people gets one soft blob at the centre of its people (kept inside the map circle at
-# MINIMAP_CLOUD_RIM of its radius): wider and stronger the more people it holds (radius = base + per-person x
-# sqrt(count), capped; peak alpha = max x count / full, capped). The bins are recounted every MINIMAP_CLOUD_SECONDS
-# (twice a second), not every picture refresh. Between recounts each blob eases toward its new place, size and
-# strength
-# over MINIMAP_CLOUD_EASE_SECONDS (time constant), so nothing snaps; the picture repaints the clouds at most every
-# MINIMAP_CLOUD_PAINT_SECONDS. Round 21 (item 3, readability): the colour is a deep blue that is darker than the grey
-# ground (the old one was about the same value as the ground and read as nothing); the blob is solid to
-# MINIMAP_CLOUD_CORE of its radius and only softens at the edge; the peak alpha is higher and reached by fewer people.
+# ---- Round 22: minimap clouds (scripts/minimap.gd, looks/minimap_look_placeholder.gd). ----
+# Unrescued people are binned into a grid of the plaza; a cell with at least MINIMAP_CLOUD_MIN_COUNT people gets a small
+# soft blob at their mean, kept inside the map at MINIMAP_CLOUD_RIM. 15 cells because the timing test's crowds must not
+# straddle a cell edge. Radius = base + per-person x sqrt(count), capped; peak alpha = max x count / full, capped.
 const MINIMAP_CLOUD_SECONDS := 0.5
-const MINIMAP_CLOUD_CELLS := 5
-const MINIMAP_CLOUD_MIN_COUNT := 3
-const MINIMAP_CLOUD_FULL_COUNT := 8
-const MINIMAP_CLOUD_BASE_RADIUS_PX := 12.0
-const MINIMAP_CLOUD_RADIUS_PER_PERSON_PX := 3.0
-const MINIMAP_CLOUD_MAX_RADIUS_PX := 30.0
-const MINIMAP_CLOUD_MAX_ALPHA := 0.8
-const MINIMAP_CLOUD_CORE := 0.4
+const MINIMAP_CLOUD_CELLS := 15
+const MINIMAP_CLOUD_MIN_COUNT := 2
+const MINIMAP_CLOUD_FULL_COUNT := 4
+const MINIMAP_CLOUD_BASE_RADIUS_PX := 6.0
+const MINIMAP_CLOUD_RADIUS_PER_PERSON_PX := 1.5
+const MINIMAP_CLOUD_MAX_RADIUS_PX := 12.0
+const MINIMAP_CLOUD_MAX_ALPHA := 0.9
+const MINIMAP_CLOUD_CORE := 0.55
 const MINIMAP_CLOUD_EASE_SECONDS := 0.4
 const MINIMAP_CLOUD_PAINT_SECONDS := 0.2
 const MINIMAP_CLOUD_RIM := 0.9
-const MINIMAP_CLOUD_COLOUR := Color(0.08, 0.12, 0.36)
+const MINIMAP_CLOUD_COLOUR := Color(0.06, 0.1, 0.34)
+
+# ---- Round 22: landmark pointers (scripts/landmark_pointers.gd, looks/minimap_look_placeholder.gd). ----
+# The landmarks were forgotten in round 21. Each landmark that is neither held nor on screen gets an edge pointer: a
+# small
+# arrow and "Name: boost" (a few words). The pointer sits on the screen edge inset by LANDMARK_POINTER_INSET and slides
+# along that inset rectangle to keep clear of the HUD panels. On the minimap an unheld landmark is a larger star with a
+# pale ring (placeholder look only; the styled look keeps its own).
+const LANDMARK_POINTER_INSET := 44.0
+const LANDMARK_POINTER_FONT_SIZE := 16
+const LANDMARK_POINTER_ARROW := 8.0
+const LANDMARK_POINTER_SLIDE_STEP := 10.0
+const LANDMARK_POINTER_CLEAR_MARGIN := 4.0
+const LANDMARK_POINTER_COLOUR := Color(1.0, 0.92, 0.7)
+const LANDMARK_POINTER_BG_COLOUR := Color(0.0, 0.0, 0.0, 0.5)
+const TD_MINIMAP_LANDMARK_UNHELD_GROW := 1.5
+const TD_MINIMAP_LANDMARK_UNHELD_RING_COLOUR := Color(1.0, 0.95, 0.8)
+const TD_MINIMAP_LANDMARK_UNHELD_RING_RADIUS := 6.4
 
 static var intro_override: int = -1
 

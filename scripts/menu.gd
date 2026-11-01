@@ -10,7 +10,7 @@ const HOW_TO_PLAY_FONT := 18
 const HOW_TO_PLAY_TEXT := (
 	"[center][font_size=26][b]How to play[/b][/font_size][/center]\n"
 	+ "[b]Goal:[/b] Bring joy to the gloomy townsfolk. Everyone you help joins a living border around your town. "
-	+ "Reach dawn holding people, ground and landmarks for up to 3 dawn lights; E (50 spirit) moves the border.\n"
+	+ "Reach dawn holding people, ground and landmarks for up to 3 dawn lights; E (50 spirit) shapes the zone.\n"
 	+ "[b]Helping:[/b] Point at a person and joy flies to them automatically. Guarded people only accept joy from "
 	+ "the front (the glowing wedge on the ground shows where joy gets in), skittish people flee if you run at them, "
 	+ "and glum people take extra joy when they look up.\n"

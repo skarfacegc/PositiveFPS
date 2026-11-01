@@ -60,8 +60,9 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
   beautified after a few seconds. A grey person deep inside the border lightens instead of dimming.
 - **The border stays put (round 19).** Once it forms, its centre no longer follows you or the people who push it. Press
   **E** to place a **spirit beacon** at the mouse (50 spirit, one at a time, a new one replaces the old and costs again):
-  the zone stretches toward it (about 1.1 m a second, reaching further the more people you've rescued), holds for 20 s,
-  then snaps back to a circle at the tip. It stops short of dimmed people, and E is refused if they leave no room.
+  the zone stretches toward it (about 1.1 m a second, up to what your people can hold) and the arm stays,
+  so you build a shape over the night. Rescue more people to expand further; lose people and the zone slowly pulls in
+  from its longest arms. A stretch stops short of dimmed people, and E is refused with a reason if it can't be held.
 - **Three landmarks** stand far from the start, so you need beacons to reach them: the **bandstand** (music joy x1.5),
   the **garden** (nature joy x1.5) and the **bell tower** (border members within 17 m lose 40% less to the gloom).
   Beautify one inside the border and keep it for 3 seconds to hold it; it loses its boost the moment the border drops
@@ -111,7 +112,7 @@ element, and F3 labels it above the person.
 
 ## Controls
 
-- **WASD** move, **Shift** run, **E** place a spirit beacon at the mouse (50 spirit); the zone stretches toward it, then snaps to a circle there.
+- **WASD** move, **Shift** run, **E** place a spirit beacon at the mouse (50 spirit); the zone stretches toward it and the arm stays.
 - **Click** a person to lock on (in lock-on mode). The default is **hover**: the person under the mouse becomes the
   target. **F2** cycles the modes: lock-on, hover (default) and auto (the most urgent person in range).
 - Every shot uses the target's element, so it is always a best match. Music is quick and small, art is slow and big
