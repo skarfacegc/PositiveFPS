@@ -74,12 +74,10 @@ func test_the_styled_reach_guide_shows_the_ring_the_preview_and_the_travel() -> 
 	assert_bool(guide._path.visible).is_true()
 	assert_bool(guide._tip.visible).is_true()
 	assert_bool(guide._dashes[0].visible).is_true()
-	# Round 22: there is no hold any more, so no countdown ticks: once the tip has arrived the path is gone.
+	# Round 22: there is no hold any more: once the tip has arrived the path is gone.
 	await runner.simulate_frames(1500)
 	td.reach_guide.sync(td.border, td.player)
 	assert_bool(guide._path.visible).is_false()
-	for tick: MeshInstance3D in guide._ticks:
-		assert_bool(tick.visible).is_false()
 	# Back to the placeholder look: the styled pieces hide.
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	await runner.simulate_frames(3)

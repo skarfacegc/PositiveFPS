@@ -267,3 +267,82 @@ func test_perf_the_cloud_recount_with_sixty_people_is_cheap() -> void:
 	# a scratch run). The budget is unchanged.
 	if OS.get_environment("POSITIVEFPS_PERF_ENFORCE") == "1":
 		assert_float(per_recount_ms).is_less(3.0)
+
+
+# --- Edges -----------------------------------------------------------------------------------------------------------
+
+
+func test_the_circle_radius_is_half_the_control_width() -> void:
+	var m := _map()
+	m.size = Vector2(120.0, 120.0)
+	assert_bool(m.is_circular()).is_true()
+	assert_float(m.radius()).is_equal(60.0)
+
+
+func test_the_cloud_alpha_outside_the_picture_is_zero() -> void:
+	var m := _map()
+	m.refresh_clouds(_crowd(Vector2(-20, -20), 12))
+	var at: Vector2 = m.cloud_cells[0]["centre"]
+	var c := m._to_px(at)
+	assert_float(m.cloud_alpha_at(int(c.x), int(c.y))).is_greater(0.0)
+	assert_float(m.cloud_alpha_at(-1, 10)).is_equal(0.0)
+	assert_float(m.cloud_alpha_at(10, -1)).is_equal(0.0)
+	assert_float(m.cloud_alpha_at(Minimap.RESOLUTION, 10)).is_equal(0.0)
+	assert_float(m.cloud_alpha_at(10, Minimap.RESOLUTION)).is_equal(0.0)
+
+
+func test_a_blob_that_has_faded_out_paints_nothing() -> void:
+	var m := _map()
+	m.refresh_clouds(_crowd(Vector2(-20, -20), 12))
+	var cell := _cell(Vector2(-20, -20))
+	var at: Vector2 = m.cloud_cells[0]["centre"]
+	var c := m._to_px(at)
+	assert_float(m.cloud_alpha_at(int(c.x), int(c.y))).is_greater(0.0)
+	m._cloud_shown[cell]["peak"] = 0.0
+	m._paint_clouds()
+	assert_float(m._cloud_alpha[int(c.y) * Minimap.RESOLUTION + int(c.x)]).is_equal(0.0)
+
+
+func test_drawing_before_the_picture_exists_does_nothing() -> void:
+	var m := _map()  # not in the tree, so no picture has been made yet
+	assert_object(m._image).is_null()
+	m._render()
+	assert_object(m._image).is_null()
+
+
+func test_a_pixel_off_the_picture_is_ignored_and_one_on_it_is_set() -> void:
+	var m := _map()
+	add_child(m)
+	m.look = MinimapLookPlaceholder.new()
+	var before := m._image.get_data()
+	for off: Vector2i in [
+		Vector2i(-1, 5), Vector2i(5, -1), Vector2i(Minimap.RESOLUTION, 5), Vector2i(5, Minimap.RESOLUTION)
+	]:
+		m._put(off.x, off.y, Color.RED)
+	assert_bool(m._image.get_data() == before).is_true()
+	var mid := Minimap.RESOLUTION / 2
+	m._put(mid, mid, Color.RED)
+	assert_bool(m._image.get_pixel(mid, mid).is_equal_approx(Color.RED)).is_true()
+
+
+func test_patched_stretches_are_read_from_the_level_and_ringed_on_the_picture() -> void:
+	var m := _map()
+	add_child(m)
+	m.look = MinimapLookPlaceholder.new()
+	var border: Border = auto_free(Border.new())
+	var gap_patch: GapPatch = auto_free(GapPatch.new())
+	gap_patch.patches.append({"pos": Vector3(-20.0, 0.0, -20.0), "left": 5.0})
+	border.patch = gap_patch
+	var nobody: Array[Person] = []
+	m.refresh_from(null, border, nobody, Vector3.ZERO, Vector3.ZERO, Vector2(10.0, 10.0))
+	assert_int(m.patch_points.size()).is_equal(1)
+	assert_vector(m.patch_points[0]).is_equal_approx(Vector2(-20.0, -20.0), Vector2(0.001, 0.001))
+	# The ring is on the picture in the patch colour, a few pixels out from where it is.
+	var col := Config.PATCH_COLOUR
+	var found := 0
+	for py: int in range(Minimap.RESOLUTION):
+		for px: int in range(Minimap.RESOLUTION):
+			var p := m._image.get_pixel(px, py)
+			if absf(p.r - col.r) < 0.01 and absf(p.g - col.g) < 0.01 and absf(p.b - col.b) < 0.01:
+				found += 1
+	assert_int(found).is_greater(10)

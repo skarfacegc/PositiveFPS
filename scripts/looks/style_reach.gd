@@ -7,8 +7,8 @@ extends RefCounted
 #   - a dithered ring round the border's centre at the longest tip distance (the reach);
 #   - toward the cursor a pull line to where the tip would stop, ending in a lantern-teal disc, or, when the cursor is
 #     past the reach, a coral line ending in a cross (the tip would stop short);
-#   - during a stretch, a bright path from the centre to the tip with a disc at the tip, a row of coral dashes on to the
-#     beacon when the reach falls short, and, once the tip holds, a ring of ticks round it that empties toward the snap.
+#   - during a stretch, a bright path from the centre to the tip with a disc at the tip, and a row of coral dashes on to
+#     the beacon when the reach falls short.
 # Pure visuals: it reads Border.stretch_info() and the player's aim, and changes nothing.
 
 const TEAL := Color("#9cf0dc")
@@ -20,8 +20,6 @@ const TIP := Color("#fff3c4")
 const Y := 0.14
 const LINE_WIDTH := 0.34
 const PATH_WIDTH := 0.6
-const TICKS := 28
-const TICK_RADIUS := 2.6
 const DASHES := 30
 const DASH_STEP := 2.2
 
@@ -36,7 +34,6 @@ var _cross: Array[MeshInstance3D] = []
 var _path: MeshInstance3D
 var _tip: MeshInstance3D
 var _dashes: Array[MeshInstance3D] = []
-var _ticks: Array[MeshInstance3D] = []
 var _unit_box := BoxMesh.new()
 var _all: Array[MeshInstance3D] = []
 
@@ -60,13 +57,9 @@ func build(parent: Node3D) -> void:
 	_tip = _flat_disc(StyleCues.ring_material(TIP, Color("#fffbe8"), 0.95, 0.0))
 	for k: int in range(DASHES):
 		_dashes.append(_bar(coral_m))
-	var tick_m := StyleKit.mat(TIP, 0, 0.0, 1.6)
-	for k: int in range(TICKS):
-		_ticks.append(_bar(tick_m))
 	_all = [_ring, _preview, _preview_capped, _preview_end, _path, _tip]
 	_all.append_array(_cross)
 	_all.append_array(_dashes)
-	_all.append_array(_ticks)
 	hide()
 
 
@@ -129,19 +122,6 @@ func _set_dashes(from: Vector2, to: Vector2) -> void:
 		if d >= length:
 			break
 		_line(_dashes[k], from + dir * d, from + dir * minf(d + 1.2, length), LINE_WIDTH * 1.2)
-
-
-# The hold countdown: a ring of ticks round the tip, `share` of them lit (they go out clockwise as the snap nears).
-func _set_ticks(at: Vector2, share: float) -> void:
-	var lit := ceili(share * float(TICKS))
-	for k: int in range(lit):
-		var a := TAU * float(k) / float(TICKS) - PI * 0.5
-		var mid := at + Vector2(cos(a), sin(a)) * TICK_RADIUS
-		var tick := _ticks[k]
-		tick.visible = true
-		tick.position = Vector3(mid.x, Y + 0.02, mid.y)
-		tick.rotation = Vector3(0.0, -(a + PI * 0.5), 0.0)
-		tick.scale = Vector3(0.9, 1.0, 0.36)
 
 
 func _set_cross(at: Vector2, size: float) -> void:

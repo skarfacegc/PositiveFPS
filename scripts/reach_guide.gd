@@ -102,7 +102,7 @@ func _zone_preview(c: Vector2, plan: Dictionary, aim: Vector2) -> void:
 	_outline(outline, width, col)
 	var end := c + Vector2(cos(ang), sin(ang)) * reach
 	_disc(end, 1.1, Config.BEACON_GUIDE_TIP_COLOUR)
-	_ring(end, 2.0, Config.BEACON_GUIDE_TIP_COLOUR, false)
+	_ring(end, 2.0, Config.BEACON_GUIDE_TIP_COLOUR)
 	if limited:
 		if aim.distance_to(end) > 2.0:
 			_cross(aim, 1.8, Config.BEACON_LIMITED_COLOUR)
@@ -160,7 +160,7 @@ func _pulse(border: Border) -> void:
 		_line(q0, q1, Config.BEACON_PULSE_WIDTH * (1.0 + wave * 0.6), col)
 	var ring_col := Config.BEACON_PULSE_COLOUR
 	ring_col.a *= 1.0 - p
-	_ring(_pulse_tip, 1.5 + 7.0 * p, ring_col, false)
+	_ring(_pulse_tip, 1.5 + 7.0 * p, ring_col)
 	_mesh.surface_end()
 	if _gain_label == null:
 		_gain_label = Label3D.new()
@@ -211,12 +211,9 @@ func _outline(pts: PackedVector2Array, width: float, col: Color) -> void:
 		_line(pts[i], pts[(i + 1) % n], width, col)
 
 
-# A ring of radius `r` round `at`; dashed when `dashed`; only `share` of the way round when it is below 1.
-func _ring(at: Vector2, r: float, col: Color, dashed: bool, share: float = 1.0) -> void:
-	var count := maxi(int(float(SEGMENTS) * share), 1)
-	for i: int in range(count):
-		if dashed and i % 2 == 1:
-			continue
+# A ring of radius `r` round `at`.
+func _ring(at: Vector2, r: float, col: Color) -> void:
+	for i: int in range(SEGMENTS):
 		var a0 := TAU * float(i) / float(SEGMENTS) - PI * 0.5
 		var a1 := TAU * float(i + 1) / float(SEGMENTS) - PI * 0.5
 		_line(at + Vector2(cos(a0), sin(a0)) * r, at + Vector2(cos(a1), sin(a1)) * r, LINE_WIDTH, col)
