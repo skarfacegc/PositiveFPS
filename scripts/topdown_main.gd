@@ -127,7 +127,11 @@ func _ready() -> void:
 	add_child(beacon_marker)
 	reach_guide = ReachGuide.new()
 	add_child(reach_guide)
-	border.stretch_ended.connect(func(_reason: String) -> void: intro.notice(Intro.Prompt.BEACON_FELL_BACK))
+	border.stretch_ended.connect(
+		func(why: String) -> void:
+			intro.notice(Intro.Prompt.BEACON_FELL_BACK, Config.BEACON_FELL_BACK_TEXT + ": " + why)
+	)
+	border.zone_pulling_in.connect(func() -> void: intro.notice(Intro.Prompt.ZONE_PULLED_IN))
 
 	grabs = Grabs.new()
 	add_child(grabs)
@@ -258,8 +262,9 @@ func try_place_beacon() -> bool:
 	if player.is_dim or player.spirit < Config.BEACON_SPIRIT_COST:
 		intro.notice(Intro.Prompt.BEACON_SPIRIT)
 		return false
-	if border.plan_stretch(player.aim_point())["refused"]:  # Round 21: dimmed people block it; nothing is spent.
-		intro.notice(Intro.Prompt.BEACON_BLOCKED)
+	var plan := border.plan_stretch(player.aim_point())  # Round 22: refused with the plan's reason; nothing is spent.
+	if plan["refused"]:
+		intro.notice(Intro.Prompt.BEACON_BLOCKED, str(plan["reason"]))
 		return false
 	player.lose_spirit(Config.BEACON_SPIRIT_COST)
 	border.place_beacon(player.aim_point())

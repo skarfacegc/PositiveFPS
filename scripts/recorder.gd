@@ -7,7 +7,8 @@ extends Node
 # It only LISTENS: it connects to signals the game already has and polls a few public fields; it never changes game
 # state, uses no random numbers and does no file I/O per frame (lines are buffered and written every
 # Config.RECORD_FLUSH_SECONDS, on the end of the round, and when the node leaves the tree or the window is closed).
-# To record a new event, call `emit_event("my_type", {"field": value})` from the code that knows about it, or connect a
+# To record a new event, call `emit_event("my_type", {"field": value})` from the code that knows about it, or connect
+# a
 # signal in `attach()`. Every line gets `t`, `night_phase`, `night` (seconds since dusk) and `type` for free.
 
 const SETTINGS_PATH := "user://settings.cfg"
@@ -112,7 +113,8 @@ func attach(main: TopDownMain) -> bool:
 	main.beacon_placed.connect(_on_beacon_placed)
 	main.border.beacon_reached.connect(_on_beacon_reached)
 	main.border.stretch_started.connect(_on_stretch_started)
-	main.border.zone_snapped.connect(_on_zone_snapped)
+	main.border.zone_grew.connect(_on_zone_grew)
+	main.border.zone_shrunk.connect(_on_zone_shrunk)
 	main.border.stretch_ended.connect(func(reason: String) -> void: emit_event("stretch_end", {"reason": reason}))
 	for lm: Landmark in main.landmarks.items:
 		lm.claimed.connect(_on_landmark.bind(lm, "landmark_claimed"))
@@ -150,7 +152,9 @@ func _on_beacon_reached() -> void:
 	emit_event("beacon_reached", {"pos": _pos(tip)})
 
 
-# Round 20: a stretch began (where the tip is aimed and how far it can go) and the zone snapped back to a circle.
+# Round 20: a stretch began (where the tip is aimed and how far it can go). Round 22: a finished stretch keeps its arm
+# (`zone_grow`: ground gained in square metres) and, when people are lost, the arms retreat (`zone_shrink`: ground
+# lost).
 func _on_stretch_started(beacon: Vector3, tip_target: Vector3) -> void:
 	var reach: float = _main.border.stretch_info()["max"]
 	emit_event(
@@ -158,8 +162,28 @@ func _on_stretch_started(beacon: Vector3, tip_target: Vector3) -> void:
 	)
 
 
-func _on_zone_snapped(from: Vector3, to: Vector3) -> void:
-	emit_event("zone_snap", {"from": _pos(from), "to": _pos(to), "people": _main.rescued_count})
+func _on_zone_grew(gain: float, tip: Vector3, angle: float) -> void:
+	emit_event(
+		"zone_grow",
+		{
+			"tip": _pos(tip),
+			"gain": snappedf(gain, 0.1),
+			"angle": snappedf(angle, 0.01),
+			"people": _main.rescued_count,
+			"zone": snappedf(BorderCentre.polygon_area(_main.border.polygon), 0.1)
+		}
+	)
+
+
+func _on_zone_shrunk(lost: float) -> void:
+	emit_event(
+		"zone_shrink",
+		{
+			"lost": snappedf(lost, 0.1),
+			"people": _main.rescued_count,
+			"zone": snappedf(BorderCentre.polygon_area(_main.border.polygon), 0.1)
+		}
+	)
 
 
 func is_open() -> bool:
@@ -209,7 +233,8 @@ func note_exit(reason: String) -> void:
 	_exit_reason = reason
 
 
-# Writes session_end (once) and closes the file. `reason` is "win", "loss", "dawn", "restart", "menu", "quit" or "exit".
+# Writes session_end (once) and closes the file. `reason` is "win", "loss", "dawn", "restart", "menu", "quit" or
+# "exit".
 func end(reason: String) -> void:
 	if _file == null or ended_reason != "":
 		return
@@ -235,7 +260,8 @@ func end(reason: String) -> void:
 		_main.hud.set_recording(false)
 
 
-# The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn is the win
+# The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn is the
+# win
 # (round 19) and carries the rating and its parts.
 func on_round_end(title: String) -> void:
 	if _file == null or ended_reason != "":
@@ -279,7 +305,8 @@ func _flush() -> void:
 	_file.flush()
 
 
-# ---- the sample ------------------------------------------------------------------------------------------------------
+# ---- the sample
+# ------------------------------------------------------------------------------------------------------
 
 
 func _sample() -> void:
@@ -343,7 +370,8 @@ func _target_fields() -> Dictionary:
 	return {"target": _id(tgt), "target_stage": stage}
 
 
-# ---- polled events: gaps and umbrellas -------------------------------------------------------------------------------
+# ---- polled events: gaps and umbrellas
+# -------------------------------------------------------------------------------
 
 
 # Matches this poll's gap middles to last poll's (nearest within GAP_TRACK_RADIUS) so a gap keeps its id while open.
@@ -399,7 +427,8 @@ func _poll_shields() -> void:
 		_shield_down[i] = now
 
 
-# ---- signal handlers ------------------------------------------------------------------------------------------------
+# ---- signal handlers
+# ------------------------------------------------------------------------------------------------
 
 
 func _on_stage_changed(from_level: int, to_level: int, p: Person) -> void:
@@ -450,10 +479,12 @@ func _on_grab_avoided(p: Person) -> void:
 	emit_event("grab_avoided", {"id": _id(p)})
 
 
-# ---- files -----------------------------------------------------------------------------------------------------------
+# ---- files
+# -----------------------------------------------------------------------------------------------------------
 
 
-# Creates recordings/YYYYMMDD-HHMMSS/ (in the project folder when run from the editor, else user://recordings) and opens
+# Creates recordings/YYYYMMDD-HHMMSS/ (in the project folder when run from the editor, else user://recordings) and
+# opens
 # events.jsonl.
 func _open_session() -> bool:
 	var stamp := Time.get_datetime_string_from_system().replace("-", "").replace(":", "").replace("T", "-")
@@ -515,7 +546,8 @@ static func _save_shot(img: Image, path: String) -> void:
 	img.save_png(path)
 
 
-# ---- small helpers ---------------------------------------------------------------------------------------------------
+# ---- small helpers
+# ---------------------------------------------------------------------------------------------------
 
 
 func _id(p: Person) -> int:

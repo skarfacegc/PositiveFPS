@@ -149,13 +149,12 @@ func _r20_reach_shots(label: String) -> void:
 	var tip: Vector3 = main.border.stretch_info()["tip"]
 	await _r20_snap("reach_travel_close", label, _r20_world_view(tip, 480, 270, 2), target)
 	var guard := 0
-	while not main.border.stretch_info()["holding"] and guard < 40:
+	while main.border.stretch_info()["on"] and guard < 40:
 		_r20_run(60)
 		guard += 1
 	main.player.global_position = centre.lerp(main.border.beacon_pos(), 0.4)
 	await _settle(12)
 	await _r20_snap("zone_hold", label, {}, target)
-	main.border._centre_ctl.hold_left = 0.03
 	_r20_run(30)
 	_r20_run(480)
 	main.player.global_position = main.border.centre + Vector3(0.0, 0.0, 2.0)

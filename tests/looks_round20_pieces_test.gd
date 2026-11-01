@@ -9,7 +9,8 @@ func after_test() -> void:
 	Looks.set_mode(Looks.Mode.PLACEHOLDER)
 
 
-# --- The round 20 pieces in the styled look ---------------------------------------------------------------------------
+# --- The round 20 pieces in the styled look
+# ---------------------------------------------------------------------------
 
 
 func _formed() -> Dictionary:
@@ -65,30 +66,20 @@ func test_the_styled_reach_guide_shows_the_ring_the_preview_and_the_travel() -> 
 	assert_bool(guide._cross[0].visible).is_true()
 	assert_bool(guide._preview.visible).is_false()
 	assert_int(_visible_count(guide)).is_greater_equal(with_ring)
-	# A beacon beyond the reach: the path, the tip, the dashes on to the beacon, then the countdown while it holds.
+	# A beacon beyond the reach: the path, the tip, the dashes on to the beacon, then, once it arrives, nothing (round
+	# 22: no hold).
 	td.border.place_beacon(td.border.centre + Vector3(reach * 3.0, 0.0, 0.0))
 	await runner.simulate_frames(60)
 	td.reach_guide.sync(td.border, td.player)
 	assert_bool(guide._path.visible).is_true()
 	assert_bool(guide._tip.visible).is_true()
 	assert_bool(guide._dashes[0].visible).is_true()
-	var guard := 0
-	while not td.border.stretch_info()["holding"] and guard < 60:
-		await runner.simulate_frames(60)
-		guard += 1
+	# Round 22: there is no hold any more, so no countdown ticks: once the tip has arrived the path is gone.
+	await runner.simulate_frames(1500)
 	td.reach_guide.sync(td.border, td.player)
-	var lit := 0
+	assert_bool(guide._path.visible).is_false()
 	for tick: MeshInstance3D in guide._ticks:
-		if tick.visible:
-			lit += 1
-	assert_int(lit).is_greater(StyleReach.TICKS - 3)
-	td.border._centre_ctl.hold_left = Config.BEACON_STRETCH_HOLD * 0.5
-	td.reach_guide.sync(td.border, td.player)
-	lit = 0
-	for tick: MeshInstance3D in guide._ticks:
-		if tick.visible:
-			lit += 1
-	assert_int(lit).is_between(StyleReach.TICKS / 2 - 1, StyleReach.TICKS / 2 + 1)
+		assert_bool(tick.visible).is_false()
 	# Back to the placeholder look: the styled pieces hide.
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	await runner.simulate_frames(3)
@@ -173,7 +164,8 @@ func test_the_styled_alert_is_a_banner_and_the_label_hides() -> void:
 	assert_bool(hud.alert_panel.visible).is_false()
 
 
-# --- The round 19 flags ----------------------------------------------------------------------------------------------
+# --- The round 19 flags
+# ----------------------------------------------------------------------------------------------
 
 
 func test_the_guarded_icon_is_a_shield_with_a_chevron_not_a_cross() -> void:

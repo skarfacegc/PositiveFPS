@@ -12,10 +12,14 @@ extends Node3D
 #   - inside the loop the ground is painted (see PaintedGround.set_region) and blocks are beautified (see Building).
 #   - protection is the depth inside the loop (see cover_at).
 
-# Round 19/20: the stretch's tip reached the beacon (or the maximum reach); a beacon was placed; the zone snapped back.
+# Round 19/20: the stretch's tip reached the beacon (or the maximum reach); a beacon was placed.
+# Round 22: no snap. A finished stretch keeps its arm: `zone_grew` (area gained in square metres, the tip, the stretch's
+# angle); people were lost and the arms retreat: `zone_pulling_in` (starts), `zone_shrunk` (area lost, when it ends).
 signal beacon_reached
 signal stretch_started(beacon: Vector3, tip_target: Vector3)
-signal zone_snapped(from: Vector3, to: Vector3)
+signal zone_grew(gain: float, tip: Vector3, angle: float)
+signal zone_pulling_in
+signal zone_shrunk(lost: float)
 # Round 21: a stretch ended without a snap because the border could no longer support it (`reason` is plain words).
 signal stretch_ended(reason: String)
 
@@ -23,6 +27,8 @@ signal stretch_ended(reason: String)
 const GOLDEN_ANGLE := 2.39996323
 
 var centre := Vector3.ZERO
+# Round 22: the mean radius of the body circle (the smoothed radii times the size factor) in the last loop built.
+var body_radius: float = 0.0
 # True once at least BORDER_MIN_PEOPLE are rescued. Below that there is no loop.
 var active: bool = false
 # True once the border has been active. After that, falling below BORDER_MIN_PEOPLE means the border fell.
@@ -484,9 +490,13 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 	var body := 0.0
 	for r0: float in smooth:
 		body += r0 * _scale / float(count)
+	body_radius = body
+	var arm_ring := _centre_ctl.arm_ring(body)
 	for i: int in range(count):
 		var a := TAU * float(i) / float(count)
 		var r: float = maxf(smooth[i] * _scale, _centre_ctl.stretch_radius(a, body))  # Round 20: the stretched tip.
+		if not arm_ring.is_empty():
+			r = maxf(r, arm_ring[i])  # Round 22: the arms kept from finished stretches.
 		var block := _first_block_along(c2, Vector2(cos(a), sin(a)))
 		var wrapped := r
 		if block.x > 0.0 and block.x < r:
@@ -514,6 +524,15 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 	var target := maxf(float(n) * Config.BORDER_TARGET_SPACING, smallest)
 	if raw > 0.001:
 		var desired := clampf(_scale * target / raw, 0.2, 5.0)
+		if _centre_ctl.has_arms() or _centre_ctl.stretching:
+			# Round 22: the body never squeezes below BEACON_BODY_MIN of the plain radius. When the arms still make the loop
+			# too long at that size (people were lost) they retreat (BorderCentre.pull_in); otherwise a pull-in is over.
+			var min_scale := Config.BEACON_BODY_MIN * BorderCentre.circle_radius(n) * _scale / maxf(body, 0.001)
+			desired = maxf(desired, min_scale)
+			if raw > target * (1.0 + Config.BEACON_PULL_IN_TOLERANCE) and _scale <= min_scale * 1.03:
+				_centre_ctl.pull_in(delta, body)
+			else:
+				_centre_ctl.settled()
 		_scale = lerpf(_scale, desired, clampf(delta / Config.BORDER_NORMALISE_SECONDS, 0.0, 1.0))
 	return pts
 
@@ -669,8 +688,7 @@ func stretch_info() -> Dictionary:
 	return {
 		"on": c.stretching,
 		"tip": c.tip,
-		"holding": c.holding,
-		"hold_left": c.hold_left,
+		"arms": c.has_arms(),
 		"max": c.max_distance(),
 		"radius": BorderCentre.circle_radius(member_count + inner_count),
 	}

@@ -137,7 +137,8 @@ def analyse(events, quiet_window=5.0):
         "beacons_placed": [e for e in real if e["type"] == "beacon_placed"],
         "beacons_reached": [e for e in real if e["type"] == "beacon_reached"],
         "stretches": [e for e in real if e["type"] == "zone_stretch"],
-        "snaps": [e for e in real if e["type"] == "zone_snap"],
+        "grows": [e for e in real if e["type"] == "zone_grow"],
+        "shrinks": [e for e in real if e["type"] == "zone_shrink"],
         "landmark_events": [e for e in real if e["type"] in ("landmark_claimed", "landmark_lost")],
         "win": next((e for e in real if e["type"] == "win"), None),
     }
@@ -214,13 +215,20 @@ def report(res, folder):
         add("  placed at t=%.0f s, pos %s, spirit left %s" % (e["t"], e.get("pos"), e.get("spirit_after")))
     for e in reached:
         add("  tip arrived at t=%.0f s, tip %s" % (e["t"], e.get("pos")))
-    stretches, snaps = res["stretches"], res["snaps"]
-    add("STRETCHING ZONE: %d stretches, %d snaps back to a circle" % (len(stretches), len(snaps)))
+    stretches, grows, shrinks = res["stretches"], res["grows"], res["shrinks"]
+    gained = sum(e.get("gain", 0) for e in grows)
+    lost = sum(e.get("lost", 0) for e in shrinks)
+    add("SHAPED ZONE: %d stretches, %d arms kept (+%.0f sq m), %d pull-ins (-%.0f sq m)" % (
+        len(stretches), len(grows), gained, len(shrinks), lost))
     for e in stretches:
         add("  stretch at t=%.0f s toward %s, tip aimed at %s, max reach %s m" % (
             e["t"], e.get("beacon"), e.get("tip_target"), e.get("max_reach")))
-    for e in snaps:
-        add("  snap at t=%.0f s, centre %s -> %s (%s rescued)" % (e["t"], e.get("from"), e.get("to"), e.get("people")))
+    for e in grows:
+        add("  zone_grow at t=%.0f s, tip %s, +%s sq m, zone now %s sq m (%s rescued)" % (
+            e["t"], e.get("tip"), e.get("gain"), e.get("zone"), e.get("people")))
+    for e in shrinks:
+        add("  zone_shrink at t=%.0f s, -%s sq m, zone now %s sq m (%s rescued)" % (
+            e["t"], e.get("lost"), e.get("zone"), e.get("people")))
     add("")
     lm_events = res["landmark_events"]
     claims = sum(1 for e in lm_events if e["type"] == "landmark_claimed")

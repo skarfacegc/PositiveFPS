@@ -130,10 +130,12 @@ const TD_ZOOM_STEP := 1.5
 const TD_ZOOM_EASE := 8.0
 # Walking speed, in metres per second.
 const TD_MOVE_SPEED := 7.6  # Round 13a: +10% (6.9) to offset the longer walks.
-# Speed while holding Shift, in metres per second. Round 11: walk and run are about 15% faster than round 10 (6.0, 9.5).
+# Speed while holding Shift, in metres per second. Round 11: walk and run are about 15% faster than round 10 (6.0,
+# 9.5).
 const TD_RUN_SPEED := 12.0  # Round 13a: +10% (10.9).
 # A person can only be targeted (and shot at) while this close to the player, in metres. Round 11: 10.0 (was 8.6), the
-# largest round value whose full ring still fits on a 1280x720 screen with the zoomed-out camera (see the camera test).
+# largest round value whose full ring still fits on a 1280x720 screen with the zoomed-out camera (see the camera
+# test).
 const TD_AUTO_RANGE := 10.0
 # How the player picks a target. LOCK_ON: click a person to lock on. HOVER_STICKY: the person under the mouse is
 # picked when there is no target, and then stays the target. AUTO: the most urgent person in range. The mode at the
@@ -242,14 +244,16 @@ const TD_WANDER_TIME_MAX := 6.0
 const TD_DIMMED_DRIFT_SPEED := 1.01
 # Dimmed people stop drifting when this close to their rescued person, in metres.
 const TD_DIMMED_STOP_DISTANCE := 2.5
-# At most this many dimmed people may drift toward the same rescued person. Others pick the next-nearest rescued person
+# At most this many dimmed people may drift toward the same rescued person. Others pick the next-nearest rescued
+# person
 # with a free slot, or wander. This stops the crowd piling up on one person.
 const TD_MAX_PURSUERS_PER_TARGET := 2
 # Everyone steers away from people within this distance (metres). Dimmed and wandering people both do it.
 const TD_SEPARATION_RADIUS := 2.2
 # How strongly the separation push is added to a person's movement direction (before it is normalised).
 const TD_SEPARATION_STRENGTH := 1.2
-# Top-down joy drain is scaled by this. Dimmed people drain rescued joy at 0.4 of the round 6 rate (round 7). It is also
+# Top-down joy drain is scaled by this. Dimmed people drain rescued joy at 0.4 of the round 6 rate (round 7). It is
+# also
 # scaled by (1 - protection) of the rescued person (see GloomSim), so cover makes it smaller.
 const TD_DRAIN_MULTIPLIER := 0.4
 # After a rescue, the person cannot be drained by nearby gloom for this many seconds (a warm halo shows it).
@@ -320,7 +324,8 @@ const TD_BURST_JOY := 350.0
 const TD_BURST_TIME := 0.35
 # Size multiplier for floating numbers and labels in top-down mode. Round 8: 1.9 (was 2.5), to match the closer camera
 # so the labels keep about the same size on screen.
-# Round 14: the labels scale with the zoom (ui_scale = TD_UI_SCALE x size / TD_CAMERA_ORTHO_SIZE), so they keep the same
+# Round 14: the labels scale with the zoom (ui_scale = TD_UI_SCALE x size / TD_CAMERA_ORTHO_SIZE), so they keep the
+# same
 # size on screen at every zoom. 2.5675 = 2.37 x 19.5 / 18 keeps the round 13b size at the default zoom.
 const TD_UI_SCALE := 2.5675
 
@@ -344,7 +349,8 @@ const TD_EDGE_REACH := 0.5
 # ---- Round 10: the floor. Every floor overlay, with its draw priority (lower number = read first):
 #   1  border line and gap glow (Border): always the clearest things on the floor.
 #   2  target and threat (target highlight, the player's element ring and warm ring, grace rings on rescued people).
-#   3  projectile effects, capped by TD_MAX_FLOOR_EFFECTS (oldest first): music sound rings, paint splats, splash rings,
+#   3  projectile effects, capped by TD_MAX_FLOOR_EFFECTS (oldest first): music sound rings, paint splats, splash
+# rings,
 #      petal bursts, blooms (Bloom) and trail pieces (note dots, drips, drip splat dots, petals). The joy burst ring
 #      lasts 0.35 s and is not counted.
 #   4  territory paint: the painted ground tiles (PaintedGround), drawn quietest.
@@ -473,7 +479,8 @@ const BORDER_SHOVE_RANGE := 4.0
 const BORDER_SHOVE_AMOUNT := 1.5 * WORLD_SCALE
 
 # ---- Round 12a: spirit, going dim and grabs
-# Spirit is the player's spendable resource (0..SPIRIT_MAX). Rescues fill it, the joy burst spends it, a grab drains it.
+# Spirit is the player's spendable resource (0..SPIRIT_MAX). Rescues fill it, the joy burst spends it, a grab drains
+# it.
 const SPIRIT_MAX := 100.0
 const SPIRIT_START := 50.0
 const SPIRIT_PER_RESCUE := 20.0
@@ -481,7 +488,8 @@ const BURST_SPIRIT_COST := 30.0
 # Joy fire rate: full at this fraction of spirit or more, then down linearly to SPIRIT_MIN_FIRE_FRACTION at 0+.
 const SPIRIT_FULL_FIRE_FRACTION := 0.5
 const SPIRIT_MIN_FIRE_FRACTION := 0.4
-# Going dim (spirit 0): half walk speed, no joy. Recovery only inside the border, or near the landmark before a border.
+# Going dim (spirit 0): half walk speed, no joy. Recovery only inside the border, or near the landmark before a
+# border.
 const DIM_MOVE_MULT := 0.5
 const DIM_RECOVER_RATE := 10.0  # Spirit per second, times (DIM_RECOVER_BASE + DIM_RECOVER_DEPTH * depth protection).
 const DIM_RECOVER_BASE := 0.3
@@ -557,7 +565,8 @@ const EDGE_PROTECTION_TIE := 0.05
 const MEMBER_FALTER_FRACTION := 0.75
 const MEMBER_FALTER_STEP_BACK := 0.5
 const GAP_HEAL_DELAY := 3.0
-# Noticeable stage changes: a grey-violet (gloomy, not icy) puff and ripple when someone sinks a stage, a warm one when
+# Noticeable stage changes: a grey-violet (gloomy, not icy) puff and ripple when someone sinks a stage, a warm one
+# when
 # they lift. The minimap shows a blip for BLIP_SECONDS when someone becomes dimmed.
 const STAGE_SINK_COLOUR := Color(0.42, 0.34, 0.55)
 const STAGE_LIFT_COLOUR := Color(1.0, 0.82, 0.45)
@@ -611,7 +620,8 @@ const SPIRIT_SPEND_COLOUR := Color(0.7, 0.55, 1.0)
 const SPIRIT_LOSS_COLOUR := Color(1.0, 0.4, 0.38)
 # Layered introduction through the night (driven by NightCycle progress). Dimmed people emerge at NIGHT_CALM_FRACTION;
 # each mood becomes active at its fraction (indexed by Person.Mood: NONE, GUARDED, SKITTISH, GLUM). One-time prompts
-# last PROMPT_SECONDS and never overlap. `intro_on()` is false in automated tests (they set `intro_override` to turn it
+# last PROMPT_SECONDS and never overlap. `intro_on()` is false in automated tests (they set `intro_override` to turn
+# it
 # on to test the intro).
 const MOOD_INTRO_FRACTIONS: Array[float] = [0.0, 0.35, 0.5, 0.65]
 const PROMPT_SECONDS := 4.0
@@ -624,7 +634,8 @@ const INTRO_DIM_CAP := 0.669
 # wait just under the dimmed line (DIM_WAIT_GLOOM) and ask again each frame, so the first to ask when the gate
 # is open goes.
 # Round 17: DIM_ARRIVAL_MIN_GAP (round 14: 6 s) moved to the Round 17 block: 9 s.
-# A person refused the midnight gate waits just under the dimmed threshold (0.67), so the next frame's growth takes them
+# A person refused the midnight gate waits just under the dimmed threshold (0.67), so the next frame's growth takes
+# them
 # over it and they ask again: the gate goes to whoever asks first in the level's order.
 const DIM_WAIT_GLOOM := 0.669999
 # A dimmed person hit by joy shows their progress ring for this long after the last hit.
@@ -638,7 +649,8 @@ const UMBRELLA_MIN_ALPHA := 0.85
 const STYLED_UMBRELLA_MIN_ALPHA := 0.6
 # A worn umbrella shrinks a little (1 fresh, this much smaller about to pop).
 const UMBRELLA_MIN_SCALE := 0.9
-# Wear pips under the umbrella: one per shield hit (SHELTER_HITS). Filled = hits left, hollow = used. Pixels, centre to
+# Wear pips under the umbrella: one per shield hit (SHELTER_HITS). Filled = hits left, hollow = used. Pixels, centre
+# to
 # centre; the row sits PIP_LIFT pixels under the icon.
 const PIP_RADIUS := 3.0
 const PIP_SPACING := 8.0
@@ -660,7 +672,8 @@ const REGROW_RING_WIDTH := 2.5
 const REGROW_RING_ALPHA := 0.5
 
 # ---- Round 17: the guarded wedge, quicker hover switching, slower dimmed arrivals (round 17 playtest) ----
-# Guarded: a wedge on the ground shows the open side, the arc where joy lands. It is centred on the person's facing and
+# Guarded: a wedge on the ground shows the open side, the arc where joy lands. It is centred on the person's facing
+# and
 # spans GUARDED_ARC_DEG either side of it (the same arc Person.is_open_to uses), so its edges are the edges of the
 # rule. A body-sized radius in metres (not scaled by WORLD_SCALE). It is brighter while a shot from the player would
 # land now.
@@ -686,7 +699,8 @@ const BORDER_RELAX_RATE := 1.5
 const BORDER_ARRIVE_GAIN := 4.0
 # A block that was a post last frame stays one out to this many times BORDER_POST_REACH (no flicker at the edge).
 const BORDER_POST_HOLD := 1.5
-# Raw radii stop at this share of the way to the map edge again (1.1: just beyond it, so the loop still meets the edge).
+# Raw radii stop at this share of the way to the map edge again (1.1: just beyond it, so the loop still meets the
+# edge).
 const BORDER_WALL_SLACK := 1.1
 # A block the loop wraps round lifts the samples beside it too, as a tent this many samples wide on each side.
 const BORDER_WRAP_TENT := 3
@@ -703,7 +717,8 @@ const RESCUED_BELOW_MINIMAP_GAP := 10.0
 # The border stays on the map: its loop is clamped to this distance from the middle (the same limit people wander to).
 # Where it runs along the edge it is sealed (closed by the map, never a gap, no slots).
 const BORDER_MAP_LIMIT := TD_PLAZA_SIZE / 2.0 - TD_EDGE_MARGIN
-# A loop segment counts as sealed by the map edge when both ends are on it; it fades in over this distance (metres from
+# A loop segment counts as sealed by the map edge when both ends are on it; it fades in over this distance (metres
+# from
 # the edge) so the open length of the loop changes smoothly (a segment 2 m off the edge is fully open).
 const BORDER_SEAL_BAND := 2.0 * WORLD_SCALE
 
@@ -729,7 +744,8 @@ const RECORD_PRESS_RADIUS := 3.0
 
 # ---- Round 19: beacon (scripts/border_centre.gd, topdown_main.gd). ----
 # The border's centre stays anchored once the border forms. E places a spirit beacon at the cursor's ground point for
-# BEACON_SPIRIT_COST spirit; the centre walks toward it at BEACON_PULL_SPEED (m/s, territory) and the beacon clears when
+# BEACON_SPIRIT_COST spirit; the centre walks toward it at BEACON_PULL_SPEED (m/s, territory) and the beacon clears
+# when
 # the centre is within BEACON_ARRIVE_RADIUS of it. One beacon at a time; a new one replaces the old (and costs again).
 const BEACON_SPIRIT_COST := 50.0  # Round 20: was 30 (spirit sat near 90 in the round 19 playtest).
 const BEACON_PULL_SPEED := 0.8 * WORLD_SCALE
@@ -739,16 +755,18 @@ const BEACON_NO_SPIRIT_TEXT := "Not enough spirit"
 const BEACON_NO_BORDER_TEXT := "Rescue three people to form a border first"
 
 # ---- Round 20: stretching zone (scripts/border_centre.gd, reach_guide.gd). ----
-# A beacon no longer walks the centre. The zone stretches: the body stays round the old centre and a tip reaches toward
-# the beacon at BEACON_PULL_SPEED. The tip can go BEACON_REACH_BASE + BEACON_REACH_PER_PERSON x (people rescued) metres
-# past the plain circle's edge. When it stops (at the beacon or at the maximum reach) it holds for BEACON_STRETCH_HOLD
-# seconds, then the zone snaps back to a circle centred at the tip and the beacon clears. BEACON_TIP_WIDTH is the tip
-# circle's radius as a share of the body radius. The loop's length is fixed by the people, so a longer tip squeezes the
+# A beacon no longer walks the centre. The zone stretches: the body stays round the old centre and a tip reaches
+# toward
+# the beacon at BEACON_PULL_SPEED. The tip can go BEACON_REACH_BASE + BEACON_REACH_PER_PERSON x (people rescued)
+# metres
+# past the plain circle's edge. When it stops (at the beacon or at the maximum reach) the arm stays part of the zone
+# (round 22: no hold, no snap) and the beacon clears. BEACON_TIP_WIDTH is the tip
+# circle's radius as a share of the body radius. The loop's length is fixed by the people, so a longer tip squeezes
+# the
 # body: BEACON_BODY_MIN is how small the body may get (a share of the plain radius), which caps the reach. The rest is
 # the placeholder look's reach guide.
 const BEACON_REACH_BASE := 3.0 * WORLD_SCALE
 const BEACON_REACH_PER_PERSON := 0.35 * WORLD_SCALE
-const BEACON_STRETCH_HOLD := 20.0
 const BEACON_TIP_WIDTH := 0.4
 const BEACON_BODY_MIN := 0.6
 const BEACON_GUIDE_Y := 0.18
@@ -760,29 +778,66 @@ const BEACON_GUIDE_TIP_COLOUR := Color(1.0, 1.0, 0.85, 0.95)
 
 # ---- Round 21: stretch safety (scripts/border_centre.gd, reach_guide.gd). ----
 # The round 20 playtest lost its border after a stretch. Reproduced headless: the tip swept over dimmed people, which
-# put them INSIDE the border (nothing holds them back there and the new ground has no paint), they drained the members,
+# put them INSIDE the border (nothing holds them back there and the new ground has no paint), they drained the
+# members,
 # members relapsed, the head count and the reach fell, and the loop shrank. A stretch now stops short of the dimmed:
 # its tip keeps BEACON_DIM_CLEARANCE metres from every dimmed person it would otherwise swallow. A stretch that could
 # gain less than BEACON_MIN_GAIN past the circle's edge for that reason is refused (no spirit spent). When people are
-# lost the tip walks back at BEACON_PULL_SPEED instead of jumping, and the stretch ends (the zone does NOT snap) once it
+# lost the tip walks back at BEACON_PULL_SPEED instead of jumping, and the stretch ends once it
 # is back inside BEACON_MIN_GAIN of the circle. BEACON_PLAN_SECONDS is how long a plan is reused (per-frame cost).
 const BEACON_DIM_CLEARANCE := 1.5 * WORLD_SCALE
 const BEACON_MIN_GAIN := 2.0 * WORLD_SCALE
 const BEACON_PLAN_SECONDS := 0.1
 const BEACON_DIM_TEXT := "Dimmed people are in the way"
-const BEACON_FAR_TEXT := "Too far for this many people"
+const BEACON_FAR_TEXT := "Too far for this many people - rescue more to reach it"
 const BEACON_BLOCKED_TEXT := "Dimmed people block the stretch"
 const BEACON_FELL_BACK_TEXT := "The stretch fell back"
 # The preview of the zone the stretch will make (reach_guide.gd, placeholder look): outline, fill, tip marker, label.
 const BEACON_GUIDE_OUTLINE_WIDTH := 0.4
 const BEACON_GUIDE_FILL_COLOUR := Color(0.55, 0.85, 1.0, 0.14)
-const BEACON_GUIDE_LIMITED_FILL_COLOUR := Color(1.0, 0.6, 0.45, 0.14)
+const BEACON_GUIDE_LIMITED_FILL_COLOUR := Color(1.0, 0.3, 0.2, 0.28)
 const BEACON_GUIDE_LABEL_COLOUR := Color(1.0, 1.0, 0.92)
 const BEACON_GUIDE_LABEL_SIZE := 0.03
 
+# ---- Round 22: shaped zone (scripts/border_centre.gd, reach_guide.gd, intro.gd, prompt_bar.gd). ----
+# A finished stretch stays: its arm is kept as a per-ray radius profile and the next stretch grows from the shaped
+# zone.
+# The rescued head count sets how long the border can be (the loop length for the people at normal spacing); the body
+# never squeezes below BEACON_BODY_MIN, so a stretch is limited (or refused, with a reason) once the shape uses the
+# length. Lose people and the zone pulls in: each arm ray retreats toward the body by BEACON_PULL_IN_RATE metres a
+# second plus BEACON_PULL_IN_FRAC of how far it overextends (so the longest, thinnest tips retreat first), only while
+# the
+# loop is more than BEACON_PULL_IN_TOLERANCE over its length, so the border stays held.
+const BEACON_PULL_IN_RATE := 0.3 * WORLD_SCALE
+const BEACON_PULL_IN_FRAC := 0.12
+const BEACON_PULL_IN_TOLERANCE := 0.04
+const BEACON_ARM_MERGE := 0.3  # radians: a stretch this close to an arm updates it
+const BEACON_MAX_ARMS := 6
+const BEACON_FULL_TEXT := "The border is at its full length - rescue more people to stretch further"
+const BEACON_INSIDE_TEXT := "That is inside the zone already"
+const BEACON_PULLED_IN_TEXT := "People lost - the zone is pulling in"
+# Refusals and fall-backs stay on screen this long (seconds) in a larger bar near the middle of the screen; the
+# ordinary
+# prompts keep PROMPT_SECONDS.
+const NOTICE_SECONDS := 4.0
+const NOTICE_FONT_SIZE := 28
+const NOTICE_HEIGHT := 56.0
+const NOTICE_COLOUR := Color(1.0, 0.62, 0.45)
+# Gaining ground: a pulse runs along the new arm and "+N sq m of ground" rises from the tip.
+const BEACON_PULSE_SECONDS := 1.8
+const BEACON_PULSE_COLOUR := Color(1.0, 0.95, 0.6, 0.95)
+const BEACON_PULSE_WIDTH := 0.9
+const BEACON_GAIN_TEXT := "+%d sq m of ground"
+# The limited preview: a thick coral outline, a strong tint, and the reason beside the cursor.
+const BEACON_LIMITED_OUTLINE_WIDTH := 0.9
+const BEACON_LIMITED_COLOUR := Color(1.0, 0.35, 0.25, 0.95)
+const BEACON_LIMITED_LABEL_COLOUR := Color(1.0, 0.7, 0.55)
+const BEACON_LIMITED_LABEL_SIZE := 0.05
+
 # ---- Round 19: landmarks (scripts/landmark.gd, landmarks.gd, topdown_main.gd). ----
 # Three landmarks, far enough from the start that the natural ring (LANDMARK_START_REACH from the middle) cannot reach
-# them: the player needs beacons. Each is held while beautified inside the border for BORDER_LANDMARK_HOLD seconds, and
+# them: the player needs beacons. Each is held while beautified inside the border for BORDER_LANDMARK_HOLD seconds,
+# and
 # loses its boost the moment the border drops it. Index order: bandstand, garden, bell tower.
 const LANDMARK_NAMES: Array[String] = ["Bandstand", "Garden", "Bell tower"]
 const LANDMARK_POSITIONS: Array[Vector3] = [
@@ -804,7 +859,8 @@ const LANDMARK_BOOST_TEXT: Array[String] = ["music x1.5", "nature x1.5", "gloom 
 # ---- Round 19: dawn rating (scripts/dawn_rating.gd). ----
 # The level is won by reaching dawn. 1 light for that; 2 lights when at least two of the three lower goals are met
 # (share of people rescued, share of the plaza held, landmarks held); 3 lights when DAWN_PEOPLE_HIGH of the people are
-# rescued AND DAWN_LANDMARKS_HIGH landmarks are held at dawn. (Round 18's quick push: 52% rescued and one landmark = 2.)
+# rescued AND DAWN_LANDMARKS_HIGH landmarks are held at dawn. (Round 18's quick push: 52% rescued and one landmark =
+# 2.)
 const DAWN_PEOPLE_LOW := 0.4
 const DAWN_GROUND_LOW := 0.2
 const DAWN_LANDMARKS_LOW := 1
@@ -821,11 +877,13 @@ const LANDMARK_LOSS_SECONDS := 2.5
 const TD_MINIMAP_LANDMARK_UNHELD_COLOUR := Color(0.34, 0.32, 0.31)
 
 # ---- Round 20: minimap clouds (scripts/minimap.gd, looks/minimap_look_placeholder.gd). ----
-# Unrescued people are binned into a coarse MINIMAP_CLOUD_CELLS x MINIMAP_CLOUD_CELLS grid of the plaza. A cell with at
+# Unrescued people are binned into a coarse MINIMAP_CLOUD_CELLS x MINIMAP_CLOUD_CELLS grid of the plaza. A cell with
+# at
 # least MINIMAP_CLOUD_MIN_COUNT people gets one soft blob at the centre of its people (kept inside the map circle at
 # MINIMAP_CLOUD_RIM of its radius): wider and stronger the more people it holds (radius = base + per-person x
 # sqrt(count), capped; peak alpha = max x count / full, capped). The bins are recounted every MINIMAP_CLOUD_SECONDS
-# (twice a second), not every picture refresh. Between recounts each blob eases toward its new place, size and strength
+# (twice a second), not every picture refresh. Between recounts each blob eases toward its new place, size and
+# strength
 # over MINIMAP_CLOUD_EASE_SECONDS (time constant), so nothing snaps; the picture repaints the clouds at most every
 # MINIMAP_CLOUD_PAINT_SECONDS. Round 21 (item 3, readability): the colour is a deep blue that is darker than the grey
 # ground (the old one was about the same value as the ground and read as nothing); the blob is solid to
