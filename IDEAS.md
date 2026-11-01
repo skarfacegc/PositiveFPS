@@ -1630,3 +1630,40 @@ round 19 flag fixes have been judged from screenshots only.
 tech tree and landmark boosts beyond today's, level goals and progression, one-starting-element balance. Also watch: a
 dimmed person close to the border collapses it with or without a stretch, and no rule refuses a stretch while gaps are
 open.
+
+## Round 22 build (2026-11-01)
+
+Built in five parts; all merged. Gate, determinism and baseline passed after coverage tests.
+
+**Timing budget:** the user asked for the 60-person budget to be recalibrated. Eight clean runs on pre-round-22 code read
+3.90–4.44 ms, so the budget went from 4.5 ms to 6.7 ms (`626b9a6`), by the method in the test's comment. Round 22 itself
+reads 5.5 ms (one run), about 1.3 ms more than the 4.2 ms before it: a real rise, not noise.
+
+**A. Shaped zone** (`fb97881`): no snap; arms stay and the head count limits the shape, the zone pulls in when people are
+lost, refusals last 4 s in a larger bar, the limited preview is thick red, and gaining ground pulses with "+N sq m of
+ground". One test changed: `stretch_safety_test`'s "never swallows them" window went from 25 s to 9 s, because a dimmed
+person pressing a permanent arm eventually gets in through a gap as at any border.
+
+**B. Fighting back** (`b7cd013`): F patches a gap or strained spot (25 spirit, 12 s). The burst lifts dimmed people off
+the border and calms them for 10 s. Warning rings show strain before a gap opens.
+
+**C. Clouds and pointers** (`c5ac04a`): clouds on a 15 x 15 grid (9 to 12 failed a test's crowd layout), edge pointers to
+unheld landmarks.
+
+**D. Tooling** (`ff276e4`): `tools/godot_run.py`, `tools/perf_compare.py`, `analyse_recording.py --compare`, and the skills
+`launch-playtest`, `finish-round` and `brief-build-agent`. **E. Dashboard** (`9a077eb`): `tools/agent_dashboard.py`.
+
+**Merge:** `scripts/beacon_placement.gd` moved out of `topdown_main.gd`. **Coverage** (`8d56e55`, `9dbfc44`): tests, and
+hold-and-snap code that no longer ran was removed.
+
+**Open:**
+- `scripts/config.gd` is at 999 of 1000 lines (comments were tightened to fit) and `scripts/border.gd` at 996: split both
+  before adding to them.
+- The determinism check now reports 1088 lines differing in hit count (was 2): informational, and both runs hit the same
+  lines, but worth finding out why.
+- One arm can take nearly all the spare border, so a second is much shorter; balance needs a look.
+- The how-to-play key list still lacks E. The styled look lags: no preview, patch or warning art.
+- The dashboard may show a finished agent as running; to check.
+
+**Playtest questions:** does a shape feel worth building? Is pull-in fair? Does F or the burst stop a collapse in time, and
+do you use them? Do the rings feel constant at midnight? Are clouds at 15 x 15 too busy? Do the pointers help?
