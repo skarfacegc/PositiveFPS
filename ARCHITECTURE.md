@@ -183,6 +183,20 @@ Player physics (`TopDownPlayer._physics_process`) and projectile physics run on 
   timing pass and the `test_perf_*` tests, and prints "perf pass skipped (parallel part)". `gate.py --full` ignores the variable,
   so the post-merge gate always enforces the budget. A cached pass made with the skip only answers requests that also skip it.
 - Other tools: `lint.py [--fix]`, `coverage.py`, `cleanup_worktrees.py`, `install_hooks.py`. Timing history: `tools/BUILD_TIMINGS.md`.
+- **`tools/godot_run.py`** (round 22): the wrapper for any scripted run. `python tools/godot_run.py --timeout 120 [--log F] [--gui|--console] -- <cmd...>`
+  (or `from godot_run import run`). Hard timeout, output in a log (default `.scratch/godot_run/`); on a timeout it ends only the
+  process tree it started (`taskkill /T /F /PID` of its own child, never a search for Godot processes); it prints
+  `godot_run: exit=.. time=.. timed_out=.. log=..` (exit 124 = timed out). `checkpoint_shots.py` uses it. Agents give every Godot run a timeout this way.
+- **`tools/perf_compare.py A B [--rounds N]`**: alternates serial `run_tests.py --perf-only` runs of two commits (detached worktrees
+  under `.scratch/perf_compare/`, removed afterwards) or two folders; prints every reading, mean, min, max, spread and the difference per
+  timing test; warns about other Godot processes and CPU load (it reports them and never touches them). The readings are parsed from the
+  `--perf-only` output: `run_tests.py` echoes lines starting with `run_tests.PERF_READING_PREFIXES` (`WORLD_SCALE`, `MINIMAP`, `PERF`),
+  so a timing test that prints its reading as `PREFIX label: 1.234 ms` is picked up. `recorder_test`'s timing test prints nothing, so it only shows an exit code.
+- **Recording comparison**: `python tools/analyse_recording.py --compare A B [C ...]` puts recordings side by side (outcome, length, rescued, dawn lights,
+  quiet share, gaps by phase, relapses, spirit, beacons, landmarks); recordings under 10 s are restarts and are skipped (`--min-seconds`).
+- **Project skills** (`.claude/skills/<name>/SKILL.md`, committed; `.claude/worktrees/` is the only ignored part of `.claude/`): `launch-playtest`, `finish-round`, `brief-build-agent`.
+- Self-checks (not part of the gate; run by hand when you change the tool): `python tools/test_godot_run.py`, `test_perf_compare.py`,
+  `test_analyse_recording.py`, `test_run_tests.py`, `test_gate.py`.
 - Tool locations: `tools/godot_path.py` finds Godot (GODOT env, then PATH, then WinGet). Every tool uses it.
 
 ## Agent workflow rules
@@ -212,5 +226,5 @@ Player physics (`TopDownPlayer._physics_process`) and projectile physics run on 
   `shelter_nearest_test` (updated for the leak).
 - **Communication / introduction** (round 13b): `feedback_layer.gd`, `spirit_meter.gd`, `mood_icons.gd`, `intro.gd`, `prompt_bar.gd`, `topdown_main.gd` (`_build_feedback`, `_update_feedback`, `_unlock_moods`, `_hold_back_dimmed`, `_update_intro`), `border.gd` (`gap_urgencies`), `gap_arrows.gd`, `minimap.gd` (`gap_markers`), `person.gd` (`joy_blocked`, `mood_unlocked`); tests `feedback_test`, `intro_test`; config "Round 13b". The new overlays are screen-space UI (both looks); the style rounds need not restyle them unless asked.
 - **HUD / minimap / camera**: `hud.gd`, `minimap.gd`, `gap_arrows.gd`, `topdown_main.gd` (`_update_camera`, `view_half_extents`); tests `hud_test`, `readability_test`, `debug_overlay_test`, `menu_test`.
-- **Tooling**: `tools/gate.py`, `run_tests.py`, `coverage.py`, `lint.py`, `.githooks/pre-commit`, `tools/COVERAGE_TOOL_NOTES.md`.
+- **Tooling**: `tools/gate.py`, `run_tests.py`, `godot_run.py`, `perf_compare.py`, `analyse_recording.py`, `coverage.py`, `lint.py`, `.githooks/pre-commit`, `tools/COVERAGE_TOOL_NOTES.md`.
 - Always also read: this file, the config section you touch, and `tests/topdown_test_util.gd` before writing a level test.
