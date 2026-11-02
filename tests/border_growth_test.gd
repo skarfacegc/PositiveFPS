@@ -205,3 +205,32 @@ func test_the_loop_keeps_the_perimeter_at_two_point_six_metres_per_person_once_i
 		border.update(rescued, 1.0 / 60.0, 1.0)
 	assert_float(border.perimeter).is_greater(24.5 * Config.WORLD_SCALE)
 	assert_float(border.perimeter).is_less(27.5 * Config.WORLD_SCALE)
+
+
+# Round 23 coverage: a dimmed person standing exactly on an intact line has no push direction from the line, so the
+# push falls back to "away from the centre"; on the line AND on the centre there is no direction, and nothing is pushed.
+func test_a_presser_on_the_line_is_pushed_from_the_centre_and_one_on_the_centre_too_is_left_alone() -> void:
+	var border := _organic_border()
+	var loop := BorderShape.circle_polygon(Vector2(5.0, 0.0), 5.0, Config.BORDER_SAMPLES)
+	loop[0] = Vector2(0.0, 0.0)  # A vertex of the loop sits on the world origin.
+	border.polygon = loop
+	border.active = true
+	border._assign_members(_ring_people(14, 5.0))
+	for m: Person in border.members:
+		m.joy = 900.0
+	var dimmed: Person = auto_free(Person.new())
+	add_child(dimmed)
+	dimmed.gloom = 1.0
+	var people: Array[Person] = [dimmed]
+	# On the line, 5 m from the centre: pushed away from the centre.
+	border.centre = Vector3(5.0, 0.0, 0.0)
+	var spot := Vector3(-0.0004, 0.0, 0.0)  # Outside the loop, 0.4 mm from the vertex: within the 1 mm "on the line".
+	dimmed.position = spot
+	assert_bool(Geometry2D.is_point_in_polygon(Vector2(spot.x, spot.z), border.polygon)).is_false()
+	border._press_gloom(people, 1.0, 1.0)
+	assert_float(dimmed.position.x).is_less(spot.x)
+	# On the line and on the centre: no direction, so nothing moves.
+	border.centre = spot
+	dimmed.position = spot
+	border._press_gloom(people, 1.0, 1.0)
+	assert_vector(dimmed.position).is_equal(spot)
