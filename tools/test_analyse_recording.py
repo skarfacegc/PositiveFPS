@@ -96,6 +96,25 @@ class AnalyseTest(unittest.TestCase):
         self.assertIn("LANDMARKS: 1 claimed, 1 lost", text)
         self.assertIn("DAWN RATING: 2 of 3 dawn lights (people 52%, ground 31%, landmarks held 1)", text)
 
+    def test_wobbles_saves_and_first_light_are_counted_and_reported(self):
+        extra = [{"t": 10.0, "type": "wobble", "id": 1, "seconds": 5.0},
+                 {"t": 11.0, "type": "wobble", "id": 2, "seconds": 4.5},
+                 {"t": 12.0, "type": "save", "id": 1},
+                 {"t": 16.0, "type": "relapse", "id": 2},
+                 {"t": 24.0, "type": "first_light_start", "rescued": 9, "dimmed": 3},
+                 {"t": 29.0, "type": "first_light_end", "people_lifted": 6, "stages_lifted": 8, "rescued": 12}]
+        res = ar.analyse(sorted(synthetic() + extra, key=lambda e: e["t"]))
+        self.assertEqual((len(res["wobbles"]), len(res["saves"])), (2, 1))
+        self.assertEqual((len(res["first_light_starts"]), len(res["first_light_ends"])), (1, 1))
+        text = ar.report(res, "x")
+        self.assertIn("WOBBLES (round 24): 2 wobbles, 1 saved by a joy hit, 1 relapses", text)
+        self.assertIn("FIRST LIGHT (round 24): 1 started, 1 finished", text)
+        self.assertIn("start at t=24 s, 9 rescued, 3 dimmed", text)
+        self.assertIn("end at t=29 s, 6 people lifted, 8 stages lifted, 12 rescued", text)
+        plain = ar.analyse(synthetic())
+        self.assertEqual((len(plain["wobbles"]), len(plain["saves"]), len(plain["first_light_starts"])), (0, 0, 0))
+        self.assertIn("WOBBLES (round 24): 0 wobbles, 0 saved by a joy hit, 0 relapses", ar.report(plain, "x"))
+
     def test_report_and_csv(self):
         with tempfile.TemporaryDirectory() as tmp:
             with open(os.path.join(tmp, "events.jsonl"), "w", encoding="utf-8") as fh:

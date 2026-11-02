@@ -18,6 +18,10 @@ mode was retired.)
 - **Fighting back (round 22):** rings on border folk show where the border is about to break (amber, then red as it
   gets urgent). **F** spends 25 spirit to patch the gap or strained spot nearest the cursor for 12 s; **G** or **Q**
   clears dimmed people off the border.
+- **Wobble, burst and first light (round 24):** a border person who is drained too far **wobbles** (greys and sways) for
+  about five seconds before they relapse, and a joy hit in that time saves them. A joy burst lifts every dimmed person
+  near you, and joy wins a dimmed person back faster. In the last 45 seconds **first light** creeps in from the map edge:
+  people it has passed lift out of the gloom and stop draining, so the end of the night is a rally.
 - **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered (its pips count the four hits left) · ! = faltering. The night
   introduces them one at a time, with a short one-time prompt each.
 - **Keys:** WASD move · Shift run · E shape the zone (spirit beacon) · G or Q joy burst · F patch gap · Mouse point at
@@ -35,7 +39,7 @@ The game opens a menu with one **Play** button. Press **Enter**, **1** or click 
 variants were retired in round 10; the organic push is the border.
 
 In the level: WASD to move, the mouse to point at people, **E** to shape the zone, **F** to patch a gap, **G** or **Q**
-for a joy burst. A small line by your feet says when F or G can be used right now. Press **M** at any time to go back
+for a joy burst. A small cue beside the spirit meter glows when F or G can be used right now. Press **M** at any time to go back
 to the menu. **R** restarts the level.
 
 ## The living border

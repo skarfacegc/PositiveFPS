@@ -379,6 +379,13 @@ func _tick_wobble(delta: float) -> void:
 	if not is_rescued:
 		wobbling = false
 		return
+	if dawn_lit:
+		# First light has passed them: the wobble ends quietly (no relapse, no save mark), joy back above the line.
+		wobbling = false
+		wobble_left = 0.0
+		joy = maxf(joy, joy_needed() * (Config.RELAPSE_FRACTION + Config.WOBBLE_SAVE_JOY))
+		_update_visuals()
+		return
 	if joy >= joy_needed() * Config.RELAPSE_FRACTION:
 		_save()
 		return

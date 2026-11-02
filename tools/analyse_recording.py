@@ -148,6 +148,10 @@ def analyse(events, quiet_window=5.0):
         "patches": [e for e in real if e["type"] == "gap_patched"],
         "bursts": [e for e in real if e["type"] == "burst"],
         "burst_clears": [e for e in real if e["type"] == "burst_clear"],
+        "wobbles": [e for e in real if e["type"] == "wobble"],
+        "saves": [e for e in real if e["type"] == "save"],
+        "first_light_starts": [e for e in real if e["type"] == "first_light_start"],
+        "first_light_ends": [e for e in real if e["type"] == "first_light_end"],
         "win": next((e for e in real if e["type"] == "win"), None),
     }
 
@@ -248,6 +252,16 @@ def report(res, folder):
     for e in clears:
         add("  burst at t=%.0f s lifted %s dimmed, %s joy hits, %s gaps open, spirit left %s" % (
             e["t"], e.get("lifted"), e.get("joy_hits"), e.get("gaps_open"), e.get("spirit_after")))
+    wobbles, saves = res["wobbles"], res["saves"]
+    add("WOBBLES (round 24): %d wobbles, %d saved by a joy hit, %d relapses" % (
+        len(wobbles), len(saves), res["counts"].get("relapse", 0)))
+    starts, ends = res["first_light_starts"], res["first_light_ends"]
+    add("FIRST LIGHT (round 24): %d started, %d finished" % (len(starts), len(ends)))
+    for e in starts:
+        add("  start at t=%.0f s, %s rescued, %s dimmed" % (e["t"], e.get("rescued"), e.get("dimmed")))
+    for e in ends:
+        add("  end at t=%.0f s, %s people lifted, %s stages lifted, %s rescued" % (
+            e["t"], e.get("people_lifted"), e.get("stages_lifted"), e.get("rescued")))
     lm_events = res["landmark_events"]
     claims = sum(1 for e in lm_events if e["type"] == "landmark_claimed")
     add("LANDMARKS: %d claimed, %d lost" % (claims, len(lm_events) - claims))
