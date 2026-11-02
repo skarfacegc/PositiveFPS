@@ -40,8 +40,19 @@ func strength() -> float:
 	var p := progress()
 	if p < Config.NIGHT_CALM_FRACTION:
 		return Config.NIGHT_CALM_STRENGTH
-	var curve := 1.0 + Config.NIGHT_PEAK_EXTRA * sin(PI * p)
+	# Round 23: the part above 1 fades out from NIGHT_EASE_START, so the easing phase is easing (1.36 at 75%, was 1.53).
+	var extra := Config.NIGHT_PEAK_EXTRA * sin(PI * p) * (1.0 - smoothstep(Config.NIGHT_EASE_START, 1.0, p))
+	var curve := 1.0 + extra
 	return lerpf(Config.NIGHT_CALM_STRENGTH, curve, smoothstep(Config.NIGHT_CALM_FRACTION, 0.5, p))
+
+
+# Round 23: the seconds that must pass between two people sinking to dimmed at night progress `p` (see
+# TopDownMain._try_dim_sink). Short in the rising phase, DIM_ARRIVAL_MIN_GAP from midnight, long in the easing phase.
+static func dim_gap_at(p: float) -> float:
+	var base := Config.DIM_ARRIVAL_MIN_GAP
+	if p < 0.5:
+		return lerpf(Config.DIM_GAP_RISING, base, smoothstep(Config.NIGHT_CALM_FRACTION, 0.5, p))
+	return lerpf(base, Config.DIM_GAP_EASE_END, smoothstep(Config.DIM_GAP_EASE_START, 1.0, p))
 
 
 func sun_color() -> Color:
