@@ -98,6 +98,8 @@ var wobble_left: float = 0.0
 var wobble_total: float = 0.0
 var wobble_count: int = 0
 var relapse_gate := Callable()
+# Round 24: set by FirstLight each frame: true once the dawn front has passed this person (no joy drain, see drain_joy).
+var dawn_lit: bool = false
 # Seconds since this person was last hit by a joy projectile.
 var _since_hit: float = 99.0
 
@@ -301,7 +303,7 @@ func tick(delta: float) -> void:
 
 # Removes joy from a rescued person (used by nearby gloom). Relapses them if they drop too low.
 func drain_joy(amount: float) -> void:
-	if not is_rescued or grace_left > 0.0:
+	if not is_rescued or grace_left > 0.0 or dawn_lit:
 		return
 	joy -= amount * loss_mult * patch_mult
 	if joy < joy_needed() * Config.RELAPSE_FRACTION:

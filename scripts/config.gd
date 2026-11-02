@@ -281,6 +281,27 @@ const WOBBLE_RATE := 11.0
 const WOBBLE_GREY_FROM := 0.35
 const RELAPSE_GATE_GAP := 0.6
 
+# ---- Round 24: first light (scripts/first_light.gd, night_cycle.gd, person.gd, minimap.gd). ----
+# The round 23 playtest called the end game unwinnable. Over the last FIRST_LIGHT_SECONDS of the night a front of dawn
+# starts at the map edge and moves inward (a square, like the plaza), reaching the centre at dawn. People it has passed
+# lose FIRST_LIGHT_LIFT_RATE gloom a second (dimmed lifts to gloomy, gloomy to wistful), nobody unrescued behind it
+# sinks (they are calm), and rescued people behind it no longer drain (Person.dawn_lit). People ahead of it get none of
+# this, so it helps but does not win the night alone.
+const FIRST_LIGHT_SECONDS := 45.0
+const FIRST_LIGHT_LIFT_RATE := 0.03  # Gloom per second (0 to 1 scale): a dimmed person is wistful after about 33 s.
+const FIRST_LIGHT_CALM := 0.3  # Seconds of calm set on each unrescued person behind the front every frame.
+const FIRST_LIGHT_BAND_WIDTH := 4.0  # Metres of warm band just inside the front.
+const FIRST_LIGHT_Y := 0.05
+const FIRST_LIGHT_TINT := Color(1.0, 0.86, 0.55, 0.1)  # The lit ground behind the front.
+const FIRST_LIGHT_BAND_COLOUR := Color(1.0, 0.8, 0.45, 0.22)
+const FIRST_LIGHT_MINIMAP_COLOUR := Color(1.0, 0.82, 0.45)
+const FIRST_LIGHT_MINIMAP_TINT := 0.2  # How much of the warm colour the lit part of the minimap takes.
+const FIRST_LIGHT_TEXT := "First light"
+const FIRST_LIGHT_FONT_SIZE := 18
+const FIRST_LIGHT_TEXT_COLOUR := Color(1.0, 0.9, 0.62)
+const FIRST_LIGHT_TEXT_HOLD := 3.0  # Seconds the line stays, then it fades over FIRST_LIGHT_TEXT_FADE.
+const FIRST_LIGHT_TEXT_FADE := 1.5
+
 static var intro_override: int = -1
 
 # The matchups form a soft cycle:
