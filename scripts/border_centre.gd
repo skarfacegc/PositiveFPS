@@ -54,6 +54,7 @@ var _people: int = 0
 var _cap_people: int = -1
 var _cap_value: float = 0.0
 var _clock: float = 0.0
+var _last_pull_notice: float = -1.0e9  # Round 23: one "pulling in" notice per quiet spell, not per person lost
 # Round 21: the plan for the last aim asked about (see plan_toward), reused for BEACON_PLAN_SECONDS.
 var _plan_key := Vector4.INF
 var _plan_at: float = -1.0e9
@@ -505,7 +506,9 @@ func pull_in(delta: float, body: float) -> void:
 	if not _pulling:
 		_pulling = true
 		_pull_area0 = polygon_area(b.polygon)
-		b.zone_pulling_in.emit()
+		if _clock - _last_pull_notice >= Config.BEACON_PULL_IN_NOTICE_GAP:
+			_last_pull_notice = _clock
+			b.zone_pulling_in.emit()
 	var kept: Array[Vector2] = []
 	for a: Vector2 in arms:
 		var ex := a.y - body - (Config.BEACON_PULL_IN_RATE + Config.BEACON_PULL_IN_FRAC * (a.y - body)) * delta

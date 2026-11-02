@@ -210,7 +210,8 @@ func test_the_reach_never_squeezes_the_body_below_its_minimum_and_the_loop_keeps
 	for pt: Vector2 in td.border.polygon:
 		back = minf(back, pt.distance_to(cx))
 	print("PROBE body radius before %.2f m, smallest during the stretch %.2f m" % [r0, back])
-	assert_float(back).is_greater(BorderCentre.circle_radius(6) * 0.5)
+	# Round 23: was * 0.5, with BEACON_BODY_MIN at 0.6.
+	assert_float(back).is_greater(BorderCentre.circle_radius(6) * Config.BEACON_BODY_MIN)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

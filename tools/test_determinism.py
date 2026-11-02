@@ -46,8 +46,8 @@ class UnitRuleTest(unittest.TestCase):
         self.assertEqual(notes, [])
 
     def test_the_known_race_is_noted_not_failed_including_the_rest_unit_and_single_test_units(self):
-        self.assertIn("recorder_polled_test", coverage.KNOWN_REAL_TIME_UNITS)
-        for label in ("recorder_polled_test", "recorder_polled_test (rest)", "recorder_polled_test::test_x"):
+        self.assertIn("looks_round20_test", coverage.KNOWN_REAL_TIME_UNITS)
+        for label in ("looks_round20_test", "looks_round20_test (rest)", "looks_round20_test::test_x"):
             problems, notes = coverage.unit_rule_problems({"hits_03.json": 1090}, {"hits_03.json": label})
             self.assertEqual(problems, [], label)
             self.assertEqual(len(notes), 1, label)

@@ -11,6 +11,7 @@ extends Control
 var _hud: Hud
 var _minimap: Control
 var _shown: Array[Dictionary] = []
+var _since: float = 1.0e9  # Round 23: seconds since the pointers were last worked out (see update_from)
 
 
 func _ready() -> void:
@@ -24,8 +25,15 @@ func setup(hud: Hud, minimap: Control) -> void:
 	_minimap = minimap
 
 
-# Each frame: one pointer per landmark that is neither held nor on screen, placed clear of the HUD.
-func update_from(main: TopDownMain) -> void:
+# One pointer per landmark that is neither held nor on screen, placed clear of the HUD. Round 23: the level calls this
+# every frame with its `delta`, and the work (0.18 ms) is done only every LANDMARK_POINTER_REFRESH seconds; a call
+# without `delta` (the tests) always works it out.
+func update_from(main: TopDownMain, delta: float = -1.0) -> void:
+	if delta >= 0.0:
+		_since += delta
+		if _since < Config.LANDMARK_POINTER_REFRESH:
+			return
+	_since = 0.0
 	_shown.clear()
 	visible = not Looks.is_styled()
 	var screen := get_viewport_rect().size

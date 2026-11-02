@@ -1,5 +1,8 @@
 class_name BorderShape
 extends RefCounted
+
+# Round 23: the smallest size factor the loop's ease will aim for (Border._organic_polygon).
+const SCALE_FLOOR := 0.2
 # Round 21: the pure map-edge rules of the border loop, split out of border.gd (which was at the 1000-line cap).
 # BorderShape.clamp_to_map / BorderShape.drop_short_seals call these; the behaviour is unchanged.
 

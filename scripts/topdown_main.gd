@@ -553,7 +553,7 @@ func _update_readability(delta: float) -> void:
 		border.gap_urgencies(),
 		delta
 	)
-	landmark_pointers.update_from(self)  # Round 22: the edge pointers toward unheld landmarks.
+	landmark_pointers.update_from(self, delta)  # Round 22 edge pointers (throttled, round 23).
 
 
 # Builds the target highlight: a flat warm ring that is shown under the target, hidden when there is none.

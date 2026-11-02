@@ -743,9 +743,6 @@ DIFF_LINES_ALLOWED = 10  # the session-folder name race in scripts/recorder.gd m
 # within one wall-clock second; anything under this is that kind of noise
 # Known races, each with its cause (a suite name from tools/run_tests.py plan_units, or "suite (rest)"):
 KNOWN_REAL_TIME_UNITS = {
-    "recorder_polled_test": "test_a_shot_is_logged_and_saved_... waits for a background PNG save with a game-time "
-                            "timer, so how many level frames run depends on how fast the thread is (0 or 3 frames "
-                            "of the 60-person level). Fix: OS.delay_msec(50) in the wait loop. Proven in round 23.",
     "looks_round20_test": "CAUSE NOT FOUND. Hit counts differed in 2 of 4 round 23 determinism runs and "
                           "test_a_styled_person_swings_legs_and_arms... failed once (line 226), always under heavy CPU "
                           "load; the suite alone gave identical hits 4 of 4. Every test in it is synchronous, so look "

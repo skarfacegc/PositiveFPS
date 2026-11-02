@@ -470,13 +470,17 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 	var smallest := BorderShape.perimeter_of(circle)
 	var target := maxf(float(n) * Config.BORDER_TARGET_SPACING, smallest)
 	if raw > 0.001:
-		var desired := clampf(_scale * target / raw, 0.2, 5.0)
+		var desired := clampf(_scale * target / raw, BorderShape.SCALE_FLOOR, 5.0)
 		if _centre_ctl.has_arms() or _centre_ctl.stretching:
 			# Round 22: the body never squeezes below BEACON_BODY_MIN of the plain radius. When the arms still make the loop
 			# too long at that size (people were lost) they retreat (BorderCentre.pull_in); otherwise a pull-in is over.
 			var min_scale := Config.BEACON_BODY_MIN * BorderCentre.circle_radius(n) * _scale / maxf(body, 0.001)
 			desired = maxf(desired, min_scale)
-			if raw > target * (1.0 + Config.BEACON_PULL_IN_TOLERANCE) and _scale <= min_scale * 1.03:
+			# Round 23: the scale never goes under its floor (0.2), so for a small head count min_scale lies below it and
+			# the old test (scale <= min_scale x 1.03) was never true: nothing pulled in. The test is now against the
+			# floor the scale can really reach, with room for the lag of the ease.
+			var squeezed := maxf(min_scale, BorderShape.SCALE_FLOOR) * Config.BEACON_PULL_IN_SQUEEZE
+			if raw > target * (1.0 + Config.BEACON_PULL_IN_TOLERANCE) and _scale <= squeezed:
 				_centre_ctl.pull_in(delta, body)
 			else:
 				_centre_ctl.settled()

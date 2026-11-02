@@ -20,8 +20,8 @@ mode was retired.)
   clears dimmed people off the border.
 - **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered (its pips count the four hits left) · ! = faltering. The night
   introduces them one at a time, with a short one-time prompt each.
-- **Keys:** WASD move · Shift run · G or Q joy burst · F patch gap · Mouse point at people (F2 changes
-  targeting) · Mouse wheel zoom · F3 debug · F4 switch look · R restart · M menu
+- **Keys:** WASD move · Shift run · E shape the zone (spirit beacon) · G or Q joy burst · F patch gap · Mouse point at
+  people (F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look · R restart · M menu
 
 ## How to run
 
@@ -34,7 +34,9 @@ mode was retired.)
 The game opens a menu with one **Play** button. Press **Enter**, **1** or click Play to start the level. The border
 variants were retired in round 10; the organic push is the border.
 
-Press **M** at any time to go back to the menu. **R** restarts the level.
+In the level: WASD to move, the mouse to point at people, **E** to shape the zone, **F** to patch a gap, **G** or **Q**
+for a joy burst. A small line by your feet says when F or G can be used right now. Press **M** at any time to go back
+to the menu. **R** restarts the level.
 
 ## The living border
 
@@ -60,18 +62,19 @@ Press **M** at any time to go back to the menu. **R** restarts the level.
   beautified after a few seconds. A grey person deep inside the border lightens instead of dimming.
 - **The border stays put (round 19).** Once it forms, its centre no longer follows you or the people who push it. Press
   **E** to place a **spirit beacon** at the mouse (50 spirit, one at a time, a new one replaces the old and costs again):
-  the zone stretches toward it (about 1.1 m a second, up to what your people can hold) and the arm stays,
-  so you build a shape over the night. Rescue more people to expand further; lose people and the zone slowly pulls in
-  from its longest arms. A stretch stops short of dimmed people, and E is refused with a reason if it can't be held.
-- **Three landmarks** stand far from the start, so you need beacons to reach them: the **bandstand** (music joy x1.5),
-  the **garden** (nature joy x1.5) and the **bell tower** (border members within 17 m lose 40% less to the gloom).
+  the zone stretches toward it (about 1.7 m a second, up to what your people can hold; about 34 m from its centre at 24 people) and the arm stays,
+  so you build a shape over the night. Rescue more people to expand further; lose people and the zone draws in
+  from its longest arms once the body has squeezed to its smallest. A stretch stops short of dimmed people, and E is refused with a reason if it can't be held.
+- **Three landmarks** stand far from the start, so you need beacons to reach them: the **bandstand** (music joy x2),
+  the **garden** (nature joy x2) and the **bell tower** (border members within 17 m lose 60% less to the gloom).
   Beautify one inside the border and keep it for 3 seconds to hold it; it loses its boost the moment the border drops
-  it. The top right lists the landmarks you hold.
+  it. The top right lists the landmarks you hold; an arrow at the screen edge points to each one you do not hold.
 - **Losing**: if the border has formed and fewer than three people are rescued, the border falls.
 - **Calm opening**: the first quarter of the night is calm (almost no grey pressure), then it builds toward midnight.
+  Dimmed people arrive sooner than they did, then ease off: the last third of the night is gentler.
 - **Dusk to dawn**: a bar at the top shows the night. The level ends at dawn, and reaching dawn wins. The end screen gives
   1 to 3 **dawn lights** and why: 1 for reaching dawn; 2 when two of "40% of the people rescued", "20% of the plaza held"
-  and "one landmark held" are met; 3 when 60% of the people are rescued and two landmarks are held at dawn.
+  and "one landmark held" are met; 3 when 60% of the people are rescued and one landmark is held at dawn.
 
 ## Spirit, going dim and the dance with the gloom (round 12a)
 

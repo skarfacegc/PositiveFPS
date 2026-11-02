@@ -91,7 +91,7 @@ func test_a_shot_is_logged_and_saved_downsized_and_an_empty_one_is_ignored() -> 
 	var path := rec.session_dir.path_join("shot_0001.png")
 	var waited := 0
 	while not FileAccess.file_exists(path) and waited < 200:
-		await get_tree().create_timer(0.05).timeout
+		OS.delay_msec(50)
 		waited += 1
 	assert_bool(FileAccess.file_exists(path)).is_true()
 

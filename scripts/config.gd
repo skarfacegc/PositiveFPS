@@ -27,7 +27,7 @@ const BEACON_NO_BORDER_TEXT := "Rescue three people to form a border first"
 # body: BEACON_BODY_MIN is how small the body may get (a share of the plain radius), which caps the reach. The rest is
 # the placeholder look's reach guide.
 const BEACON_TIP_WIDTH := 0.4
-const BEACON_BODY_MIN := 0.6
+const BEACON_BODY_MIN := 0.4  # Round 23 (was 0.6): the arm may take more of the loop; see the Round 23 follow-up block.
 const BEACON_GUIDE_Y := 0.18
 const BEACON_GUIDE_RING_COLOUR := Color(0.55, 0.85, 1.0, 0.35)
 const BEACON_GUIDE_PREVIEW_COLOUR := Color(0.55, 0.85, 1.0, 0.45)
@@ -222,6 +222,10 @@ const NIGHT_EASE_START := 0.6
 const BEACON_REACH_BASE := 3.9 * WORLD_SCALE
 const BEACON_REACH_PER_PERSON := 0.455 * WORLD_SCALE
 const BEACON_PULL_SPEED := 1.2 * WORLD_SCALE
+# Pull-in: arms retreat once the body scale is within this factor of the smallest it can reach (it lags the ease).
+const LANDMARK_POINTER_REFRESH := 0.2  # Seconds between two works-out of the landmark pointers (5 a second).
+const BEACON_PULL_IN_SQUEEZE := 1.1
+const BEACON_PULL_IN_NOTICE_GAP := 8.0  # Seconds between two "pulling in" notices.
 const NOTICE_FONT_SIZE := 18
 const NOTICE_HEIGHT := 38.0
 const BEACON_GUIDE_LABEL_SIZE := 0.024
