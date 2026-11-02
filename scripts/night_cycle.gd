@@ -29,6 +29,17 @@ func progress() -> float:
 	return elapsed / Config.NIGHT_LENGTH
 
 
+# Round 24: 0 until the last FIRST_LIGHT_SECONDS of the night, then rising to 1 at dawn (the dawn front's progress).
+func first_light_progress() -> float:
+	var start := Config.NIGHT_LENGTH - Config.FIRST_LIGHT_SECONDS
+	return clampf((elapsed - start) / Config.FIRST_LIGHT_SECONDS, 0.0, 1.0)
+
+
+# True from the start of the last FIRST_LIGHT_SECONDS.
+func first_light_active() -> bool:
+	return elapsed >= Config.NIGHT_LENGTH - Config.FIRST_LIGHT_SECONDS
+
+
 func is_over() -> bool:
 	return elapsed >= Config.NIGHT_LENGTH
 

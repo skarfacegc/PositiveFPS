@@ -44,6 +44,9 @@ var patch_points: PackedVector2Array = PackedVector2Array()
 # Vector2 (world, the mean of its people, kept inside the map circle), "count": int, "radius": float (picture pixels),
 # "peak": float (alpha at the centre)}. Recounted every MINIMAP_CLOUD_SECONDS (see tick).
 var cloud_cells: Array[Dictionary] = []
+# Round 24: the dawn front, as the half size (metres) of the square it has reached; people outside it are lit. Negative
+# when first light has not begun (set by FirstLight).
+var first_light_edge: float = -1.0
 
 # The look: the palette and the frame (see scripts/looks/minimap_look.gd). The picture itself is built here.
 var look: MinimapLook
@@ -359,6 +362,8 @@ func _render() -> void:
 			if _in_circle(Vector2(px + 0.5, py + 0.5)):
 				var w := _to_world(Vector2(px + 0.5, py + 0.5))
 				var col := _ground_colour(w, px, py)
+				if first_light_edge >= 0.0 and maxf(absf(w.x), absf(w.y)) >= first_light_edge:
+					col = col.lerp(Config.FIRST_LIGHT_MINIMAP_COLOUR, Config.FIRST_LIGHT_MINIMAP_TINT)
 				# Round 20: the people clouds sit on the ground, under the buildings and every marker.
 				if clouds_on and _cloud_alpha[py * RESOLUTION + px] > 0.0:
 					col = col.lerp(cloud, _cloud_alpha[py * RESOLUTION + px] * cloud.a)
@@ -373,6 +378,8 @@ func _render() -> void:
 			_sealed_line(a, b)
 		else:
 			_line(a, b, look.line_colour(gap_flags[j]))
+	if first_light_edge >= 0.0:
+		_first_light_line()
 	for m: Vector2 in member_pts:
 		_marker(m, 1.6, look.member_colour(), "member")
 	for d: Vector2 in dimmed_pts:
@@ -416,6 +423,17 @@ func _render() -> void:
 	for k: int in range(view_pts.size()):
 		_line(view_pts[k], view_pts[(k + 1) % view_pts.size()], look.view_colour())
 	_texture.update(_image)
+
+
+# Round 24: the dawn front, a warm square outline two pixels thick.
+func _first_light_line() -> void:
+	var e := first_light_edge
+	var px_metres := float(Config.TD_PLAZA_SIZE) / float(RESOLUTION)
+	for k: int in range(2):
+		var h := maxf(0.0, e - px_metres * float(k))
+		var corners := PackedVector2Array([Vector2(-h, -h), Vector2(h, -h), Vector2(h, h), Vector2(-h, h)])
+		for j: int in range(4):
+			_line(corners[j], corners[(j + 1) % 4], Config.FIRST_LIGHT_MINIMAP_COLOUR)
 
 
 # A stretch of the loop sealed by the map edge (round 16): the look's seal colour, `seal_width()` pixels thick (the
