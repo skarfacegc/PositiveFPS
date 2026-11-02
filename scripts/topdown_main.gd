@@ -484,7 +484,7 @@ func _hold_back_dimmed(delta: float) -> void:
 # have passed since the last one sank. The first to ask in a frame takes the gate, so array order decides who goes.
 func _try_dim_sink() -> bool:
 	# (Nobody gets this far during the calm opening: _hold_back_dimmed keeps them under the line until then.)
-	if _dim_clock - _last_dim_sink < Config.DIM_ARRIVAL_MIN_GAP:
+	if _dim_clock - _last_dim_sink < NightCycle.dim_gap_at(night.progress()):  # Round 23: the gap follows the night.
 		return false
 	_last_dim_sink = _dim_clock
 	return true

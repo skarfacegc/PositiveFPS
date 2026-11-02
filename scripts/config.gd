@@ -207,6 +207,21 @@ const TD_MINIMAP_LANDMARK_UNHELD_GROW := 1.5
 const TD_MINIMAP_LANDMARK_UNHELD_RING_COLOUR := Color(1.0, 0.95, 0.8)
 const TD_MINIMAP_LANDMARK_UNHELD_RING_RADIUS := 6.4
 
+# ---- Round 23: pressure curve (scripts/night_cycle.gd, topdown_main.gd). ----
+# The round 22 playtests lost 20+ of 44 rescued people in the last 30 s. Cause, from the recordings: dimmed people
+# arrived on a flat conveyor (the 9 s midnight gate, one every 9.0 s from 52 s to 151 s whatever the phase), so trouble
+# came only as a growing stock of them; the grey strength was still 1.44 at 80% of the night (the "easing" phase was 82%
+# of midnight's strength); and a dimmed person with a line of sight drains every rescued person within SPREAD_RADIUS at
+# once, so a whole cohort passes the relapse line together about 14 s later.
+# Dimmed arrivals: the gap between two sinks is DIM_GAP_RISING at the start of the rising phase and eases to
+# DIM_ARRIVAL_MIN_GAP (9 s) at midnight, so trouble starts sooner; it holds there until DIM_GAP_EASE_START, then
+# lengthens (smoothstep) to DIM_GAP_EASE_END seconds at dawn, so the easing phase brings few new dimmed people.
+const DIM_GAP_RISING := 6.0
+const DIM_GAP_EASE_START := 0.7
+const DIM_GAP_EASE_END := 30.0
+# Grey strength: the part above 1 fades out between NIGHT_EASE_START and dawn (smoothstep), so the last phase eases.
+const NIGHT_EASE_START := 0.6
+
 static var intro_override: int = -1
 
 # The matchups form a soft cycle:
