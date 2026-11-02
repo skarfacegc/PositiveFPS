@@ -1786,3 +1786,47 @@ test uses an arm in the way, since far aims no longer refuse; landmark and dawn 
 
 **Playtest questions:** does the night now build, with no surge at the end? Do the cues tell you when to patch and burst,
 and can you see the result? Are the arms long and fast enough, and is the text quiet? Do landmarks feel worth a beacon?
+
+## Round 23 playtest and round 24 plan (2026-11-02)
+
+Played `918b2cc` twice, recorded (`20261102-055759`, `20261102-060153`), placeholder look.
+
+| | Game 1 | Game 2 |
+|---|---|---|
+| Outcome | loss at 1:50 | win, 1 of 3 dawn lights |
+| Rescued, peak then end | 24, then 2 | 30, then 12 |
+| Patches, bursts, dimmed cleared | 0, 0, 0 | 4, 7, 3 |
+| Pull-ins | 0 | 4 (-171 sq m) |
+| Landmarks | 0 | 0 |
+
+Game 1 fell apart right after a third arm reached its tip at 92 s: 24 rescued at 90 s, 11 at 105 s, 5 at 120 s. Game 2 fell
+in two waves, 30 to 17 from 105 s and 21 to 9 from 135 s. Gaps fell after 1 of 4 patches, and 4 of 7 bursts lifted nobody.
+The dimmed stock sat around 6 from midnight on.
+
+**What the user said:** "This is almost fun, but the end game feels unwinnable."
+- The waves felt unfair or helpless, and the end too sudden.
+- Never saw the cues. The effect of patch and burst isn't readable: "there needs to be some visual reaction tied to the
+  event ... not just an animation played on the board. Things need to react."
+- The reminder text is "far too large", "takes over the entire viewport", and shouldn't be constant: show it only when
+  trying to place out of bounds.
+- Pull-in is "really chaotic, difficult to parse".
+- Landmarks are too far away.
+
+**Why the end feels unwinnable:** the player can't reduce the dimmed stock, so effort doesn't change the outcome. The user
+chose all three bigger changes and no weaker midnight.
+
+### Plan
+
+- **Beatable dimmed:** a burst lifts every dimmed person near the player; joy visibly wins them back.
+- **Catchable waves:** relapses come a few at a time, not on one frame. Each person wobbles and greys for about 5 s first,
+  and a joy hit in that window saves them.
+- **First light:** over the last 45 s dawn creeps in from the map edge and lifts gloom, so the end is a rally.
+- **Things react:** border people hop, turn and glow when a patch lands; lifted people perk up. Cues move to the HUD.
+- **Quiet reminder:** much smaller, and only on an out-of-bounds placement attempt.
+- **Calm pull-in:** one arm at a time, slowly, its outline fading first.
+- **Nearer landmark:** one within first-arm reach.
+
+### Build order
+
+Three parallel worktree parts: F dimmed and waves (Sonnet), G first light (Sonnet), H reactions, reminder, pull-in and
+landmark (Sonnet). Then merge and `tools/round_end.py`.
