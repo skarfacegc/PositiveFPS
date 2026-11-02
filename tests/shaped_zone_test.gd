@@ -311,13 +311,20 @@ func test_the_limited_preview_is_thick_red_and_says_why_beside_the_cursor() -> v
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	await runner.simulate_frames(2)
-	# The cursor far beyond what 24 people can reach (no frame runs between setting it and the guide's sync).
+	# A fine stretch (nothing holds it back) is the calm blue one.
 	td.player._has_aim = true
-	td.player._aim_point = CENTRE + Vector3(0, 0, 40)
+	td.player._aim_point = CENTRE + Vector3(0, 0, _radius() + 6.0)
+	td.reach_guide.sync(td.border, td.player)
+	var label: Label3D = td.reach_guide._label
+	assert_str(label.text).is_equal("E: stretch here")
+	assert_float(label.pixel_size).is_equal_approx(Config.BEACON_GUIDE_LABEL_SIZE, 0.0001)
+	# Round 23: a far aim alone is no longer limited (it just goes as far as the people allow), so the limit here is an
+	# arm east that uses up the length, and the cursor west of it (no frame runs between setting it and the guide's sync).
+	await _stretch(td, runner, CENTRE + Vector3(60, 0, 0))
+	td.player._aim_point = CENTRE + Vector3(-60, 0, 0)
 	td.reach_guide.sync(td.border, td.player)
 	var plan: Dictionary = td.border.plan_stretch(td.player.aim_point())
 	assert_str(plan["reason"]).is_not_equal("")
-	var label: Label3D = td.reach_guide._label
 	assert_bool(label.visible).is_true()
 	assert_str(label.text).is_equal(plan["reason"])
 	assert_float(label.pixel_size).is_equal_approx(Config.BEACON_LIMITED_LABEL_SIZE, 0.0001)
@@ -327,11 +334,6 @@ func test_the_limited_preview_is_thick_red_and_says_why_beside_the_cursor() -> v
 	assert_float(Vector2(label.position.x - aim.x, label.position.z - aim.z).length()).is_less(2.0)
 	assert_float(Config.BEACON_LIMITED_OUTLINE_WIDTH).is_greater(Config.BEACON_GUIDE_OUTLINE_WIDTH * 2.0)
 	assert_float(absf(Config.BEACON_LIMITED_COLOUR.r - Config.BEACON_GUIDE_PREVIEW_COLOUR.r)).is_greater(0.3)
-	# A fine stretch is the calm blue one again.
-	td.player._aim_point = CENTRE + Vector3(0, 0, _radius() + 6.0)
-	td.reach_guide.sync(td.border, td.player)
-	assert_str(label.text).is_equal("E: stretch here")
-	assert_float(label.pixel_size).is_equal_approx(Config.BEACON_GUIDE_LABEL_SIZE, 0.0001)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

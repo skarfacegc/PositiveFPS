@@ -95,12 +95,12 @@ func test_the_tip_stretches_toward_the_beacon_at_the_pull_speed_and_the_centre_s
 	var c0 := td.border.centre
 	td.border.place_beacon(Vector3(30, 0, 4))
 	var tip0: Vector3 = td.border.stretch_info()["tip"]
-	await runner.simulate_frames(60)
+	await runner.simulate_frames(30)
 	var info: Dictionary = td.border.stretch_info()
 	var tip1: Vector3 = info["tip"]
 	var moved := GloomSim.flat_dist(tip1, tip0)
-	print("PROBE tip travel in 1 s = %.2f m (speed %.2f m/s)" % [moved, Config.BEACON_PULL_SPEED])
-	assert_float(moved).is_equal_approx(Config.BEACON_PULL_SPEED, 0.12)
+	print("PROBE tip travel in 0.5 s = %.2f m (speed %.2f m/s)" % [moved, Config.BEACON_PULL_SPEED])
+	assert_float(moved).is_equal_approx(Config.BEACON_PULL_SPEED * 0.5, 0.06)
 	assert_bool(td.border.has_beacon()).is_true()
 	assert_float(GloomSim.flat_dist(td.border.centre, c0)).is_less(0.01)
 	await TopDownTestUtil.leave_loaded_scene(td)

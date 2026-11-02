@@ -160,14 +160,14 @@ func _pulse(border: Border) -> void:
 		_line(q0, q1, Config.BEACON_PULSE_WIDTH * (1.0 + wave * 0.6), col)
 	var ring_col := Config.BEACON_PULSE_COLOUR
 	ring_col.a *= 1.0 - p
-	_ring(_pulse_tip, 1.5 + 7.0 * p, ring_col)
+	_ring(_pulse_tip, Config.BEACON_PULSE_RING_START + Config.BEACON_PULSE_RING_GROW * p, ring_col)
 	_mesh.surface_end()
 	if _gain_label == null:
 		_gain_label = Label3D.new()
 		_gain_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		_gain_label.no_depth_test = true
-		_gain_label.pixel_size = 0.05
-		_gain_label.outline_size = 12
+		_gain_label.pixel_size = Config.BEACON_GAIN_LABEL_SIZE
+		_gain_label.outline_size = Config.BEACON_GAIN_OUTLINE_SIZE
 		add_child(_gain_label)
 	var pc := Config.BEACON_PULSE_COLOUR
 	_gain_label.visible = _pulse_gain >= 1.0
