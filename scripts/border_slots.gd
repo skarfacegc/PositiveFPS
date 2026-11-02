@@ -58,7 +58,7 @@ func assign_members(rescued: Array[Person]) -> void:
 	if b.perimeter < 0.01:
 		return
 
-	var posts := b._find_posts(Border.slot_count_for(b.perimeter), held)
+	var posts := b._find_posts(BorderShape.slot_count_for(b.perimeter), held)
 	b.post_count = posts.size()
 	var m := mini(rescued.size(), b.required_members())
 	if m < 1:
@@ -153,7 +153,7 @@ func assign_members(rescued: Array[Person]) -> void:
 	var anchored: Array[bool] = []
 	for k: int in range(k_total):
 		anchored.append(post_slot[k] or post_slot[(k + 1) % k_total])
-	b.segment_gap = Border.gap_flags(b.spacing, slot_taken, anchored, slot_faltering)
+	b.segment_gap = BorderShape.gap_flags(b.spacing, slot_taken, anchored, slot_faltering)
 	for j: int in range(n):
 		var k := mini(k_total - 1, int(fposmod(b._open[j] - b._phase, b.perimeter) / b.spacing))
 		b._sample_gap[j] = b.segment_gap[k] and not b.is_sealed(j)

@@ -158,7 +158,7 @@ func test_a_dimmed_person_outside_the_border_cannot_get_inside_it() -> void:
 
 	await runner.simulate_frames(2400)
 	# The press drains a member, so the count may drop; the line is what matters here.
-	assert_bool(Border.is_inside(td.border.polygon, Vector2(dimmed.position.x, dimmed.position.z))).is_false()
+	assert_bool(BorderShape.is_inside(td.border.polygon, Vector2(dimmed.position.x, dimmed.position.z))).is_false()
 
 
 func test_a_dimmed_person_at_the_edge_erodes_the_edge_tiles_next_to_them() -> void:

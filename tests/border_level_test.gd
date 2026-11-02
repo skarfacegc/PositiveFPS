@@ -108,7 +108,7 @@ func test_members_walk_to_their_slots_and_the_loop_is_closed() -> void:
 	for p: Person in border.members:
 		var target: Vector3 = border._targets[p]
 		assert_float(Vector2(p.position.x - target.x, p.position.z - target.z).length()).is_less(0.15)
-	assert_float(Border.perimeter_of(border.polygon)).is_greater(0.0)
+	assert_float(BorderShape.perimeter_of(border.polygon)).is_greater(0.0)
 
 
 func test_three_locked_rescues_by_real_clicks_form_the_border() -> void:
@@ -137,7 +137,7 @@ func test_three_locked_rescues_by_real_clicks_form_the_border() -> void:
 func test_slot_and_inner_counts_follow_the_formula() -> void:
 	# Round 13a: all sizes here are times WORLD_SCALE, so the counts are the same. A circle of radius 3 (perimeter
 	# about 18.85) has 8 slots at 2.6 m (round 11). Twelve people: eight border members, four inner.
-	var loop := Border.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+	var loop := BorderShape.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
 	var border := _bare_border(loop)
 	var people := _people(12)
 	var rescued: Array[Person] = []
@@ -149,13 +149,15 @@ func test_slot_and_inner_counts_follow_the_formula() -> void:
 	border._assign_members(rescued)
 	assert_int(border.member_count).is_equal(8)
 	assert_int(border.inner_count).is_equal(4)
-	assert_float(border.spacing).is_equal_approx(Border.perimeter_of(loop) / 8.0, 0.001)
+	assert_float(border.spacing).is_equal_approx(BorderShape.perimeter_of(loop) / 8.0, 0.001)
 	assert_int(border.gap_count()).is_equal(0)
 
 
 func test_fewer_people_than_slots_spread_out_and_leave_gaps() -> void:
 	# Four people on a radius 3 loop: all four are border members, spaced about 4.7 m apart (over the 3.5 m limit).
-	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES))
+	var border := _bare_border(
+		BorderShape.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+	)
 	var people := _people(4)
 	var rescued: Array[Person] = []
 	for i: int in range(4):
@@ -166,12 +168,14 @@ func test_fewer_people_than_slots_spread_out_and_leave_gaps() -> void:
 	border._assign_members(rescued)
 	assert_int(border.member_count).is_equal(4)
 	assert_int(border.inner_count).is_equal(0)
-	assert_float(border.spacing).is_equal_approx(Border.perimeter_of(border.polygon) / 4.0, 0.001)
+	assert_float(border.spacing).is_equal_approx(BorderShape.perimeter_of(border.polygon) / 4.0, 0.001)
 	assert_int(border.gap_count()).is_equal(4)
 
 
 func test_gaps_are_drawn_in_their_own_colour() -> void:
-	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES))
+	var border := _bare_border(
+		BorderShape.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+	)
 	var people := _people(4)
 	var rescued: Array[Person] = []
 	for i: int in range(4):
@@ -183,7 +187,9 @@ func test_gaps_are_drawn_in_their_own_colour() -> void:
 	assert_bool(border.segment_is_gap(0)).is_true()
 	assert_bool(border.segment_colour(0).is_equal_approx(Config.BORDER_INTACT_COLOUR)).is_false()
 
-	var intact := _bare_border(Border.circle_polygon(Vector2.ZERO, 5.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES))
+	var intact := _bare_border(
+		BorderShape.circle_polygon(Vector2.ZERO, 5.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+	)
 	var more := _people(14)
 	var more_rescued: Array[Person] = []
 	for i: int in range(14):
@@ -200,7 +206,7 @@ func test_gaps_are_drawn_in_their_own_colour() -> void:
 
 
 func test_a_dimmed_person_outside_is_stopped_at_an_intact_line() -> void:
-	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
+	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
 	var people := _people(14)
 	var rescued: Array[Person] = []
 	for i: int in range(14):
@@ -218,7 +224,7 @@ func test_a_dimmed_person_outside_is_stopped_at_an_intact_line() -> void:
 
 func test_a_dimmed_person_passes_through_a_gap() -> void:
 	# Three members on a radius 5 loop are 10.5 m apart: every stretch is a gap, so nothing holds the dimmed person back.
-	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
+	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
 	var people := _people(3)
 	var rescued: Array[Person] = []
 	for i: int in range(3):
@@ -232,7 +238,7 @@ func test_a_dimmed_person_passes_through_a_gap() -> void:
 
 
 func test_a_dimmed_person_inside_the_loop_is_not_held() -> void:
-	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
+	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
 	var from := Vector3(1.0, 0.0, 0.0)
 	var to := Vector3(2.0, 0.0, 0.0)
 	assert_bool(border.clip_move(from, to).is_equal_approx(to)).is_true()
@@ -295,7 +301,7 @@ func test_tiles_inside_the_loop_paint_in_over_time_and_outside_stays_grey() -> v
 	var ground: PaintedGround = auto_free(PaintedGround.new())
 	add_child(ground)
 	ground.setup(40, Config.TD_GROUND_SPREAD_SPEED, Config.TD_GROUND_FADE_SPEED, true)
-	ground.set_region(Border.circle_polygon(Vector2.ZERO, 6.0, Config.BORDER_SAMPLES))
+	ground.set_region(BorderShape.circle_polygon(Vector2.ZERO, 6.0, Config.BORDER_SAMPLES))
 	var none: Array[Person] = []
 	for i: int in range(10):
 		ground.update_paint(none, 0.11)
@@ -307,7 +313,7 @@ func test_tiles_inside_the_loop_paint_in_over_time_and_outside_stays_grey() -> v
 
 
 func test_a_grey_person_inside_the_loop_lightens_and_one_outside_dims() -> void:
-	var border := _bare_border(Border.circle_polygon(Vector2.ZERO, 6.0, Config.BORDER_SAMPLES))
+	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 6.0, Config.BORDER_SAMPLES))
 	var people := _people(2)
 	var inside: Person = people[0]
 	inside.position = Vector3(0.0, 0.0, 0.0)

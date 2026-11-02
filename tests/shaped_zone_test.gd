@@ -122,7 +122,7 @@ func test_the_head_count_limits_how_much_border_can_be_held() -> void:
 	assert_str(limited["reason"]).is_equal(Config.BEACON_FULL_TEXT)
 	# The loop the plan shows is never longer than the people can hold.
 	var out: PackedVector2Array = limited["outline"]
-	assert_float(Border.perimeter_of(out)).is_less_equal(BorderCentre.budget_of(_radius()) * 1.01)
+	assert_float(BorderShape.perimeter_of(out)).is_less_equal(BorderCentre.budget_of(_radius()) * 1.01)
 	# Rescuing more people allows more.
 	for j: int in range(8):
 		var p: Person = td.people[PEOPLE + j]
@@ -191,7 +191,7 @@ func test_losing_people_pulls_the_arms_in_without_collapsing_the_zone() -> void:
 	var now := _max_radius(td)
 	var area1 := BorderCentre.polygon_area(td.border.polygon)
 	var budget := BorderCentre.budget_of(BorderCentre.circle_radius(PEOPLE - 10))
-	var perimeter := Border.perimeter_of(td.border.polygon)
+	var perimeter := BorderShape.perimeter_of(td.border.polygon)
 	print(
 		(
 			"PROBE pull-in: reach %.1f -> %.1f m, area %.0f -> %.0f, loop %.1f of %.1f"

@@ -386,7 +386,7 @@ func _update_dim(delta: float) -> void:
 func dim_recovery_rate() -> float:
 	var pos := player.global_position
 	if border.active:
-		if not Border.is_inside(border.polygon, Vector2(pos.x, pos.z)):
+		if not BorderShape.is_inside(border.polygon, Vector2(pos.x, pos.z)):
 			return 0.0
 		var depth := border.cover_at(pos)
 		return Config.DIM_RECOVER_RATE * (Config.DIM_RECOVER_BASE + Config.DIM_RECOVER_DEPTH * depth)
@@ -760,7 +760,7 @@ func _update_people(delta: float) -> void:
 # the target is a border member (they press it, Round 12b), otherwise TD_DIMMED_STOP_DISTANCE.
 func _stop_distance(p: Person, target_p: Person) -> float:
 	if border.active and border.members.has(target_p):
-		if not Border.is_inside(border.polygon, Vector2(p.position.x, p.position.z)):
+		if not BorderShape.is_inside(border.polygon, Vector2(p.position.x, p.position.z)):
 			return Config.TD_DIMMED_PRESS_STOP
 	return Config.TD_DIMMED_STOP_DISTANCE
 

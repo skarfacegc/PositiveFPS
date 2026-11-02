@@ -141,7 +141,7 @@ func test_a_gap_glows_coral_and_intact_stretches_stay_gold() -> void:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
-	border.polygon = Border.circle_polygon(Vector2.ZERO, 3.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 3.0, Config.BORDER_SAMPLES)
 	border.active = true
 	var ring: Array[Person] = []
 	for i: int in range(4):

@@ -36,14 +36,14 @@ func test_a_faltering_slot_makes_the_two_segments_beside_it_gaps_and_no_others()
 	var filled: Array[bool] = [true, true, true, true, true, true]
 	var anchored: Array[bool] = []
 	var faltering: Array[bool] = [false, false, true, false, false, false]
-	var flags := Border.gap_flags(2.6, filled, anchored, faltering)
+	var flags := BorderShape.gap_flags(2.6, filled, anchored, faltering)
 	assert_array(flags).is_equal([false, true, true, false, false, false])
 
 
 func test_a_loop_that_is_stretched_too_wide_is_still_one_big_gap_everywhere() -> void:
 	var filled: Array[bool] = [true, true, true]
 	var faltering: Array[bool] = [false, false, false]
-	var flags := Border.gap_flags(Config.BORDER_MAX_GAP + 0.5, filled, [], faltering)
+	var flags := BorderShape.gap_flags(Config.BORDER_MAX_GAP + 0.5, filled, [], faltering)
 	assert_array(flags).is_equal([true, true, true])
 
 
@@ -51,7 +51,7 @@ func test_a_post_still_holds_the_segments_beside_it_even_when_a_member_falters()
 	var filled: Array[bool] = [true, true, true, true]
 	var anchored: Array[bool] = [false, true, false, false]
 	var faltering: Array[bool] = [true, false, false, false]
-	var flags := Border.gap_flags(2.6, filled, anchored, faltering)
+	var flags := BorderShape.gap_flags(2.6, filled, anchored, faltering)
 	# Slot 0 falters: segments 3 and 0 are gaps, but the segments touching the anchored slot 1 (0 and 1) stay intact.
 	assert_array(flags).is_equal([false, false, false, true])
 
@@ -233,7 +233,7 @@ func _post_border() -> Dictionary:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
-	border.polygon = Border.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
 	border.active = true
 	var body: StaticBody3D = auto_free(StaticBody3D.new())
 	body.position = Vector3(5.5 * Config.WORLD_SCALE, 0.0, 0.0)

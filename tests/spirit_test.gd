@@ -324,7 +324,7 @@ func _press_loss(dim: bool) -> float:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
-	border.polygon = Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
 	border.active = true
 	var rescued: Array[Person] = []
 	for i: int in range(14):

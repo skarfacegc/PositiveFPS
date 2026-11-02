@@ -62,7 +62,7 @@ func _dimmed_inside(td: TopDownMain, first: int, count: int) -> int:
 	var inside := 0
 	for k: int in range(count):
 		var q: Person = td.people[first + k]
-		if Border.is_inside(td.border.polygon, Vector2(q.position.x, q.position.z)):
+		if BorderShape.is_inside(td.border.polygon, Vector2(q.position.x, q.position.z)):
 			inside += 1
 	return inside
 
@@ -206,7 +206,7 @@ func test_the_outline_is_a_teardrop_the_length_of_the_circle() -> void:
 		# The tip reaches (to the sampling), the body does not shrink below the minimum, the length stays the circle's.
 		assert_float(far).is_equal_approx(reach, reach * 0.04)
 		assert_float(near).is_greater_equal(r * Config.BEACON_BODY_MIN - 0.01)
-		assert_float(Border.perimeter_of(out)).is_equal_approx(TAU * r, TAU * r * 0.04)
+		assert_float(BorderShape.perimeter_of(out)).is_equal_approx(TAU * r, TAU * r * 0.04)
 
 
 func test_the_preview_matches_the_zone_the_stretch_really_makes() -> void:

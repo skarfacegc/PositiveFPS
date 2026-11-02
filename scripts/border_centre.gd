@@ -320,7 +320,7 @@ func _clear_reach(ang: float, radius: float, upto: float) -> float:
 	for q: Vector2 in dimmed:
 		var rel := q - c2
 		var d := rel.length()
-		if d > upto + Config.BEACON_DIM_CLEARANCE or Border.is_inside(b.polygon, q):
+		if d > upto + Config.BEACON_DIM_CLEARANCE or BorderShape.is_inside(b.polygon, q):
 			continue
 		near.append(Vector2(d, absf(wrapf(rel.angle() - ang, -PI, PI))))
 	if near.is_empty() or upto <= radius:

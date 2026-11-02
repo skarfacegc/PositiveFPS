@@ -5,16 +5,16 @@ extends GdUnitTestSuite
 
 
 func test_circle_polygon_has_the_samples_on_the_circle() -> void:
-	var pts := Border.circle_polygon(Vector2(1.0, -2.0), 4.0, Config.BORDER_SAMPLES)
+	var pts := BorderShape.circle_polygon(Vector2(1.0, -2.0), 4.0, Config.BORDER_SAMPLES)
 	assert_int(pts.size()).is_equal(Config.BORDER_SAMPLES)
 	for p: Vector2 in pts:
 		assert_float(p.distance_to(Vector2(1.0, -2.0))).is_equal_approx(4.0, 0.0001)
-	assert_float(Border.perimeter_of(pts)).is_equal_approx(TAU * 4.0, 0.05)
+	assert_float(BorderShape.perimeter_of(pts)).is_equal_approx(TAU * 4.0, 0.05)
 
 
 func test_slot_count_is_the_perimeter_over_the_spacing_rounded_up() -> void:
-	assert_int(Border.slot_count_for(Config.BORDER_TARGET_SPACING * 9.0)).is_equal(9)
-	assert_int(Border.slot_count_for(Config.BORDER_TARGET_SPACING * 9.0 + 0.5)).is_equal(10)
+	assert_int(BorderShape.slot_count_for(Config.BORDER_TARGET_SPACING * 9.0)).is_equal(9)
+	assert_int(BorderShape.slot_count_for(Config.BORDER_TARGET_SPACING * 9.0 + 0.5)).is_equal(10)
 	assert_float(Config.BORDER_PUSH).is_equal_approx(2.4 * Config.WORLD_SCALE, 0.0001)
 
 
@@ -23,50 +23,50 @@ func test_slot_count_is_the_perimeter_over_the_spacing_rounded_up() -> void:
 # the slots still fit the loop: 15 x 2.6 is 39 m, just over the perimeter.
 func test_round_eleven_spacing_is_two_point_six_metres_on_a_radius_six_loop() -> void:
 	assert_float(Config.BORDER_TARGET_SPACING).is_equal_approx(2.6 * Config.WORLD_SCALE, 0.0001)
-	var loop := Border.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
-	var perimeter := Border.perimeter_of(loop)
+	var loop := BorderShape.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+	var perimeter := BorderShape.perimeter_of(loop)
 	assert_float(perimeter).is_equal_approx(TAU * 6.0 * Config.WORLD_SCALE, 0.1)
-	assert_int(Border.slot_count_for(perimeter)).is_equal(15)
-	assert_float(perimeter / float(Border.slot_count_for(perimeter))).is_less_equal(Config.BORDER_TARGET_SPACING)
+	assert_int(BorderShape.slot_count_for(perimeter)).is_equal(15)
+	assert_float(perimeter / float(BorderShape.slot_count_for(perimeter))).is_less_equal(Config.BORDER_TARGET_SPACING)
 
 
 func test_perimeter_of_a_unit_square_is_four() -> void:
 	var square := PackedVector2Array([Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)])
-	assert_float(Border.perimeter_of(square)).is_equal_approx(4.0, 0.0001)
+	assert_float(BorderShape.perimeter_of(square)).is_equal_approx(4.0, 0.0001)
 
 
 func test_spacing_under_the_limit_is_not_a_gap() -> void:
 	var filled: Array[bool] = [true, true, true]
-	var gaps := Border.gap_flags(Config.BORDER_MAX_GAP - 0.5, filled)
+	var gaps := BorderShape.gap_flags(Config.BORDER_MAX_GAP - 0.5, filled)
 	assert_array(gaps).is_equal([false, false, false])
 
 
 func test_spacing_over_the_limit_is_a_gap_on_every_segment() -> void:
 	var filled: Array[bool] = [true, true, true]
-	var gaps := Border.gap_flags(Config.BORDER_MAX_GAP + 0.5, filled)
+	var gaps := BorderShape.gap_flags(Config.BORDER_MAX_GAP + 0.5, filled)
 	assert_array(gaps).is_equal([true, true, true])
 
 
 func test_an_empty_slot_marks_the_two_segments_next_to_it_as_gaps() -> void:
 	# Spacing is fine, but slot 1 has nobody on it: the stretches either side of it are gaps, the rest is intact.
 	var filled: Array[bool] = [true, false, true, true]
-	var gaps := Border.gap_flags(1.0, filled)
+	var gaps := BorderShape.gap_flags(1.0, filled)
 	assert_array(gaps).is_equal([true, true, false, false])
 
 
 func test_is_inside_follows_the_loop() -> void:
 	var square := PackedVector2Array([Vector2(-2, -2), Vector2(2, -2), Vector2(2, 2), Vector2(-2, 2)])
-	assert_bool(Border.is_inside(square, Vector2.ZERO)).is_true()
-	assert_bool(Border.is_inside(square, Vector2(3, 0))).is_false()
-	assert_bool(Border.is_inside(PackedVector2Array(), Vector2.ZERO)).is_false()
+	assert_bool(BorderShape.is_inside(square, Vector2.ZERO)).is_true()
+	assert_bool(BorderShape.is_inside(square, Vector2(3, 0))).is_false()
+	assert_bool(BorderShape.is_inside(PackedVector2Array(), Vector2.ZERO)).is_false()
 
 
 func test_a_ray_hits_a_box_in_front_of_the_centre() -> void:
-	var hit := Border._ray_box(Vector2.ZERO, Vector2.RIGHT, Vector2(3, -1), Vector2(5, 1))
+	var hit := BorderShape.ray_box(Vector2.ZERO, Vector2.RIGHT, Vector2(3, -1), Vector2(5, 1))
 	assert_float(hit.x).is_equal_approx(3.0, 0.0001)
 	assert_float(hit.y).is_equal_approx(5.0, 0.0001)
 	# A ray pointing away misses.
-	var miss := Border._ray_box(Vector2.ZERO, Vector2.LEFT, Vector2(3, -1), Vector2(5, 1))
+	var miss := BorderShape.ray_box(Vector2.ZERO, Vector2.LEFT, Vector2(3, -1), Vector2(5, 1))
 	assert_bool(miss.x == INF).is_true()
 
 
@@ -74,7 +74,7 @@ func test_gloom_outside_an_intact_line_cannot_drain_someone_inside() -> void:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
-	border.polygon = Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
 	border.active = true
 	var ring: Array[Person] = []
 	for i: int in range(14):
@@ -185,7 +185,17 @@ func test_no_cover_without_a_loop_and_the_debug_labels_hide_again() -> void:
 	var border := _organic_border()
 	assert_float(border.cover_at(Vector3.ZERO)).is_equal(0.0)
 	border.active = true
-	border.polygon = Border.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
 	border.set_debug(true)
 	border.set_debug(false)
 	assert_int(border.visible_debug_label_count()).is_equal(0)
+
+
+func test_first_crossing_finds_an_intact_stretch_and_ignores_a_mismatched_loop() -> void:
+	var loop := BorderShape.circle_polygon(Vector2.ZERO, 5.0, 8)
+	var intact: Array[bool] = [false, false, false, false, false, false, false, false]
+	var hit: Variant = BorderShape.first_crossing(loop, intact, Vector2.ZERO, Vector2(9.0, 0.0))
+	assert_bool(hit != null).is_true()
+	assert_float((hit as Vector2).x).is_greater(0.0)
+	var short: Array[bool] = [false]
+	assert_object(BorderShape.first_crossing(loop, short, Vector2.ZERO, Vector2(9.0, 0.0))).is_null()

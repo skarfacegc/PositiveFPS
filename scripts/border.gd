@@ -168,7 +168,8 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 	active = n >= Config.BORDER_MIN_PEOPLE
 	if active:
 		formed = true
-		_relax_radii(delta)
+		_raw_radii = BorderShape.relax_radii(_raw_radii, _sealed, delta)
+		BorderShape.trim_to_map(_raw_radii, centre, _scale)
 		polygon = _organic_polygon(Vector2(centre.x, centre.z), n, delta)
 	else:
 		polygon = PackedVector2Array()
@@ -234,12 +235,19 @@ func cover_at(pos: Vector3) -> float:
 	var p2 := Vector2(pos.x, pos.z)
 	if not Geometry2D.is_point_in_polygon(p2, polygon):
 		return 0.0
-	return clampf(_distance_to_line(p2) / Config.BORDER_EDGE_BAND, 0.0, 1.0)
+	return clampf(BorderShape.distance_to_line(polygon, p2) / Config.BORDER_EDGE_BAND, 0.0, 1.0)
+
+
+# The first crossing (closest to `a2`) between the move a2 -> b2 and an intact stretch of the loop, or null.
+func _crossing(a2: Vector2, b2: Vector2) -> Variant:
+	if not active:
+		return null
+	return BorderShape.first_crossing(polygon, _sample_gap, a2, b2)
 
 
 # True when the straight move from `a` to `b` crosses an intact stretch of the border.
 func line_blocks(a: Vector3, b: Vector3) -> bool:
-	return _first_crossing(Vector2(a.x, a.z), Vector2(b.x, b.z)) != null
+	return _crossing(Vector2(a.x, a.z), Vector2(b.x, b.z)) != null
 
 
 # A dimmed person outside the border moves from `from` toward `to`. If the move crosses an intact stretch, it stops just
@@ -251,7 +259,7 @@ func clip_move(from: Vector3, to: Vector3) -> Vector3:
 	var b2 := Vector2(to.x, to.z)
 	if Geometry2D.is_point_in_polygon(a2, polygon):
 		return to
-	var hit: Variant = _first_crossing(a2, b2)
+	var hit: Variant = _crossing(a2, b2)
 	if hit == null:
 		return to
 	var h: Vector2 = hit
@@ -414,72 +422,6 @@ func debug_summary() -> String:
 	)
 
 
-# ---- Pure shape rules (static, so tests can check them directly)
-# -----------------------------------------------------
-
-
-static func circle_polygon(c: Vector2, radius: float, samples: int) -> PackedVector2Array:
-	var pts := PackedVector2Array()
-	for i: int in range(samples):
-		var a := TAU * float(i) / float(samples)
-		pts.append(c + Vector2(cos(a), sin(a)) * radius)
-	return pts
-
-
-# Total length of a closed loop of points.
-static func perimeter_of(pts: PackedVector2Array) -> float:
-	var total := 0.0
-	var n := pts.size()
-	for j: int in range(n):
-		total += pts[j].distance_to(pts[(j + 1) % n])
-	return total
-
-
-# Round 16/18: the map-edge seal rules live in border_shape.gd (split out in round 21 to stay under the line cap).
-static func clamp_to_map(pts: PackedVector2Array) -> Array[float]:
-	return BorderShape.clamp_to_map(pts)
-
-
-static func drop_short_seals(pts: PackedVector2Array, sealed: Array[float], min_len: float) -> void:
-	BorderShape.drop_short_seals(pts, sealed, min_len)
-
-
-# Round 16: the length of a closed loop of points, counting each segment by how much of it is open (see clamp_to_map).
-static func open_perimeter_of(pts: PackedVector2Array, sealed: Array[float]) -> float:
-	var total := 0.0
-	var n := pts.size()
-	for j: int in range(n):
-		total += pts[j].distance_to(pts[(j + 1) % n]) * (1.0 - sealed[j])
-	return total
-
-
-# How many slots a loop of this perimeter holds (perimeter over the target spacing, rounded up).
-static func slot_count_for(loop_perimeter: float) -> int:
-	return ceili(loop_perimeter / Config.BORDER_TARGET_SPACING)
-
-
-# One gap flag per slot segment. A segment is a gap if the spacing is too wide, or it touches an empty slot. A segment
-# that touches a post (`anchored`) is never a gap while the post stands.
-static func gap_flags(
-	spacing_m: float, filled: Array[bool], anchored: Array[bool] = [], faltering: Array[bool] = []
-) -> Array[bool]:
-	var out: Array[bool] = []
-	var m := filled.size()
-	for k: int in range(m):
-		var gap := spacing_m > Config.BORDER_MAX_GAP or not filled[k] or not filled[(k + 1) % m]
-		if faltering.size() == m and (faltering[k] or faltering[(k + 1) % m]):
-			gap = true
-		if anchored.size() == m and (anchored[k] or anchored[(k + 1) % m]):
-			gap = false
-		out.append(gap)
-	return out
-
-
-# True when `p` is inside the loop.
-static func is_inside(pts: PackedVector2Array, p: Vector2) -> bool:
-	return pts.size() >= 3 and Geometry2D.is_point_in_polygon(p, pts)
-
-
 # ---- Loop variants
 # ---------------------------------------------------------------------------------------------------
 
@@ -487,7 +429,7 @@ static func is_inside(pts: PackedVector2Array, p: Vector2) -> bool:
 # Per angle, the smoothed radius times the size factor. A block on the ray that the radius reaches is wrapped: the
 # sample jumps to just beyond the far side of the block, so buildings end up inside the loop.
 func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
-	var smooth: Array[float] = _smoothed_radii()
+	var smooth: Array[float] = BorderShape.smoothed_radii(_raw_radii)
 	var count := Config.BORDER_SAMPLES
 	var radii: Array[float] = []
 	var extra: Array[float] = []
@@ -501,7 +443,7 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 		var r: float = maxf(smooth[i] * _scale, _centre_ctl.stretch_radius(a, body))  # Round 20: the stretched tip.
 		if not arm_ring.is_empty():
 			r = maxf(r, arm_ring[i])  # Round 22: the arms kept from finished stretches.
-		var block := _first_block_along(c2, Vector2(cos(a), sin(a)))
+		var block := BorderShape.first_block_along(buildings, c2, Vector2(cos(a), sin(a)))
 		var wrapped := r
 		if block.x > 0.0 and block.x < r:
 			wrapped = maxf(r, block.y + 0.5)
@@ -520,11 +462,12 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 	# Round 16: the map edge seals the territory. Points beyond the edge are pulled onto it, and a segment between two
 	# points on the same edge is sealed: it counts as closed border, so nobody stands on it and the loop's size is
 	# measured by its open length only (the loop grows elsewhere to make up for it).
-	_sealed = clamp_to_map(pts)
-	drop_short_seals(pts, _sealed, Config.BORDER_MIN_SEAL_RUN)
+	_sealed = BorderShape.clamp_to_map(pts)
+	BorderShape.drop_short_seals(pts, _sealed, Config.BORDER_MIN_SEAL_RUN)
 	# Soft normalisation: ease the size so the open perimeter moves toward n x spacing (never below the smallest circle).
-	var raw := open_perimeter_of(pts, _sealed)
-	var smallest := perimeter_of(circle_polygon(c2, Config.BORDER_MIN_RADIUS, Config.BORDER_SAMPLES))
+	var raw := BorderShape.open_perimeter_of(pts, _sealed)
+	var circle := BorderShape.circle_polygon(c2, Config.BORDER_MIN_RADIUS, Config.BORDER_SAMPLES)
+	var smallest := BorderShape.perimeter_of(circle)
 	var target := maxf(float(n) * Config.BORDER_TARGET_SPACING, smallest)
 	if raw > 0.001:
 		var desired := clampf(_scale * target / raw, 0.2, 5.0)
@@ -539,133 +482,6 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 				_centre_ctl.settled()
 		_scale = lerpf(_scale, desired, clampf(delta / Config.BORDER_NORMALISE_SECONDS, 0.0, 1.0))
 	return pts
-
-
-# Round 18: raw radii used to only grow, so a shoved side stayed a thin tongue for ever. Each radius now eases toward
-# the
-# mean of its four nearest neighbours at BORDER_RELAX_RATE a second: a narrow bump spreads out and flattens in seconds,
-# while a wide, slow swell (the loop really reaching one way) hardly changes. The sum is kept, so the size is not lost.
-func _relax_radii(delta: float) -> void:
-	var n := _raw_radii.size()
-	var k := clampf(Config.BORDER_RELAX_RATE * delta, 0.0, 1.0)
-	var out: Array[float] = []
-	for i: int in range(n):
-		var near := (
-			_raw_radii[(i - 2 + n) % n]
-			+ _raw_radii[(i - 1 + n) % n]
-			+ _raw_radii[(i + 1) % n]
-			+ _raw_radii[(i + 2) % n]
-		)
-		# A side pressed against the map edge is held there (round 16): relaxing it would pull the whole pressed stretch
-		# off the
-		# wall in one go and send everyone walking.
-		var held := 0.0
-		if _sealed.size() == n:
-			held = maxf(_sealed[i], _sealed[(i - 1 + n) % n])
-		out.append(lerpf(_raw_radii[i], near / 4.0, k * (1.0 - held)))
-	_raw_radii = out
-	_trim_to_map()
-
-
-# Round 18: the part of a raw radius that reaches beyond the map edge is wasted (the loop is clamped there), but it
-# used to
-# stay stored, so a pressed side held still until the whole excess had relaxed away and then fell back all at once. Raw
-# radii now stop BORDER_WALL_SLACK past the edge (counting the size factor), so pulling back starts at once and is
-# gradual.
-func _trim_to_map() -> void:
-	var lim := Config.BORDER_MAP_LIMIT
-	var n := _raw_radii.size()
-	for i: int in range(n):
-		var a := TAU * float(i) / float(n)
-		var d := Vector2(cos(a), sin(a))
-		var reach := INF
-		if absf(d.x) > 1e-6:
-			reach = minf(reach, ((lim if d.x > 0.0 else -lim) - centre.x) / d.x)
-		if absf(d.y) > 1e-6:
-			reach = minf(reach, ((lim if d.y > 0.0 else -lim) - centre.z) / d.y)
-		var cap := maxf(reach, Config.BORDER_MIN_RADIUS) * Config.BORDER_WALL_SLACK / maxf(_scale, 0.2)
-		_raw_radii[i] = minf(_raw_radii[i], cap)
-
-
-# The radius per angle after a small circular blur (so one bump does not look like a spike).
-func _smoothed_radii() -> Array[float]:
-	var out: Array[float] = []
-	var n := _raw_radii.size()
-	for i: int in range(n):
-		var prev := _raw_radii[(i - 1 + n) % n]
-		var nxt := _raw_radii[(i + 1) % n]
-		out.append((prev + 2.0 * _raw_radii[i] + nxt) / 4.0)
-	return out
-
-
-# The nearest block on the ray from `o` along `d` that lies in front of `o`: Vector2(entry, exit). entry is INF if
-# none.
-func _first_block_along(o: Vector2, d: Vector2) -> Vector2:
-	var best := Vector2(INF, -INF)
-	for b: Building in buildings:
-		var hit := _ray_box(o, d, b.centre - b.half, b.centre + b.half)
-		if hit.x == INF or hit.y <= 0.0:
-			continue
-		if hit.x < best.x:
-			best = hit
-	return best
-
-
-# Ray against an axis-aligned box in 2D. Returns Vector2(entry, exit) along the ray, or Vector2(INF, -INF) for a miss.
-static func _ray_box(o: Vector2, d: Vector2, lo: Vector2, hi: Vector2) -> Vector2:
-	var miss := Vector2(INF, -INF)
-	var tmin := -INF
-	var tmax := INF
-	if absf(d.x) < 1e-9:
-		if o.x < lo.x or o.x > hi.x:
-			return miss
-	else:
-		var tx1 := (lo.x - o.x) / d.x
-		var tx2 := (hi.x - o.x) / d.x
-		tmin = maxf(tmin, minf(tx1, tx2))
-		tmax = minf(tmax, maxf(tx1, tx2))
-	if absf(d.y) < 1e-9:
-		if o.y < lo.y or o.y > hi.y:
-			return miss
-	else:
-		var tz1 := (lo.y - o.y) / d.y
-		var tz2 := (hi.y - o.y) / d.y
-		tmin = maxf(tmin, minf(tz1, tz2))
-		tmax = minf(tmax, maxf(tz1, tz2))
-	if tmax < tmin or tmax < 0.0:
-		return miss
-	return Vector2(tmin, tmax)
-
-
-# Distance from `p2` to the nearest point on the loop.
-func _distance_to_line(p2: Vector2) -> float:
-	var best := INF
-	var n := polygon.size()
-	for j: int in range(n):
-		var closest := Geometry2D.get_closest_point_to_segment(p2, polygon[j], polygon[(j + 1) % n])
-		best = minf(best, closest.distance_to(p2))
-	return best
-
-
-# The first crossing (closest to `a2`) between the move a2 -> b2 and an intact stretch of the loop, or null.
-func _first_crossing(a2: Vector2, b2: Vector2) -> Variant:
-	var n := polygon.size()
-	if not active or n < 3 or _sample_gap.size() != n:
-		return null
-	var best: Variant = null
-	var best_d := INF
-	for j: int in range(n):
-		if _sample_gap[j]:
-			continue
-		var hit: Variant = Geometry2D.segment_intersects_segment(a2, b2, polygon[j], polygon[(j + 1) % n])
-		if hit == null:
-			continue
-		var h: Vector2 = hit
-		var d := a2.distance_to(h)
-		if d < best_d:
-			best_d = d
-			best = h
-	return best
 
 
 # ---- Centre, members and slots
@@ -745,7 +561,7 @@ func _bench_replaced(rescued: Array[Person], m: int) -> void:
 
 # The members the loop needs now: the slots its perimeter holds, less BORDER_POST_WORTH for each post.
 func required_members() -> int:
-	return maxi(0, slot_count_for(perimeter) - Config.BORDER_POST_WORTH * post_count)
+	return maxi(0, BorderShape.slot_count_for(perimeter) - Config.BORDER_POST_WORTH * post_count)
 
 
 # The beautified buildings the loop passes within BORDER_POST_REACH of. Each entry has the building and the arc length
@@ -770,16 +586,10 @@ func _find_posts(slots_total: int, held: Array[Building] = []) -> Array[Dictiona
 func _nearest_loop_point_to_box(b: Building) -> Vector2:
 	var best := Vector2(INF, 0.0)
 	for j: int in range(polygon.size()):
-		var d := box_distance(polygon[j], b.centre, b.half)
+		var d := BorderShape.box_distance(polygon[j], b.centre, b.half)
 		if d < best.x:
 			best = Vector2(d, _arc[j])
 	return best
-
-
-# Distance from point `p` to the box centred on `c` with half-size `half` (0 inside it).
-static func box_distance(p: Vector2, c: Vector2, half: Vector2) -> float:
-	var d := Vector2(maxf(absf(p.x - c.x) - half.x, 0.0), maxf(absf(p.y - c.y) - half.y, 0.0))
-	return d.length()
 
 
 # Round 16: true when polygon segment `j` runs along the map edge (fully closed by the map).

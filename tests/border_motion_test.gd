@@ -199,25 +199,25 @@ func test_no_pair_passes_through_each_other_while_the_loop_grows() -> void:
 # (e) Sealed stretches shorter than a spacing are opened again; longer ones stay sealed.
 func test_a_sealed_stretch_shorter_than_a_spacing_is_opened() -> void:
 	var lim := Config.BORDER_MAP_LIMIT
-	var pts := Border.circle_polygon(Vector2.ZERO, 20.0, 48)
+	var pts := BorderShape.circle_polygon(Vector2.ZERO, 20.0, 48)
 	# Push two neighbouring points out to the east edge: a seal that is a single short segment.
 	pts[0] = Vector2(lim + 5.0, 0.0)
 	pts[1] = Vector2(lim + 5.0, 1.0)
-	var sealed := Border.clamp_to_map(pts)
+	var sealed := BorderShape.clamp_to_map(pts)
 	assert_float(sealed.max()).is_greater(0.0)
-	Border.drop_short_seals(pts, sealed, Config.BORDER_MIN_SEAL_RUN)
+	BorderShape.drop_short_seals(pts, sealed, Config.BORDER_MIN_SEAL_RUN)
 	assert_float(sealed.max()).is_equal(0.0)
 	# A long stretch along the edge keeps its seal.
 	var long_pts := PackedVector2Array()
 	for k: int in range(8):
 		long_pts.append(Vector2(lim, -14.0 + float(k) * 4.0))
 	long_pts.append(Vector2(0.0, 30.0))
-	var long_sealed := Border.clamp_to_map(long_pts)
-	Border.drop_short_seals(long_pts, long_sealed, Config.BORDER_MIN_SEAL_RUN)
+	var long_sealed := BorderShape.clamp_to_map(long_pts)
+	BorderShape.drop_short_seals(long_pts, long_sealed, Config.BORDER_MIN_SEAL_RUN)
 	assert_float(long_sealed.max()).is_equal(1.0)
 	# A loop sealed all the way round has no open segment to count from: left alone.
 	var all: Array[float] = [1.0, 1.0, 1.0]
-	Border.drop_short_seals(PackedVector2Array([Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)]), all, 100.0)
+	BorderShape.drop_short_seals(PackedVector2Array([Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)]), all, 100.0)
 	assert_float(all.min()).is_equal(1.0)
 
 
