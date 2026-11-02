@@ -10,7 +10,7 @@ const HOW_TO_PLAY_FONT := 18
 const HOW_TO_PLAY_TEXT := (
 	"[center][font_size=26][b]How to play[/b][/font_size][/center]\n"
 	+ "[b]Goal:[/b] Bring joy to the gloomy townsfolk. Everyone you help joins a living border around your town. "
-	+ "Reach dawn holding people, ground and landmarks for up to 3 dawn lights; E (50 spirit) shapes the zone.\n"
+	+ "Reach dawn holding people, ground and landmarks for up to 3 dawn lights.\n"
 	+ "[b]Helping:[/b] Point at a person and joy flies to them automatically. Guarded people only accept joy from "
 	+ "the front (the glowing wedge on the ground shows where joy gets in), skittish people flee if you run at them, "
 	+ "and glum people take extra joy when they look up.\n"
@@ -18,10 +18,10 @@ const HOW_TO_PLAY_TEXT := (
 	+ "out of reach). Where they push, border folk falter and gaps open. Re-joy a faltering person to close the gap.\n"
 	+ "[b]Spirit:[/b] Helping fills it. G (joy burst) clears dimmed people off the border; F patches a gap. "
 	+ "At zero you go dim.\n"
-	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered (breaks after a few hits) · "
+	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered ·"
 	+ "! faltering.\n"
-	+ "[b]Keys:[/b] WASD move · Shift run · G or Q burst · F patch gap · Mouse point at people "
-	+ "(F2 targeting) · Wheel zoom · F3 debug · F4 switch look · R restart · M menu"
+	+ "[b]Keys:[/b] WASD move · Shift run · E shape zone · G or Q burst · F patch gap · Mouse point "
+	+ "(F2 targeting) · Wheel zoom · F3 debug · F4 look · R restart · M menu"
 )
 
 # The look toggle (Placeholder / Styled). The choice lasts for the session (see Looks.mode).

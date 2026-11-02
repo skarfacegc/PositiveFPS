@@ -149,3 +149,21 @@ both halves: the counted run and an uninstrumented timing run.
 the ratchet run or from a determinism check, keyed by `tools/gate.py`'s fingerprint. When the fingerprint still matches, that
 run is pass 1 and only one fresh run is made. A run with a failing test is never kept. A tool extracted from this repo can
 drop the saved run: the check then just runs both passes.
+
+## Round 23 (2026-11-01): hit counts, per-file check
+- **Why 1088 lines differed in hit count.** Not the saved-run lead: two fresh runs differed just as much. Comparing per unit
+  (`hits_NN.json` is one Godot process) showed 2 of 160 units differing; 1090 of the 1105 lines were `recorder_polled_test`. Its
+  `test_a_shot_is_logged_and_saved_...` waits for a background PNG save with `await create_timer(0.05)`. At the fixed 60 fps that
+  timer is 3 level frames, and whether the file already exists at the first check depends on thread timing, so the 60-person level
+  ran 0 or 3 extra frames (`config.gd:246` 120769 vs 153169; the one suite run three times gave waited=0 once and waited=1
+  twice). Replacing the wait with `OS.delay_msec(50)` (no frames pass) gave 120769 on four runs out of four. It was 0 in round 21
+  because the save won the race every time. A smaller wall-clock race remains: two recorder sessions started within one second get
+  a different folder name (`recorder.gd` `while dir_exists`), moving 2 lines. Once a different unit (`looks_round20_test`) failed
+  under load; it passed 4 of 4 alone, and its cause is not found.
+- **New rule, per unit.** `--check-determinism` keeps the per-unit hits (gzip next to the saved run, so a saved pass 1 has them
+  too). A unit whose hit counts differ in more than `DIFF_LINES_ALLOWED` (10) lines fails unless it is listed in
+  `KNOWN_REAL_TIME_UNITS` (then it is only noted). Skipped when a test failed (that has its own failure). The output lists the
+  differing files and the biggest differences. `--fresh` ignores the saved run.
+- **`--check-files SCRIPT...`** (`--suites S...` to choose): runs only the suites that name those scripts, instrumented, and
+  prints each script's line coverage against the baseline with the lines not hit. A floor, since other suites are not run.
+  `tools/run_tests.py --suites` is the matching targeted plain run.

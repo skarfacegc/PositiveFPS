@@ -5,6 +5,7 @@ Usage:
     python tools/analyse_recording.py recordings/20261028-184243
     python tools/analyse_recording.py <session folder> --csv other/path/timeline.csv
     python tools/analyse_recording.py <session folder> --quiet-window 5
+    python tools/analyse_recording.py <session folder> --include-restarts   # a recording under 10 s is skipped otherwise
     python tools/analyse_recording.py --compare recordings/A recordings/B [...]   # side by side; restarts under 10 s skipped
 
 The folder holds events.jsonl (see scripts/recorder.gd). Python standard library only.
@@ -22,6 +23,9 @@ Definitions
   them per minute, by type, and the gaps (seconds) between one threat and the next.
 - Decision density is target_change events per minute (the player choosing someone new to help).
 - Gap durations come from gap_close events (a gap still open at the end is closed with the time so far).
+- Round 23 sections: PATCH EFFECT (per gap_patched: kind gap or strain, gaps open at the patch, gaps 10 s and 20 s
+  later from the samples, and whether they fell) and PRESSURE CURVE (15 s steps: mean dimmed, gaps and pressers,
+  relapses and threats in the step, rescued at its end).
 Exit code: 0 on success, 2 when the folder has no usable events.
 """
 import argparse
@@ -249,6 +253,8 @@ def report(res, folder):
     add("LANDMARKS: %d claimed, %d lost" % (claims, len(lm_events) - claims))
     for e in lm_events:
         add("  t=%.0f s  %s %s (%s held)" % (e["t"], e.get("name"), e["type"].split("_")[1], e.get("held")))
+    for block in patch_effect_lines(res) + pressure_curve_lines(res):
+        add(block)
     win = res["win"]
     if win:
         add("DAWN RATING: %s of 3 dawn lights (people %.0f%%, ground %.0f%%, landmarks held %s)" % (
@@ -279,6 +285,9 @@ def main(argv=None):
     parser.add_argument("folder", help="a session folder holding events.jsonl")
     parser.add_argument("--csv", help="where to write the timeline (default: <folder>/timeline.csv)")
     parser.add_argument("--quiet-window", type=float, default=5.0, help="seconds either side of a sink that are not quiet")
+    parser.add_argument("--include-restarts", action="store_true",
+                        help="also report a recording shorter than %.0f s (skipped by default as a restart)"
+                        % RESTART_SECONDS)
     args = parser.parse_args(argv)
     try:
         events = load_events(args.folder)
@@ -289,11 +298,102 @@ def main(argv=None):
     if not res["rows"]:
         print("ERROR: no samples in the recording", file=sys.stderr)
         return 2
+    if res["duration"] < RESTART_SECONDS and not args.include_restarts:
+        print("NOTE: %s skipped, a restart (%.0f s, under %.0f s). Use --include-restarts to report it." % (
+            args.folder, res["duration"], RESTART_SECONDS), file=sys.stderr)
+        return 0
     print(report(res, args.folder))
     csv_path = args.csv or os.path.join(args.folder, "timeline.csv")
     write_csv(res["rows"], csv_path)
     print("\nWrote %s" % csv_path)
     return 0
+
+
+# ---- Round 23: pressure curve and patch effect -----------------------------------------------------------------------
+CURVE_STEP = 15.0  # seconds per step of the pressure curve
+PATCH_LOOK_AFTER = (10.0, 20.0)  # seconds after a patch at which the open gaps are read
+
+
+def pressure_curve(res, step=CURVE_STEP):
+    """Pressure in `step` second blocks: a list of dicts (t, dimmed, gaps, pressers, relapses, threats, rescued)."""
+    rows = res["rows"]
+    if not rows:
+        return []
+    out = []
+    last = rows[-1]["t"]
+    t0 = 0.0
+    while t0 <= last:
+        block = [r for r in rows if t0 <= r["t"] < t0 + step]
+        if block:
+            threats = [x for x in res["threats"] if t0 <= x[0] < t0 + step]
+            out.append({
+                "t": t0, "phase": block[0]["night_phase"],
+                "dimmed": statistics.fmean(r["dimmed"] for r in block),
+                "gaps": statistics.fmean(r["gaps"] for r in block),
+                "pressers": statistics.fmean(r["pressers"] for r in block),
+                "relapses": sum(1 for x in threats if x[1] == "relapse"),
+                "threats": len(threats), "rescued": block[-1]["rescued"],
+            })
+        t0 += step
+    return out
+
+
+def pressure_curve_lines(res, step=CURVE_STEP):
+    curve = pressure_curve(res, step)
+    lines = ["", "PRESSURE CURVE (%.0f s steps; dimmed, gaps and pressers are means, relapses and threats are counts)"
+             % step,
+             "  %6s %-9s %7s %6s %9s %8s %8s %8s" % ("t", "phase", "dimmed", "gaps", "pressers", "relapses",
+                                                       "threats", "rescued")]
+    for c in curve:
+        lines.append("  %6.0f %-9s %7.1f %6.1f %9.1f %8d %8d %8d" % (
+            c["t"], c["phase"], c["dimmed"], c["gaps"], c["pressers"], c["relapses"], c["threats"], c["rescued"]))
+    lines.append("")
+    return lines
+
+
+def gaps_at(rows, t):
+    """Open gaps in the sample nearest to time t, or None when there is no sample within 1.5 s."""
+    best = min(rows, key=lambda r: abs(r["t"] - t), default=None)
+    return best["gaps"] if best is not None and abs(best["t"] - t) <= 1.5 else None
+
+
+def patch_effects(res, after=PATCH_LOOK_AFTER):
+    """One dict per gap_patched event: kind, gaps open at the patch, gaps `after` seconds later, and the verdict.
+
+    The verdict is "fell" when the later reading is lower than the count at the patch, "same" or "rose" otherwise, and
+    "unknown" when the recording ended before the reading. The patch seals one spot, so a gap elsewhere can open
+    meanwhile; the verdict is about the whole border.
+    """
+    out = []
+    for e in res["patches"]:
+        before = e.get("gaps_open")
+        later = [gaps_at(res["rows"], e["t"] + a) for a in after]
+        known = [g for g in later if g is not None]
+        if before is None or not known:
+            verdict = "unknown"
+        elif known[0] < before:
+            verdict = "fell"
+        elif known[0] == before:
+            verdict = "same"
+        else:
+            verdict = "rose"
+        out.append({"t": e["t"], "kind": e.get("kind", "?"), "gaps_open": before, "later": later, "verdict": verdict})
+    return out
+
+
+def patch_effect_lines(res):
+    effects = patch_effects(res)
+    if not effects:
+        return []
+    lines = ["PATCH EFFECT (gaps open at the patch, then %s s later; kind strain = sealed a strained spot, no gap yet)"
+             % " and ".join("%.0f" % a for a in PATCH_LOOK_AFTER)]
+    for e in effects:
+        later = ", ".join("?" if g is None else str(g) for g in e["later"])
+        lines.append("  t=%4.0f s  %-6s gaps open %s -> %s: %s" % (e["t"], e["kind"], e["gaps_open"], later,
+                                                                   e["verdict"]))
+    fell = sum(1 for e in effects if e["verdict"] == "fell")
+    lines.append("  gaps fell after %d of %d patches" % (fell, len(effects)))
+    return lines
 
 
 # ---- Round 22: round-over-round comparison (python tools/analyse_recording.py --compare A B [C ...]) ----------------

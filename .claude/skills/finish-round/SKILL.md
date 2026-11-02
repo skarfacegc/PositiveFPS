@@ -6,7 +6,7 @@ description: Finish a PositiveFPS round after its build agents are done: check f
 # Finish a merged round
 
 CLAUDE.md has the rules (parallel builds, gate once after merging). This is the order of work and the traps. The
-gate steps can run past the 10-minute command limit, so run them as described in step 4.
+gate steps can run past the 10-minute command limit, so step 4 is one command that waits in slices.
 
 ## Hard rules for this skill
 
@@ -41,25 +41,40 @@ Before the gate, search for words the round made wrong: menu and how-to-play tex
 old key names, old numbers and any "dark people" wording (the term is wistful / gloomy / dimmed). Fix mismatches with a
 small commit, or send them to a Haiku agent.
 
-## 4. The gate, determinism and baseline, in order
-
-Each step in the foreground when it fits in the limit; otherwise start it with `run_in_background`, give it a `.scratch/`
-log (`... > .scratch/gate.log 2>&1`), and wait for the exit notice, then read the log. Never report while a step is
-still running, and never start the next one in parallel (they fight over the CPU).
+## 4. The gate, determinism and baseline: one command
 
 ```powershell
-python tools/gate.py --full
-python tools/coverage.py --check-determinism
-python tools/coverage.py --update-baseline
+python tools/round_end.py
 ```
+
+It runs `gate.py --full`, then `coverage.py --check-determinism`, then `coverage.py --update-baseline`, in that order, and
+**stops at the first failure** (never `--allow-decrease`; the tool has no such step). The chain can pass the 10-minute
+command limit, so the work happens in a detached background worker and the command only waits (up to 500 s) and reports.
+It writes its state and one log per step under `.scratch/round_end/`.
+
+- **Exit 0**: all three passed and `coverage_baseline.json` is updated. Go to step 5.
+- **Exit 124 ("Still running")**: not a failure. Run the same command again to keep waiting. Never start the next step by
+  hand and never start a second copy; a live worker is never started twice.
+- **Exit 1, 2 or 3**: the step that failed is named, with its log path; later steps did not run. Fix the cause, then run
+  `python tools/round_end.py` again: steps that passed for the same code are not repeated, the failed one runs again. If a
+  file the gate depends on changed, it starts again at step 1 (it says so).
+- `python tools/round_end.py --status` shows progress and the tail of the running step's log without waiting;
+  `--restart` drops saved progress. If the machine or session was lost, the same command notices the dead worker and
+  carries on.
+
+Still true for the individual steps:
 
 - A failing test: fix or send it to an agent; do not weaken it.
 - A failing `test_perf_*`: follow the hard rules above. `python tools/perf_compare.py <before> <after> --rounds 5`
   tells a real slowdown from load (it warns about other Godot processes and CPU load).
-- `--update-baseline` refuses when coverage fell: **send that refusal to a test agent** (Sonnet) to add tests. Never
-  edit `coverage_baseline.json` by hand.
-- After the baseline: commit the docs and baseline together (explicit paths, `POSITIVEFPS_PARALLEL_PART` unset so the
-  hook enforces timing).
+- The baseline step refuses when coverage fell: **send that refusal to a test agent** (Sonnet) to add tests. Never edit
+  `coverage_baseline.json` by hand. Part agents can find the gap earlier with the per-file check
+  (`python tools/coverage.py --check-files <scripts>`, see the `brief-build-agent` skill).
+- The determinism step compares hit counts per test unit. A unit that differs and is not in `KNOWN_REAL_TIME_UNITS`
+  (tools/coverage.py) fails the check and names the suite: that means a test now depends on wall-clock or thread timing.
+  `recorder_polled_test` is the one known race, and it is only noted.
+- After it: commit the docs and baseline together (explicit paths, `POSITIVEFPS_PARALLEL_PART` unset so the hook
+  enforces timing).
 
 ## 5. Docs
 

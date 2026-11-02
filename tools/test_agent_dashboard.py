@@ -126,6 +126,33 @@ try:
     stale.last = NOW - 2 * ad.STALE_AFTER
     expect("long-abandoned agent is stale, not stuck", (stale.status(NOW), stale.stuck(NOW)), ("stale", False))
 
+    # Round 23: an agent that is done must not show as running. A plain final reply (no SubagentHandback) and a stop by
+    # the user both finish it; a follow-up message wakes it again.
+    def fed(records):
+        agent = ad.Agent("x", os.path.join(sub, "agent-none.jsonl"))
+        for rec in records:
+            agent.ingest(json.loads(rec))
+        return agent
+
+    final_reply = fed([line("user", 60, "start"), line("assistant", 50, tool_use("f1", "Read", {"file_path": "a"})),
+                       line("user", 49, tool_result("f1", "ok")),
+                       line("assistant", 40, [{"type": "text", "text": "All done."}], stop_reason="end_turn")])
+    expect("a plain final reply is finished", (final_reply.status(NOW), final_reply.stuck(NOW)), ("finished", False))
+    expect("it has no waiting tool", final_reply.summary(NOW, None)["waiting"], None)
+    stopped = fed([line("user", 60, "start"), line("assistant", 50, tool_use("s1", "Bash", {"command": "sleep 9"})),
+                   line("user", 45, [{"type": "text", "text": "[Request interrupted by user for tool use]"}])])
+    expect("an agent stopped by the user is finished", stopped.status(NOW), "finished")
+    woken = fed([line("user", 60, "start"),
+                 line("assistant", 50, [{"type": "text", "text": "Done."}], stop_reason="end_turn"),
+                 line("user", 10, "one more thing, please")])
+    expect("a follow-up message wakes a finished agent", woken.status(NOW), "running")
+    handed = fed([line("user", 60, "start"), line("assistant", 50, tool_use("h9", "SubagentHandback", {"message": "r"})),
+                  line("user", 49, tool_result("h9", "sent")), line("user", 5, "continue")])
+    expect("a handed-back agent that is sent a message runs again", handed.status(NOW), "running")
+    busy = fed([line("user", 60, "start"),
+                line("assistant", 50, tool_use("b1", "Bash", {"command": "x"}), stop_reason="tool_use")])
+    expect("an agent in the middle of a tool call is not finished", busy.status(NOW), "running")
+
     # Incremental read: only complete lines are taken, the rest waits.
     path = os.path.join(sub, "agent-ccc.jsonl")
     with open(path, "ab") as fh:

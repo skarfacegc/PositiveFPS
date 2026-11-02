@@ -115,6 +115,53 @@ class AnalyseTest(unittest.TestCase):
             self.assertEqual(ar.main([tmp]), 2)
 
 
+class Round23Test(unittest.TestCase):
+    def test_pressure_curve_in_15_second_steps(self):
+        events = synthetic() + [{"t": 3.0, "type": "relapse", "id": 2}, {"t": 18.0, "type": "relapse", "id": 3}]
+        curve = ar.pressure_curve(ar.analyse(sorted(events, key=lambda e: e["t"])))
+        self.assertEqual([c["t"] for c in curve], [0.0, 15.0, 30.0])
+        self.assertEqual([c["relapses"] for c in curve], [1, 1, 0])
+        self.assertEqual(curve[0]["phase"], "calm")
+        self.assertEqual(curve[2]["phase"], "rising")
+        self.assertAlmostEqual(curve[0]["gaps"], 3 / 14, places=3)  # samples 1..14 (t=0 has no sample); 3 with a gap
+        self.assertEqual(curve[1]["rescued"], 3)
+
+    def test_patch_effect_gaps_fell_rose_and_unknown(self):
+        events = synthetic()  # one patch at t=16 with 2 gaps open; the later samples show none
+        res = ar.analyse(events)
+        effect = ar.patch_effects(res)[0]
+        self.assertEqual((effect["kind"], effect["gaps_open"], effect["later"], effect["verdict"]),
+                         ("gap", 2, [0, None], "fell"))  # the recording ends before 36 s
+        late = [e for e in events if not (e["type"] == "sample" and e["t"] >= 24)] + [sample(26.0, gaps=3)]
+        self.assertEqual(ar.patch_effects(ar.analyse(late))[0]["verdict"], "rose")
+        early = events + [{"t": 29.5, "type": "gap_patched", "kind": "strain", "gaps_open": 0}]
+        last = ar.patch_effects(ar.analyse(sorted(early, key=lambda e: e["t"])))[-1]
+        self.assertEqual((last["kind"], last["later"][1], last["verdict"]), ("strain", None, "unknown"))
+        nothing = [e for e in events if e["type"] != "gap_patched"]
+        self.assertEqual(ar.patch_effect_lines(ar.analyse(nothing)), [])
+
+    def test_report_has_the_new_sections(self):
+        text = ar.report(ar.analyse(synthetic()), "x")
+        self.assertIn("PATCH EFFECT", text)
+        self.assertIn("gaps fell after 1 of 1 patches", text)
+        self.assertIn("PRESSURE CURVE (15 s steps", text)
+
+    def test_a_restart_is_left_out_unless_asked(self):
+        short = [{"t": 0.0, "type": "session_start"}, sample(1.0), sample(2.0),
+                 {"t": 3.0, "type": "session_end", "outcome": "quit", "reason": "quit", "rescued": 0}]
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = os.path.join(tmp, "r")
+            os.makedirs(folder)
+            with open(os.path.join(folder, "events.jsonl"), "w", encoding="utf-8") as fh:
+                for e in short:
+                    fh.write(json.dumps(e) + chr(10))
+            csv_path = os.path.join(tmp, "t.csv")
+            self.assertEqual(ar.main([folder, "--csv", csv_path]), 0)
+            self.assertFalse(os.path.exists(csv_path))
+            self.assertEqual(ar.main([folder, "--csv", csv_path, "--include-restarts"]), 0)
+            self.assertTrue(os.path.exists(csv_path))
+
+
 class CompareTest(unittest.TestCase):
     def write(self, tmp, name, events):
         folder = os.path.join(tmp, name)

@@ -26,8 +26,12 @@ Scope: <files you may change>. Stay out of <files other parallel agents own>. Pu
 ("Round N: <part name>") in scripts/config.gd. <Other parts running in parallel and what they touch.>
 
 Tests: add tests for new behaviour in tests/<name>_test.gd. Run only your own suites
-(`python tools/run_tests.py` for the targeted suite, `python tools/lint.py`), not the full gate, determinism or baseline
-(<coordinator> runs those after the merge).                                      <- parallel parts
+(`python tools/run_tests.py --suites <name>_test [<other>_test ...]`, `python tools/lint.py`), not the full gate,
+determinism or baseline (<coordinator> runs those after the merge). Before your last commit, run the per-file coverage
+check on every script you changed or added: `python tools/coverage.py --check-files scripts/<a>.gd scripts/<b>.gd`
+(about a minute; it runs only the suites that name those scripts, or pass `--suites ...`). It prints each script's line
+coverage against `coverage_baseline.json` and the lines not hit; add tests until no script says BELOW. Its numbers are a
+floor (only those suites ran). Do not run the baseline update.               <- parallel parts
 Run `python tools/gate.py` and wait for it in the foreground before you report.  <- single agent
 
 Rules (CLAUDE.md has the full list): temp files only in .scratch/; never kill a process you did not start (a playtest
@@ -48,6 +52,14 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
 Report: your branch and commit hashes, what you built and how to use it, test and lint results, anything loosened
 (say "nothing" if so), and anything left undone. Deliver it with SubagentHandback.
 ```
+
+## Why the per-file check
+
+The coverage baseline refused only after the full gate three rounds running. A part agent that changes
+`scripts/x.gd` can see right away whether its tests cover the new lines. `--check-files` is the targeted version of
+the ratchet: same tolerance (0.5 points below a file's baseline, 60% for a new file), same lines, but only the suites
+that name the script. A script that reads BELOW there may still pass the full ratchet if other suites cover the lines;
+one that reads ok will not fail it on that file.
 
 ## After the agent reports
 
