@@ -751,6 +751,8 @@ KNOWN_REAL_TIME_UNITS = {
                           "load; the suite alone gave identical hits 4 of 4. Every test in it is synchronous, so look "
                           "for wall-clock use in scripts/looks (Time.get_ticks_msec in person_look.gd and "
                           "person_look_styled.gd) or frames run between tests. Remove this entry when fixed.",
+    "looks_test": "CAUSE NOT FOUND. The same few person_look_styled.gd lines (27, 71-76, 162-165) moved by 1 to 11 "
+                  "hits in 3 of 5 round 23 runs; looks_round20_test shows the same family. See looks_round20_test.",
 }
 
 

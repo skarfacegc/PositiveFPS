@@ -159,7 +159,9 @@ drop the saved run: the check then just runs both passes.
   twice). Replacing the wait with `OS.delay_msec(50)` (no frames pass) gave 120769 on four runs out of four. It was 0 in round 21
   because the save won the race every time. A smaller wall-clock race remains: two recorder sessions started within one second get
   a different folder name (`recorder.gd` `while dir_exists`), moving 2 lines. Once a different unit (`looks_round20_test`) failed
-  under load; it passed 4 of 4 alone, and its cause is not found.
+  under load; it passed 4 of 4 alone, and its cause is not found. `looks_test (rest)` moved the same few
+  `person_look_styled.gd` lines by 1 to 11 hits in 3 of 5 runs. Both looks suites are listed in `KNOWN_REAL_TIME_UNITS` as
+  "cause not found" so the rule does not fail on them. Verified: a saved pass 1 (with its per-unit hits) plus a fresh pass 2 works.
 - **New rule, per unit.** `--check-determinism` keeps the per-unit hits (gzip next to the saved run, so a saved pass 1 has them
   too). A unit whose hit counts differ in more than `DIFF_LINES_ALLOWED` (10) lines fails unless it is listed in
   `KNOWN_REAL_TIME_UNITS` (then it is only noted). Skipped when a test failed (that has its own failure). The output lists the
