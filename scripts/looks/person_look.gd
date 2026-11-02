@@ -29,6 +29,9 @@ var frac: float = 0.0
 var warning: bool = false
 var danger: float = 0.0
 var wave: float = 0.0
+# Round 24: true while the person wobbles before a relapse; `wobble_prog` is 0..1 through the wobble (the greying).
+var wobbling: bool = false
+var wobble_prog: float = 0.0
 # Round 12a (placeholder, shared by both looks): the warning ring that grows at a grabber's feet toward the player, and
 # the soft dark haze under a dimmed person (the styled look draws its own, see has_aura).
 var grab_ring: MeshInstance3D
@@ -146,6 +149,8 @@ func sync() -> void:
 	warning = false
 	danger = 0.0
 	wave = 0.0
+	wobbling = false
+	wobble_prog = 0.0
 	if subject.is_rescued:
 		kind = Kind.JOYFUL
 		var warn_line := need * Config.WARN_FRACTION
@@ -155,6 +160,12 @@ func sync() -> void:
 			warning = true
 			danger = clampf((warn_line - subject.joy) / (warn_line - relapse_line), 0.0, 1.0)
 			wave = sin(Time.get_ticks_msec() / 1000.0 * lerpf(4.0, 14.0, danger))
+			if subject.wobbling:
+				# Round 24: the last stretch before a relapse: a fast, wide wobble that greys as the time runs out.
+				wobbling = true
+				wobble_prog = subject.wobble_progress()
+				danger = 1.0
+				wave = sin(Time.get_ticks_msec() / 1000.0 * Config.WOBBLE_RATE)
 			label.text = "!"
 			label.modulate = Color(1, 0.6, 0.1)
 			label.font_size = 72

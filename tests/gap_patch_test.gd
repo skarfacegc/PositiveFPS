@@ -229,9 +229,9 @@ func test_the_burst_pushes_back_and_lifts_dimmed_people_at_the_border() -> void:
 	var near: Person = td.people[20]
 	var far: Person = td.people[21]
 	TopDownTestUtil.place(near, m.position + out * 1.2, 1, 0.95)
-	# Far from the border line (well outside its band) and in range: not a target, it keeps the old behaviour.
-	TopDownTestUtil.place(far, m.position + out * (Config.BURST_BORDER_BAND + 2.0), 2, 0.95)
+	# Round 24: out of the lift radius (dimmed people anywhere inside it are lifted now), so not a target.
 	td.player.global_position = m.position - out * 2.0
+	TopDownTestUtil.place(far, td.player.global_position + out * (Config.BURST_LIFT_RADIUS + 2.0), 2, 0.95)
 	await runner.simulate_frames(2)
 	near.gloom = 0.95
 	far.gloom = 0.95

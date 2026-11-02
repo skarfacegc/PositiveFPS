@@ -60,8 +60,7 @@ func _max_radius(td: TopDownMain) -> float:
 func _lose(td: TopDownMain, count: int) -> void:
 	for i: int in range(count):
 		var p: Person = td.people[i]
-		p.grace_left = 0.0
-		p.drain_joy(1.0e6)
+		TopDownTestUtil.lose_now(p)
 
 
 func test_a_finished_stretch_keeps_its_arm_and_the_next_grows_from_the_shaped_zone() -> void:

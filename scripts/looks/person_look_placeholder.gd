@@ -90,17 +90,28 @@ func _sync_body() -> void:
 	var elem_col: Color = Config.ELEMENT_COLORS[subject.affinity]
 	if subject.is_rescued:
 		wisp.emitting = false
-		if warning:
+		if wobbling:
+			# Round 24: a wide wobble and a body that greys steadily toward the end of the wobble.
+			var grey := lerpf(Config.WOBBLE_GREY_FROM, 1.0, wobble_prog)
+			body_mat.albedo_color = elem_col.lerp(Config.LEVEL_COLORS[1], grey)
+			body.rotation.y = wave * Config.WOBBLE_SWAY
+			body.rotation.z = wave * Config.WOBBLE_SWAY * 0.5
+		elif warning:
 			# Flicker between the affinity colour and grey, and wobble.
 			var pulse := 0.5 + 0.5 * wave
 			body_mat.albedo_color = elem_col.lerp(Config.LEVEL_COLORS[1], pulse)
 			body.rotation.y = wave * 0.15
+			body.rotation.z = 0.0
 		else:
 			body_mat.albedo_color = elem_col.lightened(0.15)
 			body.rotation.y = 0.0
+			body.rotation.z = 0.0
 	else:
-		body_mat.albedo_color = Config.LEVEL_COLORS[subject.level].lerp(elem_col, frac * 0.6)
+		# Round 24: a dimmed person shows their progress strongly: the body warms to their colour as joy builds.
+		var tint := Config.DIMMED_PROGRESS_TINT if subject.level >= 2 else 0.6
+		body_mat.albedo_color = Config.LEVEL_COLORS[subject.level].lerp(elem_col, frac * tint)
 		body.rotation.y = 0.0
+		body.rotation.z = 0.0
 		wisp.emitting = subject.level == 2
 
 

@@ -67,6 +67,11 @@ func test_drain_relapses_rescued_person() -> void:
 	var relapses := [0]
 	p.relapsed.connect(func() -> void: relapses[0] += 1)
 	p.drain_joy(Config.JOY_MAX * 0.7)
+	# Round 24: the drain starts a wobble first; the relapse comes when it has run out (dimmed_waves_test covers it).
+	assert_int(relapses[0]).is_equal(0)
+	assert_bool(p.wobbling).is_true()
+	for i: int in range(int(Config.WOBBLE_SECONDS * 1.3 * 60.0) + 5):
+		p.tick(1.0 / 60.0)
 	assert_int(relapses[0]).is_equal(1)
 	assert_bool(p.is_rescued).is_false()
 

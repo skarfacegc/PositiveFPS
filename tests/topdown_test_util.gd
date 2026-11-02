@@ -56,6 +56,16 @@ static func open_dim_gate(td: TopDownMain) -> void:
 	td._last_dim_sink = -INF
 
 
+# Round 24: a drained rescued person wobbles before they relapse, and one relapse goes through the shared gate per
+# RELAPSE_GATE_GAP. A test that only needs the person gone (to see what the border or the zone does) calls this: it
+# drains them and lets the wobble end at once, past the gate, so they relapse on the next tick.
+static func lose_now(p: Person) -> void:
+	p.grace_left = 0.0
+	p.drain_joy(1.0e6)
+	p.relapse_gate = Callable()
+	p.wobble_left = 0.0
+
+
 # Every joy projectile currently in the level.
 static func projectiles(td: TopDownMain) -> Array[JoyProjectile]:
 	var out: Array[JoyProjectile] = []

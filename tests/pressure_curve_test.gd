@@ -42,7 +42,7 @@ func _arrivals(from_p: float, to_p: float, gap_for: Callable) -> int:
 # cohort passes the relapse line on the same frame, 500 / (SPREAD_DRAIN_RATE x drain x strength) seconds in. That is
 # 14.5 s at the strength the round 22 recording had when it began (1.44, 80% of the night): the 14.4 s between the
 # dimmed person sinking at 133.05 s and the first relapse at 147.4 s, and then 20 relapses in 12 s.
-func test_one_dimmed_person_with_a_clear_line_makes_a_whole_cohort_relapse_on_the_same_frame() -> void:
+func test_one_dimmed_person_with_a_clear_line_makes_a_whole_cohort_wobble_on_the_same_frame() -> void:
 	var dimmed := _person(Vector3.ZERO, 1.0, false)
 	var cohort: Array[Person] = []
 	for i: int in range(8):
@@ -57,7 +57,8 @@ func test_one_dimmed_person_with_a_clear_line_makes_a_whole_cohort_relapse_on_th
 	for frame: int in range(60 * 30):
 		GloomSim.update(everyone, 1.0 / 60.0, Config.TD_DRAIN_MULTIPLIER, strength)
 		for i: int in range(cohort.size()):
-			if relapse_frame[i] < 0 and not cohort[i].is_rescued:
+			# Round 24: a drained person wobbles before relapsing, so the cohort tips into the wobble together.
+			if relapse_frame[i] < 0 and cohort[i].wobbling:
 				relapse_frame[i] = frame
 	for f: int in relapse_frame:
 		assert_int(f).is_equal(relapse_frame[0])

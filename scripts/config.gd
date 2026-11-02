@@ -105,7 +105,7 @@ const BURST_PUSH_DISTANCE := 4.0
 const BURST_LIFT_GLOOM := 0.5
 # A cleared person is calm this long (no gloom gain, from growth or from a dimmed neighbour), so they do not sink
 # straight back and walk up to the line again.
-const BURST_CALM_SECONDS := 10.0
+const BURST_CALM_SECONDS := 16.0  # Round 24: was 10.0.
 const BURST_FX_SECONDS := 0.9
 const BURST_FX_COLOUR := Color(1.0, 0.9, 0.5)
 
@@ -255,6 +255,31 @@ const FX_HALO_SECONDS := 1.5
 const FX_PATCH_PULSE_SECONDS := 0.8
 const FX_PATCH_TEXT := "Held: %d"
 const FX_LIFT_TEXT := "lifted %d"
+
+# ---- Round 24: dimmed and waves (scripts/burst_clear.gd, person.gd, relapse_wave.gd, person_look*.gd). ----
+# The round 23 playtests left the dimmed stock at about 6 from midnight on (7 bursts lifted 3 dimmed people in a game),
+# and one dimmed person's drain tipped a whole group over the relapse line on the same frame.
+# Beatable dimmed: a burst lifts every dimmed person within BURST_LIFT_RADIUS of the player (round 22: only those within
+# BURST_BORDER_BAND of the line, inside BURST_CLEAR_RADIUS, 8 m). Those near the line are still pushed back. A lifted
+# person stays calm BURST_CALM_SECONDS (16 s, was 10 s). Joy lands DIMMED_JOY_MULT times as hard on a dimmed person (so
+# about 5 matching shots rescue them, was about 9) and fades DIMMED_FADE_MULT times as fast, so progress holds.
+const BURST_LIFT_RADIUS := 14.0
+const DIMMED_JOY_MULT := 1.8
+const DIMMED_FADE_MULT := 0.4
+const DIMMED_PROGRESS_TINT := 0.95  # How far a dimmed body warms to its colour at full joy (0.6 for others).
+# Catchable waves: a rescued person drained below the relapse line wobbles for WOBBLE_SECONDS first (varied per person
+# and per wobble by +/- WOBBLE_JITTER), greying and swaying in the placeholder look (WOBBLE_SWAY radians, WOBBLE_RATE
+# radians a second). A joy hit in that window saves them: their joy goes back to RELAPSE_FRACTION + WOBBLE_SAVE_JOY
+# of what they need and drain skips them for WOBBLE_SAVE_GRACE seconds. When the wobble ends they relapse, but
+# RelapseWave lets only one person relapse per RELAPSE_GATE_GAP seconds, so a group goes a few at a time.
+const WOBBLE_SECONDS := 5.0
+const WOBBLE_JITTER := 0.2
+const WOBBLE_SAVE_JOY := 0.2
+const WOBBLE_SAVE_GRACE := 4.0
+const WOBBLE_SWAY := 0.35
+const WOBBLE_RATE := 11.0
+const WOBBLE_GREY_FROM := 0.35
+const RELAPSE_GATE_GAP := 0.6
 
 static var intro_override: int = -1
 

@@ -220,7 +220,8 @@ func test_a_relapse_lowers_the_count_and_shows_the_alert() -> void:
 	# Drain from outside the rules (no grace, no cover): the person drops below the relapse line and turns grey.
 	target.grace_left = 0.0
 	target.drain_joy(Config.JOY_MAX)
-	await runner.simulate_frames(2)
+	# Round 24: they wobble first (up to WOBBLE_SECONDS plus its jitter), then relapse.
+	await runner.simulate_frames(int((Config.WOBBLE_SECONDS * (1.0 + Config.WOBBLE_JITTER) + 1.0) * 60.0))
 	assert_bool(target.is_rescued).is_false()
 	assert_int(td.rescued_count).is_equal(0)
 	assert_str(td.hud.alert_label.text).is_equal("Someone lost their joy!")

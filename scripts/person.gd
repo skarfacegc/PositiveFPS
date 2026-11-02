@@ -3,6 +3,9 @@ extends StaticBody3D
 
 signal rescued
 signal relapsed
+# Round 24: a drained rescued person began to wobble (`seconds` to be saved first), and a joy hit saved one.
+signal wobbled(seconds: float)
+signal saved
 # The visible stage changed (0 wistful, 1 gloomy, 2 dimmed): sank when `to_level` is higher, lifted when lower.
 signal stage_changed(from_level: int, to_level: int)
 # Round 13b: joy was turned away. `reason` is a Block value (the cause, so the screen can flash its icon).
@@ -87,6 +90,14 @@ var patch_mult: float = 1.0
 # Round 22: seconds left of the calm a burst gives a cleared person: GloomSim adds no gloom to them meanwhile.
 var calm_left: float = 0.0
 var loss_mult: float = 1.0
+# Round 24: a rescued person drained below the relapse line wobbles for `wobble_total` seconds (`wobble_left` remain)
+# before they relapse; a joy hit meanwhile saves them. `wobble_count` counts the wobbles so far (it varies the next
+# one). `relapse_gate` is asked before the relapse itself (see RelapseWave; invalid for a Person built by hand).
+var wobbling: bool = false
+var wobble_left: float = 0.0
+var wobble_total: float = 0.0
+var wobble_count: int = 0
+var relapse_gate := Callable()
 # Seconds since this person was last hit by a joy projectile.
 var _since_hit: float = 99.0
 
@@ -209,10 +220,14 @@ func receive_joy(
 			amount *= Config.GLUM_LOOKUP_MULT
 	var mult := Config.multiplier(element, affinity)
 	var gain := amount * mult * Config.falloff(distance) * joy_boost[clampi(element, 0, 2)]
+	if not is_rescued and Config.gloom_level(gloom) >= Config.SPREAD_LEVEL:
+		gain *= Config.DIMMED_JOY_MULT  # Round 24: joy wins a dimmed person back faster.
 	joy = minf(joy + gain, joy_needed())
 	_since_hit = 0.0
 	if not is_rescued:
 		joy_landed.emit()
+	elif wobbling and gain > 0.0:
+		_save()
 	if Config.NUMBERS_ENABLED and look != null:
 		look.show_number(gain, mult)
 	if is_rescued:
@@ -264,11 +279,16 @@ func tick(delta: float) -> void:
 		sad_left -= delta
 	if grace_left > 0.0:
 		grace_left = maxf(0.0, grace_left - delta)
+	if wobbling:
+		_tick_wobble(delta)
 	if not is_rescued:
 		if _since_hit > Config.JOY_FADE_DELAY:
 			# Partial joy does not fade deep inside painted ground (protection 1).
 			var exposure := 1.0 - protection
-			joy = maxf(0.0, joy - Config.JOY_FADE_RATE * delta * exposure)
+			var fade := Config.JOY_FADE_RATE * delta * exposure
+			if Config.gloom_level(gloom) >= Config.SPREAD_LEVEL:
+				fade *= Config.DIMMED_FADE_MULT  # Round 24: a dimmed person's progress holds longer.
+			joy = maxf(0.0, joy - fade)
 		if joy >= joy_needed():
 			_rescue()
 		else:
@@ -285,12 +305,61 @@ func drain_joy(amount: float) -> void:
 		return
 	joy -= amount * loss_mult * patch_mult
 	if joy < joy_needed() * Config.RELAPSE_FRACTION:
+		# Round 24: not at once. A wobble comes first, long enough for a joy hit to save them.
+		joy = maxf(joy, 0.0)
+		if not wobbling:
+			_start_wobble()
+	_update_visuals()
+
+
+# Round 24: how long the next wobble lasts: WOBBLE_SECONDS varied by +/- WOBBLE_JITTER, from the person's seed and
+# how many wobbles they have had (a fixed hash, so no wall clock and a replay matches).
+func next_wobble_seconds() -> float:
+	var u := fposmod(sin(float(look_seed) * 12.9898 + float(wobble_count) * 78.233) * 43758.5453, 1.0)
+	return Config.WOBBLE_SECONDS * (1.0 + Config.WOBBLE_JITTER * (u * 2.0 - 1.0))
+
+
+# 0 at the start of the wobble, 1 when it has run out (0 when not wobbling). The look greys by it.
+func wobble_progress() -> float:
+	if not wobbling or wobble_total <= 0.0:
+		return 0.0
+	return clampf(1.0 - wobble_left / wobble_total, 0.0, 1.0)
+
+
+func _start_wobble() -> void:
+	wobbling = true
+	wobble_total = next_wobble_seconds()
+	wobble_left = wobble_total
+	wobble_count += 1
+	wobbled.emit(wobble_total)
+
+
+# The wobble runs down; joy back above the relapse line ends it; at the end the person relapses when the gate lets them.
+func _tick_wobble(delta: float) -> void:
+	if not is_rescued:
+		wobbling = false
+		return
+	if joy >= joy_needed() * Config.RELAPSE_FRACTION:
+		_save()
+		return
+	wobble_left = maxf(0.0, wobble_left - delta)
+	if wobble_left <= 0.0 and (not relapse_gate.is_valid() or relapse_gate.call()):
 		_relapse()
-	else:
-		_update_visuals()
+
+
+# A joy hit in the wobble: joy goes back above the line, drain skips them a while, and the wobble is over.
+func _save() -> void:
+	wobbling = false
+	wobble_left = 0.0
+	joy = maxf(joy, joy_needed() * (Config.RELAPSE_FRACTION + Config.WOBBLE_SAVE_JOY))
+	grace_left = maxf(grace_left, Config.WOBBLE_SAVE_GRACE)
+	_fx_puff(Config.STAGE_LIFT_COLOUR, Config.STAGE_PUFF_COUNT)
+	_update_visuals()
+	saved.emit()
 
 
 func _rescue() -> void:
+	wobbling = false
 	is_rescued = true
 	gloom = 0.0
 	level = 0
@@ -306,6 +375,8 @@ func _rescue() -> void:
 
 
 func _relapse() -> void:
+	wobbling = false
+	wobble_left = 0.0
 	is_rescued = false
 	gloom = maxf(gloom, 0.6)
 	level = Config.gloom_level(gloom)
