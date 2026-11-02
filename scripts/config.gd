@@ -10,7 +10,6 @@ extends ConfigBase
 # when
 # the centre is within BEACON_ARRIVE_RADIUS of it. One beacon at a time; a new one replaces the old (and costs again).
 const BEACON_SPIRIT_COST := 50.0  # Round 20: was 30 (spirit sat near 90 in the round 19 playtest).
-const BEACON_PULL_SPEED := 0.8 * WORLD_SCALE
 const BEACON_ARRIVE_RADIUS := 0.3
 const BEACON_COLOUR := Color(0.55, 0.85, 1.0)
 const BEACON_NO_SPIRIT_TEXT := "Not enough spirit"
@@ -27,8 +26,6 @@ const BEACON_NO_BORDER_TEXT := "Rescue three people to form a border first"
 # the
 # body: BEACON_BODY_MIN is how small the body may get (a share of the plain radius), which caps the reach. The rest is
 # the placeholder look's reach guide.
-const BEACON_REACH_BASE := 3.0 * WORLD_SCALE
-const BEACON_REACH_PER_PERSON := 0.35 * WORLD_SCALE
 const BEACON_TIP_WIDTH := 0.4
 const BEACON_BODY_MIN := 0.6
 const BEACON_GUIDE_Y := 0.18
@@ -51,7 +48,6 @@ const BEACON_DIM_CLEARANCE := 1.5 * WORLD_SCALE
 const BEACON_MIN_GAIN := 2.0 * WORLD_SCALE
 const BEACON_PLAN_SECONDS := 0.1
 const BEACON_DIM_TEXT := "Dimmed people are in the way"
-const BEACON_FAR_TEXT := "Too far for this many people - rescue more to reach it"
 const BEACON_BLOCKED_TEXT := "Dimmed people block the stretch"
 const BEACON_FELL_BACK_TEXT := "The stretch fell back"
 # The preview of the zone the stretch will make (reach_guide.gd, placeholder look): outline, fill, tip marker, label.
@@ -59,7 +55,6 @@ const BEACON_GUIDE_OUTLINE_WIDTH := 0.4
 const BEACON_GUIDE_FILL_COLOUR := Color(0.55, 0.85, 1.0, 0.14)
 const BEACON_GUIDE_LIMITED_FILL_COLOUR := Color(1.0, 0.3, 0.2, 0.28)
 const BEACON_GUIDE_LABEL_COLOUR := Color(1.0, 1.0, 0.92)
-const BEACON_GUIDE_LABEL_SIZE := 0.03
 
 # ---- Round 22: shaped zone (scripts/border_centre.gd, reach_guide.gd, intro.gd, prompt_bar.gd). ----
 # A finished stretch stays and the next grows from the shaped zone. The head count sets the loop length; the body never
@@ -76,17 +71,12 @@ const BEACON_INSIDE_TEXT := "That is inside the zone already"
 const BEACON_PULLED_IN_TEXT := "People lost - the zone is pulling in"
 # Refusals stay this long (seconds) in a larger bar; ordinary prompts keep PROMPT_SECONDS.
 const NOTICE_SECONDS := 4.0
-const NOTICE_FONT_SIZE := 28
-const NOTICE_HEIGHT := 56.0
 const NOTICE_COLOUR := Color(1.0, 0.62, 0.45)
 const BEACON_PULSE_SECONDS := 1.8
-const BEACON_PULSE_COLOUR := Color(1.0, 0.95, 0.6, 0.95)
-const BEACON_PULSE_WIDTH := 0.9
 const BEACON_GAIN_TEXT := "+%d sq m of ground"
 const BEACON_LIMITED_OUTLINE_WIDTH := 0.9
 const BEACON_LIMITED_COLOUR := Color(1.0, 0.35, 0.25, 0.95)
 const BEACON_LIMITED_LABEL_COLOUR := Color(1.0, 0.7, 0.55)
-const BEACON_LIMITED_LABEL_SIZE := 0.05
 
 # ---- Round 22: gap patch (scripts/gap_patch.gd). ----
 # F spends PATCH_SPIRIT_COST spirit to seal the gap (or the strained spot) nearest the cursor for PATCH_SECONDS. While
@@ -221,6 +211,27 @@ const DIM_GAP_EASE_START := 0.7
 const DIM_GAP_EASE_END := 30.0
 # Grey strength: the part above 1 fades out between NIGHT_EASE_START and dawn (smoothstep), so the last phase eases.
 const NIGHT_EASE_START := 0.6
+
+# ---- Round 23: shaping tuning and quieter feedback (scripts/border_centre.gd, reach_guide.gd, prompt_bar.gd). ----
+# The Round 22 playtest found reach too short and growth too slow, and the text and growth markers large and
+# distracting. Reach is about 30% further (round 22: BEACON_REACH_BASE 3.0 and BEACON_REACH_PER_PERSON 0.35, times
+# WORLD_SCALE) and the beacon walks about 50% faster (round 22: 0.8 times WORLD_SCALE). A far-away aim is no longer
+# refused with a "too far" notice: the zone goes as far as the people allow. The notices (font, bar height), the
+# preview label and the "+N sq m of ground" growth text and its pulse are smaller and quieter than in round 22
+# (28 and 56, 0.05, 0.9 and 0.95).
+const BEACON_REACH_BASE := 3.9 * WORLD_SCALE
+const BEACON_REACH_PER_PERSON := 0.455 * WORLD_SCALE
+const BEACON_PULL_SPEED := 1.2 * WORLD_SCALE
+const NOTICE_FONT_SIZE := 18
+const NOTICE_HEIGHT := 38.0
+const BEACON_GUIDE_LABEL_SIZE := 0.024
+const BEACON_LIMITED_LABEL_SIZE := 0.035
+const BEACON_GAIN_LABEL_SIZE := 0.03
+const BEACON_GAIN_OUTLINE_SIZE := 8
+const BEACON_PULSE_COLOUR := Color(1.0, 0.95, 0.6, 0.6)
+const BEACON_PULSE_WIDTH := 0.6
+const BEACON_PULSE_RING_START := 1.2
+const BEACON_PULSE_RING_GROW := 4.0
 
 static var intro_override: int = -1
 

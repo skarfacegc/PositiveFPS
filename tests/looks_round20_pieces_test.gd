@@ -69,7 +69,8 @@ func test_the_styled_reach_guide_shows_the_ring_the_preview_and_the_travel() -> 
 	# A beacon beyond the reach: the path, the tip, the dashes on to the beacon, then, once it arrives, nothing (round
 	# 22: no hold).
 	td.border.place_beacon(td.border.centre + Vector3(reach * 3.0, 0.0, 0.0))
-	await runner.simulate_frames(60)
+	# Round 23: the tip walks at the new pull speed, so it has not arrived after 20 frames (a third of a second) here.
+	await runner.simulate_frames(20)
 	td.reach_guide.sync(td.border, td.player)
 	assert_bool(guide._path.visible).is_true()
 	assert_bool(guide._tip.visible).is_true()

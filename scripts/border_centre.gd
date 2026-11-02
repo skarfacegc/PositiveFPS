@@ -164,8 +164,10 @@ func plan_toward(aim: Vector3) -> Dictionary:
 		acap = minf(cap, arm_cap(to.angle(), radius, cap))
 	var reach := minf(wanted, acap)
 	var reason := ""
-	if wanted > acap:
-		reason = Config.BEACON_FAR_TEXT if acap >= cap - 0.05 else Config.BEACON_FULL_TEXT
+	# Round 23: a far aim is not refused. Past the most the people allow the zone just goes that far (no reason); only
+	# a shape that has run out of length is limited, and that says what to do.
+	if wanted > acap and acap < cap - 0.05:
+		reason = Config.BEACON_FULL_TEXT
 	var have := maxf(radius, arm_reach_at(to.angle(), radius))
 	var clear := _clear_reach(to.angle(), radius, reach)
 	if clear < reach:
