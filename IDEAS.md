@@ -1830,3 +1830,41 @@ chose all three bigger changes and no weaker midnight.
 
 Three parallel worktree parts: F dimmed and waves (Sonnet), G first light (Sonnet), H reactions, reminder, pull-in and
 landmark (Sonnet). Then merge and `tools/round_end.py`.
+
+## Round 24 build (2026-11-02)
+
+Built in three parts; all merged. Gate, determinism and baseline passed through `tools/round_end.py`, after coverage
+tests. None of the tuning has been through a seeded full night, and the new looks haven't been seen on screen.
+
+**F. Beatable dimmed and catchable waves** (`f40d389`): a burst lifts every dimmed person within 14 m (was 8 m and on the
+border), calm 16 s (was 10). Joy on dimmed x1.8, so about 5 shots (was about 10), fading at 0.4 times the normal rate, and
+the body warms as joy builds. A drained rescued person wobbles about 5 s (+/-20%) and a joy hit saves them;
+`scripts/relapse_wave.gd` lets one person relapse per 0.6 s level-wide.
+
+**G. First light** (`095afbb`, `scripts/first_light.gd`): a square front moves from the map edge at 135 s to the centre at
+dawn. Behind it, gloom falls 0.03 a second, nobody sinks and rescued people don't drain. A wobble ends safely once the
+front passes (`f079870`). A zone near the centre gets very little of it, so it may need to arrive sooner.
+
+**H. Reactions and readability** (`767232d`): the oversized text was the limited preview's world-space label, about 40 m
+wide against a 19.5 m view, which round 23 never touched. It's gone; a refusal now shows only as a small notice when E is
+pressed. Border people hop, turn and glow at a patch; lifted people hop and glow. Cues sit beside the spirit meter with a
+gold pulse when ready. One arm retreats at a time, outline fading over 2 s, then 1 m/s, or 4 times faster when the loop is
+over 1.2 times what the people can hold. The Garden moved to 14.1 m from the start.
+
+**Tests changed:** `shelter_nearest_test` only passed through a lucky wander path and broke when the Garden moved; it now
+holds its people on their spots, assertions unchanged. Relapse tests wait through the wobble; `lose_now` skips it where a
+test is about the zone; the limited-preview tests expect no words.
+
+**Tooling:** `round_end.py`'s worker was cut off once while waiting; re-running carried on. The analyser counts wobbles,
+saves and first light. `--update-baseline` refused twice on drops the gate let through (`border.gd` in round 23,
+`burst_clear.gd` here), so the two checks round differently.
+
+**Open:**
+- `scripts/topdown_main.gd` is at 992 of 1000 lines: split it next.
+- Whether one burst per 8 s keeps pace with arrivals every 9 s.
+- The second arm, the minimap redraw spike, the `looks_*` wobble. Styled look lags (first light, reactions, cue panel).
+  Sound cue talk still owed.
+
+**Playtest questions:** does the end feel winnable? Can you get on top of dimmed people, and does catching a wobbler work?
+Does first light feel like a rally? Do people reacting make patch and burst readable? Is pull-in followable? Does the
+nearer Garden get claimed?
