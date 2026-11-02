@@ -305,18 +305,16 @@ func test_a_notice_is_drawn_larger_and_near_the_middle_of_the_screen() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_limited_preview_is_thick_red_and_says_why_beside_the_cursor() -> void:
+func test_the_limited_preview_is_a_red_outline_with_no_words() -> void:
 	var s: Dictionary = await _setup()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	await runner.simulate_frames(2)
-	# A fine stretch (nothing holds it back) is the calm blue one.
+	# A fine stretch (nothing holds it back) is the calm blue one. Round 24: no words while hovering.
 	td.player._has_aim = true
 	td.player._aim_point = CENTRE + Vector3(0, 0, _radius() + 6.0)
 	td.reach_guide.sync(td.border, td.player)
-	var label: Label3D = td.reach_guide._label
-	assert_str(label.text).is_equal("E: stretch here")
-	assert_float(label.pixel_size).is_equal_approx(Config.BEACON_GUIDE_LABEL_SIZE, 0.0001)
+	assert_object(td.reach_guide._label).is_null()
 	# Round 23: a far aim alone is no longer limited (it just goes as far as the people allow), so the limit here is an
 	# arm east that uses up the length, and the cursor west of it (no frame runs between setting it and the guide's sync).
 	await _stretch(td, runner, CENTRE + Vector3(60, 0, 0))
@@ -324,14 +322,10 @@ func test_the_limited_preview_is_thick_red_and_says_why_beside_the_cursor() -> v
 	td.reach_guide.sync(td.border, td.player)
 	var plan: Dictionary = td.border.plan_stretch(td.player.aim_point())
 	assert_str(plan["reason"]).is_not_equal("")
-	assert_bool(label.visible).is_true()
-	assert_str(label.text).is_equal(plan["reason"])
-	assert_float(label.pixel_size).is_equal_approx(Config.BEACON_LIMITED_LABEL_SIZE, 0.0001)
-	assert_float(label.pixel_size).is_greater(Config.BEACON_GUIDE_LABEL_SIZE)
-	# Beside the cursor (the aim), not out at the tip.
-	var aim := td.player.aim_point()
-	assert_float(Vector2(label.position.x - aim.x, label.position.z - aim.z).length()).is_less(2.0)
-	assert_float(Config.BEACON_LIMITED_OUTLINE_WIDTH).is_greater(Config.BEACON_GUIDE_OUTLINE_WIDTH * 2.0)
+	# Limited too: still no words (the reason shows only as a notice when E is pressed on a refused spot).
+	if td.reach_guide._label != null:
+		assert_bool(td.reach_guide._label.visible).is_false()
+	assert_float(Config.BEACON_LIMITED_OUTLINE_WIDTH).is_greater(Config.BEACON_GUIDE_OUTLINE_WIDTH)
 	assert_float(absf(Config.BEACON_LIMITED_COLOUR.r - Config.BEACON_GUIDE_PREVIEW_COLOUR.r)).is_greater(0.3)
 	await TopDownTestUtil.leave_loaded_scene(td)
 

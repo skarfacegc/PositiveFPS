@@ -21,6 +21,8 @@ signal shield_popped(at: Vector3)
 enum Mood { NONE, GUARDED, SKITTISH, GLUM }
 # Round 13b: why joy was turned away (see joy_blocked).
 enum Block { GUARDED, SHELTERED }
+# Round 24: what a reaction is to (see react).
+enum React { NONE, PATCH, LIFT }
 
 var affinity: int = 0
 # A small number that picks cosmetic variety (the pose and outfit variant a styled look draws). Set by the level.
@@ -100,6 +102,13 @@ var wobble_count: int = 0
 var relapse_gate := Callable()
 # Round 24: set by FirstLight each frame: true once the dawn front has passed this person (no joy drain, see drain_joy).
 var dawn_lit: bool = false
+# Round 24: a reaction to an event (a patch landing at `react_toward`, or being lifted by a burst). The look draws the
+# hop, turn and glow from `react_progress()`. `react_delay` holds the start back (nearest the spot go first).
+var react_kind: int = React.NONE
+var react_left: float = 0.0
+var react_total: float = 1.0
+var react_delay: float = 0.0
+var react_toward := Vector3.INF
 # Seconds since this person was last hit by a joy projectile.
 var _since_hit: float = 99.0
 
@@ -274,6 +283,8 @@ func _glance(colour: Color) -> void:
 # Called every frame by topdown_main.gd: handles joy fading, level changes and visuals.
 func tick(delta: float) -> void:
 	_since_hit += delta
+	if react_kind != React.NONE:
+		_tick_react(delta)
 	grace_time += delta
 	if calm_left > 0.0:
 		calm_left -= delta
@@ -299,6 +310,33 @@ func tick(delta: float) -> void:
 		look.advance(delta)
 	_update_visuals()
 	_update_debug_label()
+
+
+# Round 24: start a reaction of `kind` lasting `seconds`, after `delay` seconds. `toward` is the world point to turn to
+# (Vector3.INF for none).
+func react(kind: int, seconds: float, toward: Vector3 = Vector3.INF, delay: float = 0.0) -> void:
+	react_kind = kind
+	react_left = seconds
+	react_total = maxf(seconds, 0.01)
+	react_delay = delay
+	react_toward = toward
+
+
+# Round 24: how far through the reaction (0 to 1), or -1 when none is running (or it has not started yet).
+func react_progress() -> float:
+	if react_kind == React.NONE or react_delay > 0.0:
+		return -1.0
+	return clampf(1.0 - react_left / react_total, 0.0, 1.0)
+
+
+func _tick_react(delta: float) -> void:
+	if react_delay > 0.0:
+		react_delay -= delta
+		return
+	react_left -= delta
+	if react_left <= 0.0:
+		react_kind = React.NONE
+		react_left = 0.0
 
 
 # Removes joy from a rescued person (used by nearby gloom). Relapses them if they drop too low.

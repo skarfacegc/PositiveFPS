@@ -9,6 +9,9 @@ var body: MeshInstance3D
 var wisp: CPUParticles3D
 # Graphics checkpoint 4: the body, marker and wisps hang from this node, which the walk bobs, sways and leans.
 var rig: Node3D
+var _grace_amount: float = 0.0
+var _react_amount: float = 0.0
+var _react_colour := Color.WHITE
 
 
 func _build_body() -> void:
@@ -116,9 +119,27 @@ func _sync_body() -> void:
 
 
 func _set_glow(amount: float) -> void:
-	if amount <= 0.0:
+	_grace_amount = amount
+	_apply_glow()
+
+
+# Round 24: a reaction's glow shares the body's emission with the grace glow; the stronger one shows.
+func _set_react_glow(colour: Color, amount: float) -> void:
+	_react_colour = colour
+	_react_amount = amount
+	_apply_glow()
+
+
+func _apply_glow() -> void:
+	var react_energy := Config.REACT_GLOW_ENERGY * _react_amount
+	var grace_energy := Config.GRACE_GLOW_ENERGY * _grace_amount
+	if react_energy <= 0.0 and grace_energy <= 0.0:
 		body_mat.emission_enabled = false
 		return
 	body_mat.emission_enabled = true
-	body_mat.emission = Config.GRACE_GLOW_COLOR
-	body_mat.emission_energy_multiplier = Config.GRACE_GLOW_ENERGY * amount
+	if react_energy > grace_energy:
+		body_mat.emission = _react_colour
+		body_mat.emission_energy_multiplier = react_energy
+	else:
+		body_mat.emission = Config.GRACE_GLOW_COLOR
+		body_mat.emission_energy_multiplier = grace_energy

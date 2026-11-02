@@ -4,6 +4,12 @@ extends GdUnitTestSuite
 # and the umbrella follow that one person; the others nearby still take joy. Player-driven parts use real mouse input
 # (hover targeting and joy shots).
 
+# Where the test holds the three (see _hold): the dimmed person 0.7 m BEHIND the two wistful people as seen from the
+# player, who stands at the origin and shoots north, so she is never between the player and a target.
+const _DIMMED_SPOT := Vector3(0, 0, -8.7)
+const _NEAR_SPOT := Vector3(1.0, 0, -8)
+const _FAR_SPOT := Vector3(-1.6, 0, -8)
+
 
 func _start() -> Dictionary:
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
@@ -15,19 +21,33 @@ func _start() -> Dictionary:
 	return {"runner": runner, "td": td}
 
 
-# The dimmed person at the origin of the pair, the nearest wistful person 1 m away and a farther one at 1.6 m (both west
-# of the dimmed person's north side, inside SHELTER_RADIUS), all music people.
+# The dimmed person, the nearest wistful person about 1.2 m away and a farther one about 1.8 m away (both inside
+# SHELTER_RADIUS), all music people.
 func _arrange(td: TopDownMain) -> void:
 	# Round 17: the midnight stagger (9 s between sinks) would hold the dimmed person back, so the gate is opened here.
 	TopDownTestUtil.open_dim_gate(td)
-	TopDownTestUtil.place(td.people[0], Vector3(0, 0, -8), 0, 0.95)
-	TopDownTestUtil.place(td.people[1], Vector3(1.0, 0, -8), 0, 0.2)
-	TopDownTestUtil.place(td.people[2], Vector3(-1.6, 0, -8), 0, 0.2)
+	TopDownTestUtil.place(td.people[0], _DIMMED_SPOT, 0, 0.95)
+	TopDownTestUtil.place(td.people[1], _NEAR_SPOT, 0, 0.2)
+	TopDownTestUtil.place(td.people[2], _FAR_SPOT, 0, 0.2)
+
+
+# Round 24: run `frames` frames with the three held on their spots. Everyone wanders (and the dimmed person walks
+# toward the player). In this test that changed the nearest-ward order (a far one drifting nearer than the near one)
+# and put the dimmed person in front of the person being shot: a shot lands on the FIRST person within reach of its
+# path, so she was hit and rescued instead, and then nobody was sheltered. Which way each one drifts depends on the
+# seeded scene (it shifted when the Garden moved), so the test holds the layout it describes. It sets positions only
+# (joy and the shield keep their state).
+func _hold(runner: GdUnitSceneRunner, td: TopDownMain, frames: int) -> void:
+	for _i: int in range(frames):
+		td.people[0].global_position = _DIMMED_SPOT
+		td.people[1].global_position = _NEAR_SPOT
+		td.people[2].global_position = _FAR_SPOT
+		await runner.simulate_frames(1)
 
 
 func _hover(runner: GdUnitSceneRunner, td: TopDownMain, p: Person) -> void:
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, p.global_position))
-	await runner.simulate_frames(3)
+	await _hold(runner, td, 3)
 
 
 func test_only_the_nearest_wistful_person_is_sheltered_and_the_other_takes_joy() -> void:
@@ -40,7 +60,7 @@ func test_only_the_nearest_wistful_person_is_sheltered_and_the_other_takes_joy()
 	# Both wistful people are inside SHELTER_RADIUS: the one 1 m away is nearest, the one 1.6 m away is not. (Everyone
 	# wanders a little, so each phase below places them again.)
 	_arrange(td)
-	await runner.simulate_frames(3)
+	await _hold(runner, td, 3)
 	assert_object(dimmed.shelter_ward).is_same(near)
 	assert_bool(near.sheltered).is_true()
 	assert_bool(far.sheltered).is_false()
@@ -59,7 +79,7 @@ func test_only_the_nearest_wistful_person_is_sheltered_and_the_other_takes_joy()
 	await _hover(runner, td, far)
 	assert_object(td.player.target).is_same(far)
 	for _i: int in range(4):
-		await runner.simulate_frames(30)
+		await _hold(runner, td, 30)
 		await _hover(runner, td, far)
 	assert_float(far.joy).is_greater(0.0)
 
@@ -68,11 +88,11 @@ func test_only_the_nearest_wistful_person_is_sheltered_and_the_other_takes_joy()
 	# follows them while they wander (the old F2 cycle is no longer needed to drop the target).
 	_arrange(td)
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, TopDownTestUtil.clear_spot(td)))
-	await runner.simulate_frames(20)
+	await _hold(runner, td, 20)
 	await _hover(runner, td, near)
 	assert_object(td.player.target).is_same(near)
 	for _i: int in range(4):
-		await runner.simulate_frames(30)
+		await _hold(runner, td, 30)
 		await _hover(runner, td, near)
 	# Round 15: the shield lets a quarter of the joy through (it used to block all of it), so the sheltered one gains a
 	# little joy and still glances each hit. (Shield_test checks the exact share.)

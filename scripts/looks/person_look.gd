@@ -59,6 +59,8 @@ var _grab_mat: StandardMaterial3D
 var _fx_rng := RandomNumberGenerator.new()
 var _carry: float = 0.0
 var _frames: int = 0
+# Round 24: true while a reaction is posing the body (so the pose is put back once, when it ends).
+var _reacting: bool = false
 
 
 # Round 14: the label follows the person's ui_scale (the zoom). Called only when the scale changes
@@ -118,6 +120,8 @@ func is_styled() -> bool:
 func advance(delta: float) -> void:
 	if subject == null or visual == null:
 		return
+	if subject.react_kind != Person.React.NONE or _reacting:
+		_update_react()
 	# The plain capsules update every other frame (it is only a bob and a lean): half the cost for 60 people.
 	_carry += delta
 	_frames += 1
@@ -129,6 +133,40 @@ func advance(delta: float) -> void:
 	_frames = 0
 	if gait.follow(subject, span):
 		_pose_gait()
+
+
+# Round 24 (placeholder look only): the reaction to an event. A patch (Person.React.PATCH) makes the person hop twice,
+# turn toward the patched spot and glow in the patch colour; being lifted by a burst (LIFT) is one higher hop and a warm
+# glow. Costs nothing for people who are not reacting.
+func _update_react() -> void:
+	if is_styled():
+		return
+	var p := subject.react_progress()
+	if p < 0.0 and subject.react_kind == Person.React.NONE:
+		_reacting = false
+		visual.position.y = 0.0
+		visual.rotation.y = 0.0
+		_set_react_glow(Color.WHITE, 0.0)
+		return
+	if p < 0.0:
+		return  # Waiting for its turn.
+	_reacting = true
+	var env := sin(PI * p)
+	if subject.react_kind == Person.React.LIFT:
+		visual.position.y = env * Config.REACT_LIFT_HOP_HEIGHT
+		_set_react_glow(Config.BURST_FX_COLOUR, env)
+		return
+	visual.position.y = absf(sin(p * PI * Config.REACT_PATCH_HOPS)) * Config.REACT_PATCH_HOP_HEIGHT * (1.0 - 0.4 * p)
+	if subject.react_toward != Vector3.INF:
+		var local := subject.global_transform.basis.inverse() * (subject.react_toward - subject.global_position)
+		if Vector2(local.x, local.z).length() > 0.05:
+			visual.rotation.y = atan2(-local.x, -local.z) * clampf(env * 2.0, 0.0, 1.0)
+	_set_react_glow(Config.PATCH_COLOUR, env)
+
+
+# Round 24: the reaction's glow (0 = none). Overridden by the placeholder look.
+func _set_react_glow(_colour: Color, _amount: float) -> void:
+	pass
 
 
 # Puts the gait's pose on the body. Overridden by each look.

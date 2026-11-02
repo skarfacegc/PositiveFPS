@@ -29,7 +29,7 @@ func refresh() -> void:
 			if subject.segment_is_gap(j):
 				continue
 			var colour := subject.segment_colour(j)
-			colour.a = flick
+			colour.a = flick * subject.segment_fade(j)
 			var a := poly[j]
 			var b := poly[(j + 1) % n]
 			_line_mesh.surface_set_color(colour)

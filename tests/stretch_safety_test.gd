@@ -240,26 +240,26 @@ func test_the_preview_matches_the_zone_the_stretch_really_makes() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_guide_says_what_the_zone_would_be_and_why_it_stops_short() -> void:
+func test_the_guide_shows_the_zone_without_words_and_says_stretching_during_a_stretch() -> void:
 	var dimmed: Array[Vector3] = [Vector3(2, 0, 22)]
 	var s: Dictionary = await _setup(dimmed, true)
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
+	# Round 24: no words while hovering, whether or not something holds the stretch back.
 	await _aim(runner, td, CENTRE + Vector3(0, 0, -20))
 	await runner.simulate_frames(2)
-	var label: Label3D = td.reach_guide._label
-	assert_object(label).is_not_null()
-	assert_bool(label.visible).is_true()
-	assert_str(label.text).is_equal("E: stretch here")
+	assert_bool(td.reach_guide._label == null or not td.reach_guide._label.visible).is_true()
 	await _aim(runner, td, CENTRE + Vector3(0, 0, 26))
 	await runner.simulate_frames(2)
-	assert_str(label.text).is_equal(Config.BEACON_DIM_TEXT)
+	var plan: Dictionary = td.border.plan_stretch(td.player.aim_point())
+	assert_str(plan["reason"]).is_equal(Config.BEACON_DIM_TEXT)
+	assert_bool(td.reach_guide._label == null or not td.reach_guide._label.visible).is_true()
 	# During a stretch the guide says so.
 	await _aim(runner, td, CENTRE + Vector3(0, 0, -20))
 	await _press_e(runner)
 	await runner.simulate_frames(30)
 	assert_bool(td.border.stretch_info()["on"]).is_true()
-	assert_str(label.text).is_equal("Stretching")
+	assert_str(td.reach_guide._label.text).is_equal("Stretching")
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
