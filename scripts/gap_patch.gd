@@ -22,6 +22,9 @@ var patches: Array[Dictionary] = []
 var warnings: Array[Dictionary] = []
 # Dimmed people a burst from the player's position would clear right now.
 var burst_targets: int = 0
+# Round 24: true when a cue is ready to act on right now (a patch under the cursor, or a burst that would lift people).
+var cue_ready: bool = false
+var _cue_style := StyleBoxFlat.new()
 var _shielded: Array[Person] = []
 var _timer: float = 0.0
 var _last_press_frame: int = -1
@@ -46,6 +49,15 @@ func _build_label() -> void:
 	patch_label.add_theme_font_size_override("font_size", Config.CUE_FONT_SIZE)
 	patch_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	patch_label.add_theme_constant_override("outline_size", 4)
+	# Round 24: a small panel on the HUD beside the spirit meter; its border pulses while the cue is ready.
+	_cue_style.bg_color = Color(0.08, 0.07, 0.12, 0.7)
+	_cue_style.set_corner_radius_all(10)
+	_cue_style.set_border_width_all(3)
+	_cue_style.content_margin_left = 12.0
+	_cue_style.content_margin_right = 12.0
+	_cue_style.content_margin_top = 3.0
+	_cue_style.content_margin_bottom = 3.0
+	patch_label.add_theme_stylebox_override("normal", _cue_style)
 	patch_label.visible = false
 	main.hud.add_child(patch_label)
 
@@ -76,7 +88,8 @@ func _tick_patches(delta: float) -> void:
 			expired.emit(pos)
 
 
-# Round 23: the cue. A small line by the player's feet, only when F or G/Q can be acted on right now:
+# Round 23: the cue (round 24: on the HUD, just right of the spirit meter, glowing when ready), only when F or G/Q can
+# be acted on right now:
 #  - "F: patch" when a gap or strained spot lies under the cursor and spirit allows; "gap near: aim at it, F" when one
 #    is near the player but not under the cursor;
 #  - "G: lift N" when a burst would lift N dimmed people off the border.
@@ -84,10 +97,12 @@ func _tick_patches(delta: float) -> void:
 func cue_text() -> String:
 	var parts: Array[String] = []
 	var patch := _patch_cue()
+	cue_ready = patch == Config.CUE_PATCH_TEXT
 	if patch != "":
 		parts.append(patch)
 	if burst_targets > 0 and main.player.can_burst():
 		parts.append(Config.CUE_BURST_TEXT % burst_targets)
+		cue_ready = true
 	return "   ".join(parts)
 
 
@@ -110,8 +125,21 @@ func _update_label() -> void:
 	if text == "":
 		return
 	patch_label.text = text
-	patch_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.85, Config.CUE_ALPHA))
-	patch_label.position = main.world_to_screen(main.player.global_position) + Config.CUE_OFFSET
+	var screen := main.get_viewport().get_visible_rect().size
+	patch_label.position = Vector2(
+		screen.x * 0.5 + Config.SPIRIT_METER_WIDTH * 0.5 + Config.CUE_HUD_GAP, screen.y + Config.CUE_HUD_Y
+	)
+	if cue_ready:
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * TAU * Config.CUE_PULSE_HZ)
+		var edge := Config.CUE_READY_COLOUR
+		edge.a = 0.55 + 0.45 * pulse
+		_cue_style.border_color = edge
+		_cue_style.bg_color = Color(0.2, 0.17, 0.05, 0.85)
+		patch_label.add_theme_color_override("font_color", Config.CUE_READY_COLOUR)
+	else:
+		_cue_style.border_color = Color(0.7, 0.7, 0.75, 0.35)
+		_cue_style.bg_color = Color(0.08, 0.07, 0.12, 0.7)
+		patch_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.85, Config.CUE_ALPHA))
 
 
 # F. Seals the gap or strained spot nearest the cursor. Returns true when a patch was made. Once per frame (the test
@@ -147,6 +175,7 @@ func patch_at(at: Vector3, kind: String = "gap") -> void:
 	main.feedback.pulse_player(SpiritMeter.Moment.SPEND)
 	patches.append({"pos": at, "left": Config.PATCH_SECONDS})
 	fx.add_patch_result(at, _held_near(at))
+	react_to_patch(at)
 	patched.emit(at, Config.PATCH_SPIRIT_COST, main.player.spirit)
 	if main.recorder != null:
 		(
@@ -163,6 +192,24 @@ func patch_at(at: Vector3, kind: String = "gap") -> void:
 				}
 			)
 		)
+
+
+# Round 24: the border people at the patched spot react: they hop, turn toward it and glow, the nearest first. At most
+# REACT_PATCH_MAX of them. Returns how many.
+func react_to_patch(at: Vector3) -> int:
+	var near: Array[Person] = []
+	var dist: Dictionary[Person, float] = {}
+	for m: Person in main.border.members:
+		var d := GloomSim.flat_dist(at, m.position)
+		if d <= Config.REACT_PATCH_REACH:
+			near.append(m)
+			dist[m] = d
+	near.sort_custom(func(a: Person, b: Person) -> bool: return dist[a] < dist[b])
+	var n := mini(near.size(), Config.REACT_PATCH_MAX)
+	for i: int in range(n):
+		var delay: float = dist[near[i]] / Config.REACT_PATCH_REACH * Config.REACT_PATCH_STAGGER
+		near[i].react(Person.React.PATCH, Config.REACT_PATCH_SECONDS, at, delay)
+	return n
 
 
 # Round 23: what a patch at `at` holds: open gaps and border members inside PATCH_RADIUS (at least 1).
@@ -245,6 +292,8 @@ func _on_burst_cleared(report: Dictionary) -> void:
 	var cleared: Array = report["cleared"]
 	fx.add_burst(cleared)
 	fx.add_lift_result(cleared)
+	for c: Dictionary in cleared:  # Round 24: each lifted person perks up.
+		(c["person"] as Person).react(Person.React.LIFT, Config.REACT_LIFT_SECONDS)
 	if main.recorder != null:
 		var ids: Array = []
 		for c: Dictionary in cleared:

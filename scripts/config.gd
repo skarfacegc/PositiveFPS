@@ -53,16 +53,13 @@ const BEACON_FELL_BACK_TEXT := "The stretch fell back"
 # The preview of the zone the stretch will make (reach_guide.gd, placeholder look): outline, fill, tip marker, label.
 const BEACON_GUIDE_OUTLINE_WIDTH := 0.4
 const BEACON_GUIDE_FILL_COLOUR := Color(0.55, 0.85, 1.0, 0.14)
-const BEACON_GUIDE_LIMITED_FILL_COLOUR := Color(1.0, 0.3, 0.2, 0.28)
+const BEACON_GUIDE_LIMITED_FILL_COLOUR := Color(1.0, 0.3, 0.2, 0.12)
 const BEACON_GUIDE_LABEL_COLOUR := Color(1.0, 1.0, 0.92)
 
 # ---- Round 22: shaped zone (scripts/border_centre.gd, reach_guide.gd, intro.gd, prompt_bar.gd). ----
 # A finished stretch stays and the next grows from the shaped zone. The head count sets the loop length; the body never
-# squeezes below BEACON_BODY_MIN, so a stretch is limited or refused at that length. Lose people and each
-# arm retreats by BEACON_PULL_IN_RATE m/s plus BEACON_PULL_IN_FRAC of its overextension while the loop is over by
-# BEACON_PULL_IN_TOLERANCE.
-const BEACON_PULL_IN_RATE := 0.3 * WORLD_SCALE
-const BEACON_PULL_IN_FRAC := 0.12
+# squeezes below BEACON_BODY_MIN, so a stretch is limited or refused at that length. Lose people and the arms
+# retreat (round 24: one at a time, see the Round 24 block) while the loop is over by BEACON_PULL_IN_TOLERANCE.
 const BEACON_PULL_IN_TOLERANCE := 0.04
 const BEACON_ARM_MERGE := 0.3  # radians: a stretch this close to an arm updates it
 const BEACON_MAX_ARMS := 6
@@ -74,9 +71,8 @@ const NOTICE_SECONDS := 4.0
 const NOTICE_COLOUR := Color(1.0, 0.62, 0.45)
 const BEACON_PULSE_SECONDS := 1.8
 const BEACON_GAIN_TEXT := "+%d sq m of ground"
-const BEACON_LIMITED_OUTLINE_WIDTH := 0.9
+const BEACON_LIMITED_OUTLINE_WIDTH := 0.6
 const BEACON_LIMITED_COLOUR := Color(1.0, 0.35, 0.25, 0.95)
-const BEACON_LIMITED_LABEL_COLOUR := Color(1.0, 0.7, 0.55)
 
 # ---- Round 22: gap patch (scripts/gap_patch.gd). ----
 # F spends PATCH_SPIRIT_COST spirit to seal the gap (or the strained spot) nearest the cursor for PATCH_SECONDS. While
@@ -126,8 +122,9 @@ const BORDER_WARN_COLOUR_HIGH := Color(1.0, 0.25, 0.2)
 # and
 # loses its boost the moment the border drops it. Index order: bandstand, garden, bell tower.
 const LANDMARK_NAMES: Array[String] = ["Bandstand", "Garden", "Bell tower"]
+# Round 24: the Garden (index 1) stands about 14 m from the start, within the first arm's reach (was (-29, 0, 17)).
 const LANDMARK_POSITIONS: Array[Vector3] = [
-	Vector3(27, 0, -21) * WORLD_SCALE, Vector3(-29, 0, 17) * WORLD_SCALE, Vector3(6, 0, 31) * WORLD_SCALE
+	Vector3(27, 0, -21) * WORLD_SCALE, Vector3(-9, 0, 4) * WORLD_SCALE, Vector3(6, 0, 31) * WORLD_SCALE
 ]
 # Collision size (footprint 4 x 4 like the other blocks) and plain colour of each landmark's block.
 const LANDMARK_SIZES: Array[Vector3] = [Vector3(4, 2.6, 4), Vector3(4, 1.0, 4), Vector3(4, 7.0, 4)]
@@ -226,10 +223,9 @@ const BEACON_PULL_SPEED := 1.2 * WORLD_SCALE
 const LANDMARK_POINTER_REFRESH := 0.2  # Seconds between two works-out of the landmark pointers (5 a second).
 const BEACON_PULL_IN_SQUEEZE := 1.1
 const BEACON_PULL_IN_NOTICE_GAP := 8.0  # Seconds between two "pulling in" notices.
-const NOTICE_FONT_SIZE := 18
-const NOTICE_HEIGHT := 38.0
-const BEACON_GUIDE_LABEL_SIZE := 0.024
-const BEACON_LIMITED_LABEL_SIZE := 0.035
+const NOTICE_FONT_SIZE := 16
+const NOTICE_HEIGHT := 34.0
+const BEACON_GUIDE_LABEL_SIZE := 0.012
 const BEACON_GAIN_LABEL_SIZE := 0.03
 const BEACON_GAIN_OUTLINE_SIZE := 8
 const BEACON_PULSE_COLOUR := Color(1.0, 0.95, 0.6, 0.6)
@@ -241,9 +237,8 @@ const BEACON_PULSE_RING_GROW := 4.0
 # Cue: a small line near the player, shown only when F (patch) or G/Q (burst) can be acted on right now.
 # Result: a short rising count at the patched spot and at each person the burst lifted, with a halo on them.
 # Landmarks: boosts doubled (LANDMARK_*_MULT, Round 19 block); one landmark at dawn is enough for the third light.
-const CUE_FONT_SIZE := 16
+const CUE_FONT_SIZE := 18
 const CUE_PLAYER_RANGE := 14.0 * WORLD_SCALE  # A gap or strain this close to the player counts as "near".
-const CUE_OFFSET := Vector2(-70.0, 46.0)  # Screen offset of the cue from the player's feet.
 const CUE_ALPHA := 0.8
 const CUE_PATCH_TEXT := "F: patch"
 const CUE_PATCH_AIM_TEXT := "gap near: aim at it, F"
@@ -255,6 +250,33 @@ const FX_HALO_SECONDS := 1.5
 const FX_PATCH_PULSE_SECONDS := 0.8
 const FX_PATCH_TEXT := "Held: %d"
 const FX_LIFT_TEXT := "lifted %d"
+
+# ---- Round 24: reactions (person.gd, person_look*.gd, gap_patch.gd, reach_guide.gd, border_centre.gd). ----
+# Things react: a patch makes the border people at that spot hop, turn toward it and glow; a burst makes each lifted
+# person hop and glow warm. The cues for F and G sit on the HUD beside the spirit meter and glow when ready. The reach
+# preview has no hover words (a refusal shows only when E is pressed). A pull-in retreats one arm at a time: its outline
+# fades for BEACON_PULL_FADE_SECONDS, then it walks in at BEACON_PULL_CALM_RATE; past BEACON_PULL_URGENT_RATIO of the
+# length the people can hold it speeds up (and skips the fade) so the spacing stays under BORDER_MAX_GAP.
+const REACT_PATCH_SECONDS := 1.2
+const REACT_PATCH_HOPS := 2.0
+const REACT_PATCH_HOP_HEIGHT := 0.55
+const REACT_PATCH_MAX := 10  # Most border people that react to one patch.
+const REACT_PATCH_REACH := PATCH_RADIUS * 1.3
+const REACT_PATCH_STAGGER := 0.35  # Seconds of delay across the patch radius (nearest first).
+const REACT_LIFT_SECONDS := 1.0
+const REACT_LIFT_HOP_HEIGHT := 0.85
+const REACT_GLOW_ENERGY := 1.8
+const CUE_HUD_GAP := 18.0  # Pixels between the spirit meter's right end and the cue.
+const CUE_HUD_Y := -112.0  # Offset from the bottom of the screen (the meter's own top).
+const CUE_READY_COLOUR := Color(1.0, 0.92, 0.5)
+const CUE_PULSE_HZ := 1.6
+const BEACON_PULL_CALM_RATE := 0.7 * WORLD_SCALE  # m/s one arm walks in.
+const BEACON_PULL_FADE_SECONDS := 2.0
+const BEACON_PULL_FADE_ALPHA := 0.2  # The retreating arm's outline alpha once faded.
+const BEACON_PULL_FADE_ANGLE := 0.5  # Radians either side of the arm that fade.
+const BEACON_PULL_URGENT_RATIO := 1.2  # Loop over the people's length by this factor: hurry.
+const BEACON_PULL_URGENT_MULT := 4.0
+const LANDMARK_NEAR_INDEX := 1  # The Garden: within the first arm's reach of the start (the other two stay far).
 
 static var intro_override: int = -1
 

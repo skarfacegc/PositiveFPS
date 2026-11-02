@@ -61,7 +61,6 @@ func test_the_beacon_walks_about_fifty_percent_faster_than_round_22() -> void:
 func test_notices_and_growth_text_are_smaller_and_quieter() -> void:
 	assert_int(Config.NOTICE_FONT_SIZE).is_less_equal(20)
 	assert_float(Config.NOTICE_HEIGHT).is_less(56.0)
-	assert_float(Config.BEACON_LIMITED_LABEL_SIZE).is_less(0.05)
 	assert_float(Config.BEACON_GUIDE_LABEL_SIZE).is_less_equal(0.03)
 	assert_float(Config.BEACON_GAIN_LABEL_SIZE).is_less(0.05)
 	assert_float(Config.BEACON_PULSE_COLOUR.a).is_less(0.95)
@@ -119,10 +118,8 @@ func test_the_preview_of_a_far_aim_is_the_calm_preview_and_the_growth_text_is_sm
 	td.player._has_aim = true
 	td.player._aim_point = CENTRE + Vector3(0, 0, 80)
 	td.reach_guide.sync(td.border, td.player)
-	var label: Label3D = td.reach_guide._label
-	assert_bool(label.visible).is_true()
-	assert_str(label.text).is_equal("E: stretch here")
-	assert_float(label.pixel_size).is_equal_approx(Config.BEACON_GUIDE_LABEL_SIZE, 0.0001)
+	# Round 24: no words while hovering.
+	assert_object(td.reach_guide._label).is_null()
 	# After the arm grows the "+N sq m of ground" text uses the quieter size.
 	assert_bool(td.try_place_beacon()).is_true()
 	var guard := 0

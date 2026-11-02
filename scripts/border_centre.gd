@@ -54,6 +54,12 @@ var _people: int = 0
 var _cap_people: int = -1
 var _cap_value: float = 0.0
 var _clock: float = 0.0
+# Round 24: the calm pull-in. The one arm that is retreating (its angle), the seconds it has been fading, and how far
+# faded its outline is (0 to 1).
+var _retreating: bool = false
+var _retreat_angle: float = 0.0
+var _fade_t: float = 0.0
+var _fade_frac: float = 0.0
 var _last_pull_notice: float = -1.0e9  # Round 23: one "pulling in" notice per quiet spell, not per person lost
 # Round 21: the plan for the last aim asked about (see plan_toward), reused for BEACON_PLAN_SECONDS.
 var _plan_key := Vector4.INF
@@ -494,13 +500,13 @@ static func new_ground(before: Array[float], after: Array[float]) -> float:
 
 
 # Round 22: the loop is longer than the people can hold and the body is already at its smallest, so the arms retreat
-# toward
-# the body: each by BEACON_PULL_IN_RATE plus BEACON_PULL_IN_FRAC of how far it overextends, so the longest, thinnest
-# tips
-# go first; an arm that has reached the body is gone. `body` is the body's mean radius. Border calls this while that
-# is so,
-# and settled() when it is not.
-func pull_in(delta: float, body: float) -> void:
+# toward the body. Round 24: ONE arm at a time, the longest first. Its outline fades for BEACON_PULL_FADE_SECONDS, then
+# it walks in at BEACON_PULL_CALM_RATE and is gone when it reaches the body; the next arm starts only after that. The
+# harder the loop is over the length the people can hold (`over`, the loop's length as a share of that length), the
+# shorter the fade and the faster the walk (up to BEACON_PULL_URGENT_MULT times at BEACON_PULL_URGENT_RATIO), so the
+# spacing stays under BORDER_MAX_GAP where it can. `body` is the body's mean radius. Border calls this while the loop is
+# over, and settled() when it is not.
+func pull_in(delta: float, body: float, over: float = 1.0) -> void:
 	if arms.is_empty():
 		return
 	if not _pulling:
@@ -509,21 +515,80 @@ func pull_in(delta: float, body: float) -> void:
 		if _clock - _last_pull_notice >= Config.BEACON_PULL_IN_NOTICE_GAP:
 			_last_pull_notice = _clock
 			b.zone_pulling_in.emit()
-	var kept: Array[Vector2] = []
-	for a: Vector2 in arms:
-		var ex := a.y - body - (Config.BEACON_PULL_IN_RATE + Config.BEACON_PULL_IN_FRAC * (a.y - body)) * delta
-		if ex > 0.1:
-			kept.append(Vector2(a.x, body + ex))
-	arms = kept
+	var calm_over := 1.0 + Config.BEACON_PULL_IN_TOLERANCE
+	var pressure := clampf(inverse_lerp(calm_over, Config.BEACON_PULL_URGENT_RATIO, over), 0.0, 1.0)
+	var idx := _arm_at(_retreat_angle) if _retreating else -1
+	if idx < 0:
+		idx = _longest_arm(body)
+		_retreating = true
+		_retreat_angle = arms[idx].x
+		_fade_t = 0.0
+	var fade_total := Config.BEACON_PULL_FADE_SECONDS * (1.0 - pressure)
+	_fade_t += delta
+	_fade_frac = 1.0 if fade_total <= 0.0 else clampf(_fade_t / fade_total, 0.0, 1.0)
+	if _fade_t < fade_total:
+		return
+	var rate := Config.BEACON_PULL_CALM_RATE * lerpf(1.0, Config.BEACON_PULL_URGENT_MULT, pressure)
+	var ex := arms[idx].y - body - rate * delta
+	if ex > 0.1:
+		arms[idx] = Vector2(arms[idx].x, body + ex)
+	else:
+		arms.remove_at(idx)
+		_retreating = false
+		_fade_frac = 0.0
 	arm_version += 1
 
 
 # The loop is back within its length: an episode of pulling in (if any) is over.
 func settled() -> void:
+	_retreating = false
+	_fade_frac = 0.0
 	if not _pulling:
 		return
 	_pulling = false
 	b.zone_shrunk.emit(maxf(_pull_area0 - polygon_area(b.polygon), 0.0))
+
+
+# Round 24: the index of the arm at `angle` (the one chosen to retreat), or -1 when it is gone.
+func _arm_at(angle: float) -> int:
+	for i: int in range(arms.size()):
+		if absf(wrapf(arms[i].x - angle, -PI, PI)) < 0.001:
+			return i
+	return -1
+
+
+# Round 24: the arm that reaches furthest past the body.
+func _longest_arm(body: float) -> int:
+	var best := 0
+	for i: int in range(1, arms.size()):
+		if arms[i].y - body > arms[best].y - body:
+			best = i
+	return best
+
+
+# Round 24: true while one arm is retreating (fading, then walking in).
+func is_retreating() -> bool:
+	return _retreating
+
+
+# Round 24: the retreating arm's angle (meaningful while is_retreating()).
+func retreat_angle() -> float:
+	return _retreat_angle
+
+
+# Round 24: the outline alpha of the segment `a` to `b` (world x, z): 1 normally; the retreating arm's own stretch
+# fades toward BEACON_PULL_FADE_ALPHA, softest at the sides. Cheap (a compare) when nothing is retreating.
+func outline_alpha(p0: Vector2, p1: Vector2) -> float:
+	if not _retreating or _fade_frac <= 0.0:
+		return 1.0
+	var d := (p0 + p1) * 0.5 - Vector2(b.centre.x, b.centre.z)
+	if d.length() <= b.body_radius * 1.02:
+		return 1.0
+	var off := absf(wrapf(d.angle() - _retreat_angle, -PI, PI))
+	if off >= Config.BEACON_PULL_FADE_ANGLE:
+		return 1.0
+	var weight := 1.0 - off / Config.BEACON_PULL_FADE_ANGLE
+	return lerpf(1.0, Config.BEACON_PULL_FADE_ALPHA, _fade_frac * weight)
 
 
 # How far the stretch reaches along the ray at `angle` from the centre, for a body of radius `body`, or 0 when it adds

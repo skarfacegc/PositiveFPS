@@ -45,14 +45,34 @@ func test_landmarks_are_inside_the_map_clear_of_blocks_and_each_other_and_beyond
 		# Inside the map, with the whole block on the floor.
 		assert_float(absf(at.x) + half).is_less(lim)
 		assert_float(absf(at.z) + half).is_less(lim)
-		# Beyond what the natural ring can reach from the start: beacons are needed.
-		assert_float(Vector2(at.x, at.z).length() - half).is_greater(Config.LANDMARK_START_REACH)
+		# Beyond what the natural ring can reach from the start: beacons are needed. Round 24: the near landmark (the
+		# Garden) is the exception: it lies within the first arm's reach of the start (see the next test).
+		if i != Config.LANDMARK_NEAR_INDEX:
+			assert_float(Vector2(at.x, at.z).length() - half).is_greater(Config.LANDMARK_START_REACH)
 		# Clear of every ordinary block (a block is 4 wide: keep a wide margin) and of each other.
 		for block: Vector3 in TopDownMain.BLOCK_POSITIONS:
 			assert_float(Vector2(at.x - block.x, at.z - block.z).length()).is_greater(8.0)
 		for j: int in range(i + 1, count):
 			var other := Config.LANDMARK_POSITIONS[j]
 			assert_float(Vector2(at.x - other.x, at.z - other.z).length()).is_greater(20.0)
+
+
+func test_one_landmark_is_within_the_first_arms_reach_but_outside_the_starting_ring() -> void:
+	# Round 24: about 15 m from the start at 12 people. The first arm goes circle_radius + reach_beyond past the middle.
+	var at := Config.LANDMARK_POSITIONS[Config.LANDMARK_NEAR_INDEX]
+	var half := Config.LANDMARK_SIZES[Config.LANDMARK_NEAR_INDEX].x * 0.5
+	var d := Vector2(at.x, at.z).length()
+	var ring := BorderCentre.circle_radius(12)
+	var first_arm := minf(ring + BorderCentre.reach_beyond(12), BorderCentre.feasible_distance(ring))
+	assert_float(d).is_between(12.0, 16.0)
+	assert_float(d - half).is_greater(ring)
+	assert_float(d + half).is_less(first_arm)
+	# Clear of the start, so nobody spawns on it, and the other two are still far.
+	assert_float(d).is_greater(Config.TD_SPAWN_CENTRE_CLEAR)
+	for i: int in range(Config.LANDMARK_POSITIONS.size()):
+		if i != Config.LANDMARK_NEAR_INDEX:
+			var other := Config.LANDMARK_POSITIONS[i]
+			assert_float(Vector2(other.x, other.z).length()).is_greater(Config.LANDMARK_START_REACH)
 
 
 func test_the_level_builds_a_block_and_a_building_for_each_landmark() -> void:

@@ -276,6 +276,14 @@ func segment_colour(j: int) -> Color:
 	return Config.BORDER_INTACT_COLOUR
 
 
+# Round 24: the outline alpha of segment `j` (1 except along an arm that is pulling in; see BorderCentre.outline_alpha).
+func segment_fade(j: int) -> float:
+	var n := polygon.size()
+	if n < 3 or not _centre_ctl.is_retreating():
+		return 1.0
+	return _centre_ctl.outline_alpha(polygon[j], polygon[(j + 1) % n])
+
+
 func segment_is_gap(j: int) -> bool:
 	return j >= 0 and j < _sample_gap.size() and _sample_gap[j]
 
@@ -481,7 +489,7 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 			# floor the scale can really reach, with room for the lag of the ease.
 			var squeezed := maxf(min_scale, BorderShape.SCALE_FLOOR) * Config.BEACON_PULL_IN_SQUEEZE
 			if raw > target * (1.0 + Config.BEACON_PULL_IN_TOLERANCE) and _scale <= squeezed:
-				_centre_ctl.pull_in(delta, body)
+				_centre_ctl.pull_in(delta, body, raw / target)
 			else:
 				_centre_ctl.settled()
 		_scale = lerpf(_scale, desired, clampf(delta / Config.BORDER_NORMALISE_SECONDS, 0.0, 1.0))

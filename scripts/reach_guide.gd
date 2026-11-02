@@ -2,16 +2,12 @@ class_name ReachGuide
 extends Node3D
 
 # Round 20/21/22: the placeholder look's guide to the stretching zone, drawn flat on the ground. Before you commit it
-# shows
-# the zone a press of E at the cursor would make (the shaped zone: body, kept arms and the new tip): the outline (a
-# faint
-# fill inside), a bright marker at the tip and the words "E: stretch here". When something holds the tip back (too
-# far for
-# the people, no spare border, dimmed people in the way) the preview is unmissable: a thick red outline, a strong
-# tint, a
-# cross at the cursor and the reason in large letters beside the cursor. During a stretch it shows the tip's travel (a
-# line from the centre to the tip, a disc at the tip, a dashed line on to the beacon when the reach falls short).
-# Round 22: when the tip arrives a pulse runs along the new arm and "+N sq m of ground" rises from the tip.
+# shows the zone a press of E at the cursor would make (the shaped zone: body, kept arms and the new tip): the outline
+# (a faint fill inside) and a bright marker at the tip. When something holds the tip back (too far for the people, no
+# spare border, dimmed people in the way) the outline turns red. Round 24: it shows no words while hovering; a refusal
+# shows only as a small notice when E is pressed. During a stretch it shows the tip's travel (a line from the centre
+# to the tip, a disc at the tip, a dashed line on to the beacon when the reach falls short, and the word "Stretching").
+# Round 22: when the tip arrives a pulse runs along the new arm and "+N sq m of ground" rises from it.
 # Graphics checkpoint 4: the styled look draws the older reach ring and line with dithered ground pieces (StyleReach),
 # swapped in by sync.
 
@@ -70,9 +66,8 @@ func sync(border: Border, player: TopDownPlayer) -> void:
 		_travel(c, border, info)
 		_mesh.surface_end()
 	elif player.has_aim():
-		var aim := Vector2(player.aim_point().x, player.aim_point().z)
 		_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
-		_zone_preview(c, border.plan_stretch(player.aim_point()), aim)
+		_zone_preview(c, border.plan_stretch(player.aim_point()))
 		_mesh.surface_end()
 	else:
 		_set_label("", Vector2.ZERO)
@@ -86,10 +81,8 @@ static func preview(c: Vector2, aim: Vector2, reach: float) -> Dictionary:
 
 
 # Round 21/22: the zone a press of E at the cursor would make (Border.plan_stretch, the same plan the real stretch
-# uses): its outline and a faint fill, a marker at the tip, and, when something holds the tip back, a thick red
-# outline, a
-# strong tint and the reason beside the cursor.
-func _zone_preview(c: Vector2, plan: Dictionary, aim: Vector2) -> void:
+# uses): its outline and a faint fill, a marker at the tip, and, when something holds the tip back, a red outline.
+func _zone_preview(c: Vector2, plan: Dictionary) -> void:
 	var outline: PackedVector2Array = plan["outline"]
 	var reason: String = plan["reason"]
 	var reach: float = plan["reach"]
@@ -103,12 +96,10 @@ func _zone_preview(c: Vector2, plan: Dictionary, aim: Vector2) -> void:
 	var end := c + Vector2(cos(ang), sin(ang)) * reach
 	_disc(end, 1.1, Config.BEACON_GUIDE_TIP_COLOUR)
 	_ring(end, 2.0, Config.BEACON_GUIDE_TIP_COLOUR)
-	if limited:
-		if aim.distance_to(end) > 2.0:
-			_cross(aim, 1.8, Config.BEACON_LIMITED_COLOUR)
-		_set_label(reason, aim + Vector2(0.0, -1.0), true)
-	else:
-		_set_label("E: stretch here", end)
+	# Round 24: no words while hovering, limited or not. A refusal shows (as a small notice) only when E is pressed on
+	# a spot that cannot be placed (BeaconPlacement.try_place). Round 22's reason was a world-space Label3D, wider than
+	# the whole view for the longest text.
+	_set_label("", end)
 
 
 func _travel(c: Vector2, border: Border, info: Dictionary) -> void:
@@ -177,7 +168,7 @@ func _pulse(border: Border) -> void:
 
 
 # Shows `text` just beyond `at` (nothing when it is empty). The text is set only when it changes.
-func _set_label(text: String, at: Vector2, limited: bool = false) -> void:
+func _set_label(text: String, at: Vector2) -> void:
 	if _label == null:
 		if text == "":
 			return
@@ -187,9 +178,9 @@ func _set_label(text: String, at: Vector2, limited: bool = false) -> void:
 		_label.pixel_size = Config.BEACON_GUIDE_LABEL_SIZE
 		add_child(_label)
 	_label.visible = text != ""
-	_label.modulate = Config.BEACON_LIMITED_LABEL_COLOUR if limited else Config.BEACON_GUIDE_LABEL_COLOUR
-	_label.pixel_size = Config.BEACON_LIMITED_LABEL_SIZE if limited else Config.BEACON_GUIDE_LABEL_SIZE
-	_label.outline_size = 16 if limited else 10
+	_label.modulate = Config.BEACON_GUIDE_LABEL_COLOUR
+	_label.pixel_size = Config.BEACON_GUIDE_LABEL_SIZE
+	_label.outline_size = 6
 	if text != "" and text != _label.text:
 		_label.text = text
 	_label.position = Vector3(at.x, 3.2, at.y)
@@ -226,11 +217,6 @@ func _dashes(from: Vector2, to: Vector2, col: Color) -> void:
 	while d < len_total:
 		_line(from + dir * d, from + dir * minf(d + 1.2, len_total), LINE_WIDTH, col)
 		d += 2.4
-
-
-func _cross(at: Vector2, size: float, col: Color) -> void:
-	_line(at + Vector2(-size, -size), at + Vector2(size, size), PATH_WIDTH * 0.6, col)
-	_line(at + Vector2(-size, size), at + Vector2(size, -size), PATH_WIDTH * 0.6, col)
 
 
 func _line(a: Vector2, b: Vector2, width: float, col: Color) -> void:
