@@ -143,14 +143,14 @@ const LANDMARK_POSITIONS: Array[Vector3] = [
 const LANDMARK_SIZES: Array[Vector3] = [Vector3(4, 2.6, 4), Vector3(4, 1.0, 4), Vector3(4, 7.0, 4)]
 const LANDMARK_COLOURS: Array[Color] = [Color(0.55, 0.62, 0.85), Color(0.55, 0.8, 0.5), Color(0.85, 0.72, 0.4)]
 const LANDMARK_START_REACH := 28.0 * WORLD_SCALE
-# Boosts while held: music joy x1.5 (bandstand), nature joy x1.5 (garden), and border members within
-# LANDMARK_BELL_RADIUS of the bell tower take x0.6 of the gloom's drain (bell tower).
-const LANDMARK_MUSIC_MULT := 1.5
-const LANDMARK_NATURE_MULT := 1.5
-const LANDMARK_BELL_LOSS_MULT := 0.6
+# Boosts while held: music joy x2 (bandstand), nature joy x2 (garden), and border members within
+# LANDMARK_BELL_RADIUS of the bell tower take x0.4 of the gloom's drain (bell tower).
+const LANDMARK_MUSIC_MULT := 2.0
+const LANDMARK_NATURE_MULT := 2.0
+const LANDMARK_BELL_LOSS_MULT := 0.4
 const LANDMARK_BELL_RADIUS := 12.0 * WORLD_SCALE
 # Short boost text per landmark, for the HUD panel and the placeholder labels.
-const LANDMARK_BOOST_TEXT: Array[String] = ["music x1.5", "nature x1.5", "gloom slowed x0.6 nearby"]
+const LANDMARK_BOOST_TEXT: Array[String] = ["music x2", "nature x2", "gloom slowed x0.4 nearby"]
 
 # ---- Round 19: dawn rating (scripts/dawn_rating.gd). ----
 # The level is won by reaching dawn. 1 light for that; 2 lights when at least two of the three lower goals are met
@@ -161,7 +161,7 @@ const DAWN_PEOPLE_LOW := 0.4
 const DAWN_GROUND_LOW := 0.2
 const DAWN_LANDMARKS_LOW := 1
 const DAWN_PEOPLE_HIGH := 0.6
-const DAWN_LANDMARKS_HIGH := 2
+const DAWN_LANDMARKS_HIGH := 1
 
 # ---- Round 20: landmark clarity (scripts/landmark.gd, landmarks.gd, looks/landmark_look_placeholder.gd, hud.gd,
 # looks/minimap_look_placeholder.gd, topdown_main.gd). ----
@@ -206,6 +206,25 @@ const LANDMARK_POINTER_BG_COLOUR := Color(0.0, 0.0, 0.0, 0.5)
 const TD_MINIMAP_LANDMARK_UNHELD_GROW := 1.5
 const TD_MINIMAP_LANDMARK_UNHELD_RING_COLOUR := Color(1.0, 0.95, 0.8)
 const TD_MINIMAP_LANDMARK_UNHELD_RING_RADIUS := 6.4
+
+# ---- Round 23: defences and landmarks (scripts/gap_patch.gd, patch_fx.gd, landmarks.gd, dawn_rating.gd). ----
+# Cue: a small line near the player, shown only when F (patch) or G/Q (burst) can be acted on right now.
+# Result: a short rising count at the patched spot and at each person the burst lifted, with a halo on them.
+# Landmarks: boosts doubled (LANDMARK_*_MULT, Round 19 block); one landmark at dawn is enough for the third light.
+const CUE_FONT_SIZE := 16
+const CUE_PLAYER_RANGE := 14.0 * WORLD_SCALE  # A gap or strain this close to the player counts as "near".
+const CUE_OFFSET := Vector2(-70.0, 46.0)  # Screen offset of the cue from the player's feet.
+const CUE_ALPHA := 0.8
+const CUE_PATCH_TEXT := "F: patch"
+const CUE_PATCH_AIM_TEXT := "gap near: aim at it, F"
+const CUE_BURST_TEXT := "G: lift %d"
+const FX_TEXT_SECONDS := 1.6
+const FX_TEXT_RISE := 1.8
+const FX_TEXT_SIZE := 0.012  # Label3D pixel_size; small.
+const FX_HALO_SECONDS := 1.5
+const FX_PATCH_PULSE_SECONDS := 0.8
+const FX_PATCH_TEXT := "Held: %d"
+const FX_LIFT_TEXT := "lifted %d"
 
 static var intro_override: int = -1
 

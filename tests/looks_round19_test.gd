@@ -52,7 +52,7 @@ func test_a_held_landmark_is_lit_and_shows_its_boost() -> void:
 	assert_bool(look._beam.visible).is_true()
 	assert_bool(look.ruin.visible).is_false()
 	assert_bool(look._calm_ring.visible).is_true()
-	assert_str(look._label.text).is_equal("Bell tower: gloom slowed x0.6 nearby")
+	assert_str(look._label.text).is_equal("Bell tower: gloom slowed x0.4 nearby")
 	# Losing it puts it back to a ruin.
 	lm.update(0.1, false)
 	assert_bool(look.is_lit()).is_false()
@@ -156,7 +156,7 @@ func test_the_hud_draws_the_styled_panels_and_hides_the_labels() -> void:
 	assert_bool(hud.landmark_label.visible).is_false()
 	assert_bool(hud.landmark_panel.visible).is_true()
 	hud.landmark_panel.size = Vector2(250, 164)
-	hud.set_landmarks(["Bandstand: music x1.5"], 3, [true, false, false])
+	hud.set_landmarks(["Bandstand: music x2"], 3, [true, false, false])
 	assert_array(hud.landmark_panel.held).is_equal([true, false, false])
 	assert_str(hud.landmark_label.text).contains("Landmarks 1 of 3")
 	for lights: int in [3, 2, 1]:

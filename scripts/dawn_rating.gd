@@ -47,7 +47,7 @@ static func hint_for(lights: int) -> String:
 		return ""
 	if lights == 2:
 		return (
-			"For three: %d%% of the people rescued and %d landmarks held at dawn"
+			"For three: %d%% of the people rescued and %d landmark held at dawn"
 			% [roundi(Config.DAWN_PEOPLE_HIGH * 100.0), Config.DAWN_LANDMARKS_HIGH]
 		)
 	return (

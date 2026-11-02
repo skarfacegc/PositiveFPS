@@ -37,7 +37,7 @@ func landmark_name() -> String:
 	return Config.LANDMARK_NAMES[index]
 
 
-# What holding it gives, such as "music joy x1.5".
+# What holding it gives, such as "music joy x2".
 func boost_text() -> String:
 	return Config.LANDMARK_BOOST_TEXT[index]
 

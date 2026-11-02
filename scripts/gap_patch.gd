@@ -43,8 +43,10 @@ static func attach(level: TopDownMain) -> GapPatch:
 
 func _build_label() -> void:
 	patch_label = Label.new()
-	patch_label.add_theme_font_size_override("font_size", 22)
-	patch_label.position = Vector2(20, 572)
+	patch_label.add_theme_font_size_override("font_size", Config.CUE_FONT_SIZE)
+	patch_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	patch_label.add_theme_constant_override("outline_size", 4)
+	patch_label.visible = false
 	main.hud.add_child(patch_label)
 
 
@@ -74,18 +76,42 @@ func _tick_patches(delta: float) -> void:
 			expired.emit(pos)
 
 
-# The label under the burst line: what F does right now.
-func _update_label() -> void:
+# Round 23: the cue. A small line by the player's feet, only when F or G/Q can be acted on right now:
+#  - "F: patch" when a gap or strained spot lies under the cursor and spirit allows; "gap near: aim at it, F" when one
+#    is near the player but not under the cursor;
+#  - "G: lift N" when a burst would lift N dimmed people off the border.
+# Nothing is shown otherwise.
+func cue_text() -> String:
+	var parts: Array[String] = []
+	var patch := _patch_cue()
+	if patch != "":
+		parts.append(patch)
+	if burst_targets > 0 and main.player.can_burst():
+		parts.append(Config.CUE_BURST_TEXT % burst_targets)
+	return "   ".join(parts)
+
+
+func _patch_cue() -> String:
 	var player := main.player
-	if player.is_dim or player.spirit < Config.PATCH_SPIRIT_COST:
-		patch_label.text = "Patch gap [F]: needs %d spirit" % roundi(Config.PATCH_SPIRIT_COST)
-		patch_label.add_theme_color_override("font_color", Color(0.9, 0.5, 0.4))
-	elif not patches.is_empty():
-		patch_label.text = "Patch gap [F]: ready (%d sealed)" % patches.size()
-		patch_label.add_theme_color_override("font_color", Config.PATCH_COLOUR)
-	else:
-		patch_label.text = "Patch gap [F]: ready"
-		patch_label.add_theme_color_override("font_color", Color(0.6, 1, 0.6))
+	if not main.running or player.is_dim or player.spirit < Config.PATCH_SPIRIT_COST:
+		return ""
+	if patches.size() >= Config.PATCH_MAX:
+		return ""
+	if player.has_aim() and not _spot_near(player.aim_point()).is_empty():
+		return Config.CUE_PATCH_TEXT
+	if not _spot_near(player.global_position, Config.CUE_PLAYER_RANGE).is_empty():
+		return Config.CUE_PATCH_AIM_TEXT
+	return ""
+
+
+func _update_label() -> void:
+	var text := cue_text()
+	patch_label.visible = text != ""
+	if text == "":
+		return
+	patch_label.text = text
+	patch_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.85, Config.CUE_ALPHA))
+	patch_label.position = main.world_to_screen(main.player.global_position) + Config.CUE_OFFSET
 
 
 # F. Seals the gap or strained spot nearest the cursor. Returns true when a patch was made. Once per frame (the test
@@ -120,6 +146,7 @@ func patch_at(at: Vector3, kind: String = "gap") -> void:
 	main.spirit_meter.moment(-Config.PATCH_SPIRIT_COST, SpiritMeter.Moment.SPEND)
 	main.feedback.pulse_player(SpiritMeter.Moment.SPEND)
 	patches.append({"pos": at, "left": Config.PATCH_SECONDS})
+	fx.add_patch_result(at, _held_near(at))
 	patched.emit(at, Config.PATCH_SPIRIT_COST, main.player.spirit)
 	if main.recorder != null:
 		(
@@ -138,11 +165,23 @@ func patch_at(at: Vector3, kind: String = "gap") -> void:
 		)
 
 
+# Round 23: what a patch at `at` holds: open gaps and border members inside PATCH_RADIUS (at least 1).
+func _held_near(at: Vector3) -> int:
+	var n := 0
+	for g: Vector3 in main.border.gap_midpoints():
+		if GloomSim.flat_dist(at, g) <= Config.PATCH_RADIUS:
+			n += 1
+	for m: Person in main.border.members:
+		if GloomSim.flat_dist(at, m.position) <= Config.PATCH_RADIUS:
+			n += 1
+	return maxi(n, 1)
+
+
 # The nearest open gap middle or strained member to `aim` within PATCH_REACH that no patch already covers:
 # {"pos": Vector3, "kind": "gap" | "strain"}, or an empty Dictionary.
-func _spot_near(aim: Vector3) -> Dictionary:
+func _spot_near(aim: Vector3, reach: float = Config.PATCH_REACH) -> Dictionary:
 	var best: Dictionary = {}
-	var best_d := Config.PATCH_REACH
+	var best_d := reach
 	for g: Vector3 in main.border.gap_midpoints():
 		var d := GloomSim.flat_dist(aim, g)
 		if d <= best_d and not is_patched(g):
@@ -205,6 +244,7 @@ func apply(b: Border) -> void:
 func _on_burst_cleared(report: Dictionary) -> void:
 	var cleared: Array = report["cleared"]
 	fx.add_burst(cleared)
+	fx.add_lift_result(cleared)
 	if main.recorder != null:
 		var ids: Array = []
 		for c: Dictionary in cleared:
