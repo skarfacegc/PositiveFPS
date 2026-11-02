@@ -173,8 +173,7 @@ func test_losing_people_walks_the_tip_back_and_the_arm_lands_where_the_tip_is() 
 	# Ten people are lost.
 	for i: int in range(10):
 		var p: Person = td.people[i]
-		p.grace_left = 0.0
-		p.drain_joy(1.0e6)
+		TopDownTestUtil.lose_now(p)
 	await runner.simulate_frames(2)
 	assert_int(td.rescued_count).is_equal(PEOPLE - 10)
 	var limit: float = td.border.stretch_info()["max"]

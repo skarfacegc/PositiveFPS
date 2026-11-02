@@ -103,6 +103,8 @@ func attach(main: TopDownMain) -> bool:
 		p.stage_changed.connect(_on_stage_changed.bind(p))
 		p.rescued.connect(_on_rescued.bind(p))
 		p.relapsed.connect(_on_relapsed.bind(p))
+		p.wobbled.connect(_on_wobbled.bind(p))
+		p.saved.connect(_on_saved.bind(p))
 		p.joy_blocked.connect(_on_joy_blocked.bind(p))
 		p.joy_landed.connect(_on_joy_landed)
 	_shield_down.resize(main.people.size())
@@ -452,6 +454,15 @@ func _on_rescued(p: Person) -> void:
 
 func _on_relapsed(p: Person) -> void:
 	emit_event("relapse", {"id": _id(p), "pos": _pos(p.global_position)})
+
+
+# Round 24: a drained person began their wobble (`seconds` to be saved), and a joy hit saved one.
+func _on_wobbled(seconds: float, p: Person) -> void:
+	emit_event("wobble", {"id": _id(p), "pos": _pos(p.global_position), "seconds": snappedf(seconds, 0.01)})
+
+
+func _on_saved(p: Person) -> void:
+	emit_event("save", {"id": _id(p), "pos": _pos(p.global_position)})
 
 
 func _on_joy_landed() -> void:

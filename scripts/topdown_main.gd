@@ -94,6 +94,7 @@ var _scaled_for_size: float = -1.0
 # last sank to dimmed (-INF before anyone did).
 var _dim_clock: float = 0.0
 var _last_dim_sink: float = -INF
+var _relapse_wave := RelapseWave.new()  # Round 24: lets one wobbling person relapse at a time.
 
 
 func _ready() -> void:
@@ -213,6 +214,7 @@ func _process(delta: float) -> void:
 	_update_dim(delta)
 	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER * border.loss_mult, strength, border)
 	_hold_back_dimmed(delta)
+	_relapse_wave.advance(delta)
 	grabs.update(people, player, delta)
 	for p: Person in people:
 		p.tick(delta)
@@ -678,6 +680,7 @@ func _spawn_people() -> void:
 		p.relapsed.connect(_on_person_relapsed.bind(p))
 		p.stage_changed.connect(_on_stage_changed.bind(p))
 		p.dim_gate = _try_dim_sink
+		p.relapse_gate = _relapse_wave.allow
 		people.append(p)
 
 

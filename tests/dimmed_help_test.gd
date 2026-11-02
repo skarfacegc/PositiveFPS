@@ -44,7 +44,10 @@ func test_dimmed_people_need_one_point_six_times_the_joy_and_joy_shows_their_pro
 	# Hover-fire at the dimmed person: their ring appears and fills with the joy they take.
 	await _hover(runner, td, dimmed)
 	assert_object(td.player.target).is_same(dimmed)
-	await runner.simulate_frames(90)
+	# Round 24: joy lands harder on a dimmed person (DIMMED_JOY_MULT), so a short burst of fire, not 90 frames, which
+	# would rescue them.
+	await runner.simulate_frames(30)
+	assert_bool(GloomSim.is_dimmed(dimmed)).is_true()
 	assert_float(dimmed.joy).is_greater(0.0)
 	assert_int(td.feedback.dim_rings.size()).is_equal(1)
 	var ring: Dictionary = td.feedback.dim_rings[0]

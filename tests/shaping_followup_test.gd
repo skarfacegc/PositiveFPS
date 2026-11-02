@@ -37,15 +37,13 @@ func _stretch(td: TopDownMain, runner: GdUnitSceneRunner, spot: Vector3) -> void
 
 func _lose_one(td: TopDownMain, i: int) -> void:
 	var p: Person = td.people[i]
-	p.grace_left = 0.0
-	p.drain_joy(1.0e6)
+	TopDownTestUtil.lose_now(p)
 
 
 func _lose(td: TopDownMain, count: int) -> void:
 	for i: int in range(count):
 		var p: Person = td.people[i]
-		p.grace_left = 0.0
-		p.drain_joy(1.0e6)
+		TopDownTestUtil.lose_now(p)
 
 
 func test_real_reach_gains_at_12_24_and_40_people() -> void:

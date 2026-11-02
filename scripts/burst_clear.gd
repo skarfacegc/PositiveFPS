@@ -1,20 +1,24 @@
 class_name BurstClear
 extends RefCounted
 
-# Round 22: the joy burst's job is to clear dimmed people off the border. Everyone within BURST_CLEAR_RADIUS of the
-# player who is dimmed and within BURST_BORDER_BAND of the border line (pressing it from outside, or inside through a
-# gap) is pushed BURST_PUSH_DISTANCE away from the border and lifted to the gloomy band, calm for BURST_CALM_SECONDS
-# (no gloom gain). Everyone else in range gets the usual best-match joy hit (rescued people out to BURST_CLEAR_RADIUS,
-# which tops up strained border members; others out to TD_BURST_RADIUS). Pure rules: the player calls `run`.
+# Round 22: the joy burst's job is to clear dimmed people. Round 24: everyone dimmed within BURST_LIFT_RADIUS of the
+# player is lifted to the gloomy band, calm for BURST_CALM_SECONDS (no gloom gain); those within BURST_BORDER_BAND of
+# the border line (pressing it from outside, or inside through a gap) are also pushed BURST_PUSH_DISTANCE away from it.
+# Everyone else in range gets the usual best-match joy hit (rescued people out to BURST_CLEAR_RADIUS, which tops up
+# strained border members and saves wobbling ones; others out to TD_BURST_RADIUS). Pure rules: the player calls `run`.
 
 
-# True when `p` is a dimmed person the burst would clear from `at`: in range, and close to the border line.
-static func is_target(p: Person, at: Vector3, border: Border) -> bool:
+# True when `p` is a dimmed person the burst would lift from `at`: dimmed, and within BURST_LIFT_RADIUS of `at`. (The
+# border argument is kept so older callers still compile; it no longer matters.)
+static func is_target(p: Person, at: Vector3, _border: Border = null) -> bool:
 	if p.is_rescued or not GloomSim.is_dimmed(p):
 		return false
-	if GloomSim.flat_dist(at, p.global_position) > Config.BURST_CLEAR_RADIUS:
-		return false
-	return border != null and border.active and distance_to_line(border, p.global_position) <= Config.BURST_BORDER_BAND
+	return GloomSim.flat_dist(at, p.global_position) <= Config.BURST_LIFT_RADIUS
+
+
+# True when a lifted person at `pos` is also close enough to the border line to be pushed back from it.
+static func is_at_border(border: Border, pos: Vector3) -> bool:
+	return border != null and border.active and distance_to_line(border, pos) <= Config.BURST_BORDER_BAND
 
 
 # The distance from `pos` to the border line, metres.
@@ -24,10 +28,10 @@ static func distance_to_line(border: Border, pos: Vector3) -> float:
 
 
 # How many dimmed people a burst from `at` would clear right now (the HUD shows it).
-static func count_targets(people: Array[Person], at: Vector3, border: Border) -> int:
+static func count_targets(people: Array[Person], at: Vector3, _border: Border = null) -> int:
 	var n := 0
 	for p: Person in people:
-		if is_target(p, at, border):
+		if is_target(p, at):
 			n += 1
 	return n
 
@@ -38,9 +42,9 @@ static func run(people: Array[Person], at: Vector3, border: Border) -> Dictionar
 	var cleared: Array[Dictionary] = []
 	var hits := 0
 	for p: Person in people:
-		if is_target(p, at, border):
+		if is_target(p, at):
 			var from := p.global_position
-			var to := _pushed(border, from)
+			var to := _pushed(border, from) if is_at_border(border, from) else from
 			p.global_position = to
 			p.gloom = minf(p.gloom, Config.BURST_LIFT_GLOOM)
 			p.joy = 0.0

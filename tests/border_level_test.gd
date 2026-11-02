@@ -257,7 +257,8 @@ func test_a_relapsed_member_leaves_and_the_others_reshuffle() -> void:
 	var leaver: Person = made[0]
 	leaver.grace_left = 0.0
 	leaver.drain_joy(Config.JOY_MAX)
-	await runner.simulate_frames(120)
+	# Round 24: the relapse follows the wobble (up to WOBBLE_SECONDS plus its jitter), then the others reshuffle.
+	await runner.simulate_frames(int((Config.WOBBLE_SECONDS * (1.0 + Config.WOBBLE_JITTER) + 2.0) * 60.0))
 	assert_bool(leaver.is_rescued).is_false()
 	assert_int(td.border.member_count).is_equal(4)
 	assert_bool(td.border.members.has(leaver)).is_false()
@@ -289,7 +290,7 @@ func test_losing_the_border_by_relapse_below_three_ends_the_level() -> void:
 	assert_bool(td.border.formed).is_true()
 	made[0].grace_left = 0.0
 	made[0].drain_joy(Config.JOY_MAX)
-	await runner.simulate_frames(2)
+	await runner.simulate_frames(int((Config.WOBBLE_SECONDS * (1.0 + Config.WOBBLE_JITTER) + 1.0) * 60.0))  # Round 24
 	assert_bool(td.running).is_false()
 	assert_str(td.hud.end_label.text).contains("The border fell")
 
