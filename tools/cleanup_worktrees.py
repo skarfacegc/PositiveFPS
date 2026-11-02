@@ -11,6 +11,11 @@ Usage:
     python tools/cleanup_worktrees.py --keep-latest   also keep the most recently created worktree
     python tools/cleanup_worktrees.py -y              skip the confirmation prompt
 
+Orphans (round 23): `.claude/worktrees/agent-*` folders that no registration points to (left behind when an agent
+worktree was unregistered but its folder could not be deleted) are listed as ORPHAN and removed with the rest.
+- An orphan is never touched when it is registered as a live worktree, when it is (or holds) the folder this script
+  runs from, or when ANY running process (not only Godot) mentions its path in its command line or executable.
+
 Rules:
 - The main worktree (the repo itself) is never touched.
 - A worktree whose folder is used by a running Godot process (its command line mentions the folder) is skipped.
@@ -63,7 +68,7 @@ def parse_worktrees(text):
         if key == "worktree":
             if current is not None:
                 entries.append(current)
-            current = {"path": value, "head": "", "branch": ""}
+            current = {"path": value, "head": "", "branch": "", "locked": False}
         elif current is not None:
             if key == "HEAD":
                 current["head"] = value[:8]
@@ -71,21 +76,24 @@ def parse_worktrees(text):
                 current["branch"] = value.replace("refs/heads/", "")
             elif key == "detached":
                 current["branch"] = "detached"
+            elif key == "locked":
+                current["locked"] = True
     if current is not None:
         entries.append(current)
     return entries
 
 
-def running_game_command_lines():
-    """Command lines of running Godot processes. Raises RuntimeError if they cannot be listed."""
+def running_game_command_lines(only_godot=True):
+    """Command lines of running Godot processes (all processes with only_godot=False, executable path included).
+    Raises RuntimeError if they cannot be listed."""
     if sys.platform == "win32":
+        where = " -Filter \"Name like 'Godot%'\"" if only_godot else ""
         cmd = [
             "powershell",
             "-NoProfile",
             "-NonInteractive",
             "-Command",
-            "Get-CimInstance Win32_Process -Filter \"Name like 'Godot%'\" | "
-            "Select-Object -ExpandProperty CommandLine",
+            "Get-CimInstance Win32_Process%s | ForEach-Object { $_.ExecutablePath; $_.CommandLine }" % where,
         ]
     else:
         cmd = ["ps", "-eo", "args="]
@@ -96,7 +104,7 @@ def running_game_command_lines():
     if result.returncode != 0:
         raise RuntimeError("could not list running processes (%s)" % result.stderr.strip())
     lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    if sys.platform != "win32":
+    if sys.platform != "win32" and only_godot:
         lines = [line for line in lines if "godot" in line.lower()]
     return lines
 
@@ -120,6 +128,12 @@ def rmtree_writable(path):
 def git_common_dir():
     result = git("rev-parse", "--git-common-dir")
     return norm(os.path.join(ROOT, result.stdout.strip()))
+
+
+def main_checkout():
+    """The main checkout's folder, with its real capitalisation (git_common_dir() is case-folded)."""
+    result = git("rev-parse", "--path-format=absolute", "--git-common-dir")
+    return os.path.dirname(os.path.normpath(result.stdout.strip()))
 
 
 def stale_metadata_dirs():
@@ -147,6 +161,46 @@ def stale_metadata_dirs():
     return stale, unreadable
 
 
+ORPHAN_PATTERN = re.compile(r"^agent-[0-9a-z]+$")
+
+
+def agent_worktrees_dir():
+    """The .claude/worktrees folder of the main checkout (not of the worktree this script may run from)."""
+    return os.path.join(main_checkout(), ".claude", "worktrees")
+
+
+def build_orphan_plan(worktrees, command_lines, folder=None, here=None):
+    """Orphan agent folders as (state, path, note), state "orphan" (remove) or "orphan-skip" (leave it).
+
+    An orphan is an `agent-*` folder under .claude/worktrees that no registered worktree points to. A folder is left
+    alone when it is registered (so never listed), is or holds `here` (the folder this script runs from), or any
+    running process mentions its path. `command_lines` must come from ALL processes (running_game_command_lines(False)).
+    """
+    folder = folder or agent_worktrees_dir()
+    here = norm(here or ROOT)
+    registered = {norm(wt["path"]) for wt in worktrees}
+    plan = []
+    if not os.path.isdir(folder):
+        return plan
+    for name in sorted(os.listdir(folder)):
+        path = os.path.join(folder, name)
+        if not ORPHAN_PATTERN.match(name) or not os.path.isdir(path) or norm(path) in registered:
+            continue
+        if here == norm(path) or here.startswith(norm(path) + os.sep):
+            plan.append(("orphan-skip", path, "holds the folder this script runs from"))
+        elif in_use_by_game(path, command_lines):
+            plan.append(("orphan-skip", path, "a running process mentions this folder"))
+        else:
+            plan.append(("orphan", path, "agent folder with no registered worktree, no running process"))
+    return plan
+
+
+def is_agent_folder(path):
+    """True for a folder directly under .claude/worktrees named agent-*: another session's worktree."""
+    parent, name = os.path.split(os.path.normpath(path))
+    return bool(ORPHAN_PATTERN.match(name)) and norm(parent) == norm(agent_worktrees_dir())
+
+
 def build_plan(worktrees, keep_latest, command_lines):
     """Return a list of (state, path, note). state is remove, skip, keep or gone."""
     latest = None
@@ -159,6 +213,8 @@ def build_plan(worktrees, keep_latest, command_lines):
         path = wt["path"]
         if not os.path.isdir(path):
             plan.append(("gone", path, "folder already missing; its registration will be pruned"))
+        elif wt.get("locked") or is_agent_folder(path):
+            plan.append(("skip", path, "a registered agent worktree (locked or under .claude/worktrees): left alone"))
         elif in_use_by_game(path, command_lines):
             plan.append(("skip", path, "in use by a running game - close the game and re-run"))
         elif latest is not None and norm(path) == norm(latest):
@@ -203,7 +259,8 @@ def print_worktree_list():
     print(git("worktree", "list").stdout.rstrip())
 
 
-LABELS = {"remove": "REMOVE", "skip": "SKIP", "keep": "KEEP", "gone": "GONE"}
+LABELS = {"remove": "REMOVE", "skip": "SKIP", "keep": "KEEP", "gone": "GONE", "orphan": "ORPHAN",
+          "orphan-skip": "SKIP"}
 
 
 def main(argv=None):
@@ -230,6 +287,13 @@ def main(argv=None):
         return 1
 
     plan = build_plan(worktrees, args.keep_latest, command_lines)
+    try:
+        orphans = build_orphan_plan(entries, running_game_command_lines(only_godot=False))
+    except RuntimeError as err:
+        print("ERROR: %s. Refusing to touch orphan folders without knowing which processes run." % err,
+              file=sys.stderr)
+        return 1
+    plan += orphans
     stale, unreadable = stale_metadata_dirs()
 
     print("Repo: %s" % ROOT)
@@ -247,7 +311,7 @@ def main(argv=None):
     for entry, err in unreadable:
         print("  WARNING: could not read %s (%s); leaving it alone" % (entry, err))
 
-    to_remove = [path for state, path, _ in plan if state == "remove"]
+    to_remove = [path for state, path, _ in plan if state in ("remove", "orphan")]
     if args.dry_run:
         print("\nDry run: nothing was changed. Prune preview:")
         ok, output = run_prune(dry_run=True)
@@ -257,7 +321,7 @@ def main(argv=None):
         print_worktree_list()
         return 0 if ok else 2
 
-    if not to_remove and not stale and not any(state == "gone" for state, _, _ in plan):
+    if not to_remove and not stale and not any(state in ("gone", "orphan-skip") for state, _, _ in plan):
         print("\nNothing to clean up.")
         print_worktree_list()
         return 0
@@ -275,9 +339,18 @@ def main(argv=None):
     removed, skipped = 0, 0
     print()
     for state, path, _ in plan:
-        if state == "skip":
+        if state in ("skip", "orphan-skip"):
             skipped += 1
-            print("SKIP (in use by a running game): %s" % path)
+            print("SKIP (in use or protected): %s" % path)
+        elif state == "orphan":
+            try:
+                rmtree_writable(path)
+            except OSError as err:
+                failures.append("%s: %s" % (path, err))
+                print("FAILED: orphan %s: %s" % (path, err))
+            else:
+                removed += 1
+                print("REMOVED orphan folder: %s" % path)
         elif state == "remove":
             ok, message = remove_worktree(path)
             if ok:

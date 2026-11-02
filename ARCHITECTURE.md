@@ -185,6 +185,14 @@ Player physics (`TopDownPlayer._physics_process`) and projectile physics run on 
 - **Parallel part opt-out:** with `POSITIVEFPS_PARALLEL_PART=1`, the plain tier (`run_tests.py`, the hook) skips the serial
   timing pass and the `test_perf_*` tests, and prints "perf pass skipped (parallel part)". `gate.py --full` ignores the variable,
   so the post-merge gate always enforces the budget. A cached pass made with the skip only answers requests that also skip it.
+- **Round 23 tools:** `python tools/round_end.py` is the one command for the round end (gate --full, determinism, baseline; stops at
+  the first failure; detached worker, state in `.scratch/round_end/`; re-run it while it says "still running", exit 124).
+  `python tools/coverage.py --check-files scripts/x.gd` is the quick per-file coverage check for part agents;
+  `run_tests.py --suites a_test b_test` runs chosen suites. `lint.py` warns from 950 lines per file.
+  `cleanup_worktrees.py` also removes orphan `.claude/worktrees/agent-*` folders (never a registered or locked worktree, or one a
+  process mentions). `analyse_recording.py` ends with a PRESSURE CURVE (15 s) and PATCH EFFECT section and skips recordings under
+  10 s unless `--include-restarts`. Self-checks: `test_round_end.py`, `test_determinism.py`, `test_coverage_files.py`,
+  `test_cleanup_worktrees.py`.
 - Other tools: `lint.py [--fix]`, `coverage.py`, `cleanup_worktrees.py`, `install_hooks.py`. Timing history: `tools/BUILD_TIMINGS.md`.
 - **`tools/godot_run.py`** (round 22): the wrapper for any scripted run. `python tools/godot_run.py --timeout 120 [--log F] [--gui|--console] -- <cmd...>`
   (or `from godot_run import run`). Hard timeout, output in a log (default `.scratch/godot_run/`); on a timeout it ends only the

@@ -26,6 +26,7 @@ Only the Python standard library is used.
 """
 import argparse
 import datetime
+import gzip
 import html
 import json
 import os
@@ -724,10 +725,93 @@ def load_saved_run(fp):
         return None
     if not isinstance(saved, dict) or saved.get("fingerprint") != fp:
         return None
+    saved["units"] = None
+    try:
+        with gzip.open(det_units_file(), "rt", encoding="utf-8") as fh:
+            extra = json.load(fh)
+        if extra.get("fingerprint") == fp:
+            saved["units"] = extra.get("units")
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        pass
     return saved
 
 
-def save_clean_run(fp, code, results, stats, hits):
+# Round 23: the hit-count rule. Line hit COUNTS (not only which lines were hit) are compared per test unit (one Godot
+# process each, hits_NN.json). A unit whose counts differ in more than DIFF_LINES_ALLOWED lines is not repeatable.
+# Why per unit: the counts of the whole run are the sum of all units, and one racy unit moves ~1000 lines of them.
+DIFF_LINES_ALLOWED = 10  # the session-folder name race in scripts/recorder.gd moves 2 lines when two sessions start
+# within one wall-clock second; anything under this is that kind of noise
+# Known races, each with its cause (a suite name from tools/run_tests.py plan_units, or "suite (rest)"):
+KNOWN_REAL_TIME_UNITS = {
+    "recorder_polled_test": "test_a_shot_is_logged_and_saved_... waits for a background PNG save with a game-time "
+                            "timer, so how many level frames run depends on how fast the thread is (0 or 3 frames "
+                            "of the 60-person level). Fix: OS.delay_msec(50) in the wait loop. Proven in round 23.",
+    "looks_round20_test": "CAUSE NOT FOUND. Hit counts differed in 2 of 4 round 23 determinism runs and "
+                          "test_a_styled_person_swings_legs_and_arms... failed once (line 226), always under heavy CPU "
+                          "load; the suite alone gave identical hits 4 of 4. Every test in it is synchronous, so look "
+                          "for wall-clock use in scripts/looks (Time.get_ticks_msec in person_look.gd and "
+                          "person_look_styled.gd) or frames run between tests. Remove this entry when fixed.",
+    "looks_test": "CAUSE NOT FOUND. The same few person_look_styled.gd lines (27, 71-76, 162-165) moved by 1 to 11 "
+                  "hits in 3 of 5 round 23 runs; looks_round20_test shows the same family. See looks_round20_test.",
+}
+
+
+def det_units_file():
+    """The per-unit hits of the saved run (gzip), next to the saved run in .git."""
+    return os.path.join(os.path.dirname(gate.cache_path()), "positivefps-determinism-units.json.gz")
+
+
+def unit_hits(hits_dir):
+    """{hits file name: {line key: count}} with only the lines that were hit, or None when there are no hits files."""
+    if not os.path.isdir(hits_dir):
+        return None
+    units = {}
+    for name in sorted(os.listdir(hits_dir)):
+        if name.endswith(".json"):
+            with open(os.path.join(hits_dir, name), encoding="utf-8") as fh:
+                units[name] = {k: v for k, v in json.load(fh).items() if v > 0}
+    return units or None
+
+
+def unit_names(build):
+    """{hits file name: unit name} as run_tests.run_parallel numbers them. Empty when the plan cannot be rebuilt."""
+    try:
+        plan = run_tests.plan_units(run_tests.discover_tests(build), run_tests.load_weights(), with_perf=True)
+    except (OSError, ValueError, KeyError):
+        return {}
+    return {"hits_%02d.json" % i: unit["name"] for i, unit in enumerate(plan)}
+
+
+def unit_count_differences(units_a, units_b):
+    """{hits file name: number of lines whose hit count differs} for the units present in both, differing ones only."""
+    out = {}
+    for name in sorted(set(units_a) & set(units_b)):
+        a, b = units_a[name], units_b[name]
+        n = sum(1 for key in set(a) | set(b) if a.get(key, 0) != b.get(key, 0))
+        if n:
+            out[name] = n
+    return out
+
+
+def unit_rule_problems(differences, names):
+    """(problems, notes): a unit that differs in more than DIFF_LINES_ALLOWED lines is a problem unless it is a known
+    race, which is only noted."""
+    problems, notes = [], []
+    for unit, n in differences.items():
+        label = names.get(unit, unit)
+        base = label.split("::")[0].replace(" (rest)", "")
+        if n <= DIFF_LINES_ALLOWED:
+            continue
+        if base in KNOWN_REAL_TIME_UNITS:
+            notes.append("%s: %d lines differ in hit count (known: %s)" % (label, n, KNOWN_REAL_TIME_UNITS[base]))
+        else:
+            problems.append("%s: %d lines differ in hit count between the two runs. Something in this suite depends on "
+                            "wall-clock time or thread timing; make it repeatable (KNOWN_REAL_TIME_UNITS in "
+                            "tools/coverage.py lists the one known case)" % (label, n))
+    return problems, notes
+
+
+def save_clean_run(fp, code, results, stats, hits, units=None):
     """Keeps a run in which every test passed, so a later --check-determinism can use it as its first pass.
 
     Called by every instrumented run (the ratchet run, the baseline run and the determinism check). A run that
@@ -741,6 +825,9 @@ def save_clean_run(fp, code, results, stats, hits):
     try:
         with open(det_run_file(), "w", encoding="utf-8", newline="\n") as fh:
             json.dump(payload, fh)
+        if units is not None:
+            with gzip.open(det_units_file(), "wt", encoding="utf-8") as fh:
+                json.dump({"fingerprint": fp, "units": units}, fh)
     except (OSError, subprocess.CalledProcessError) as err:
         print("note: the run could not be saved for reuse (%s)" % err)
 
@@ -756,9 +843,29 @@ def _determinism_pass(n, build, workers, outcomes):
         outcomes[n] = ("error", "determinism pass %d wrote no results or hits." % n)
     else:
         outcomes[n] = ("ok", run)
+        outcomes[("units", n)] = unit_hits(os.path.join(build, "cov_hits"))
 
 
-def check_determinism(workers):
+def diff_hit_counts(hits_a, hits_b):
+    """Lines hit in both runs but a different number of times: a list of (key, count a, count b), sorted by key."""
+    return sorted((k, hits_a[k], hits_b[k]) for k in hits_a.keys() & hits_b.keys()
+                  if hits_a[k] > 0 and hits_b[k] > 0 and hits_a[k] != hits_b[k])
+
+
+def describe_count_diffs(diffs, limit=8):
+    """Printable lines about differing hit counts: how many per file, and the biggest relative differences."""
+    per_file = {}
+    for key, _a, _b in diffs:
+        per_file[key.rsplit(":", 1)[0]] = per_file.get(key.rsplit(":", 1)[0], 0) + 1
+    lines = ["  hit-count differences by file: " + ", ".join("%s %d" % (f, n) for f, n in
+                                                           sorted(per_file.items(), key=lambda kv: -kv[1])[:limit])]
+    worst = sorted(diffs, key=lambda d: -abs(d[1] - d[2]) / max(d[1], d[2]))[:limit]
+    for key, a, b in worst:
+        lines.append("  %s: %d vs %d" % (key, a, b))
+    return lines
+
+
+def check_determinism(workers, fresh=False):
     """Runs the instrumented suite twice and compares the per-file line coverage and the exact set of lines hit.
 
     The two passes are independent: each has its own copy of the project (det1, det2 under .coverage_build) and its own
@@ -768,7 +875,7 @@ def check_determinism(workers):
     """
     started = time.time()
     fp = code_fingerprint()
-    saved = load_saved_run(fp)
+    saved = None if fresh else load_saved_run(fp)
     outcomes = {}
     if saved is not None:
         print("== Determinism pass 1 of 2: the clean run of this exact code from %s (saved, not run again)"
@@ -776,6 +883,7 @@ def check_determinism(workers):
         outcomes[1] = ("ok", (saved["code"], saved["results"],
                               {"line_overall": saved["line_overall"], "line_files": saved["line_files"]},
                               saved["hits"]))
+        outcomes[("units", 1)] = saved.get("units")
         print("== Determinism pass 2 of 2: a fresh run")
         _determinism_pass(2, DET_BUILDS[1], workers, outcomes)
     else:
@@ -805,18 +913,177 @@ def check_determinism(workers):
     lines_b = {k for k, v in hits_b.items() if v > 0}
     for key in sorted(lines_a ^ lines_b)[:20]:
         problems.append("line %s was hit in only one run" % key)
-    count_diffs = sum(1 for k in lines_a & lines_b if hits_a[k] != hits_b[k])
+    diffs = diff_hit_counts(hits_a, hits_b)
+    count_diffs = len(diffs)
+    units_a, units_b = outcomes.get(("units", 1)), outcomes.get(("units", 2))
+    unit_notes = []
+    if problems:
+        unit_notes.append("the per-unit hit-count rule was skipped: a failed test changes the counts of its own unit")
+    elif units_a and units_b:
+        more, unit_notes = unit_rule_problems(unit_count_differences(units_a, units_b), unit_names(DET_BUILDS[1]))
+        problems += more
+        if set(units_a) != set(units_b):
+            unit_notes.append("the two runs had different test units; the per-unit hit-count rule compared the common "
+                              "ones only")
+    else:
+        unit_notes.append("no per-unit hits for pass 1 (an older saved run): the per-unit hit-count rule was not "
+                          "applied this time")
     print("")
     print("Determinism: %d tests, line coverage %.1f%% and %.1f%%, %d lines hit; %d lines differ in hit count"
           " (informational)" % (len(res_a), stats_a["line_overall"], stats_b["line_overall"], len(lines_a),
                                 count_diffs))
+    if diffs:
+        print("\n".join(describe_count_diffs(diffs)))
+    for note in unit_notes:
+        print("  note: " + note)
     if problems:
         print("DETERMINISM CHECK FAILED:")
         for line in problems:
             print("  - " + line)
         return 3
-    save_clean_run(fp, code_b, res_b, stats_b, hits_b)
+    save_clean_run(fp, code_b, res_b, stats_b, hits_b, units_b)
     print("Determinism OK: both runs hit exactly the same lines (%.0f s)." % (time.time() - started))
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Round 23: a quick per-file check for part agents (--check-files)
+# ---------------------------------------------------------------------------
+
+FILES_BUILD = os.path.join(BUILD, "files")
+
+
+def normalise_scripts(paths, known):
+    """Script arguments as keys of `known` ("scripts/x.gd"). Accepts x.gd, scripts/x.gd and backslashes."""
+    out = []
+    for raw in paths:
+        rel = raw.replace("\\", "/")
+        rel = rel[2:] if rel.startswith("./") else rel
+        rel = rel if rel.startswith("scripts/") else "scripts/" + rel
+        if rel not in known:
+            raise ValueError("%s is not a script under scripts/ (known scripts: %d)" % (raw, len(known)))
+        if rel not in out:
+            out.append(rel)
+    return out
+
+
+def suites_for_scripts(rels, project=ROOT):
+    """The test suites (tests/*_test.gd, names without .gd) that name a script: its class_name or its res:// path, plus
+    the suite called <script>_test. A guess that is right for most scripts; pass --suites to choose by hand."""
+    tests_dir = os.path.join(project, "tests")
+    texts = {}
+    for name in sorted(os.listdir(tests_dir)):
+        if name.endswith("_test.gd"):
+            with open(os.path.join(tests_dir, name), encoding="utf-8") as fh:
+                texts[name[:-3]] = fh.read()
+    chosen = set()
+    for rel in rels:
+        stem = os.path.splitext(os.path.basename(rel))[0]
+        patterns = [re.escape("res://" + rel)]
+        with open(os.path.join(project, rel), encoding="utf-8") as fh:
+            found = re.search(r"^class_name\s+(\w+)", fh.read(), re.M)
+        if found:
+            patterns.append(r"\b%s\b" % re.escape(found.group(1)))
+        regex = re.compile("|".join(patterns))
+        if stem + "_test" in texts:
+            chosen.add(stem + "_test")
+        chosen.update(suite for suite, text in texts.items() if regex.search(text))
+    return sorted(chosen)
+
+
+def line_ranges(numbers):
+    """[41, 42, 43, 88] -> "41-43, 88"."""
+    out, start, prev = [], None, None
+    for n in sorted(numbers):
+        if start is None:
+            start = prev = n
+        elif n == prev + 1:
+            prev = n
+        else:
+            out.append((start, prev))
+            start = prev = n
+    if start is not None:
+        out.append((start, prev))
+    return ", ".join(str(a) if a == b else "%d-%d" % (a, b) for a, b in out)
+
+
+def file_check_rows(rels, files, hits, base):
+    """One dict per script: lines hit and total, the lines not hit, the baseline value and the verdict.
+
+    The verdict follows the ratchet (RATCHET_TOLERANCE below the baseline, NEW_FILE_MIN for a file with no baseline)."""
+    base_files = (base or {}).get("line_files", {})
+    rows = []
+    for rel in rels:
+        info = files[rel]
+        missed = [ln for ln in info["exec"] if hits.get("%s:%d" % (rel, ln), 0) <= 0]
+        total = len(info["exec"])
+        now = round(pct(total - len(missed), total), 1)
+        old = base_files.get(rel)
+        if old is None:
+            ok = now >= NEW_FILE_MIN
+        else:
+            ok = old - now <= RATCHET_TOLERANCE
+        rows.append({"file": rel, "total": total, "hit": total - len(missed), "now": now, "baseline": old,
+                     "missed": missed, "ok": ok})
+    return rows
+
+
+def check_files(paths, suites, workers):
+    """Runs only the test suites that cover the given scripts, instrumented, and reports each script's line coverage
+    against coverage_baseline.json with the lines not hit. Exit 0 fine, 1 a test failed, 2 setup error, 3 below baseline.
+
+    The numbers count only the suites that ran, so they are a floor: the full run may hit more lines from other suites.
+    A script below its baseline here is a reason to add a test or to widen --suites, not proof of a ratchet failure.
+    """
+    build = FILES_BUILD
+    print("== Copying project to %s" % build)
+    copy_project(build)
+    files, _uninstr = instrument_build(build)
+    try:
+        rels = normalise_scripts(paths, files)
+        suites = list(suites) if suites else suites_for_scripts(rels)
+    except (ValueError, OSError) as err:
+        print("ERROR: %s" % err, file=sys.stderr)
+        return 2
+    if not suites:
+        print("ERROR: no test suite names these scripts; pass --suites <name> ...", file=sys.stderr)
+        return 2
+    write_probe_files(build)
+    hits_dir = os.path.join(build, "cov_hits")
+    os.makedirs(hits_dir, exist_ok=True)
+    print("== Running %d suite(s) instrumented: %s" % (len(suites), " ".join(suites)))
+    problems = []
+    try:
+        code, results, _report_dir = run_tests.run_suite(build, report_root=os.path.join(REPORTS_DIR, "files"),
+                                                         workers=workers, cov_dir=hits_dir, problems=problems,
+                                                         suites=suites)
+    except (RuntimeError, OSError) as err:
+        print("ERROR: " + str(err), file=sys.stderr)
+        return 2
+    hits = merge_hits(hits_dir)
+    if results is None or hits is None:
+        print("ERROR: the targeted run wrote no results or hits; see the Godot output above.", file=sys.stderr)
+        return 2
+    rows = file_check_rows(rels, files, hits, _load_baseline())
+    print("")
+    print("Per-file line coverage from these %d suite(s) only (a floor; the full run may hit more):" % len(suites))
+    for r in rows:
+        base = "no baseline" if r["baseline"] is None else "baseline %.1f%%" % r["baseline"]
+        print("  %-36s %5.1f%% (%d of %d lines), %s: %s" % (r["file"], r["now"], r["hit"], r["total"], base,
+                                                          "ok" if r["ok"] else "BELOW"))
+        if r["missed"]:
+            print("      lines not hit: %s" % line_ranges(r["missed"]))
+    failed = [t for t in results if not t["ok"]]
+    for t in failed:
+        print("FAIL %s::%s  %s" % (t["file"], t["name"], " | ".join(t["messages"])[:400]))
+    for problem in problems:
+        print("BROKEN " + problem)
+    if failed or problems or code != 0:
+        return 1
+    if any(not r["ok"] for r in rows):
+        print("Below the baseline from these suites: add a test for the lines above, or widen --suites if other suites "
+              "cover them. The full ratchet runs at the round end.")
+        return 3
     return 0
 
 
@@ -829,6 +1096,13 @@ def main():
                       help="write the current numbers to coverage_baseline.json (only if the tests pass)")
     parser.add_argument("--check-determinism", action="store_true",
                         help="run the instrumented suite twice and fail (exit 3) if the covered lines differ")
+    parser.add_argument("--check-files", nargs="+", metavar="SCRIPT",
+                        help="quick check for a part agent: run only the suites that cover these scripts, instrumented, "
+                             "and report each script's line coverage against the baseline with the lines not hit")
+    parser.add_argument("--suites", nargs="+", metavar="SUITE",
+                        help="with --check-files: the test suites to run (default: the ones that name the scripts)")
+    parser.add_argument("--fresh", action="store_true",
+                        help="with --check-determinism: ignore the saved run and make two fresh runs")
     parser.add_argument("--allow-decrease", action="store_true",
                         help="with --update-baseline: accept numbers lower than the baseline")
     parser.add_argument("--workers", type=int, default=None,
@@ -837,10 +1111,17 @@ def main():
     if args.allow_decrease and not args.update_baseline:
         parser.error("--allow-decrease only applies with --update-baseline")
 
+    if args.suites and not args.check_files:
+        parser.error("--suites only applies with --check-files")
+    if args.check_files:
+        if args.check_baseline or args.update_baseline or args.check_determinism:
+            parser.error("--check-files cannot be combined with the baseline or determinism options")
+        return check_files(args.check_files, args.suites, args.workers)
+
     if args.check_determinism:
         if args.check_baseline or args.update_baseline:
             parser.error("--check-determinism cannot be combined with the baseline options")
-        return check_determinism(args.workers)
+        return check_determinism(args.workers, fresh=args.fresh)
 
     fp = code_fingerprint()  # the code this run measures; a clean run is saved against it (save_clean_run)
     print("== Copying project to %s" % BUILD)
@@ -886,7 +1167,7 @@ def main():
     for p in problems:
         print("BROKEN " + p)
     tests_ok = not failed and not problems and code == 0
-    save_clean_run(fp, code, results, stats, hits)
+    save_clean_run(fp, code, results, stats, hits, unit_hits(HITS_DIR))
 
     if args.update_baseline:
         if not tests_ok:

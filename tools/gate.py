@@ -69,15 +69,16 @@ def depends_on(path):
     return path in INCLUDE_NAMES or path.startswith(INCLUDE_PREFIXES) or path.endswith(INCLUDE_SUFFIXES)
 
 
-def fingerprint():
+def fingerprint(skip=()):
     """sha256 over the working-tree contents of every file the gate depends on (tracked and untracked, not ignored).
 
     Line endings are normalised, so git's autocrlf setting cannot change the result. A tracked file that was deleted
-    from the working tree is skipped, which changes the fingerprint just as removing it should.
+    from the working tree is skipped, which changes the fingerprint just as removing it should. `skip` names paths
+    left out (tools/round_end.py leaves out coverage_baseline.json, which its last step rewrites).
     """
     listed = git("ls-files", "-z", "--cached", "--others", "--exclude-standard").split("\0")
     digest = hashlib.sha256()
-    for path in sorted({p for p in listed if p and depends_on(p)}):
+    for path in sorted({p for p in listed if p and depends_on(p) and p not in skip}):
         full = os.path.join(ROOT, path)
         if not os.path.isfile(full):
             continue

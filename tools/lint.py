@@ -8,7 +8,8 @@ Usage:
 Uses gdtoolkit 4.x through its Python modules (python -m gdtoolkit.formatter / gdtoolkit.linter), so no
 gdformat/gdlint launcher needs to be on PATH. Install with: python -m pip install --user "gdtoolkit==4.*"
 Lint settings are read from gdlintrc at the repo root. Formatting uses a 120-column limit, matching gdlintrc.
-Only the Python standard library is used. Exit code 2 means the tools could not run (gdtoolkit missing).
+Only the Python standard library is used. A file of 950 lines or more also prints a WARNING (gdlintrc fails
+it at 1000). Exit code 2 means the tools could not run (gdtoolkit missing).
 """
 import argparse
 import importlib.util
@@ -19,6 +20,27 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TARGETS = ["scripts", "tests"]
 LINE_LENGTH = "120"  # Must match max-line-length in gdlintrc.
+WARN_FILE_LINES = 950  # A file this long gets a warning; gdlintrc fails it at 1000 (max-file-lines).
+
+
+def long_files(root=ROOT, targets=TARGETS, warn_from=WARN_FILE_LINES):
+    """GDScript files with at least `warn_from` lines, as (relative path, line count), longest first."""
+    found = []
+    for target in targets:
+        folder = os.path.join(root, target)
+        for name in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
+            if name.endswith(".gd"):
+                with open(os.path.join(folder, name), encoding="utf-8", errors="replace") as fh:
+                    count = sum(1 for _ in fh)
+                if count >= warn_from:
+                    found.append(("%s/%s" % (target, name), count))
+    return sorted(found, key=lambda item: -item[1])
+
+
+def size_warnings(root=ROOT, targets=TARGETS, warn_from=WARN_FILE_LINES):
+    """Warning lines for files nearing the 1000-line cap (a warning only: it never fails the lint)."""
+    return ["WARNING: %s has %d lines; the cap is 1000. Split it before it blocks a merge." % item
+            for item in long_files(root, targets, warn_from)]
 
 
 def run_tool(module, extra_args):
@@ -61,6 +83,9 @@ def main():
         print(out)
     else:
         print("gdlint: ok")
+
+    for warning in size_warnings():
+        print(warning)
 
     if problems:
         if not args.fix:

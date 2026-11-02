@@ -6,6 +6,7 @@ Usage:
     python tools/run_tests.py --project DIR   # test another copy of the project
     python tools/run_tests.py --workers 1     # one Godot process runs everything (the old, serial behaviour)
     python tools/run_tests.py --update-weights  # after a run, record each test's duration in tools/test_weights.json
+    python tools/run_tests.py --suites gap_patch_test minimap_test   # only these suites (a targeted run for a part agent)
     python tools/run_tests.py --perf-only     # only the timing tests (test_perf_*), serially, budget enforced
 
 The Godot console executable is found by tools/godot_path.py (GODOT environment variable, then PATH, then WinGet).
@@ -133,12 +134,13 @@ def gdunit_args(report_dir, suite=None, skip=None):
     return args
 
 
-def discover_tests(project):
-    """Returns {suite name: [test function names, in file order]} for tests/*_test.gd."""
+def discover_tests(project, suites=None):
+    """Returns {suite name: [test function names, in file order]} for tests/*_test.gd.
+    `suites` (a collection of suite names, no .gd) keeps only those suites."""
     out = {}
     tests_dir = os.path.join(project, "tests")
     for name in sorted(os.listdir(tests_dir)):
-        if not name.endswith("_test.gd"):
+        if not name.endswith("_test.gd") or (suites and name[:-3] not in suites):
             continue
         with open(os.path.join(tests_dir, name), encoding="utf-8") as fh:
             found = re.findall(r"^func (test_\w+)\(", fh.read(), re.M)
@@ -226,7 +228,7 @@ def output_problems(outputs):
     return problems
 
 
-def integrity_problems(project, results, outputs, skip_perf=False):
+def integrity_problems(project, results, outputs, skip_perf=False, suites=None):
     """Checks a finished run for what gdUnit hides. Returns a list of problem strings (empty = fine).
 
     A parse error in a test file makes gdUnit skip that suite while the summary still says all passed, so:
@@ -237,7 +239,7 @@ def integrity_problems(project, results, outputs, skip_perf=False):
     ran = {}
     for r in results or []:
         ran[r["file"]] = ran.get(r["file"], 0) + 1
-    for suite, names in discover_tests(project).items():
+    for suite, names in discover_tests(project, suites).items():
         if skip_perf:
             names = [n for n in names if not n.startswith(PERF_PREFIX)]
         if not names:
@@ -249,9 +251,9 @@ def integrity_problems(project, results, outputs, skip_perf=False):
     return problems
 
 
-def run_parallel(project, report_dir, workers, cov_dir=None):
+def run_parallel(project, report_dir, workers, cov_dir=None, suites=None):
     """Runs all test units, `workers` Godot processes at a time. Returns (worst exit code, results list, outputs)."""
-    units = plan_units(discover_tests(project), load_weights(), with_perf=bool(cov_dir))
+    units = plan_units(discover_tests(project, suites), load_weights(), with_perf=bool(cov_dir))
 
     def job(i, unit):
         unit_dir = os.path.join(report_dir, "u%02d" % i)
@@ -285,7 +287,7 @@ def run_parallel(project, report_dir, workers, cov_dir=None):
     return code, results, outputs
 
 
-def run_perf_pass(project, report_dir):
+def run_perf_pass(project, report_dir, suites=None):
     """Runs the timing tests (PERF_PREFIX) one Godot process at a time, with nothing else running, budget enforced.
 
     Returns (worst exit code, results list, outputs). Plain, not instrumented: probes would inflate the times.
@@ -293,7 +295,7 @@ def run_perf_pass(project, report_dir):
     code = 0
     results = []
     outputs = []
-    for suite, names in discover_tests(project).items():
+    for suite, names in discover_tests(project, suites).items():
         perf = [n for n in names if n.startswith(PERF_PREFIX)]
         if not perf:
             continue
@@ -349,13 +351,19 @@ def parse_results(xml_path):
     return results
 
 
-def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=False, problems=None):
+def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=False, problems=None, suites=None):
     """Runs the whole suite on `project`. Returns (exit code, list of test result dicts or None, report dir).
 
     workers=1 runs everything in one Godot process; more runs units in parallel (see the module docstring).
     cov_dir: a folder where each process writes its coverage hits (used by tools/coverage.py).
     problems: a list that receives the integrity problems (broken scripts, skipped suites), for the caller's summary.
+    suites: run only these suites (names without .gd, e.g. ["gap_patch_test"]); an unknown name is an error.
     """
+    if suites:
+        unknown = sorted(set(suites) - set(discover_tests(project)))
+        if unknown:
+            raise RuntimeError("unknown test suite(s): %s (suites are the tests/*_test.gd names without .gd)"
+                               % ", ".join(unknown))
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     report_root = report_root or os.path.join(project, "reports")
     report_dir = os.path.join(report_root, stamp)
@@ -366,19 +374,19 @@ def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=F
     # A plain run as a parallel part agent: no serial timing pass, and the timing tests are not run at all.
     skip_perf = not cov_dir and os.environ.get(PARALLEL_PART_ENV) == "1"
     if perf_only:
-        code, results, outputs = run_perf_pass(project, report_dir)
+        code, results, outputs = run_perf_pass(project, report_dir, suites)
         return code, results or None, report_dir
-    if workers <= 1 and cov_dir:  # (a plain serial run goes through run_parallel with one worker: it must split off the timing tests)
+    if workers <= 1 and cov_dir and not suites:  # (a plain serial run goes through run_parallel with one worker: it must split off the timing tests)
         env = {"POSITIVEFPS_COV_OUT": os.path.join(cov_dir, "hits_00.json")} if cov_dir else None
         code, out = run_godot(gdunit_args(report_dir), project, env)
         xml = latest_results_xml(report_dir)
         results, outputs = (parse_results(xml) if xml else None), [out]
     else:
-        code, results, outputs = run_parallel(project, report_dir, workers, cov_dir)
+        code, results, outputs = run_parallel(project, report_dir, workers, cov_dir, suites)
         if not cov_dir and skip_perf:
             print("WARNING: " + PARALLEL_PART_NOTICE, flush=True)
         elif not cov_dir:  # plain run: the timing tests run now, one at a time, alone
-            perf_code, perf_results, perf_outputs = run_perf_pass(project, report_dir)
+            perf_code, perf_results, perf_outputs = run_perf_pass(project, report_dir, suites)
             code = max(code, perf_code)
             results = (results or []) + perf_results
             outputs += perf_outputs
@@ -386,7 +394,7 @@ def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=F
         results = results or None
     # With no results at all (gdUnit aborted the whole run) only the script errors can say which file is to blame.
     if results is not None:
-        found = integrity_problems(project, results, outputs, skip_perf=skip_perf)
+        found = integrity_problems(project, results, outputs, skip_perf=skip_perf, suites=suites)
     else:
         found = output_problems(outputs)
     for p in found:
@@ -405,6 +413,9 @@ def main():
                         help="Godot processes to run at once (default %d; 1 = serial)" % WORKERS_DEFAULT)
     parser.add_argument("--perf-only", action="store_true",
                         help="run only the timing tests (test_perf_*), serially, with their budgets enforced")
+    parser.add_argument("--suites", nargs="+", metavar="SUITE", default=None,
+                        help="run only these suites, named like tests/<name>.gd without the .gd (for example "
+                             "gap_patch_test). A targeted run for a part agent; the round end runs everything")
     parser.add_argument("--update-weights", action="store_true",
                         help="after the run, write each test's duration to tools/test_weights.json")
     args = parser.parse_args()
@@ -412,7 +423,7 @@ def main():
     problems = []
     try:
         code, results, report_dir = run_suite(project, workers=args.workers, perf_only=args.perf_only,
-                                              problems=problems)
+                                              problems=problems, suites=args.suites)
     except (RuntimeError, OSError) as err:
         print("ERROR: " + str(err), file=sys.stderr)
         return 2

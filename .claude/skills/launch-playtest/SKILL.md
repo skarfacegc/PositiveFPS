@@ -62,13 +62,18 @@ the user the game is ready and that the REC mark in the HUD means it is recordin
 ## 5. Analyse every new recording after the playtest
 
 Do this when the user says they have finished (or the process has exited). List `<copy>/recordings/*` newer than the
-launch. **Ignore restarts of a few seconds** (a game started and quit at once): `analyse_recording.py` calls anything under
-10 s a restart in the comparison; skip those in the single reports too.
+launch. **Restarts under 10 s** (a game started and quit at once) are left out by `analyse_recording.py` itself, in the
+single report (it prints a NOTE and writes nothing) and in `--compare`; add `--include-restarts` (single report) or
+`--min-seconds 0` (compare) only if the user asks for them.
 
 ```powershell
 python tools/analyse_recording.py "<copy>/recordings/<stamp>"            # one report each, plus timeline.csv
 python tools/analyse_recording.py --compare "<older recording>" "<copy>/recordings/<stamp>" ...   # side by side
 ```
+
+The single report ends with two round 23 sections: **PRESSURE CURVE** (15 s steps: mean dimmed, gaps and pressers,
+relapses, threats and rescued at the end of each step) and **PATCH EFFECT** (for each patch: kind `gap` or `strain`,
+gaps open at the patch, gaps 10 s and 20 s later, and whether they fell). Quote them for pressure and patch questions.
 
 Compare against the previous round's recording when the user wants round-over-round numbers (older ones are in the
 earlier playtest copies' `recordings/`). Summarise outcome, length, rescued, quiet share, gaps by phase, relapses, spirit,

@@ -107,6 +107,8 @@ import coverage  # noqa: E402
 
 saved_file = os.path.join(gate.ROOT, ".scratch", "det_reuse_%d.json" % os.getpid())
 real_run_file, real_fingerprint, real_measure = coverage.det_run_file, coverage.code_fingerprint, coverage.measure_once
+real_unit_hits = coverage.unit_hits
+coverage.unit_hits = lambda _dir: None  # the fake passes write no hits files (a real build folder may be left over)
 fake_results = [{"file": "t", "name": "test_a", "ok": True, "messages": [], "time": 0.1}]
 fake_stats = {"line_overall": 50.0, "line_files": {"scripts/a.gd": 50.0}}
 calls = []
@@ -141,6 +143,7 @@ finally:
     coverage.det_run_file = real_run_file
     coverage.code_fingerprint = real_fingerprint
     coverage.measure_once = real_measure
+    coverage.unit_hits = real_unit_hits
     if os.path.exists(saved_file):
         os.remove(saved_file)
 

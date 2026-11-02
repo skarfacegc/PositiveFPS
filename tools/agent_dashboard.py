@@ -139,6 +139,8 @@ class Agent:
         self.tests = deque(maxlen=8)
         self.last_text = ""
         self.handed_back = False
+        self.ended = False        # the last assistant message ended its turn with no tool call (a plain final reply)
+        self.interrupted = False  # the user stopped it ("[Request interrupted by user]") and nothing followed
         self.stop_reason = ""
 
     def read_meta(self):
@@ -187,11 +189,16 @@ class Agent:
         self.cwd = rec.get("cwd") or self.cwd
         msg = rec.get("message") or {}
         content = msg.get("content")
+        if isinstance(content, str) and kind == "user":
+            content = [{"type": "text", "text": content}]
         if not isinstance(content, list):
             return
         if kind == "assistant":
             self.model = msg.get("model") or self.model
             self.stop_reason = msg.get("stop_reason") or self.stop_reason
+            if msg.get("stop_reason"):
+                self.ended = msg["stop_reason"] == "end_turn" and not any(b.get("type") == "tool_use" for b in content)
+            self.interrupted = False
             usage = msg.get("usage") or {}
             self.out_tokens += int(usage.get("output_tokens") or 0)
             ctx = sum(int(usage.get(k) or 0) for k in
@@ -215,8 +222,15 @@ class Agent:
                             self.files[path] = self.files.get(path, 0) + 1
         else:
             for block in content:
+                if block.get("type") == "text":
+                    # A new message to the agent (a follow-up) wakes it again; the user's stop marks it stopped.
+                    self.interrupted = block.get("text", "").startswith("[Request interrupted by user")
+                    self.ended = False
+                    if not self.interrupted:
+                        self.handed_back = False
                 if block.get("type") != "tool_result":
                     continue
+                self.ended = False
                 name, summary, started, inp = self.pending.pop(block.get("tool_use_id"), ("?", "", None, {}))
                 failed = bool(block.get("is_error"))
                 self.errors += failed
@@ -236,7 +250,8 @@ class Agent:
 
     # --- derived views ---
     def finished(self):
-        return bool(self.meta.get("finished")) or self.handed_back
+        """Done: marked finished, handed back, ended with a plain final reply, or stopped by the user."""
+        return bool(self.meta.get("finished")) or self.handed_back or self.ended or self.interrupted
 
     def status(self, now):
         if self.finished():
