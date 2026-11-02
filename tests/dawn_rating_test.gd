@@ -22,15 +22,16 @@ func test_a_round_18_style_quick_push_with_one_landmark_gets_two_lights_not_thre
 	var r := DawnRating.rate(31, 60, 0.35, 1)
 	assert_int(r["lights"]).is_between(1, 2)
 	assert_int(r["lights"]).is_equal(2)
-	# Even with nearly everyone rescued, one landmark is not three lights.
-	assert_int(DawnRating.rate(58, 60, 0.9, 1)["lights"]).is_equal(2)
+	# Round 23: with most people rescued, one landmark is now enough for three lights.
+	assert_int(DawnRating.rate(58, 60, 0.9, 1)["lights"]).is_equal(3)
 
 
-func test_three_lights_need_most_people_and_two_landmarks() -> void:
+func test_three_lights_need_most_people_and_one_landmark() -> void:
 	assert_int(DawnRating.rate(40, 60, 0.3, 2)["lights"]).is_equal(3)
 	assert_int(DawnRating.rate(60, 60, 0.6, 3)["lights"]).is_equal(3)
-	# Most people but one landmark, or two landmarks but too few people: two lights.
-	assert_int(DawnRating.rate(40, 60, 0.3, 1)["lights"]).is_equal(2)
+	# Most people but no landmark, or landmarks but too few people: not three lights.
+	assert_int(DawnRating.rate(40, 60, 0.3, 0)["lights"]).is_equal(2)
+	assert_int(DawnRating.rate(40, 60, 0.3, 1)["lights"]).is_equal(3)
 	assert_int(DawnRating.rate(30, 60, 0.3, 2)["lights"]).is_equal(2)
 
 

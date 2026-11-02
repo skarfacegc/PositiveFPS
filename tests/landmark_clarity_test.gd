@@ -15,16 +15,16 @@ func _landmark(index: int) -> Landmark:
 
 
 func test_the_boost_lines_say_what_each_boost_does_in_short_words() -> void:
-	assert_array(Config.LANDMARK_BOOST_TEXT).is_equal(["music x1.5", "nature x1.5", "gloom slowed x0.6 nearby"])
+	assert_array(Config.LANDMARK_BOOST_TEXT).is_equal(["music x2", "nature x2", "gloom slowed x0.4 nearby"])
 	for text: String in Config.LANDMARK_BOOST_TEXT:
 		assert_int(text.length()).is_less_equal(26)
 
 
 func test_the_claim_and_loss_texts_name_the_landmark_and_its_boost() -> void:
-	assert_str(_landmark(Landmarks.BANDSTAND).claim_text()).is_equal("Claimed the Bandstand: music x1.5")
-	assert_str(_landmark(Landmarks.GARDEN).loss_text()).is_equal("Lost the Garden boost: nature x1.5")
+	assert_str(_landmark(Landmarks.BANDSTAND).claim_text()).is_equal("Claimed the Bandstand: music x2")
+	assert_str(_landmark(Landmarks.GARDEN).loss_text()).is_equal("Lost the Garden boost: nature x2")
 	assert_str(_landmark(Landmarks.BELL_TOWER).claim_text()).is_equal(
-		"Claimed the Bell tower: gloom slowed x0.6 nearby"
+		"Claimed the Bell tower: gloom slowed x0.4 nearby"
 	)
 
 
@@ -33,7 +33,7 @@ func test_the_held_panel_line_reads_name_colon_boost() -> void:
 	add_child(lms)
 	lms.build()
 	lms.items[Landmarks.BANDSTAND].update(Config.BORDER_LANDMARK_HOLD, true)
-	assert_array(lms.held_lines()).is_equal(["Bandstand: music x1.5"])
+	assert_array(lms.held_lines()).is_equal(["Bandstand: music x2"])
 
 
 # --- In the level ---------------------------------------------------------------------------------------------------
@@ -45,10 +45,10 @@ func test_a_claim_and_a_loss_each_raise_a_notice_on_the_hud() -> void:
 	var td: TopDownMain = runner.scene()
 	var garden := td.landmarks.items[Landmarks.GARDEN]
 	garden.update(Config.BORDER_LANDMARK_HOLD, true)
-	assert_str(td.hud.alert_label.text).is_equal("Claimed the Garden: nature x1.5")
+	assert_str(td.hud.alert_label.text).is_equal("Claimed the Garden: nature x2")
 	assert_that(td.hud.alert_label.get_theme_color("font_color")).is_equal(Config.LANDMARK_CLAIM_COLOUR)
 	garden.update(0.1, false)
-	assert_str(td.hud.alert_label.text).is_equal("Lost the Garden boost: nature x1.5")
+	assert_str(td.hud.alert_label.text).is_equal("Lost the Garden boost: nature x2")
 	assert_that(td.hud.alert_label.get_theme_color("font_color")).is_equal(Config.LANDMARK_LOSS_COLOUR)
 	assert_float(td.hud.alert_label.modulate.a).is_equal_approx(1.0, 0.001)
 	await TopDownTestUtil.leave_loaded_scene(td)

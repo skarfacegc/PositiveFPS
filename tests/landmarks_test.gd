@@ -31,9 +31,9 @@ func test_there_are_three_landmarks_with_names_boosts_and_a_short_hold() -> void
 	assert_int(Config.LANDMARK_COLOURS.size()).is_equal(3)
 	assert_int(Config.LANDMARK_BOOST_TEXT.size()).is_equal(3)
 	assert_float(Config.BORDER_LANDMARK_HOLD).is_between(2.0, 4.0)
-	assert_float(Config.LANDMARK_MUSIC_MULT).is_equal(1.5)
-	assert_float(Config.LANDMARK_NATURE_MULT).is_equal(1.5)
-	assert_float(Config.LANDMARK_BELL_LOSS_MULT).is_equal(0.6)
+	assert_float(Config.LANDMARK_MUSIC_MULT).is_equal(2.0)
+	assert_float(Config.LANDMARK_NATURE_MULT).is_equal(2.0)
+	assert_float(Config.LANDMARK_BELL_LOSS_MULT).is_equal(0.4)
 
 
 func test_landmarks_are_inside_the_map_clear_of_blocks_and_each_other_and_beyond_the_starting_ring() -> void:
@@ -93,9 +93,9 @@ func test_the_panel_lists_only_held_landmarks_with_their_boosts() -> void:
 	var lms := _landmarks()
 	assert_array(lms.held_lines()).is_empty()
 	_hold(lms, Landmarks.GARDEN)
-	assert_array(lms.held_lines()).is_equal(["Garden: nature x1.5"])
+	assert_array(lms.held_lines()).is_equal(["Garden: nature x2"])
 	_hold(lms, Landmarks.BANDSTAND)
-	assert_array(lms.held_lines()).is_equal(["Bandstand: music x1.5", "Garden: nature x1.5"])
+	assert_array(lms.held_lines()).is_equal(["Bandstand: music x2", "Garden: nature x2"])
 	assert_int(lms.held_count()).is_equal(2)
 	assert_array(lms.held_flags()).is_equal([true, true, false])
 
@@ -118,7 +118,7 @@ func test_the_bandstand_boosts_music_joy_only_while_held() -> void:
 	var base := _joy_gain(p, Config.Element.MUSIC)
 	_hold(lms, Landmarks.BANDSTAND)
 	lms.apply_boosts(people, border)
-	assert_float(_joy_gain(p, Config.Element.MUSIC)).is_equal_approx(base * 1.5, 0.0001)
+	assert_float(_joy_gain(p, Config.Element.MUSIC)).is_equal_approx(base * 2.0, 0.0001)
 	# Other elements are not boosted.
 	var art_base := _joy_gain(_person(0), Config.Element.ART)
 	assert_float(_joy_gain(p, Config.Element.ART)).is_equal_approx(art_base, 0.0001)
@@ -137,7 +137,7 @@ func test_the_garden_boosts_nature_joy_only_while_held() -> void:
 	var base := _joy_gain(p, Config.Element.NATURE)
 	_hold(lms, Landmarks.GARDEN)
 	lms.apply_boosts(people, border)
-	assert_float(_joy_gain(p, Config.Element.NATURE)).is_equal_approx(base * 1.5, 0.0001)
+	assert_float(_joy_gain(p, Config.Element.NATURE)).is_equal_approx(base * 2.0, 0.0001)
 	# The bandstand being unheld leaves music alone.
 	var music_base := _joy_gain(_person(2), Config.Element.MUSIC)
 	assert_float(_joy_gain(p, Config.Element.MUSIC)).is_equal_approx(music_base, 0.0001)
@@ -165,12 +165,12 @@ func test_the_bell_tower_cuts_the_loss_of_border_members_near_it_only_while_held
 	assert_float(near.loss_mult).is_equal(1.0)
 	_hold(lms, Landmarks.BELL_TOWER)
 	lms.apply_boosts(people, border)
-	assert_float(near.loss_mult).is_equal(0.6)
+	assert_float(near.loss_mult).is_equal(0.4)
 	assert_float(far.loss_mult).is_equal(1.0)  # too far from the bell
 	assert_float(outsider.loss_mult).is_equal(1.0)  # at the bell, but not a border member
 	near.drain_joy(10.0)
 	far.drain_joy(10.0)
-	assert_float(near.joy).is_equal_approx(894.0, 0.001)
+	assert_float(near.joy).is_equal_approx(896.0, 0.001)
 	assert_float(far.joy).is_equal_approx(890.0, 0.001)
 	lms.items[Landmarks.BELL_TOWER].update(0.1, false)
 	lms.apply_boosts(people, border)
@@ -210,7 +210,7 @@ func test_a_ring_round_the_garden_claims_it_and_the_hud_panel_and_boost_follow()
 	assert_bool(td.landmarks.is_held(Landmarks.GARDEN)).is_true()
 	await runner.simulate_frames(3)
 	assert_str(td.hud.landmark_label.text).contains("Landmarks 1 of 3")
-	assert_str(td.hud.landmark_label.text).contains("Garden: nature x1.5")
-	assert_float(td.people[10].joy_boost[Config.Element.NATURE]).is_equal(1.5)
+	assert_str(td.hud.landmark_label.text).contains("Garden: nature x2")
+	assert_float(td.people[10].joy_boost[Config.Element.NATURE]).is_equal(2.0)
 	assert_float(td.people[10].joy_boost[Config.Element.MUSIC]).is_equal(1.0)
 	await TopDownTestUtil.leave_loaded_scene(td)

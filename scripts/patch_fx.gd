@@ -13,6 +13,14 @@ var _patch_rings: Array[MeshInstance3D] = []
 var _streaks: Array[MeshInstance3D] = []
 var _bursts: Array[Dictionary] = []  # {"from", "to", "left"}
 var _time: float = 0.0
+# Round 23: the result marks. Texts {"pos", "text", "left", "colour"}, halos {"pos", "left"} on lifted people, pulses
+# {"pos", "left"} for a new patch.
+var _texts: Array[Dictionary] = []
+var _text_nodes: Array[Label3D] = []
+var _halos: Array[Dictionary] = []
+var _halo_nodes: Array[MeshInstance3D] = []
+var _pulses: Array[Dictionary] = []
+var _pulse_nodes: Array[MeshInstance3D] = []
 
 
 # Shows the warnings (Array of {"pos", "urgency"}) and patches (Array of {"pos", "left"}); advances the burst marks.
@@ -21,12 +29,63 @@ func sync(delta: float, warnings: Array[Dictionary], patches: Array[Dictionary])
 	_sync_warnings(warnings)
 	_sync_patches(patches)
 	_sync_bursts(delta)
+	_sync_results(delta)
 
 
 # A burst happened: remember each clearing so the streaks can fade out.
 func add_burst(cleared: Array) -> void:
 	for c: Dictionary in cleared:
 		_bursts.append({"from": c["from"], "to": c["to"], "left": Config.BURST_FX_SECONDS})
+
+
+# Round 23: a patch was made at `at`: a pulse opens over the sealed stretch and a small count rises ("Held: 3").
+func add_patch_result(at: Vector3, held: int) -> void:
+	_pulses.append({"pos": at, "left": Config.FX_PATCH_PULSE_SECONDS})
+	(
+		_texts
+		. append(
+			{
+				"pos": at,
+				"text": Config.FX_PATCH_TEXT % held,
+				"left": Config.FX_TEXT_SECONDS,
+				"colour": Config.PATCH_COLOUR,
+			}
+		)
+	)
+
+
+# Round 23: a halo on each person the burst lifted, and one small count where they now stand.
+func add_lift_result(cleared: Array) -> void:
+	if cleared.is_empty():
+		return
+	var sum := Vector3.ZERO
+	for c: Dictionary in cleared:
+		var to: Vector3 = c["to"]
+		_halos.append({"pos": to, "left": Config.FX_HALO_SECONDS})
+		sum += to
+	(
+		_texts
+		. append(
+			{
+				"pos": sum / float(cleared.size()),
+				"text": Config.FX_LIFT_TEXT % cleared.size(),
+				"left": Config.FX_TEXT_SECONDS,
+				"colour": Config.BURST_FX_COLOUR,
+			}
+		)
+	)
+
+
+func result_text_count() -> int:
+	return _texts.size()
+
+
+func halo_count() -> int:
+	return _halos.size()
+
+
+func pulse_count() -> int:
+	return _pulses.size()
 
 
 func warning_ring_count() -> int:
@@ -116,6 +175,76 @@ func _sync_bursts(delta: float) -> void:
 		m.scale = Vector3(maxf(span.length(), 0.1), 1.0, 1.0)
 		var col := Config.BURST_FX_COLOUR
 		_set_colour(m, Color(col.r, col.g, col.b, 0.85 * frac))
+
+
+func _sync_results(delta: float) -> void:
+	_age(_texts, delta)
+	_age(_halos, delta)
+	_age(_pulses, delta)
+	while _text_nodes.size() < _texts.size():
+		_text_nodes.append(_make_text())
+	for i: int in range(_text_nodes.size()):
+		var lbl := _text_nodes[i]
+		lbl.visible = i < _texts.size()
+		if not lbl.visible:
+			continue
+		var left: float = _texts[i]["left"]
+		var frac := left / Config.FX_TEXT_SECONDS
+		var at: Vector3 = _texts[i]["pos"]
+		var col: Color = _texts[i]["colour"]
+		lbl.text = _texts[i]["text"]
+		lbl.position = Vector3(at.x, 1.6 + Config.FX_TEXT_RISE * (1.0 - frac), at.z)
+		lbl.modulate = Color(col.r, col.g, col.b, minf(1.0, frac * 2.0))
+	while _halo_nodes.size() < _halos.size():
+		_halo_nodes.append(_make_ring(0.7, 0.85))
+	for i: int in range(_halo_nodes.size()):
+		var m := _halo_nodes[i]
+		m.visible = i < _halos.size()
+		if not m.visible:
+			continue
+		var left2: float = _halos[i]["left"]
+		var frac2 := left2 / Config.FX_HALO_SECONDS
+		var at2: Vector3 = _halos[i]["pos"]
+		var col2 := Config.BURST_FX_COLOUR
+		m.position = Vector3(at2.x, 0.12, at2.z)
+		_set_colour(m, Color(col2.r, col2.g, col2.b, 0.9 * minf(1.0, frac2 * 1.5)))
+	while _pulse_nodes.size() < _pulses.size():
+		_pulse_nodes.append(_make_ring(0.9, 1.0))
+	for i: int in range(_pulse_nodes.size()):
+		var m2 := _pulse_nodes[i]
+		m2.visible = i < _pulses.size()
+		if not m2.visible:
+			continue
+		var left3: float = _pulses[i]["left"]
+		var frac3 := left3 / Config.FX_PATCH_PULSE_SECONDS
+		var at3: Vector3 = _pulses[i]["pos"]
+		var sc := Config.PATCH_RADIUS * (1.1 - frac3 * 0.9)
+		var col3 := Config.PATCH_COLOUR
+		m2.position = Vector3(at3.x, 0.14, at3.z)
+		m2.scale = Vector3(sc, 1.0, sc)
+		_set_colour(m2, Color(col3.r, col3.g, col3.b, 0.9 * frac3))
+
+
+# Counts every entry's "left" down and drops the finished ones.
+func _age(list: Array[Dictionary], delta: float) -> void:
+	for i: int in range(list.size() - 1, -1, -1):
+		var left: float = list[i]["left"] - delta
+		list[i]["left"] = left
+		if left <= 0.0:
+			list.remove_at(i)
+
+
+func _make_text() -> Label3D:
+	var l := Label3D.new()
+	l.pixel_size = Config.FX_TEXT_SIZE
+	l.font_size = 48
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.no_depth_test = true
+	l.outline_size = 8
+	l.visible = false
+	add_child(l)
+	Looks.note_placeholder(l, "spirit_fx")
+	return l
 
 
 func _make_ring(inner: float, outer: float) -> MeshInstance3D:
