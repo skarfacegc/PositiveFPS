@@ -26,7 +26,10 @@ const BLOCK_POSITIONS: Array[Vector3] = [
 	Vector3(-6, 0, 24) * Config.WORLD_SCALE + Vector3(0, 1, 0),
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
-const HINT_PLAY := "WASD move | Shift run | Click to lock on | G/Q burst | F patch gap | E beacon"
+const HINT_PLAY := (
+	"WASD move | Shift run | Click to lock on | G/Q burst | F patch gap | hold E to aim, release to place | "
+	+ "Right-click cancels"
+)
 const HINT := HINT_PLAY + " | R restart | M menu | [F4] look"
 
 var ground: PaintedGround
@@ -89,7 +92,6 @@ var _look_frame: int = -1
 # key press can arrive twice in one frame, see Known gotchas).
 var _zoom_target: float = Config.TD_CAMERA_ORTHO_SIZE
 var _zoom_frame: int = -1
-var _beacon_frame: int = -1
 # The ortho size the label scales were last set for (they are only rewritten when the zoom moves).
 var _scaled_for_size: float = -1.0
 # Round 14: game time that passed in the night (the clock for the staggered arrivals) and the clock value when a person
@@ -249,11 +251,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_look_frame = frame
 			toggle_look()
 	elif event.is_action_pressed("place_beacon"):
-		# gdUnit delivers a key press twice: one beacon per frame.
-		var beacon_frame := Engine.get_process_frames()
-		if beacon_frame != _beacon_frame:
-			_beacon_frame = beacon_frame
-			try_place_beacon()
+		# Checkpoint 5 follow-up: hold E to aim (BeaconPlacement.press); the beacon goes down on release.
+		BeaconPlacement.press(self)
+	elif event.is_action_released("place_beacon"):
+		BeaconPlacement.release(self)
+	elif event.is_action_pressed("cancel_beacon"):
+		BeaconPlacement.cancel(self)
 	elif event.is_action_pressed("zoom_in") or event.is_action_pressed("zoom_out"):
 		# Round 14: one wheel notch per frame (a repeated delivery in the same frame counts once).
 		var frame := Engine.get_process_frames()

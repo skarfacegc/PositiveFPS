@@ -1,20 +1,24 @@
 class_name ReachGuide
 extends Node3D
 
-# Round 20/21/22: the placeholder look's guide to the stretching zone, drawn flat on the ground. Before you commit it
-# shows the zone a press of E at the cursor would make (the shaped zone: body, kept arms and the new tip): the outline
-# (a faint fill inside) and a bright marker at the tip. When something holds the tip back (too far for the people, no
-# spare border, dimmed people in the way) the outline turns red. Round 24: it shows no words while hovering; a refusal
-# shows only as a small notice when E is pressed. During a stretch it shows the tip's travel (a line from the centre
-# to the tip, a disc at the tip, a dashed line on to the beacon when the reach falls short, and the word "Stretching").
+# Round 20/21/22: the placeholder look's guide to the stretching zone, drawn flat on the ground. While E is held (see
+# `held`, BeaconPlacement) it shows the zone a release of E at the cursor would make (the shaped zone: body, kept arms
+# and the new tip) as a thin outline and a small marker at the tip. When something holds the tip back (too far for the
+# people, no spare border, dimmed people in the way) the outline turns thin coral with a small cross at the tip. Round
+# 24: it shows no words while hovering; a refusal shows only as a small notice when E is released. During a stretch it
+# shows the tip's travel (a line from the centre to the tip, a disc at the tip, a dashed line on to the beacon when the
+# reach falls short, and the word "Stretching"), whether or not E is held.
 # Round 22: when the tip arrives a pulse runs along the new arm and "+N sq m of ground" rises from it.
 # Graphics checkpoint 5: the styled look draws this same zone preview, stretch path and finish pulse with
 # dithered ground pieces (StyleReach, built lazily and swapped in by sync).
+# Checkpoint 5 follow-up: hold E to aim. Nothing but the stretch's travel shows while E is up.
 
 const SEGMENTS := 72
 const LINE_WIDTH := 0.28
 const PATH_WIDTH := 0.5
 
+# True while E is held (set by BeaconPlacement.press / release / cancel). The zone preview shows only then.
+var held := false
 var _mesh := ImmediateMesh.new()
 var _item := MeshInstance3D.new()
 var _styled: StyleReach
@@ -51,7 +55,7 @@ func sync(border: Border, player: TopDownPlayer) -> void:
 			_styled = StyleReach.new()
 			_styled.build(self)
 		_set_label("", Vector2.ZERO)
-		_styled.sync(border, player)
+		_styled.sync(border, player, held)
 		_pulse(border)
 		return
 	if _styled != null:
@@ -66,7 +70,7 @@ func sync(border: Border, player: TopDownPlayer) -> void:
 		_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 		_travel(c, border, info)
 		_mesh.surface_end()
-	elif player.has_aim():
+	elif held and player.has_aim():
 		_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 		_zone_preview(c, border.plan_stretch(player.aim_point()))
 		_mesh.surface_end()
@@ -81,23 +85,24 @@ static func preview(c: Vector2, aim: Vector2, reach: float) -> Dictionary:
 	return {"end": c + to.normalized() * minf(to.length(), reach), "capped": to.length() > reach}
 
 
-# Round 21/22: the zone a press of E at the cursor would make (Border.plan_stretch, the same plan the real stretch
-# uses): its outline and a faint fill, a marker at the tip, and, when something holds the tip back, a red outline.
+# Round 21/22: the zone a release of E at the cursor would make (Border.plan_stretch, the same plan the real stretch
+# uses). Checkpoint 5 follow-up: a thin outline only, no fill. A marker at the tip; when something holds the tip back, a
+# thin coral outline and a small cross at the tip instead.
 func _zone_preview(c: Vector2, plan: Dictionary) -> void:
 	var outline: PackedVector2Array = plan["outline"]
 	var reason: String = plan["reason"]
 	var reach: float = plan["reach"]
 	var ang: float = plan["dir"]
 	var limited := reason != ""
-	var col := Config.BEACON_LIMITED_COLOUR if limited else Config.BEACON_GUIDE_PREVIEW_COLOUR
-	var fill := Config.BEACON_GUIDE_LIMITED_FILL_COLOUR if limited else Config.BEACON_GUIDE_FILL_COLOUR
-	var width := Config.BEACON_LIMITED_OUTLINE_WIDTH if limited else Config.BEACON_GUIDE_OUTLINE_WIDTH
-	_fill(c, outline, fill)
-	_outline(outline, width, col)
 	var end := c + Vector2(cos(ang), sin(ang)) * reach
-	_disc(end, 1.1, Config.BEACON_GUIDE_TIP_COLOUR)
-	_ring(end, 2.0, Config.BEACON_GUIDE_TIP_COLOUR)
-	# Round 24: no words while hovering, limited or not. A refusal shows (as a small notice) only when E is pressed on
+	if limited:
+		_outline(outline, Config.BEACON_LIMITED_OUTLINE_WIDTH, Config.BEACON_LIMITED_COLOUR)
+		_cross(end, Config.AIM_CROSS_SIZE, Config.BEACON_LIMITED_COLOUR)
+	else:
+		_outline(outline, Config.BEACON_GUIDE_OUTLINE_WIDTH, Config.BEACON_GUIDE_PREVIEW_COLOUR)
+		_disc(end, 1.1, Config.BEACON_GUIDE_TIP_COLOUR)
+		_ring(end, 2.0, Config.BEACON_GUIDE_TIP_COLOUR)
+	# Round 24: no words while hovering, limited or not. A refusal shows (as a small notice) only when E is released on
 	# a spot that cannot be placed (BeaconPlacement.try_place). Round 22's reason was a world-space Label3D, wider than
 	# the whole view for the longest text.
 	_set_label("", end)
@@ -203,20 +208,16 @@ func _set_label(text: String, at: Vector2) -> void:
 	_label.position = Vector3(at.x, 3.2, at.y)
 
 
-# A filled fan from `c` to the outline (a faint tint over the zone).
-func _fill(c: Vector2, pts: PackedVector2Array, col: Color) -> void:
-	var y := Config.BEACON_GUIDE_Y - 0.02
-	var n := pts.size()
-	for i: int in range(n):
-		for v: Vector2 in [c, pts[i], pts[(i + 1) % n]]:
-			_mesh.surface_set_color(col)
-			_mesh.surface_add_vertex(Vector3(v.x, y, v.y))
-
-
 func _outline(pts: PackedVector2Array, width: float, col: Color) -> void:
 	var n := pts.size()
 	for i: int in range(n):
 		_line(pts[i], pts[(i + 1) % n], width, col)
+
+
+# A small cross (an X of two thin strokes, half-length `size`) at `at`: the limited preview's tip.
+func _cross(at: Vector2, size: float, col: Color) -> void:
+	_line(at + Vector2(-size, -size), at + Vector2(size, size), Config.AIM_CROSS_WIDTH, col)
+	_line(at + Vector2(-size, size), at + Vector2(size, -size), Config.AIM_CROSS_WIDTH, col)
 
 
 # A ring of radius `r` round `at`.

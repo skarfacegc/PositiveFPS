@@ -26,8 +26,9 @@ mode was retired.)
   nearby cluster; it pulses faster as the wobble runs out), and each wobbler is a pulsing blip on the minimap.
 - **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered (its pips count the four hits left) · ! = faltering. The night
   introduces them one at a time, with a short one-time prompt each.
-- **Keys:** WASD move · Shift run · E shape the zone (spirit beacon) · G or Q joy burst · F patch gap · Mouse point at
-  people (F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look · R restart · M menu
+- **Keys:** WASD move · Shift run · hold E to aim a spirit beacon, release E to place it (right-click cancels) · G or Q
+  joy burst · F patch gap · Mouse point at people (F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look ·
+  R restart · M menu
 
 ## How to run
 
@@ -40,7 +41,7 @@ mode was retired.)
 The game opens a menu with one **Play** button. Press **Enter**, **1** or click Play to start the level. The border
 variants were retired in round 10; the organic push is the border.
 
-In the level: WASD to move, the mouse to point at people, **E** to shape the zone, **F** to patch a gap, **G** or **Q**
+In the level: WASD to move, the mouse to point at people, **hold E** to aim the zone and **release E** to place a beacon, **F** to patch a gap, **G** or **Q**
 for a joy burst. A small cue beside the spirit meter glows when F or G can be used right now. Press **M** at any time to go back
 to the menu. **R** restarts the level.
 
@@ -67,7 +68,7 @@ to the menu. **R** restarts the level.
 - **Inside the border the land changes.** The ground is painted warm (it fills in slowly), and blocks inside are
   beautified after a few seconds. A grey person deep inside the border lightens instead of dimming.
 - **The border stays put (round 19).** Once it forms, its centre no longer follows you or the people who push it. Press
-  **E** to place a **spirit beacon** at the mouse (50 spirit, one at a time, a new one replaces the old and costs again):
+  **hold E** to see the zone a beacon would make at the mouse, and **release E** to place a **spirit beacon** there (50 spirit, one at a time, a new one replaces the old and costs again; right-click while holding cancels with nothing spent):
   the zone stretches toward it (about 1.7 m a second, up to what your people can hold; about 34 m from its centre at 24 people) and the arm stays,
   so you build a shape over the night. Rescue more people to expand further; lose people and the zone draws in
   from its longest arms once the body has squeezed to its smallest. A stretch stops short of dimmed people, and E is refused with a reason if it can't be held.
@@ -125,7 +126,7 @@ element, and F3 labels it above the person.
 
 ## Controls
 
-- **WASD** move, **Shift** run, **E** place a spirit beacon at the mouse (50 spirit); the zone stretches toward it and the arm stays.
+- **WASD** move, **Shift** run, **hold E** to aim a spirit beacon at the mouse (the zone's outline shows only while E is held), **release E** to place it (50 spirit); the zone stretches toward it and the arm stays. **Right-click** while holding E cancels.
 - **Click** a person to lock on (in lock-on mode). The default is **hover**: the person under the mouse becomes the
   target. **F2** cycles the modes: lock-on, hover (default) and auto (the most urgent person in range).
 - Every shot uses the target's element, so it is always a best match. Music is quick and small, art is slow and big

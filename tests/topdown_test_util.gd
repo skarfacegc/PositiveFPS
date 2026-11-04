@@ -113,3 +113,29 @@ static func blooms(td: TopDownMain) -> Array[Bloom]:
 		if child is Bloom:
 			out.append(child as Bloom)
 	return out
+
+
+# Checkpoint 5 follow-up: E is hold to aim, release to place, and right-click cancels. These send the event through
+# TopDownMain's own input handler (the same mapped actions a key or button press would reach), so tests that
+# drive the level without a scene runner use the game's own code. Tests that press real keys use the runner.
+static func press_e(td: TopDownMain) -> void:
+	td._unhandled_input(_key_event(KEY_E, true))
+
+
+static func release_e(td: TopDownMain) -> void:
+	td._unhandled_input(_key_event(KEY_E, false))
+
+
+static func cancel_aim(td: TopDownMain) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_RIGHT
+	ev.pressed = true
+	td._unhandled_input(ev)
+
+
+static func _key_event(code: Key, pressed: bool) -> InputEventKey:
+	var ev := InputEventKey.new()
+	ev.keycode = code
+	ev.physical_keycode = code
+	ev.pressed = pressed
+	return ev

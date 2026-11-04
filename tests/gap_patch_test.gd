@@ -274,5 +274,5 @@ func test_the_hud_says_how_many_dimmed_people_the_burst_would_clear() -> void:
 	TopDownTestUtil.place(td.people[20], m.position + out * 1.2, 1, 0.95)
 	await runner.simulate_frames(20)
 	assert_int(td.gap_patch.burst_targets).is_equal(1)
-	assert_str(td.hud.burst_label.text).contains("1 dimmed at the border")
+	assert_str(td.hud.burst_label.text).contains("clears 1 dimmed")
 	await TopDownTestUtil.leave_loaded_scene(td)

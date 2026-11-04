@@ -19,8 +19,10 @@ static func setup() -> void:
 	_add_action("play", [_key(KEY_1), _key(KEY_ENTER)])
 	# Joy burst: G is the grenade-style key by convention, Q is a second option.
 	_add_action("burst", [_key(KEY_G), _key(KEY_Q)])
-	# Round 19: place the spirit beacon at the cursor (costs spirit; the border's centre walks toward it).
+	# Round 19: the spirit beacon at the cursor (costs spirit; the border's centre walks toward it). Checkpoint 5
+	# follow-up: hold E to aim (the preview shows), release to place; right-click cancels a held aim.
 	_add_action("place_beacon", [_key(KEY_E)])
+	_add_action("cancel_beacon", [_mouse(MOUSE_BUTTON_RIGHT)])
 	# Round 22: patch the gap (or strained spot) nearest the cursor for a while (costs spirit).
 	_add_action("patch_gap", [_key(KEY_F)])
 	# Cycles the targeting mode (lock-on, hover, auto).
@@ -42,7 +44,8 @@ static func setup() -> void:
 #   run                                             -> left stick click
 #   burst                                           -> top face button
 #   patch_gap                                       -> right face button (aim point from the right stick)
-#   place_beacon                                    -> left face button (aim point from the right stick)
+#   place_beacon (hold to aim, release to place)    -> left face button (aim point from the right stick)
+#   cancel_beacon (cancels a held aim)              -> bottom face button (B, east)
 #   fire (lock on to a person)                      -> right trigger
 #   cycle_targeting                                 -> left shoulder button
 #   restart, menu                                   -> start or back

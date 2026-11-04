@@ -4,16 +4,15 @@ extends RefCounted
 # Graphics checkpoint 5 (was the round 20 ring-and-line guide): the shape preview in the locked style.
 # ReachGuide hides its flat placeholder drawing and calls this in the styled look. The same facts as the
 # placeholder guide, as dithered pieces flat on the ground with an ink edge and no alpha:
-#   - before you commit, the zone a press of E at the cursor would make (Border.plan_stretch): a marching
-#     teal outline with a sparse dither inside it, and a tip disc with a ring. When something holds the tip
-#     back the outline turns coral, the fill becomes diagonal hatching and a cross marks the tip;
-#   - during a stretch, a bright path from the centre to the tip, a disc at the tip, coral dashes on to the
-#     beacon when the reach falls short, and a parchment tag that says "Stretching";
+#   - while E is held (Checkpoint 5 follow-up: hold to aim), the zone a release of E at the cursor would make
+#     (Border.plan_stretch): a thin marching teal outline and a small tip disc with a ring. No fill. When something
+#     holds the tip back the outline turns a single thin coral (no stripes) and a small cross marks the tip;
+#   - during a stretch (whether or not E is held), a bright path from the centre to the tip, a disc at the tip,
+#     coral dashes on to the beacon when the reach falls short, and a parchment tag that says "Stretching";
 #   - when a stretch finishes, a wave of light runs along the new arm and a ring opens at the tip (pulse()).
 # Pure visuals: it reads Border.plan_stretch() / stretch_info() and the player's aim, and changes nothing.
 
 const OUTLINE_SHADER := "res://shaders/style_outline.gdshader"
-const ZONE_SHADER := "res://shaders/style_zone.gdshader"
 const TEAL := Color("#9cf0dc")
 const TEAL_LIGHT := Color("#e8fff8")
 const CORAL := Color("#e8453b")
@@ -22,9 +21,11 @@ const TIP := Color("#fff3c4")
 const TIP_RIM := Color("#fffbe8")
 const GOLD := Color("#ffe27a")
 const Y := 0.14
-const OUTLINE_WIDTH := 0.55
-const LIMITED_WIDTH := 0.7
+const OUTLINE_WIDTH := 0.3
+const LIMITED_WIDTH := 0.3
 const PATH_WIDTH := 0.7
+const CROSS_SIZE := 1.0
+const CROSS_STROKE := 0.2  # Half the stroke width of the cross.
 const WORDS := "Stretching"
 
 var root: Node3D
@@ -33,11 +34,9 @@ var showing_preview: bool = false
 var showing_limited: bool = false
 var showing_travel: bool = false
 var _line: MeshInstance3D  # the outline (or the stretch path)
-var _fill: MeshInstance3D
 var _dashes: MeshInstance3D
 var _wave: MeshInstance3D
 var _line_mesh := ImmediateMesh.new()
-var _fill_mesh := ImmediateMesh.new()
 var _dash_mesh := ImmediateMesh.new()
 var _wave_mesh := ImmediateMesh.new()
 var _mat_ok: ShaderMaterial
@@ -45,8 +44,6 @@ var _mat_limited: ShaderMaterial
 var _mat_path: ShaderMaterial
 var _mat_dash: ShaderMaterial
 var _mat_wave: ShaderMaterial
-var _fill_ok: ShaderMaterial
-var _fill_limited: ShaderMaterial
 var _tip_disc: MeshInstance3D
 var _tip_ring: MeshInstance3D
 var _pulse_ring: MeshInstance3D
@@ -55,25 +52,21 @@ var _cross_mesh := ImmediateMesh.new()
 var _tag: StyleReachTag
 var _main: TopDownMain
 var _outline_shader: Shader
-var _zone_shader: Shader
 var _all: Array[MeshInstance3D] = []
 
 
 # Builds the pieces under `parent` (all hidden until sync shows them).
 func build(parent: Node3D) -> void:
 	_outline_shader = load(OUTLINE_SHADER)
-	_zone_shader = load(ZONE_SHADER)
 	root = Node3D.new()
 	root.top_level = true
 	parent.add_child(root)
 	_mat_ok = _outline_mat(TEAL, TEAL_LIGHT, 1.6, 0.8, false)
-	_mat_limited = _outline_mat(CORAL, CORAL_LIGHT, 1.2, 0.0, false)
+	# One colour, no marching: the limited outline is a plain thin coral line, with no stripes.
+	_mat_limited = _outline_mat(CORAL, CORAL, 1.2, 0.0, false)
 	_mat_path = _outline_mat(TEAL_LIGHT, TIP, 1.2, 2.0, false)
 	_mat_dash = _outline_mat(CORAL, CORAL_LIGHT, 2.4, 0.0, true)
 	_mat_wave = _outline_mat(TIP, TIP_RIM, 1.0, 2.5, false)
-	_fill_ok = _zone_mat(false)
-	_fill_limited = _zone_mat(true)
-	_fill = _mesh_node(_fill_mesh, _fill_ok)
 	_line = _mesh_node(_line_mesh, _mat_ok)
 	_dashes = _mesh_node(_dash_mesh, _mat_dash)
 	_wave = _mesh_node(_wave_mesh, _mat_wave)
@@ -81,7 +74,7 @@ func build(parent: Node3D) -> void:
 	_tip_disc = _disc(0.0, TIP, TIP_RIM, 0.95)
 	_tip_ring = _disc(0.8, TEAL, TEAL_LIGHT, 0.7)
 	_pulse_ring = _disc(0.82, TIP, TIP_RIM, 0.8)
-	_all = [_fill, _line, _dashes, _cross, _tip_disc, _tip_ring]
+	_all = [_line, _dashes, _cross, _tip_disc, _tip_ring]
 	_main = parent.get_parent() as TopDownMain
 	if _main != null and _main.hud != null:
 		_tag = StyleReachTag.new()
@@ -93,7 +86,7 @@ func build(parent: Node3D) -> void:
 func hide() -> void:
 	for node: MeshInstance3D in _all:
 		node.visible = false
-	for mesh: ImmediateMesh in [_line_mesh, _fill_mesh, _dash_mesh, _cross_mesh]:
+	for mesh: ImmediateMesh in [_line_mesh, _dash_mesh, _cross_mesh]:
 		mesh.clear_surfaces()
 	if _tag != null:
 		_tag.hide_tag()
@@ -108,8 +101,9 @@ func hide_all() -> void:
 	end_pulse()
 
 
-# Redraws the guide for this frame (ReachGuide then calls pulse() while a finished stretch's wave lasts).
-func sync(border: Border, player: TopDownPlayer) -> void:
+# Redraws the guide for this frame (ReachGuide then calls pulse() while a finished stretch's wave lasts). The zone
+# preview shows only while `aiming` (E held); a stretch's travel shows either way.
+func sync(border: Border, player: TopDownPlayer, aiming: bool = false) -> void:
 	hide()
 	if not border.active:
 		return
@@ -117,11 +111,11 @@ func sync(border: Border, player: TopDownPlayer) -> void:
 	var c := Vector2(border.centre.x, border.centre.z)
 	if info["on"]:
 		_travel(c, border, info)
-	elif player.has_aim():
+	elif aiming and player.has_aim():
 		_preview(c, border.plan_stretch(player.aim_point()))
 
 
-# The zone a press of E at the cursor would make.
+# The zone a release of E at the cursor would make: a thin outline only (no fill).
 func _preview(c: Vector2, plan: Dictionary) -> void:
 	var outline: PackedVector2Array = plan["outline"]
 	var limited := (plan["reason"] as String) != ""
@@ -129,12 +123,6 @@ func _preview(c: Vector2, plan: Dictionary) -> void:
 	var ang: float = plan["dir"]
 	showing_preview = true
 	showing_limited = limited
-	# Aiming at ground the zone already covers is only a quiet "no": a coral outline, no hatching over the whole zone.
-	var inside := (plan["reason"] as String) == Config.BEACON_INSIDE_TEXT
-	_fill.material_override = _fill_limited if limited else _fill_ok
-	_fill.visible = not inside
-	if not inside:
-		_fan(_fill_mesh, c, outline, Y - 0.02)
 	_line.material_override = _mat_limited if limited else _mat_ok
 	_line.visible = true
 	_ribbon(_line_mesh, outline, true, LIMITED_WIDTH if limited else OUTLINE_WIDTH, Y)
@@ -143,7 +131,7 @@ func _preview(c: Vector2, plan: Dictionary) -> void:
 	if limited:
 		_set_disc(_tip_disc, end, 0.0, CORAL, CORAL_LIGHT, 0.0)
 		_cross.visible = true
-		_cross_x(end, 1.3)
+		_cross_x(end, CROSS_SIZE)
 	else:
 		_set_disc(_tip_disc, end, 1.0, TIP, TIP_RIM, 0.95)
 		_set_disc(_tip_ring, end, 1.9 + 0.25 * pulse, TEAL, TEAL_LIGHT, 0.7)
@@ -271,17 +259,7 @@ func _quad(
 		mesh.surface_add_vertex(Vector3(at.x, y, at.y))
 
 
-# A fan from `c` to the outline (the faint fill inside it).
-func _fan(mesh: ImmediateMesh, c: Vector2, pts: PackedVector2Array, y: float) -> void:
-	mesh.clear_surfaces()
-	var n := pts.size()
-	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i: int in range(n):
-		for v: Vector2 in [c, pts[i], pts[(i + 1) % n]]:
-			mesh.surface_add_vertex(Vector3(v.x, y, v.y))
-	mesh.surface_end()
-
-
+# A small X (half-length `size`) at the tip of a limited preview.
 func _cross_x(at: Vector2, size: float) -> void:
 	_cross_mesh.clear_surfaces()
 	_cross_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -289,7 +267,7 @@ func _cross_x(at: Vector2, size: float) -> void:
 		var a := at + Vector2(-size, -size * sgn)
 		var b := at + Vector2(size, size * sgn)
 		var dir := (b - a).normalized()
-		var side := Vector2(-dir.y, dir.x) * 0.35
+		var side := Vector2(-dir.y, dir.x) * CROSS_STROKE
 		_quad(_cross_mesh, a - side, a + side, b + side, b - side, 0.0, a.distance_to(b), Y + 0.04)
 	_cross_mesh.surface_end()
 
@@ -311,16 +289,6 @@ func _outline_mat(col: Color, light: Color, dash: float, speed: float, gaps: boo
 	m.set_shader_parameter("dash", dash)
 	m.set_shader_parameter("speed", speed)
 	m.set_shader_parameter("gaps", 1.0 if gaps else 0.0)
-	return m
-
-
-func _zone_mat(limited: bool) -> ShaderMaterial:
-	var m := ShaderMaterial.new()
-	m.shader = _zone_shader
-	m.set_shader_parameter("fill_color", TEAL)
-	m.set_shader_parameter("hatch_color", CORAL)
-	m.set_shader_parameter("density", 0.14)
-	m.set_shader_parameter("limited", 1.0 if limited else 0.0)
 	return m
 
 

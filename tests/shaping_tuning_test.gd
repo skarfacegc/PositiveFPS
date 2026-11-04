@@ -117,6 +117,7 @@ func test_the_preview_of_a_far_aim_is_the_calm_preview_and_the_growth_text_is_sm
 	await runner.simulate_frames(2)
 	td.player._has_aim = true
 	td.player._aim_point = CENTRE + Vector3(0, 0, 80)
+	TopDownTestUtil.press_e(td)  # Checkpoint 5 follow-up: the preview shows only while E is held.
 	td.reach_guide.sync(td.border, td.player)
 	# Round 24: no words while hovering.
 	assert_object(td.reach_guide._label).is_null()

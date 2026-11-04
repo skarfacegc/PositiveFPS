@@ -2,6 +2,27 @@ class_name BeaconPlacement
 extends RefCounted
 
 # Round 19: E. Moved out of topdown_main.gd in round 22.
+# Checkpoint 5 follow-up: hold to aim, release to place. Pressing E only shows the aim (ReachGuide.held); releasing
+# it places the beacon exactly as a press did (try_place); right-click while held cancels with nothing spent.
+
+
+# E pressed: the zone preview shows and follows the cursor until E is released.
+static func press(main: TopDownMain) -> void:
+	main.reach_guide.held = true
+
+
+# E released: places the beacon at the cursor (the same refusals and costs as try_place). Does nothing unless E was
+# held (a second release, or a release after a cancel, places nothing). Returns true when a beacon was placed.
+static func release(main: TopDownMain) -> bool:
+	if not main.reach_guide.held:
+		return false
+	main.reach_guide.held = false
+	return try_place(main)
+
+
+# Right-click while E is held: the aim ends, nothing is spent and the preview hides until E is pressed again.
+static func cancel(main: TopDownMain) -> void:
+	main.reach_guide.held = false
 
 
 # Puts the spirit beacon at the cursor's ground point for BEACON_SPIRIT_COST spirit (the zone then stretches toward
