@@ -150,6 +150,7 @@ def analyse(events, quiet_window=5.0):
         "burst_clears": [e for e in real if e["type"] == "burst_clear"],
         "wobbles": [e for e in real if e["type"] == "wobble"],
         "saves": [e for e in real if e["type"] == "save"],
+        "warms": [e for e in real if e["type"] == "spirit_warm"],
         "first_light_starts": [e for e in real if e["type"] == "first_light_start"],
         "first_light_ends": [e for e in real if e["type"] == "first_light_end"],
         "win": next((e for e in real if e["type"] == "win"), None),
@@ -255,6 +256,12 @@ def report(res, folder):
     wobbles, saves = res["wobbles"], res["saves"]
     add("WOBBLES (round 24): %d wobbles, %d saved by a joy hit, %d relapses" % (
         len(wobbles), len(saves), res["counts"].get("relapse", 0)))
+    warms = res["warms"]
+    add("SPARE SPIRIT (checkpoint 5): %d gifts to %d people, %.0f spirit as %.0f joy" % (
+        len(warms), len({e.get("id") for e in warms}), sum(e.get("amount", 0) for e in warms),
+        sum(e.get("joy", 0) for e in warms)))
+    blinks = [d for d in res["gap_durations"] if d < 0.5]
+    add("GAP BLINKS (checkpoint 5): %d gaps that closed within half a second" % len(blinks))
     starts, ends = res["first_light_starts"], res["first_light_ends"]
     add("FIRST LIGHT (round 24): %d started, %d finished" % (len(starts), len(ends)))
     for e in starts:

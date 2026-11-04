@@ -91,6 +91,20 @@ static func slot_count_for(loop_perimeter: float) -> int:
 	return ceili(loop_perimeter / Config.BORDER_TARGET_SPACING)
 
 
+# Checkpoint 5: the slot count with hysteresis. The loop is eased to n x BORDER_TARGET_SPACING, exactly where the plain
+# ceiling steps from n to n + 1, so a hair of noise flipped it (and the member count with it). The `previous` count is
+# kept while perimeter / spacing is within BORDER_SLOT_COUNT_HOLD of a slot beyond its step either way; 0 means none.
+static func held_slot_count(loop_perimeter: float, previous: int) -> int:
+	var fresh := slot_count_for(loop_perimeter)
+	if previous <= 0:
+		return fresh
+	var exact := loop_perimeter / Config.BORDER_TARGET_SPACING
+	var hold := Config.BORDER_SLOT_COUNT_HOLD
+	if exact > float(previous - 1) - hold and exact <= float(previous) + hold:
+		return previous
+	return fresh
+
+
 # One gap flag per slot segment. A segment is a gap if the spacing is too wide, or it touches an empty slot. A segment
 # that touches a post (`anchored`) is never a gap while the post stands.
 static func gap_flags(

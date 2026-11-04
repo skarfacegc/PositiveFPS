@@ -39,6 +39,7 @@ func assign_members(rescued: Array[Person]) -> void:
 	for j: int in range(n):
 		b._sample_gap.append(false)
 	if not b.active or n < 3:
+		b.slot_count = 0
 		return
 	if b._sealed.size() != n:  # A loop set by hand (or before the first update) has no map edge.
 		b._sealed.clear()
@@ -56,9 +57,11 @@ func assign_members(rescued: Array[Person]) -> void:
 	b._open.append(open_acc)
 	b.perimeter = open_acc  # Round 16: the open length (the whole loop unless the map edge seals part of it).
 	if b.perimeter < 0.01:
+		b.slot_count = 0
 		return
 
-	var posts := b._find_posts(BorderShape.slot_count_for(b.perimeter), held)
+	b.slot_count = BorderShape.held_slot_count(b.perimeter, b.slot_count)
+	var posts := b._find_posts(b.slot_count, held)
 	b.post_count = posts.size()
 	var m := mini(rescued.size(), b.required_members())
 	if m < 1:

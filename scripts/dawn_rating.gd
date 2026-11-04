@@ -5,7 +5,7 @@ extends RefCounted
 # people rescued, ground held and landmarks held (thresholds in Config "Round 19: dawn rating").
 #   1 light: you reached dawn.
 #   2 lights: at least two of the three goals at their lower marks (people, ground, one landmark).
-#   3 lights: most people rescued AND at least DAWN_LANDMARKS_HIGH landmarks held.
+#   3 lights: DAWN_PEOPLE_HIGH (75%) of the people rescued AND at least DAWN_LANDMARKS_HIGH (2) landmarks held.
 # Pure rules: `rate()` takes the numbers and returns the lights and the lines that say why.
 
 
@@ -47,7 +47,7 @@ static func hint_for(lights: int) -> String:
 		return ""
 	if lights == 2:
 		return (
-			"For three: %d%% of the people rescued and %d landmark held at dawn"
+			"For three: %d%% of the people rescued and %d landmarks held at dawn"
 			% [roundi(Config.DAWN_PEOPLE_HIGH * 100.0), Config.DAWN_LANDMARKS_HIGH]
 		)
 	return (

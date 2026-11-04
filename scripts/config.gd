@@ -147,8 +147,8 @@ const LANDMARK_BOOST_TEXT: Array[String] = ["music x2", "nature x2", "gloom slow
 const DAWN_PEOPLE_LOW := 0.4
 const DAWN_GROUND_LOW := 0.2
 const DAWN_LANDMARKS_LOW := 1
-const DAWN_PEOPLE_HIGH := 0.6
-const DAWN_LANDMARKS_HIGH := 1
+const DAWN_PEOPLE_HIGH := 0.75  # Checkpoint 5: was 0.6 (the Garden alone made 3 lights too easy).
+const DAWN_LANDMARKS_HIGH := 2  # Checkpoint 5: was 1.
 
 # ---- Round 20: landmark clarity (scripts/landmark.gd, landmarks.gd, looks/landmark_look_placeholder.gd, hud.gd,
 # looks/minimap_look_placeholder.gd, topdown_main.gd). ----
@@ -236,7 +236,8 @@ const BEACON_PULSE_RING_GROW := 4.0
 # ---- Round 23: defences and landmarks (scripts/gap_patch.gd, patch_fx.gd, landmarks.gd, dawn_rating.gd). ----
 # Cue: a small line near the player, shown only when F (patch) or G/Q (burst) can be acted on right now.
 # Result: a short rising count at the patched spot and at each person the burst lifted, with a halo on them.
-# Landmarks: boosts doubled (LANDMARK_*_MULT, Round 19 block); one landmark at dawn is enough for the third light.
+# Landmarks: boosts doubled (LANDMARK_*_MULT, Round 19 block). The third light needs 75% rescued and 2 landmarks
+# (checkpoint 5).
 const CUE_FONT_SIZE := 18
 const CUE_PLAYER_RANGE := 14.0 * WORLD_SCALE  # A gap or strain this close to the player counts as "near".
 const CUE_ALPHA := 0.8
@@ -323,6 +324,27 @@ const BEACON_PULL_FADE_ANGLE := 0.5  # Radians either side of the arm that fade.
 const BEACON_PULL_URGENT_RATIO := 1.2  # Loop over the people's length by this factor: hurry.
 const BEACON_PULL_URGENT_MULT := 4.0
 const LANDMARK_NEAR_INDEX := 1  # The Garden: within the first arm's reach of the start (the other two stay far).
+
+# ---- Checkpoint 5: rules (border_shape.gd, spirit_warmth.gd, dawn_rating.gd). ----
+# End flicker: the loop is eased to exactly n x BORDER_TARGET_SPACING, which is where the slot count steps from n to
+# n + 1, so noise in the length flipped the member count every frame or two. The count now holds until the length is
+# BORDER_SLOT_COUNT_HOLD of a slot past the step (either way).
+const BORDER_SLOT_COUNT_HOLD := 0.35
+# Spare spirit (scripts/spirit_warmth.gd): what a gain would have added past a full meter goes into a pool (at most
+# SPARE_POOL_MAX spirit). The pool pours out at SPARE_WARM_RATE joy a second in all, one gift every
+# SPARE_WARM_INTERVAL to the most strained border member (lowest joy share), SPARE_JOY_PER_SPIRIT joy for each spirit
+# spent. A person is only warmed while under SPARE_WARM_CEILING of the joy they need. Joy needed is JOY_MAX (1000) or
+# more, a dimmed person drains SPREAD_DRAIN_RATE (60) a second, so a rescue's 20 spare spirit (500 joy) is about eight
+# seconds of one presser.
+const SPARE_POOL_MAX := 40.0
+const SPARE_JOY_PER_SPIRIT := 25.0
+const SPARE_WARM_RATE := 80.0
+const SPARE_WARM_INTERVAL := 0.5
+const SPARE_WARM_CEILING := 0.9
+const SPARE_GLOW_SECONDS := 1.4  # How long a warmed person glows (Person.React.WARM).
+const SPARE_GLOW_RADIUS := 1.1
+const SPARE_GLOW_ALPHA := 0.55
+const SPARE_GLOW_COLOUR := Color(1.0, 0.86, 0.5)
 
 static var intro_override: int = -1
 

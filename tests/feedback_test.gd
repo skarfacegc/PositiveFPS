@@ -20,6 +20,9 @@ func _border_level(count: int = 16, r: float = 6.0) -> Dictionary:
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
 	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
 	await runner.simulate_frames(600)
+	# Checkpoint 5: the rescues above spilled spirit past a full meter; that pool would warm the faltering members
+	# these tests set up, so it is emptied (this suite is about the markers, not spare spirit).
+	td.spirit_warmth.pool = 0.0
 	return {"runner": runner, "td": td}
 
 

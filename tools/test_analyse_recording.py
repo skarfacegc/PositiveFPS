@@ -115,6 +115,19 @@ class AnalyseTest(unittest.TestCase):
         self.assertEqual((len(plain["wobbles"]), len(plain["saves"]), len(plain["first_light_starts"])), (0, 0, 0))
         self.assertIn("WOBBLES (round 24): 0 wobbles, 0 saved by a joy hit, 0 relapses", ar.report(plain, "x"))
 
+    def test_spare_spirit_gifts_and_gap_blinks_are_counted(self):
+        extra = [{"t": 10.0, "type": "spirit_warm", "id": 1, "joy": 40.0, "amount": 1.6, "pool": 8.4},
+                 {"t": 10.5, "type": "spirit_warm", "id": 2, "joy": 40.0, "amount": 1.6, "pool": 6.8},
+                 {"t": 11.0, "type": "spirit_warm", "id": 1, "joy": 20.0, "amount": 0.8, "pool": 6.0},
+                 {"t": 20.0, "type": "gap_close", "gap": 2, "duration": 0.21}]
+        res = ar.analyse(sorted(synthetic() + extra, key=lambda e: e["t"]))
+        self.assertEqual(len(res["warms"]), 3)
+        text = ar.report(res, "x")
+        self.assertIn("SPARE SPIRIT (checkpoint 5): 3 gifts to 2 people, 4 spirit as 100 joy", text)
+        self.assertIn("GAP BLINKS (checkpoint 5): 1 gaps that closed within half a second", text)
+        plain = ar.report(ar.analyse(synthetic()), "x")
+        self.assertIn("SPARE SPIRIT (checkpoint 5): 0 gifts to 0 people, 0 spirit as 0 joy", plain)
+
     def test_report_and_csv(self):
         with tempfile.TemporaryDirectory() as tmp:
             with open(os.path.join(tmp, "events.jsonl"), "w", encoding="utf-8") as fh:

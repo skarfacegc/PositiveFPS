@@ -17,6 +17,8 @@ signal burst_fired(at: Vector3)
 signal burst_cleared(report: Dictionary)
 # Emitted when the player goes dim (spirit reached 0) and when they leave it again.
 signal dim_changed(is_dim: bool)
+# Checkpoint 5: a gain that did not fit (the meter was full): `amount` is the spirit that would have been added.
+signal spirit_spilled(amount: float)
 
 var targeting_mode: int = Config.TD_TARGETING_MODE
 # The person being shot at, or null. Kept between frames in lock-on and hover modes.
@@ -332,7 +334,10 @@ func has_aim() -> bool:
 
 
 func add_spirit(amount: float) -> void:
+	var spill := spirit + amount - Config.SPIRIT_MAX
 	_set_spirit(spirit + amount)
+	if spill > 0.0 and amount > 0.0:
+		spirit_spilled.emit(minf(spill, amount))
 
 
 func lose_spirit(amount: float) -> void:
