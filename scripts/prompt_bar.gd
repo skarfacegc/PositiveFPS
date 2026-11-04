@@ -77,7 +77,7 @@ func _draw() -> void:
 	# Graphics checkpoint 2: the styled bar is an opaque parchment panel that fades with its self_modulate.
 	if Looks.is_styled():
 		self_modulate = Color(1.0, 1.0, 1.0, alpha)
-		StyleHud.draw_prompt(self, _rect, text, icon)
+		StyleHud.draw_prompt(self, _rect, text, icon, big)
 		return
 	self_modulate = Color.WHITE
 	var style := StyleBoxFlat.new()

@@ -214,7 +214,10 @@ func test_a_wobbler_is_a_minimap_blip_until_saved() -> void:
 
 
 func test_the_minimap_blip_is_drawn_in_both_looks() -> void:
-	assert_float(MinimapLookPlaceholder.new().wobble_colour(0.5).a).is_greater(0.0)
-	assert_float(MinimapLookStyled.new().wobble_colour(0.5).a).is_greater(0.0)
-	assert_float(MinimapLook.new().wobble_colour(0.5).a).is_equal(0.0)
-	assert_float(MinimapLookStyled.new().wobble_colour(0.0).a).is_less(MinimapLookStyled.new().wobble_colour(1.0).a)
+	assert_float(MinimapLookPlaceholder.new().member_colour(0.5).a).is_greater(0.0)
+	assert_float(MinimapLookStyled.new().member_colour(0.5).a).is_greater(0.0)
+	assert_float(MinimapLook.new().member_colour(0.5).a).is_equal(0.0)
+	assert_float(MinimapLookStyled.new().member_colour(0.0).a).is_less(MinimapLookStyled.new().member_colour(1.0).a)
+	# Without a pulse it is still the plain member dot.
+	var plain := MinimapLookPlaceholder.new().member_colour()
+	assert_bool(plain.is_equal_approx(Config.TD_MINIMAP_MEMBER_COLOUR)).is_true()

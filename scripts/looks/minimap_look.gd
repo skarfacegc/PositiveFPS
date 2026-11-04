@@ -34,8 +34,10 @@ func seal_width() -> int:
 	return 1
 
 
-func member_colour() -> Color:
-	return Color.WHITE
+# A border member's dot. Checkpoint 5: `wobble_pulse` 0 to 1 (over its beat) asks for a wobbling person's blip instead;
+# alpha 0 means the look draws none (the base look). Below 0 (the default) is the plain dot.
+func member_colour(wobble_pulse: float = -1.0) -> Color:
+	return Color.WHITE if wobble_pulse < 0.0 else Color(0, 0, 0, 0)
 
 
 func dimmed_colour() -> Color:
@@ -61,6 +63,17 @@ func unheld_landmark_ring_colour() -> Color:
 	return Color(0, 0, 0, 0)
 
 
+# Round 24 / graphics checkpoint 5: the colours of first light on the map. `part` is "ground" (the ground behind the
+# front, pixel `px`, `py` of the picture, as `col` warmed), "line" (the front's own line) or "ink" (a line just ahead of
+# it; alpha 0 means none, which is the base look).
+func first_light(part: String, col: Color, _px: int, _py: int) -> Color:
+	if part == "ground":
+		return col.lerp(Config.FIRST_LIGHT_MINIMAP_COLOUR, Config.FIRST_LIGHT_MINIMAP_TINT)
+	if part == "line":
+		return Config.FIRST_LIGHT_MINIMAP_COLOUR
+	return Color(0, 0, 0, 0)
+
+
 # Round 20: the colour of the soft people clouds (minimap.gd). Alpha 0 means the look draws none (the styled look).
 func cloud_colour() -> Color:
 	return Color(0, 0, 0, 0)
@@ -77,11 +90,6 @@ func player_colour() -> Color:
 
 func view_colour() -> Color:
 	return Color.WHITE
-
-
-# Checkpoint 5: the colour of a wobbling person's blip, `pulse` 0 to 1 over its beat. Alpha 0 means none here.
-func wobble_colour(_pulse: float) -> Color:
-	return Color(0, 0, 0, 0)
 
 
 # The outline round a marker of this kind ("member", "dimmed", "landmark", "beacon" or "player"). Alpha 0 means none.

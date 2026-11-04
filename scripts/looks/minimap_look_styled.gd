@@ -54,8 +54,14 @@ func seal_width() -> int:
 	return 2
 
 
-func member_colour() -> Color:
-	return Color("#fff3c4")
+# Checkpoint 5: a wobbling person (`wobble_pulse` 0 to 1) is a warm orange-amber blip, outlined in ink like the other
+# markers, that pulses.
+func member_colour(wobble_pulse: float = -1.0) -> Color:
+	if wobble_pulse < 0.0:
+		return Color("#fff3c4")
+	var col := Color("#ffb45c")
+	col.a = lerpf(0.7, 1.0, wobble_pulse)
+	return col
 
 
 func dimmed_colour() -> Color:
@@ -76,11 +82,15 @@ func cloud_colour() -> Color:
 	return Color("#54479a")
 
 
-# Checkpoint 5: a wobbling person is a warm orange-amber blip, outlined in ink like the other markers, that pulses.
-func wobble_colour(pulse: float) -> Color:
-	var col := Color("#ffb45c")
-	col.a = lerpf(0.7, 1.0, pulse)
-	return col
+# Graphics checkpoint 5: first light. The lit ground behind the front takes a warm gold wash, dithered like the world's
+# front (every other pixel stronger), the front itself is a pale line and a dark ink line runs just ahead of it.
+func first_light(part: String, col: Color, px: int, py: int) -> Color:
+	if part == "ground":
+		var strong := (px + py) % 2 == 0
+		return col.lerp(Color("#ffd98a"), 0.5 if strong else 0.28)
+	if part == "line":
+		return Color("#fff6d0")
+	return INK
 
 
 # The spirit beacon: the teal-white of its flame in the world, outlined like the other markers.

@@ -367,6 +367,22 @@ const SPARE_GLOW_RADIUS := 1.1
 const SPARE_GLOW_ALPHA := 0.55
 const SPARE_GLOW_COLOUR := Color(1.0, 0.86, 0.5)
 
+# ---- Checkpoint 5: styled catch-up (scripts/looks/style_fight.gd, style_first_light.gd, style_reach.gd). ----
+# Visual numbers shared by the styled look's new pieces (the rules never read them).
+# The placeholder look ignores all of them.
+const CP5_WARN_RING_INNER := 0.52  # The strain ring's hole as a share of its radius (a thick band reads at 19.5 m).
+const CP5_WARN_PING_URGENCY := 0.5  # From this urgency a strain ring sends out a ping ring as well.
+const CP5_GAP_BEAM_HEIGHT := 3.2  # The coral column over an open gap.
+const CP5_PATCH_POSTS := 8  # Light posts round a patch.
+const CP5_PATCH_POST_HEIGHT := 1.9
+const CP5_LIFT_BEAM_HEIGHT := 4.2  # The column over a person the burst lifted.
+const CP5_WOBBLE_RING_FROM := 2.6  # The wobble's closing ring: radius (m) at the start and at the end of the wobble.
+const CP5_WOBBLE_RING_TO := 0.9
+const CP5_WOBBLE_GREY := Color("#6f7482")
+const CP5_WARM_TINT := 0.75  # How far a dimmed body's coat takes the affinity colour at full joy (styled look).
+const CP5_FIRST_LIGHT_SKY := Color("#f2b886")  # The sky the styled view warms toward as first light moves in.
+const CP5_FIRST_LIGHT_SKY_MIX := 0.5  # How much of it at dawn.
+
 static var intro_override: int = -1
 
 # The matchups form a soft cycle:

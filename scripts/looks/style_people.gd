@@ -17,6 +17,11 @@ const SKINS: Array[String] = ["#e2b18c", "#c98a63", "#a46a47", "#ecc19c"]
 static var _smoke: ShaderMaterial
 
 
+# The coat colour of affinity `aff` (what a dimmed person's coat warms toward as joy builds, graphics checkpoint 5).
+static func coat_colour(aff: int) -> Color:
+	return StyleKit.hexc(AFF_COAT[clampi(aff, 0, 2)])
+
+
 # ---- Grey person. `parts["pips"]` gets the meshes that brighten with the person's joy.
 static func build_grey(root: Node3D, aff: int, v: int, parts: Dictionary) -> void:
 	var skin := StyleKit.mat(StyleKit.hexc("#b4a9a1"))

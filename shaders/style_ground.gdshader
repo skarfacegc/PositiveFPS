@@ -9,6 +9,9 @@ render_mode cull_back, specular_disabled;
 uniform sampler2D weights : filter_linear, repeat_disable;
 uniform float plaza = 70.0;
 uniform float edge_w = 0.9;
+// Checkpoint 5: first light. `dawn_front` is the half size (metres) of the square the dawn front has reached; the ground
+// outside it (square distance from the centre at least that) is lit. 1000 = no front yet (nothing changes).
+uniform float dawn_front = 1000.0;
 
 varying vec3 wpos;
 void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
@@ -138,6 +141,21 @@ void fragment() {
 	gc = sand_ridges(gc, m, p, FRAGCOORD.xy);
 	float rim = smoothstep(0.0, 0.5, m) * (1.0 - smoothstep(0.5, 1.3, m));
 	wc += S(vec3(0.20, 0.14, 0.05)) * rim * 0.5;
-	ALBEDO = mix(gc, wc, joy);
+	vec3 col = mix(gc, wc, joy);
+	if (dawn_front < 900.0) {
+		// d > 0 behind the front (lit), < 0 ahead of it. Behind the front the cobbles take a warm gold wash (denser nearer
+		// the front); a solid pale line sits on the front itself and a few glints twinkle just behind it.
+		float d = max(abs(p.x), abs(p.y)) - dawn_front;
+		float bay = bayer4(FRAGCOORD.xy);
+		float wash = smoothstep(-0.4, 5.0, d) * 0.5 + smoothstep(-0.2, 0.6, d) * 0.3 + smoothstep(4.0, 14.0, d) * 0.15;
+		col = mix(col, col * vec3(1.45, 1.22, 0.85) + S(vec3(0.16, 0.10, 0.02)), step(bay, wash));
+		float line = 1.0 - smoothstep(0.18, 0.62, abs(d - 0.2));
+		col = mix(col, S(vec3(1.0, 0.93, 0.62)), step(bay, line));
+		vec2 cell = floor(p * 1.7);
+		float tw = step(0.93, hash21(cell + 3.1)) * step(0.4, d) * (1.0 - smoothstep(4.0, 9.0, d));
+		tw *= step(0.5, fract(TIME * 0.6 + hash21(cell)));
+		col = mix(col, S(vec3(1.0, 0.95, 0.7)), tw);
+	}
+	ALBEDO = col;
 	ROUGHNESS = 1.0;
 }

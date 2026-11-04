@@ -371,7 +371,7 @@ func _render() -> void:
 				var w := _to_world(Vector2(px + 0.5, py + 0.5))
 				var col := _ground_colour(w, px, py)
 				if first_light_edge >= 0.0 and maxf(absf(w.x), absf(w.y)) >= first_light_edge:
-					col = col.lerp(Config.FIRST_LIGHT_MINIMAP_COLOUR, Config.FIRST_LIGHT_MINIMAP_TINT)
+					col = look.first_light("ground", col, px, py)
 				# Round 20: the people clouds sit on the ground, under the buildings and every marker.
 				if clouds_on and _cloud_alpha[py * RESOLUTION + px] > 0.0:
 					col = col.lerp(cloud, _cloud_alpha[py * RESOLUTION + px] * cloud.a)
@@ -407,7 +407,7 @@ func _render() -> void:
 		var wpos: Vector2 = wb["pos"]
 		var wurgency: float = wb["urgency"]
 		var pulse := WobbleAlert.pulse_at(_wobble_clock, wurgency)
-		var wcol := look.wobble_colour(pulse)
+		var wcol := look.member_colour(pulse)
 		if wcol.a > 0.0:
 			_marker(wpos, Config.WOBBLE_BLIP_RADIUS, wcol, "wobble")
 			_ring(wpos, Config.WOBBLE_BLIP_RADIUS + Config.WOBBLE_BLIP_PULSE_GROW * pulse, wcol)
@@ -446,11 +446,19 @@ func _render() -> void:
 func _first_light_line() -> void:
 	var e := first_light_edge
 	var px_metres := float(Config.TD_PLAZA_SIZE) / float(RESOLUTION)
+	var ink := look.first_light("ink", Color.WHITE, 0, 0)
+	if ink.a > 0.0:  # Graphics checkpoint 5: a dark line just ahead of the front (the styled look).
+		var ahead := maxf(0.0, e - px_metres * 2.0)
+		var ring := PackedVector2Array(
+			[Vector2(-ahead, -ahead), Vector2(ahead, -ahead), Vector2(ahead, ahead), Vector2(-ahead, ahead)]
+		)
+		for j: int in range(4):
+			_line(ring[j], ring[(j + 1) % 4], ink)
 	for k: int in range(2):
 		var h := maxf(0.0, e - px_metres * float(k))
 		var corners := PackedVector2Array([Vector2(-h, -h), Vector2(h, -h), Vector2(h, h), Vector2(-h, h)])
 		for j: int in range(4):
-			_line(corners[j], corners[(j + 1) % 4], Config.FIRST_LIGHT_MINIMAP_COLOUR)
+			_line(corners[j], corners[(j + 1) % 4], look.first_light("line", Color.WHITE, 0, 0))
 
 
 # A stretch of the loop sealed by the map edge (round 16): the look's seal colour, `seal_width()` pixels thick (the

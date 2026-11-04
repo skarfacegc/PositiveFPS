@@ -15,6 +15,11 @@ const FONT_ROW := 16
 const FONT_SUB := 13
 const ALERT_FONT := 24
 const ALERT_TOP := 188.0
+const CUE_FONT := 18
+const CUE_PAD := 14.0
+const CUE_SPARK := 26.0
+const CUE_READY_FILL := Color("#fff1b8")
+const CUE_RIMS: Array[Color] = [Color("#e8963a"), Color("#f2b04a"), Color("#ffc94d"), Color("#f2b04a")]
 
 
 # The landmark panel: a parchment panel with one row per landmark: its pixel icon (lit when held, grey when not), its
@@ -83,6 +88,43 @@ static func draw_alert(ci: Control, text: String, colour: Color) -> void:
 	var text_x := rect.position.x + 22.0 + star_w + 14.0
 	var text_at := Vector2(text_x, rect.position.y + h * 0.5 + float(ALERT_FONT) * 0.35)
 	ci.draw_string(font, text_at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ALERT_FONT, StyleUi.INK)
+
+
+# The size a cue panel needs for `text`.
+static func cue_size(text: String) -> Vector2:
+	var w := ThemeDB.fallback_font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, CUE_FONT).x
+	return Vector2(w + CUE_PAD * 2.0 + CUE_SPARK, 36.0)
+
+
+# Graphics checkpoint 5: the HUD cue panel beside the spirit meter ("F: patch", "G: lift N", "gap near: aim
+# at it, F"). Idle it is a quiet parchment tag; ready (something can be acted on right now) it lights to pale
+# gold with a pixel sparkle and a rim that steps through amber to gold (`beat` 0 to 3).
+static func draw_cue(ci: Control, text: String, ready: bool, beat: int) -> void:
+	if text.is_empty():
+		return
+	var c := StyleUi.cell(ci)
+	StyleHud.align(ci, c)
+	var rim := CUE_RIMS[beat % 4] if ready else StyleUi.PARCHMENT_SHADE
+	var fill := CUE_READY_FILL if ready else StyleUi.PARCHMENT
+	StyleUi.panel(ci, Rect2(Vector2.ZERO, ci.size), c, fill, rim)
+	var mid_y := ci.size.y * 0.5
+	if ready:
+		var s := 1 + (beat % 2)
+		StyleUi.sparkle(ci, Vector2(CUE_PAD + 6.0, mid_y), s + 1, c, StyleUi.INK)
+		StyleUi.sparkle(ci, Vector2(CUE_PAD + 6.0, mid_y), s, c, StyleUi.GOLD)
+	else:
+		StyleUi.sparkle(ci, Vector2(CUE_PAD + 6.0, mid_y), 1, c, StyleUi.PARCHMENT_SHADE.darkened(0.25))
+	var ink := StyleUi.INK if ready else StyleUi.INK.lerp(StyleUi.PARCHMENT, 0.25)
+	ci.draw_string(
+		ThemeDB.fallback_font,
+		Vector2(CUE_PAD + CUE_SPARK, mid_y + float(CUE_FONT) * 0.35),
+		text,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		CUE_FONT,
+		ink
+	)
+	ci.draw_set_transform(Vector2.ZERO)
 
 
 # The plain detail lines of the end screen: the detail text without the text version of the lights and without the

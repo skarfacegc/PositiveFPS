@@ -140,17 +140,16 @@ func advance(delta: float) -> void:
 		_pose_gait()
 
 
-# Round 24 (placeholder look only): the reaction to an event. A patch (Person.React.PATCH) makes the person hop twice,
+# Round 24: the reaction to an event. A patch (Person.React.PATCH) makes the person hop twice,
 # turn toward the patched spot and glow in the patch colour; being lifted by a burst (LIFT) is one higher hop and a warm
 # glow. Costs nothing for people who are not reacting.
 func _update_react() -> void:
-	if is_styled() or subject.react_kind == Person.React.WARM:
-		return
+	if subject.react_kind == Person.React.WARM:
+		return  # Checkpoint 5: spare spirit's warmth is a ground glow (_update_warm), not a hop.
 	var p := subject.react_progress()
 	if p < 0.0 and subject.react_kind == Person.React.NONE:
 		_reacting = false
-		visual.position.y = 0.0
-		visual.rotation.y = 0.0
+		_react_pose(0.0, 0.0)
 		_set_react_glow(Color.WHITE, 0.0)
 		return
 	if p < 0.0:
@@ -158,14 +157,16 @@ func _update_react() -> void:
 	_reacting = true
 	var env := sin(PI * p)
 	if subject.react_kind == Person.React.LIFT:
-		visual.position.y = env * Config.REACT_LIFT_HOP_HEIGHT
+		_react_pose(env * Config.REACT_LIFT_HOP_HEIGHT, 0.0)
 		_set_react_glow(Config.BURST_FX_COLOUR, env)
 		return
-	visual.position.y = absf(sin(p * PI * Config.REACT_PATCH_HOPS)) * Config.REACT_PATCH_HOP_HEIGHT * (1.0 - 0.4 * p)
+	var hop := absf(sin(p * PI * Config.REACT_PATCH_HOPS)) * Config.REACT_PATCH_HOP_HEIGHT * (1.0 - 0.4 * p)
+	var turn := 0.0
 	if subject.react_toward != Vector3.INF:
 		var local := subject.global_transform.basis.inverse() * (subject.react_toward - subject.global_position)
 		if Vector2(local.x, local.z).length() > 0.05:
-			visual.rotation.y = atan2(-local.x, -local.z) * clampf(env * 2.0, 0.0, 1.0)
+			turn = atan2(-local.x, -local.z) * clampf(env * 2.0, 0.0, 1.0)
+	_react_pose(hop, turn)
 	_set_react_glow(Config.PATCH_COLOUR, env)
 
 
@@ -197,7 +198,14 @@ func _update_warm() -> void:
 	_warm_mat.albedo_color = Color(c.r, c.g, c.b, Config.SPARE_GLOW_ALPHA * env)
 
 
-# Round 24: the reaction's glow (0 = none). Overridden by the placeholder look.
+# Round 24: the reaction's pose: the body lifted `hop` metres and turned `turn` radians about its own up. The
+# styled look (graphics checkpoint 5) overrides it, because its bodies face the other way.
+func _react_pose(hop: float, turn: float) -> void:
+	visual.position.y = hop
+	visual.rotation.y = turn
+
+
+# Round 24: the reaction's glow (0 = none). Overridden by each look.
 func _set_react_glow(_colour: Color, _amount: float) -> void:
 	pass
 

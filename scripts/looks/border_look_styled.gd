@@ -20,6 +20,7 @@ const CORAL := Color("#ff6a58")
 const HONEY := Color("#f0a93c")
 const SEAL_MOTE_STEP := 1.1
 const SEAL_MOTE_HEIGHT := 0.3
+const GAP_RING_RADIUS := 2.3
 
 var _haze: MeshInstance3D
 var _haze_mat: ShaderMaterial
@@ -28,6 +29,10 @@ var _gap_motes: MultiMeshInstance3D
 var _gap_mote_mat: ShaderMaterial
 var _gap_glow_mat: ShaderMaterial
 var _glows: Array[MeshInstance3D] = []
+# Checkpoint 5: the coral column and the breach ring over each open gap.
+var _gap_beams: Array[MeshInstance3D] = []
+var _gap_rings: Array[MeshInstance3D] = []
+var _gap_beam_mat: ShaderMaterial
 var _gap_points: PackedVector3Array = PackedVector3Array()
 # Per point of the loop: 1 where the stretch is sealed by the map edge (see _rebuild), else 0.
 var _seal_w: PackedFloat32Array = PackedFloat32Array()
@@ -53,6 +58,10 @@ func refresh() -> void:
 	if not live:
 		for g: MeshInstance3D in _glows:
 			g.visible = false
+		for b: MeshInstance3D in _gap_beams:
+			b.visible = false
+		for r: MeshInstance3D in _gap_rings:
+			r.visible = false
 		return
 	var now := Engine.get_process_frames()
 	if now - _last_frame >= REBUILD_FRAMES:
@@ -68,6 +77,7 @@ func _build() -> void:
 	_haze.material_override = _haze_mat
 	_haze.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_haze)
+	_gap_beam_mat = StyleFight.beam_material(StyleFight.CORAL, StyleFight.CORAL_CORE, Config.CP5_GAP_BEAM_HEIGHT, 0.9)
 	_gap_mote_mat = StyleKit.unique_mat(StyleKit.hexc("#ff7a66"), 1.2)
 	_gap_glow_mat = StyleKit.glow_mat(Color(1.0, 0.42, 0.34), 0.12)
 	_gold_motes = _make_motes(StyleKit.mat(StyleKit.hexc("#ffe28a"), 0, 0.0, 1.2))
@@ -197,10 +207,20 @@ func _rebuild_glows() -> void:
 	var gaps := subject.gap_midpoints()
 	while _glows.size() < gaps.size():
 		_glows.append(StyleKit.glow_plane(self, _gap_glow_mat, 6.5, Vector3.ZERO))
+		# Checkpoint 5: a coral column and a dithered breach ring over each open gap, so it reads from across the plaza.
+		_gap_beams.append(StyleFight.beam_node(self, 0.7, Config.CP5_GAP_BEAM_HEIGHT, _gap_beam_mat))
+		var ring := StyleFight.ring_node(self, 0.6, CORAL, StyleFight.CORAL_CORE, 0.6)
+		ring.scale = Vector3(GAP_RING_RADIUS, 1.0, GAP_RING_RADIUS)
+		_gap_rings.append(ring)
 	for i: int in range(_glows.size()):
-		_glows[i].visible = i < gaps.size()
-		if i < gaps.size():
+		var on := i < gaps.size()
+		_glows[i].visible = on
+		_gap_beams[i].visible = on
+		_gap_rings[i].visible = on
+		if on:
 			_glows[i].position = Vector3(gaps[i].x, 0.055, gaps[i].z)
+			_gap_beams[i].position = Vector3(gaps[i].x, Config.CP5_GAP_BEAM_HEIGHT * 0.5, gaps[i].z)
+			_gap_rings[i].position = Vector3(gaps[i].x, 0.07, gaps[i].z)
 
 
 # The pulse: gap motes swell (0.8x to 2.1x), gap glows grow (0.8x to 1.25x).
@@ -212,6 +232,11 @@ func _swell(pulse: float) -> void:
 	var glow_scale := 0.8 + 0.45 * pulse
 	for g: MeshInstance3D in _glows:
 		g.scale = Vector3(glow_scale, 1.0, glow_scale)
+	_gap_beam_mat.set_shader_parameter("fade", 0.5 + 0.5 * pulse)
+	var ring_scale := GAP_RING_RADIUS * (0.85 + 0.3 * pulse)
+	for r: MeshInstance3D in _gap_rings:
+		r.scale = Vector3(ring_scale, 1.0, ring_scale)
+		StyleFight.set_ring(r, CORAL, 0.35 + 0.45 * pulse, 0.14)
 
 
 static func _hash(k: int) -> float:

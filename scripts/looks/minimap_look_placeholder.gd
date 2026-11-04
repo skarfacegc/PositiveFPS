@@ -18,19 +18,17 @@ func line_colour(is_gap: bool) -> Color:
 	return Config.BORDER_GAP_COLOUR if is_gap else Config.TD_MINIMAP_LINE_COLOUR
 
 
-func member_colour() -> Color:
-	return Config.TD_MINIMAP_MEMBER_COLOUR
+# Checkpoint 5: a wobbling person (`wobble_pulse` 0 to 1) is a warm amber blip whose alpha swells with its pulse.
+func member_colour(wobble_pulse: float = -1.0) -> Color:
+	if wobble_pulse < 0.0:
+		return Config.TD_MINIMAP_MEMBER_COLOUR
+	var col := Config.WOBBLE_BLIP_COLOUR
+	col.a = lerpf(0.6, 1.0, wobble_pulse)
+	return col
 
 
 func dimmed_colour() -> Color:
 	return Config.TD_MINIMAP_DIMMED_COLOUR
-
-
-# Checkpoint 5: a wobbling person is a warm amber blip whose alpha swells with its pulse.
-func wobble_colour(pulse: float) -> Color:
-	var col := Config.WOBBLE_BLIP_COLOUR
-	col.a = lerpf(0.6, 1.0, pulse)
-	return col
 
 
 func landmark_colour() -> Color:

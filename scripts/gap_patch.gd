@@ -16,6 +16,7 @@ signal expired(pos: Vector3)
 var main: TopDownMain
 var fx: PatchFx
 var patch_label: Label
+var cue_panel: StyledPanel  # Graphics checkpoint 5: the styled look's cue (see StyleDawn.draw_cue).
 # Active patches: {"pos": Vector3, "left": float}.
 var patches: Array[Dictionary] = []
 # Strained border members (see BorderWarning.compute), refreshed every BORDER_WARN_INTERVAL.
@@ -60,6 +61,11 @@ func _build_label() -> void:
 	patch_label.add_theme_stylebox_override("normal", _cue_style)
 	patch_label.visible = false
 	main.hud.add_child(patch_label)
+	# Graphics checkpoint 5: the styled look draws the same cue as a parchment panel (the Label stays for the placeholder).
+	cue_panel = StyledPanel.new()
+	cue_panel.kind = StyledPanel.Kind.CUE
+	cue_panel.visible = false
+	main.hud.add_child(cue_panel)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -121,14 +127,24 @@ func _patch_cue() -> String:
 
 func _update_label() -> void:
 	var text := cue_text()
-	patch_label.visible = text != ""
+	var styled := Looks.is_styled()
+	patch_label.visible = text != "" and not styled
+	cue_panel.visible = text != "" and styled
 	if text == "":
 		return
-	patch_label.text = text
 	var screen := main.get_viewport().get_visible_rect().size
-	patch_label.position = Vector2(
+	var at := Vector2(
 		screen.x * 0.5 + Config.SPIRIT_METER_WIDTH * 0.5 + Config.CUE_HUD_GAP, screen.y + Config.CUE_HUD_Y
 	)
+	if styled:
+		var size := StyleDawn.cue_size(text)
+		cue_panel.size = size
+		cue_panel.position = Vector2(at.x, at.y - (size.y - 34.0) * 0.5)
+		var beat := int(Time.get_ticks_msec() / 1000.0 * Config.CUE_PULSE_HZ * 4.0) % 4 if cue_ready else 0
+		cue_panel.set_cue(text, cue_ready, beat)
+		return
+	patch_label.text = text
+	patch_label.position = at
 	if cue_ready:
 		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * TAU * Config.CUE_PULSE_HZ)
 		var edge := Config.CUE_READY_COLOUR
