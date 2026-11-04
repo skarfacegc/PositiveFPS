@@ -1983,3 +1983,28 @@ with `sed` or Python instead of the edit tools. The brief template now says to u
 **Playtest questions (styled look):** can you read the fight at a glance: gaps, strain, patch, burst, wobbles? Does first
 light feel like dawn coming in? Do the wobble pointers bring you to the right place in time? Does spare spirit's glow show,
 and does it help hold midnight? Is the third dawn light now earned? Does the border still blink at the end?
+
+## Graphics checkpoint 5 playtest and follow-up plan (2026-11-04)
+
+Played `dd9454e` once in the styled look, recorded (`20261104-173313`): a win, 2 of 3 dawn lights (41 rescued, 68%;
+ground 14%; Garden at 61 s). Midnight had no gaps and no relapses (round 24: 32 and 12 midnight gaps): 6 gaps in all, all
+in the first 15 s. Spare spirit made 50 gifts (2000 joy) to 7 people, with spirit at 100 through midnight. 0 wobbles,
+1 burst (lifted nobody), 2 patches on strained spots. No gap blinks at the end. So little trouble meant little of the new
+fight art was seen.
+
+**What the user said:** the night felt pleasantly calm (keep it). The styled look is nicer but harder to read. The border
+visuals were very distracting: the preview in general and the red striped preview in particular. The recorder's shots show
+why: the limited preview hatches a red-and-white striped area over much of the screen whenever the cursor aims where the
+zone can't grow, which is most of the time. The burst text also overlaps "Spirit 100/100" in every shot. More graphics
+work next; fix the worst and keep the rest.
+
+### Plan (one agent)
+
+- **E: hold to aim, release to place,** in both looks. No preview while just moving the cursor. Holding E shows the zone
+  preview, which follows the cursor; releasing E places the beacon; right-click while holding cancels with nothing spent.
+  Update the how-to-play text and the prompt bar.
+- **Quiet preview:** a thin outline only. When blocked, a thin coral outline and a small cross at the tip: no stripes, no
+  hatching, in either look.
+- **HUD overlap:** the burst line ("Joy burst [G]: READY - N dimmed ...") must not run into the spirit label, in either
+  look.
+- Refresh the checkpoint 5 reach shots. Spare spirit, the strain rings and the other effects stay as they are.
