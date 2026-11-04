@@ -39,6 +39,11 @@ window may be open); if a safety check denies a command, stop and report; never 
 budget (stop and report); gameplay rounds change only the placeholder look; player-facing words are wistful / gloomy /
 dimmed.
 
+Tools: view file lines with the Read tool (offset/limit), never shell loops, sed, head/tail or pipes; create and edit
+files only with Read/Edit/Write, never shell scripts or heredocs; run shell commands as plain single commands from your
+own worktree, and read their logs with the Read tool at the printed path. (The worktree guard refuses compound commands
+it can't check, and every agent in checkpoint 5 tripped it this way.)
+
 EVERY GODOT RUN MUST END ITSELF. Give every scripted Godot run a timeout and a log, with
 `python tools/godot_run.py --timeout <seconds> -- <command>` (it ends only the process tree it started and prints the
 exit, time and log path). Never leave a Godot process behind, and never end one you did not start.
