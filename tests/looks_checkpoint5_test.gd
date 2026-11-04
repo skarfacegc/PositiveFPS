@@ -348,6 +348,24 @@ func test_the_stretching_tag_shows_hides_and_ignores_repeats() -> void:
 	assert_str(tag.text).is_equal("")
 
 
+func test_the_stretching_tag_draws_nothing_in_the_placeholder_look() -> void:
+	Looks.set_mode(Looks.Mode.PLACEHOLDER)
+	var tag: StyleReachTag = auto_free(StyleReachTag.new())
+	add_child(tag)
+	tag.text = StyleReach.WORDS
+	tag._draw()
+	tag.text = ""
+	tag._draw()
+	assert_str(tag.text).is_equal("")
+
+
+func test_a_coat_colour_comes_from_the_affinity_and_clamps_out_of_range_values() -> void:
+	for aff in range(3):
+		assert_bool(StylePeople.coat_colour(aff).is_equal_approx(StyleKit.hexc(StylePeople.AFF_COAT[aff]))).is_true()
+	assert_bool(StylePeople.coat_colour(-4).is_equal_approx(StylePeople.coat_colour(0))).is_true()
+	assert_bool(StylePeople.coat_colour(9).is_equal_approx(StylePeople.coat_colour(2))).is_true()
+
+
 func test_a_styled_border_hides_its_gap_marks_when_it_is_not_live() -> void:
 	var s: Dictionary = await _ring_level(16, 6.0)
 	var td: TopDownMain = s["td"]

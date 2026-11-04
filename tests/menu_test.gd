@@ -190,6 +190,26 @@ func test_a_second_start_in_the_same_frame_is_ignored() -> void:
 	await _leave_loaded_scene()
 
 
+func test_leaving_a_level_for_real_restarts_it_or_returns_to_the_menu() -> void:
+	var runner: GdUnitSceneRunner = await _start_menu()
+	runner.simulate_key_pressed(KEY_1)
+	await runner.simulate_frames(10)
+	var first: TopDownMain = get_tree().current_scene as TopDownMain
+	assert_object(first).is_not_null()
+	first._leave_level("restart", "")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var second: TopDownMain = get_tree().current_scene as TopDownMain
+	assert_object(second).is_not_null()
+	assert_bool(second != first).is_true()
+	assert_str(_current_scene_path()).is_equal(TOP_DOWN)
+	second._leave_level("menu", MENU)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_str(_current_scene_path()).is_equal(MENU)
+	await _leave_loaded_scene()
+
+
 func test_the_record_toggle_sets_the_recorder_flag() -> void:
 	var runner: GdUnitSceneRunner = await _start_menu()
 	var menu: Control = runner.scene()
