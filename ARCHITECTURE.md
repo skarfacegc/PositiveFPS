@@ -92,6 +92,19 @@ mode moves the camera into a 640x360 SubViewport that shares the world, with nea
     Flags fixed: guarded icon (chevron shield), canopy skipped when styled (`FeedbackLayer.canopy_shown`), round sun
     bitmaps, a lighter bandstand ruin, bigger ink-edged beacon dashes. Tests: `looks_round20_test.gd` (walk),
     `looks_round20_pieces_test.gd`.
+- **Graphics checkpoint 5 (styled catch-up for rounds 21-24)**: `python tools/checkpoint_shots.py --set round24` (scene
+  `tools/checkpoint/checkpoint_round24.tscn`, extends the round 20 script; `design/renders/checkpoint_05/`, about 65 s;
+  if the run hangs the global class cache is stale: run `python tools/run_tests.py --suites looks_checkpoint5_test` first).
+  Constants: `Config` block "Checkpoint 5". Tests: `looks_checkpoint5_test.gd`.
+  - **The fight**: `StyleFight` (rings, open light columns via `shaders/style_beam.gdshader`, `tint`); `PatchFx` has styled
+    branches and rebuilds its pools when the look changes (strain rings and pings, patch ward and posts, burst streaks, lift
+    halos and columns); `BorderLookStyled` adds a coral column and breach ring per gap; `PlayerLookStyled.play_burst`.
+  - **People**: `PersonLook._update_react` calls `_react_pose` (styled adds PI to the turn); `PersonLookStyled` tints the body
+    through the toon shader's packed `tint` instance float (palette id + amount; a vec4 overflowed the instance buffer) for
+    reactions, the wobble (greying, shake, closing ring) and a dimmed person warming (coat, smoke pool, soot).
+  - **First light**: the ground shader's `dawn_front` (`GroundLookStyled.set_dawn_front`), `StyleFirstLight` motes and sky,
+    `MinimapLook.first_light(part, ...)`. **Preview**: `StyleReach` (outline ribbon `style_outline`, fill `style_zone`,
+    `StyleReachTag` "Stretching"). **HUD**: `StyledPanel.Kind.CUE` (`StyleDawn.draw_cue`), styled notices (`StyleHud.draw_prompt`).
 - Tests run in the placeholder look; `tests/looks_test.gd` switches to styled on purpose and always switches back.
   Headless uses a dummy renderer, so shaders are not compiled by the tests; the screenshot run is the shader check
   (grep its log for errors).

@@ -33,10 +33,21 @@ func refresh(_colours: Array[Color], weights: Array[float]) -> void:
 		_texture.update(img)
 
 
+# Graphics checkpoint 5: first light. The ground behind the dawn front (square distance from the centre at
+# least `metres`) warms and glints; a large value (the default) means no front. See style_ground.gdshader.
+func set_dawn_front(metres: float) -> void:
+	_mat.set_shader_parameter("dawn_front", metres)
+
+
+func dawn_front() -> float:
+	return _mat.get_shader_parameter("dawn_front")
+
+
 func _build() -> void:
 	_mat = ShaderMaterial.new()
 	_mat.shader = load(SHADER)
 	_mat.set_shader_parameter("plaza", float(grid_size))
+	_mat.set_shader_parameter("dawn_front", 1000.0)
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(PLANE_SIZE, PLANE_SIZE)
 	var inst := MeshInstance3D.new()

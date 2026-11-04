@@ -15,6 +15,19 @@ uniform int pat = 0;
 uniform float vary = 0.0;
 instance uniform float dissolve = 0.0;
 instance uniform float emit_add = 0.0;
+// Checkpoint 5: `tint` packs a palette id (the whole part, 1 to 6) and an amount (the fraction, 0 to 0.99) in one float,
+// because a bigger instance value overflows the instance buffer. The id's colour is mixed into the colour by the amount.
+// Used by a reaction's coloured glow, the wobble's greying and a dimmed person warming. 0 (the default) changes nothing.
+instance uniform float tint = 0.0;
+const vec3 TINTS[7] = vec3[7](
+	vec3(0.0),
+	vec3(0.35, 0.95, 0.85),   // 1 patch teal
+	vec3(1.0, 0.9, 0.5),      // 2 lift gold
+	vec3(0.435, 0.455, 0.51), // 3 wobble grey
+	vec3(0.373, 0.525, 0.69), // 4 music coat
+	vec3(0.769, 0.376, 0.31), // 5 art coat
+	vec3(0.498, 0.616, 0.384) // 6 nature coat
+);
 
 varying vec3 wpos;
 
@@ -51,6 +64,10 @@ void fragment() {
 	} else if (pat == 2) {
 		float v = fract(wpos.x * 0.8);
 		c *= 1.0 - 0.35 * max(step(v, 0.06), step(fract(wpos.z * 0.8), 0.04));
+	}
+	if (tint >= 1.0) {
+		float tid = floor(tint);
+		c = mix(c, S(TINTS[int(tid)]), (tint - tid) / 0.99);
 	}
 	ALBEDO = c;
 	EMISSION = c * (emit + emit_add);

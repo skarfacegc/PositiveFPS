@@ -174,7 +174,8 @@ func test_a_burst_makes_each_lifted_person_hop_and_glow_warm() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_styled_look_is_left_alone_by_a_reaction() -> void:
+func test_the_styled_look_hops_and_turns_in_a_reaction_and_settles() -> void:
+	# Graphics checkpoint 5: the styled look reacts too (its bodies face the other way, so the turn is added to PI).
 	var s: Dictionary = await _border_level(16, 6.0)
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -182,10 +183,18 @@ func test_the_styled_look_is_left_alone_by_a_reaction() -> void:
 	td.set_look(Looks.Mode.STYLED)
 	await runner.simulate_frames(3)
 	m.react(Person.React.PATCH, Config.REACT_PATCH_SECONDS, m.position + Vector3.RIGHT * 3.0)
+	var top := 0.0
+	var turned := 0.0
+	for _i: int in range(int(Config.REACT_PATCH_SECONDS * 60.0) - 2):
+		await runner.simulate_frames(1)
+		top = maxf(top, m.look.visual.position.y)
+		turned = maxf(turned, absf(m.look.visual.rotation.y - PI))
+	assert_float(top).is_greater(Config.REACT_PATCH_HOP_HEIGHT * 0.5)
+	assert_float(turned).is_greater(0.2)
 	await runner.simulate_frames(20)
 	assert_float(m.look.visual.position.y).is_equal(0.0)
 	assert_float(m.look.visual.rotation.y).is_equal_approx(PI, 0.0001)
-	# The base look's glow hook does nothing (only the placeholder look glows).
+	# The base look's glow hook does nothing (only the placeholder and styled looks glow).
 	var base: PersonLook = auto_free(PersonLook.new())
 	base._set_react_glow(Config.PATCH_COLOUR, 1.0)
 	td.set_look(Looks.Mode.PLACEHOLDER)

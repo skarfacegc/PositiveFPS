@@ -7,6 +7,8 @@ Usage:
                                                      # (default DIR: design/renders/checkpoint_03)
     python tools/checkpoint_shots.py --set round20   # graphics checkpoint 4: reach guide, zone, minimap, walk
                                                      # (default DIR: design/renders/checkpoint_04)
+    python tools/checkpoint_shots.py --set round24   # graphics checkpoint 5: the fight, first light, shape preview
+                                                     # (default DIR: design/renders/checkpoint_05)
 
 It launches the GAME (the real level, not design/style_test) in a labelled window through
 tools/checkpoint/checkpoint_shots.tscn. The scenario is scripted through the game's own API (fixed seed: a ring of
@@ -56,14 +58,29 @@ EXPECTED_R20 = (["overview.png", "compare.png", "contact_sheet.png", "contact_sh
                 + ["%s_%s.png" % (v, look) for v in VIEWS_R20 for look in ("placeholder", "styled")])
 
 
+# Graphics checkpoint 5 (--set round24): reading the fight (gaps, strain rings, patch, burst, wobble, reactions, cue,
+# notice), first light, the shape preview, dimmed warming and the walks.
+VIEWS_R24 = ["fight_strain", "fight_gap_closeup", "fight_strain_closeup", "fight_cue_ready", "fight_patch",
+             "fight_patch_closeup", "fight_reactions_closeup", "fight_patch_ending", "fight_burst_before",
+             "fight_burst", "fight_burst_closeup", "fight_notice", "wobble_overview", "wobble_closeup",
+             "dimmed_warming", "reach_preview", "reach_limited", "reach_stretching", "reach_pulse",
+             "dawn_early", "dawn_banner", "dawn_minimap_early", "dawn_mid", "dawn_lifted_closeup",
+             "dawn_minimap_mid", "dawn_late", "dawn_minimap_late",
+             "walk_grey", "walk_joy", "walk_dimmed", "walk_player", "run_player", "walk_crowd"]
+EXPECTED_R24 = (["overview.png", "compare.png", "contact_sheet.png", "contact_sheet_compare.png", "walk_sheet.png",
+                 "fight_sheet.png", "dawn_sheet.png"]
+                + ["%s_%s.png" % (v, look) for v in VIEWS_R24 for look in ("placeholder", "styled")])
+
+
 def main():
     parser = argparse.ArgumentParser(description="Render the checkpoint screenshots in both looks.")
-    parser.add_argument("--set", dest="shot_set", choices=("checkpoint2", "round19", "round20"),
+    parser.add_argument("--set", dest="shot_set", choices=("checkpoint2", "round19", "round20", "round24"),
                         default="checkpoint2")
     parser.add_argument("--out", default=None)
     args = parser.parse_args()
     if args.out is None:
-        folder = {"round19": "checkpoint_03", "round20": "checkpoint_04"}.get(args.shot_set, "checkpoint_02")
+        folder = {"round19": "checkpoint_03", "round20": "checkpoint_04", "round24": "checkpoint_05"}.get(
+            args.shot_set, "checkpoint_02")
         args.out = os.path.join("design", "renders", folder)
     out_abs = os.path.abspath(os.path.join(ROOT, args.out))
     exe = godot_gui()
@@ -73,15 +90,17 @@ def main():
         return 2
     os.makedirs(out_abs, exist_ok=True)
     env = dict(os.environ, POSITIVEFPS_TEST="1")
-    scene = "checkpoint_round20.tscn" if args.shot_set == "round20" else "checkpoint_shots.tscn"
+    scene = {"round20": "checkpoint_round20.tscn", "round24": "checkpoint_round24.tscn"}.get(
+        args.shot_set, "checkpoint_shots.tscn")
     cmd = [exe, "--path", ROOT, "res://tools/checkpoint/" + scene, "--", "--out", out_abs.replace("\\", "/")]
-    if args.shot_set in ("round19", "round20"):
+    if args.shot_set in ("round19", "round20", "round24"):
         cmd += ["--set", args.shot_set]
-    if args.shot_set == "round20":
+    if args.shot_set in ("round20", "round24"):
         cmd += ["--timeout", "600"]
     # tools/godot_run.py: hard timeout, output in a log file, ends only the process tree it started.
     log_path = os.path.join(out_abs, "checkpoint_run.log")
-    result = godot_run(cmd, timeout=650 if args.shot_set == "round20" else 200, log_path=log_path, env=env)
+    long_run = args.shot_set in ("round20", "round24")
+    result = godot_run(cmd, timeout=650 if long_run else 200, log_path=log_path, env=env)
     print(result.summary())
     if result.timed_out:
         print("ERROR: the screenshot run timed out (log: %s)" % log_path, file=sys.stderr)
@@ -89,7 +108,7 @@ def main():
     for line in result.output().splitlines():
         if line.startswith(("TIMING", "SAVED", "GAPS", "SEALED")) or "ERROR" in line:
             print(line)
-    expected = {"round19": EXPECTED_R19, "round20": EXPECTED_R20}.get(args.shot_set, EXPECTED)
+    expected = {"round19": EXPECTED_R19, "round20": EXPECTED_R20, "round24": EXPECTED_R24}.get(args.shot_set, EXPECTED)
     missing = [name for name in expected if not os.path.exists(os.path.join(out_abs, name))]
     if missing:
         print("ERROR: missing outputs: " + ", ".join(missing), file=sys.stderr)

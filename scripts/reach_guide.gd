@@ -8,8 +8,8 @@ extends Node3D
 # shows only as a small notice when E is pressed. During a stretch it shows the tip's travel (a line from the centre
 # to the tip, a disc at the tip, a dashed line on to the beacon when the reach falls short, and the word "Stretching").
 # Round 22: when the tip arrives a pulse runs along the new arm and "+N sq m of ground" rises from it.
-# Graphics checkpoint 4: the styled look draws the older reach ring and line with dithered ground pieces (StyleReach),
-# swapped in by sync.
+# Graphics checkpoint 5: the styled look draws this same zone preview, stretch path and finish pulse with
+# dithered ground pieces (StyleReach, built lazily and swapped in by sync).
 
 const SEGMENTS := 72
 const LINE_WIDTH := 0.28
@@ -46,16 +46,17 @@ func sync(border: Border, player: TopDownPlayer) -> void:
 	if _linked != border:
 		_linked = border
 		border.zone_grew.connect(_on_zone_grew)
-	_pulse(border)
 	if Looks.is_styled():
 		if _styled == null:
 			_styled = StyleReach.new()
 			_styled.build(self)
 		_set_label("", Vector2.ZERO)
 		_styled.sync(border, player)
+		_pulse(border)
 		return
 	if _styled != null:
-		_styled.hide()
+		_styled.hide_all()
+	_pulse(border)
 	if not border.active:
 		_set_label("", Vector2.ZERO)
 		return
@@ -127,9 +128,16 @@ func _pulse(border: Border) -> void:
 	if _pulse_left <= 0.0:
 		if _gain_label != null:
 			_gain_label.visible = false
+		if _styled != null:
+			_styled.end_pulse()
 		return
 	_pulse_left = maxf(_pulse_left - get_process_delta_time(), 0.0)
 	var p := 1.0 - _pulse_left / Config.BEACON_PULSE_SECONDS
+	if Looks.is_styled() and _styled != null:
+		# Graphics checkpoint 5: the wave and the ring are dithered pieces; only the count is shared with the placeholder.
+		_styled.pulse(border, p, _pulse_ang, _pulse_tip)
+		_show_gain(p)
+		return
 	var c := Vector2(border.centre.x, border.centre.z)
 	var poly := border.polygon
 	var n := poly.size()
@@ -153,6 +161,12 @@ func _pulse(border: Border) -> void:
 	ring_col.a *= 1.0 - p
 	_ring(_pulse_tip, Config.BEACON_PULSE_RING_START + Config.BEACON_PULSE_RING_GROW * p, ring_col)
 	_mesh.surface_end()
+	_show_gain(p)
+
+
+# The "+N sq m of ground" count that rises from the tip while the pulse runs (both looks; the styled look gives it a
+# thick ink edge).
+func _show_gain(p: float) -> void:
 	if _gain_label == null:
 		_gain_label = Label3D.new()
 		_gain_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -160,6 +174,9 @@ func _pulse(border: Border) -> void:
 		_gain_label.pixel_size = Config.BEACON_GAIN_LABEL_SIZE
 		_gain_label.outline_size = Config.BEACON_GAIN_OUTLINE_SIZE
 		add_child(_gain_label)
+	var styled := Looks.is_styled()
+	_gain_label.outline_modulate = StyleCues.INK if styled else Color.BLACK
+	_gain_label.outline_size = Config.BEACON_GAIN_OUTLINE_SIZE * (2 if styled else 1)
 	var pc := Config.BEACON_PULSE_COLOUR
 	_gain_label.visible = _pulse_gain >= 1.0
 	_gain_label.text = Config.BEACON_GAIN_TEXT % int(roundf(_pulse_gain))

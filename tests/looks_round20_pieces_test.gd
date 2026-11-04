@@ -37,7 +37,7 @@ func _visible_count(guide: StyleReach) -> int:
 	return n
 
 
-func test_the_styled_reach_guide_shows_the_ring_the_preview_and_the_travel() -> void:
+func test_the_styled_reach_guide_shows_the_zone_preview_and_the_travel() -> void:
 	var s: Dictionary = await _formed()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
@@ -45,40 +45,32 @@ func test_the_styled_reach_guide_shows_the_ring_the_preview_and_the_travel() -> 
 	await runner.simulate_frames(3)
 	var guide: StyleReach = td.reach_guide._styled
 	assert_object(guide).is_not_null()
-	assert_bool(guide._ring.visible).is_true()
+	# Graphics checkpoint 5: no aim, nothing; aim within reach: the zone outline and its fill (not limited).
+	td.player._has_aim = false
+	td.reach_guide.sync(td.border, td.player)
+	assert_int(_visible_count(guide)).is_equal(0)
 	var reach: float = td.border.stretch_info()["max"]
-	assert_float(guide._ring.scale.x).is_equal_approx(reach, 0.01)
-	var with_ring := _visible_count(guide)
-	# Aim within reach: the teal preview and its end disc; beyond it: the coral line and the cross.
-	td.player._aim_point = td.border.centre + Vector3(reach * 0.5, 0.0, 0.0)
+	td.player._aim_point = td.border.centre + Vector3(reach * 0.95, 0.0, 0.0)
 	td.player._has_aim = true
 	td.reach_guide.sync(td.border, td.player)
-	assert_bool(guide._preview.visible).is_true()
-	assert_bool(guide._preview_end.visible).is_true()
-	assert_bool(guide._preview_capped.visible).is_false()
-	# Aiming at the centre itself: a line with no length is not drawn.
-	td.player._aim_point = td.border.centre
-	td.reach_guide.sync(td.border, td.player)
-	assert_bool(guide._preview.visible).is_false()
-	td.player._aim_point = td.border.centre + Vector3(reach * 3.0, 0.0, 0.0)
-	td.reach_guide.sync(td.border, td.player)
-	assert_bool(guide._preview_capped.visible).is_true()
-	assert_bool(guide._cross[0].visible).is_true()
-	assert_bool(guide._preview.visible).is_false()
-	assert_int(_visible_count(guide)).is_greater_equal(with_ring)
+	assert_bool(guide.showing_preview).is_true()
+	assert_bool(guide.showing_limited).is_false()
+	assert_bool(guide._line.visible).is_true()
+	assert_bool(guide._fill.visible).is_true()
+	assert_bool(guide._cross.visible).is_false()
 	# A beacon beyond the reach: the path, the tip, the dashes on to the beacon, then, once it arrives, nothing (round
 	# 22: no hold).
 	td.border.place_beacon(td.border.centre + Vector3(reach * 3.0, 0.0, 0.0))
 	# Round 23: the tip walks at the new pull speed, so it has not arrived after 20 frames (a third of a second) here.
 	await runner.simulate_frames(20)
 	td.reach_guide.sync(td.border, td.player)
-	assert_bool(guide._path.visible).is_true()
-	assert_bool(guide._tip.visible).is_true()
-	assert_bool(guide._dashes[0].visible).is_true()
-	# Round 22: there is no hold any more: once the tip has arrived the path is gone.
+	assert_bool(guide.showing_travel).is_true()
+	assert_bool(guide._tip_disc.visible).is_true()
+	assert_bool(guide._dashes.visible).is_true()
+	# Round 22: there is no hold any more: once the tip has arrived the travel is gone.
 	await runner.simulate_frames(1500)
 	td.reach_guide.sync(td.border, td.player)
-	assert_bool(guide._path.visible).is_false()
+	assert_bool(guide.showing_travel).is_false()
 	# Back to the placeholder look: the styled pieces hide.
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	await runner.simulate_frames(3)

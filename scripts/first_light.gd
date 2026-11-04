@@ -23,6 +23,7 @@ var _lifted: Dictionary = {}
 var _label_left: float = 0.0
 var _tint: Array[MeshInstance3D] = []
 var _band: Array[MeshInstance3D] = []
+var _styled: StyleFirstLight  # Graphics checkpoint 5: built the first time the styled look is on.
 
 
 # Builds the node under `level` and returns it. (The only wiring TopDownMain needs.)
@@ -103,6 +104,10 @@ func _begin() -> void:
 	started = true
 	label.visible = true
 	_label_left = Config.FIRST_LIGHT_TEXT_HOLD + Config.FIRST_LIGHT_TEXT_FADE
+	if Looks.is_styled():
+		# Graphics checkpoint 5: the styled banner, not the plain label.
+		label.visible = false
+		main.hud.show_alert(Config.FIRST_LIGHT_TEXT, Config.FIRST_LIGHT_TEXT_COLOUR, Config.FIRST_LIGHT_TEXT_HOLD)
 	var dimmed := 0
 	for p: Person in main.people:
 		if GloomSim.is_dimmed(p):
@@ -128,14 +133,36 @@ func _emit(type: String, fields: Dictionary) -> void:
 
 # The small line fades out after its hold; the tint and band follow the front.
 func _sync_look(delta: float) -> void:
+	var styled := Looks.is_styled()
 	if _label_left > 0.0:
 		_label_left -= delta
 		label.modulate.a = clampf(_label_left / Config.FIRST_LIGHT_TEXT_FADE, 0.0, 1.0)
-		label.visible = _label_left > 0.0
+		label.visible = _label_left > 0.0 and not styled
 	var half := Config.TD_PLAZA_SIZE * 0.5
 	var e := edge()
+	if styled:
+		# Graphics checkpoint 5: the ground carries the front (warm wash, a line and glints), light motes ride it and the
+		# sky warms; the placeholder strips are hidden.
+		_set_frame(_tint, 0.0, 0.0)
+		_set_frame(_band, 0.0, 0.0)
+		_sync_styled(e)
+		return
+	if _styled != null:
+		_styled.hide()
 	_set_frame(_tint, e, half)
 	_set_frame(_band, maxf(0.0, e - Config.FIRST_LIGHT_BAND_WIDTH), e)
+
+
+# The styled front: the ground shader's front, the motes near the player, and the sky.
+func _sync_styled(e: float) -> void:
+	if _styled == null:
+		_styled = StyleFirstLight.new()
+		_styled.build(self)
+	var ground_look := main.ground.look as GroundLookStyled
+	if ground_look != null:
+		ground_look.set_dawn_front(e)
+	_styled.sync(e, main.player.global_position, Time.get_ticks_msec() / 1000.0)
+	main.environment().background_color = StyleFirstLight.sky_at(main.night.first_light_progress())
 
 
 # Four ground strips make a square frame from half size `inner` out to `outer`.

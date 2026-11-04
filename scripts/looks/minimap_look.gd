@@ -61,6 +61,17 @@ func unheld_landmark_ring_colour() -> Color:
 	return Color(0, 0, 0, 0)
 
 
+# Round 24 / graphics checkpoint 5: the colours of first light on the map. `part` is "ground" (the ground behind the
+# front, pixel `px`, `py` of the picture, as `col` warmed), "line" (the front's own line) or "ink" (a line just ahead of
+# it; alpha 0 means none, which is the base look).
+func first_light(part: String, col: Color, _px: int, _py: int) -> Color:
+	if part == "ground":
+		return col.lerp(Config.FIRST_LIGHT_MINIMAP_COLOUR, Config.FIRST_LIGHT_MINIMAP_TINT)
+	if part == "line":
+		return Config.FIRST_LIGHT_MINIMAP_COLOUR
+	return Color(0, 0, 0, 0)
+
+
 # Round 20: the colour of the soft people clouds (minimap.gd). Alpha 0 means the look draws none (the styled look).
 func cloud_colour() -> Color:
 	return Color(0, 0, 0, 0)
