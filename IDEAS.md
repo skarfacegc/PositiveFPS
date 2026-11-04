@@ -1915,3 +1915,71 @@ spirit warms the border, no stretch refund, difficulty unchanged.
      warms the border (rescues at full spirit slowly top up border people's joy, with a visible glow in both looks),
      and the third dawn light at 75% rescued and 2 landmarks.
 3. Merge, then `tools/round_end.py`. Then a playtest in the styled look.
+
+## Graphics checkpoint 5 build (2026-11-04)
+
+Built as a split, then three parallel parts, then two coverage top-ups and a determinism fix. Gate (700 tests, 99.8%),
+determinism (0 lines differing) and baseline passed through `tools/round_end.py`.
+
+**Split** (`eba6d8f`): the crowd's movement moved to `scripts/crowd_movement.gd`; `topdown_main.gd` went from 992 to 798
+lines.
+
+**I. Styled catch-up** (`2bb0f40`): in the styled look, strain rings are thick amber-to-red bands that ping when urgent.
+An open gap gets a coral light column and a breach ring. A patch is a teal ward with 8 light posts that flicker as it runs
+out. The burst is gold rings and streaks, with a halo and a light column on each person it lifts. Reactions hop, turn and
+glow; a wobbler greys, shakes harder and gets a closing ring; dimmed people's coats warm as joy builds. First light is a
+gold wash on the ground behind the front, motes along it, a warming sky, a styled banner and a warm minimap. Also styled:
+the zone-outline preview (coral when limited, a "Stretching" tag), the cue panel (gold when ready) and notices. Still
+placeholder: the target highlight, the beacon marker and the HUD text labels. Screenshots:
+`design/renders/checkpoint_05/` (`python tools/checkpoint_shots.py --set round24`; `fight_sheet.png`, `dawn_sheet.png`,
+`walk_sheet.png` and contact sheets). The walk strips were not changed: the player's run reads only a little different
+from the walk.
+
+**J. Wobble alert** (`0520621`, `scripts/wobble_alert.gd`): up to 3 pulsing amber pointers at the screen edge toward
+clusters of off-screen wobblers, faster as the wobble runs out, and a pulsing minimap blip, in both looks.
+
+**K. Rules** (`9e1a486`): the end flicker was not a spacing gap. The loop eases to exactly n x spacing, which is where the
+slot count steps from n to n+1, so the border wanted 46 members one frame and 47 the next, and a benched spare walked in
+and out. `BorderShape.held_slot_count` now holds the count within 0.35 of a slot (reproduced headless: the gap set changed
+on 59 of 60 frames before, 0 after; the 1.4 s period in the recording was not reproduced). Spare spirit: what a full
+meter can't take goes into a pool (at most 40) that pours 80 joy a second into the most strained border member under 90%
+of their joy, with a warm ground glow (`scripts/spirit_warmth.gd`, recorder event `spirit_warm`). The third dawn light
+needs 75% rescued and 2 landmarks. The analyser adds SPARE SPIRIT and GAP BLINKS lines.
+
+**Merge:** `MinimapLook` would have had 21 public methods (one over the lint limit), so the wobble blip colour is now
+`member_colour(wobble_pulse)`, not a method of its own. **Coverage** (`dc16f08`, `9494145`): tests for the empty cue
+panel, the styled minimap's dawn ink line, the placeholder "Stretching" tag, and leaving a level for real (restart and
+back to the menu). `StylePeople.coat_colour` was never called, so it was removed rather than tested (`143c37d`).
+
+**Timing:** one gate failed the 60-person test at 6.93 ms (budget 6.7) with another program using about 3.4 cores and
+OneDrive syncing. `perf_compare.py ee96777 HEAD --rounds 4` read round 24 at 6.82-7.09 ms (mean 6.93) and this round at
+6.36-7.13 ms (mean 6.91), so the change costs nothing measurable and the failure was load. After the user closed that
+program the gate passed with the budget unchanged.
+
+**Determinism fixed** (`140c94e`): the styled person look read the wall clock (`Time.get_ticks_msec()`) to decide whether
+a warned person shows the grey or the joyful body, so test runs took different code paths. The same applied to the cue
+panel's pulse. Looks now use a clock built from fixed-step deltas (`PersonLook.clock`) or the frame count. This was also
+the cause of the long-standing `looks_test` / `looks_round20_test` variation, so the known list (`KNOWN_REAL_TIME_UNITS`)
+is now empty, which makes the check stricter.
+
+**Tests changed:** `reactions_test` (the styled look now reacts), `looks_round20_pieces_test` (new `StyleReach` members),
+`dawn_rating_test` and `defence_cues_test` (75% and 2 landmarks), `gap_patch_test`, `local_gap_test` and `feedback_test`
+(empty the warmth pool so a deliberately weak member stays weak), `looks_round20_test` (its gait person now has enough joy
+to show the joyful body; it had passed only when the wall clock happened to show it), `dimmed_waves_test` (advances the
+look clock instead of sleeping), `wobble_alert_test` (the colour call's new name). **Loosened:** nothing.
+
+**Agents and the worktree guard:** every agent had a shell loop or chained command refused while viewing lines or reading
+logs. Each stopped and reported, then carried on with the Read tool and plain commands. Part I made four small early edits
+with `sed` or Python instead of the edit tools. The brief template now says to use the Read tool for this.
+
+**Open:**
+- The HUD burst text ("Joy burst [G]: READY - N dimmed ...") runs into the spirit label in the styled look.
+- The limited preview (aiming inside the zone) is a thick coral stripe round the whole zone in the styled look, louder
+  than the placeholder's outline.
+- About 7 `instance_buffer_pos` engine errors at the end of the styled checkpoint run; the cause is not found.
+- The player's jog barely differs from the walk.
+- Still open from earlier: the second arm, the minimap redraw spike, the sound cue talk.
+
+**Playtest questions (styled look):** can you read the fight at a glance: gaps, strain, patch, burst, wobbles? Does first
+light feel like dawn coming in? Do the wobble pointers bring you to the right place in time? Does spare spirit's glow show,
+and does it help hold midnight? Is the third dawn light now earned? Does the border still blink at the end?
