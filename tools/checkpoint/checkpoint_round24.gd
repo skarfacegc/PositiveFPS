@@ -221,19 +221,32 @@ func _r24_reach(label: String) -> void:
 	var border := main.border
 	var centre := border.centre
 	var reach: float = border.stretch_info()["max"]
-	var inside := centre + Vector3(reach * 0.6, 0.0, -reach * 0.3)
+	var radius: float = border.stretch_info()["radius"]
+	# The aim is out over open ground past the zone's body, so the preview is the new arm (a thin outline), not a copy of
+	# the zone it already has.
+	var out := Vector3(-1.0, 0.0, 0.3).normalized()
+	var aim := centre + out * (radius + (reach - radius) * 0.4)
 	await _r24_move_player(centre + Vector3(0.0, 0.0, 2.0))
-	_r20_aim(inside)
+	# The player's physics tick would take the aim from the real mouse, so the aim is pinned for these shots: `active`
+	# false stops the aim update (the round-end freeze), and it is set back at the end.
+	main.player.active = false
+	_r20_aim(aim)
+	# Checkpoint 5 follow-up: the preview shows only while E is held, so the shots hold E (BeaconPlacement.press).
+	BeaconPlacement.press(main)
 	main.reach_guide.sync(border, main.player)
 	await _r24_shot("reach_preview", label, {}, 8)
-	# Limited: dimmed people stand in the way of the stretch, so the zone cannot grow there.
-	var dir := (inside - centre).normalized()
-	for i: int in range(3):
-		var side := Vector3(-dir.z, 0.0, dir.x)
-		_make_dimmed(main.people[ring_count + 30 + i], centre + dir * (border.stretch_info()["radius"] as float + 3.0) + side * float(i - 1) * 1.8)
+	await _r24_shot("reach_preview_close", label, {"world": aim, "size": Vector2i(426, 240), "scale": 3}, 2)
+	# Limited: the aim is inside the zone the border already has, so nothing can grow there (the quiet "no": a thin coral
+	# outline and a small cross at the tip). The dimmed-people block is covered by stretch_safety_test instead: placing
+	# dimmed people on the tip did not hold the stretch in this scenario.
+	var inside := centre + out * (radius * 0.5)
+	_r20_aim(inside)
 	await _settle(4)
 	main.reach_guide.sync(border, main.player)
 	await _r24_shot("reach_limited", label, {}, 8)
+	# Close-up of the tip, so the thin outline and the small cross can be read at pixel size.
+	await _r24_shot("reach_limited_close", label, {"world": inside, "size": Vector2i(426, 240), "scale": 3}, 2)
+	BeaconPlacement.cancel(main)
 	# Stretching: a beacon far to the east-south, shot as the tip travels.
 	for i: int in range(3):
 		main.people[ring_count + 30 + i].global_position = FAR
@@ -257,6 +270,7 @@ func _r24_reach(label: String) -> void:
 	await _settle(2)
 	main.reach_guide.sync(border, main.player)
 	await _r24_shot("reach_pulse", label, {}, 1)
+	main.player.active = true
 
 
 # ---- Focus 2: first light ----------------------------------------------------------------------------------------------------

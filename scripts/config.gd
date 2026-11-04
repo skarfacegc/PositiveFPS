@@ -50,10 +50,9 @@ const BEACON_PLAN_SECONDS := 0.1
 const BEACON_DIM_TEXT := "Dimmed people are in the way"
 const BEACON_BLOCKED_TEXT := "Dimmed people block the stretch"
 const BEACON_FELL_BACK_TEXT := "The stretch fell back"
-# The preview of the zone the stretch will make (reach_guide.gd, placeholder look): outline, fill, tip marker, label.
-const BEACON_GUIDE_OUTLINE_WIDTH := 0.4
-const BEACON_GUIDE_FILL_COLOUR := Color(0.55, 0.85, 1.0, 0.14)
-const BEACON_GUIDE_LIMITED_FILL_COLOUR := Color(1.0, 0.3, 0.2, 0.12)
+# The preview of the zone the stretch will make (reach_guide.gd, placeholder look): a thin outline, a tip marker, label.
+# Checkpoint 5 follow-up: no fill (the outline only); the width is thin (see the "hold E" block).
+const BEACON_GUIDE_OUTLINE_WIDTH := 0.2
 const BEACON_GUIDE_LABEL_COLOUR := Color(1.0, 1.0, 0.92)
 
 # ---- Round 22: shaped zone (scripts/border_centre.gd, reach_guide.gd, intro.gd, prompt_bar.gd). ----
@@ -71,7 +70,7 @@ const NOTICE_SECONDS := 4.0
 const NOTICE_COLOUR := Color(1.0, 0.62, 0.45)
 const BEACON_PULSE_SECONDS := 1.8
 const BEACON_GAIN_TEXT := "+%d sq m of ground"
-const BEACON_LIMITED_OUTLINE_WIDTH := 0.6
+const BEACON_LIMITED_OUTLINE_WIDTH := 0.26  # Checkpoint 5 follow-up: thin, a touch wider than the normal outline.
 const BEACON_LIMITED_COLOUR := Color(1.0, 0.35, 0.25, 0.95)
 
 # ---- Round 22: gap patch (scripts/gap_patch.gd). ----
@@ -382,6 +381,14 @@ const CP5_WOBBLE_GREY := Color("#6f7482")
 const CP5_WARM_TINT := 0.75  # How far a dimmed body's coat takes the affinity colour at full joy (styled look).
 const CP5_FIRST_LIGHT_SKY := Color("#f2b886")  # The sky the styled view warms toward as first light moves in.
 const CP5_FIRST_LIGHT_SKY_MIX := 0.5  # How much of it at dawn.
+
+# ---- Checkpoint 5 follow-up: hold E (scripts/beacon_placement.gd, reach_guide.gd, controls.gd, hud.gd). ----
+# E is hold to aim, release to place: the preview shows only while E is held and right-click cancels. The HUD's spirit
+# label sits above its bar so the burst line on the left never runs into it.
+const AIM_CROSS_SIZE := 1.1  # Half the length of the small cross at a limited preview's tip (metres, placeholder look).
+const AIM_CROSS_WIDTH := 0.22  # The cross's stroke width (metres, placeholder look).
+const SPIRIT_LABEL_TOP := -146.0  # The spirit label's top, in pixels above the bottom of the screen (above the bar).
+const SPIRIT_LABEL_HEIGHT := 28.0
 
 static var intro_override: int = -1
 

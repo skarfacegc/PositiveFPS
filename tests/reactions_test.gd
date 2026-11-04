@@ -263,6 +263,7 @@ func test_hovering_shows_no_words_and_a_refusal_shows_only_when_e_is_pressed() -
 	# Hover on a spot inside the zone (it would be refused): no label, no notice, however long it stays there.
 	td.player._has_aim = true
 	td.player._aim_point = CENTRE + Vector3(1.0, 0.0, 1.0)
+	TopDownTestUtil.press_e(td)  # Checkpoint 5 follow-up: the preview shows only while E is held.
 	await runner.simulate_frames(120)
 	td.reach_guide.sync(td.border, td.player)
 	assert_bool(td.reach_guide._label == null or not td.reach_guide._label.visible).is_true()

@@ -105,6 +105,44 @@ func test_the_rec_mark_is_built_once_shown_and_hidden() -> void:
 	assert_bool(mark.visible).is_true()
 
 
+# Checkpoint 5 follow-up: the burst line (bottom left) ran into the spirit label (bottom centre, left of its bar) in
+# both looks. The spirit label now sits above its bar. This checks the longest burst line and the spirit label never
+# overlap at the 1280x720 window, in the placeholder and the styled look (the HUD is drawn at full window size in both).
+func _text_rect(label: Label, text: String) -> Rect2:
+	var font_px := label.get_theme_font_size("font_size")
+	var text_size := label.get_theme_font("font").get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px)
+	return Rect2(label.get_global_position(), text_size)
+
+
+func _check_no_overlap(td: TopDownMain) -> void:
+	var hud: Hud = td.hud
+	var screen := Rect2(Vector2.ZERO, Vector2(1280, 720))
+	# The longest burst line the game shows: READY with the most dimmed.
+	var burst_rect := _text_rect(hud.burst_label, "Joy burst [G]: READY - clears 99 dimmed")
+	# The spirit label's box (the bar's width): wider than either spirit text, so clear of the box means clear of the text.
+	var spirit_rect := hud.spirit_label.get_global_rect()
+	var bar_rect := hud.spirit_bar.get_global_rect()
+	assert_bool(burst_rect.intersects(spirit_rect)).is_false()
+	assert_bool(spirit_rect.intersects(bar_rect)).is_false()
+	# The burst line also stops before the bar itself (the bar is the spirit meter's whole width at bottom centre).
+	assert_bool(burst_rect.intersects(bar_rect)).is_false()
+	assert_bool(screen.encloses(burst_rect)).is_true()
+	assert_bool(screen.encloses(spirit_rect)).is_true()
+
+
+func test_the_burst_line_and_the_spirit_label_never_overlap_at_1280_by_720() -> void:
+	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
+	await runner.simulate_frames(5)
+	var td: TopDownMain = runner.scene()
+	assert_bool(td.hud.spirit_label.visible).is_true()
+	_check_no_overlap(td)
+	td.set_look(Looks.Mode.STYLED)
+	await runner.simulate_frames(3)
+	_check_no_overlap(td)
+	td.set_look(Looks.Mode.PLACEHOLDER)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
 func test_the_rescued_counter_is_clear_of_the_minimap_and_inside_the_window_at_1280_by_720() -> void:
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(5)

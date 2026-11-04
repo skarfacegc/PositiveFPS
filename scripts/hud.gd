@@ -68,17 +68,18 @@ func _ready() -> void:
 	burst_label.visible = false
 	add_child(burst_label)
 
-	# Spirit (round 13b): a bigger bar at the bottom centre with its label to the left; SpiritMeter draws over the bar
-	# (ticks, flash, floating numbers). The label and bar keep the values for the tests and for reading.
+	# Spirit (round 13b): a bigger bar at the bottom centre; SpiritMeter draws over the bar (ticks, flash, floating
+	# numbers). The label and bar keep the values for the tests and for reading. Checkpoint 5 follow-up: the label sits
+	# above the bar, centred on it, not to its left, where it ran into the burst line on the bottom left.
 	var half := Config.SPIRIT_METER_WIDTH * 0.5
 	spirit_label = Label.new()
 	spirit_label.add_theme_font_size_override("font_size", 20)
 	spirit_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	spirit_label.offset_left = -half - 250.0
-	spirit_label.offset_right = -half - 14.0
-	spirit_label.offset_top = -112.0
-	spirit_label.offset_bottom = -84.0
-	spirit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	spirit_label.offset_left = -half
+	spirit_label.offset_right = half
+	spirit_label.offset_top = Config.SPIRIT_LABEL_TOP
+	spirit_label.offset_bottom = Config.SPIRIT_LABEL_TOP + Config.SPIRIT_LABEL_HEIGHT
+	spirit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	spirit_label.visible = false
 	add_child(spirit_label)
 	spirit_bar = ProgressBar.new()
@@ -328,7 +329,8 @@ func set_burst(cooldown_left: float, has_spirit: bool = true, targets: int = 0) 
 		burst_label.text = "Joy burst [G]: READY"
 		burst_label.add_theme_color_override("font_color", Color(0.6, 1, 0.6))
 		if targets > 0:  # Round 22: it clears dimmed people off the border; say how many are in reach.
-			burst_label.text = "Joy burst [G]: READY - %d dimmed at the border" % targets
+			# Checkpoint 5 follow-up: short enough to end before the spirit bar (about 440 px at this size).
+			burst_label.text = "Joy burst [G]: READY - clears %d dimmed" % targets
 			burst_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.5))
 	else:
 		burst_label.text = "Joy burst [G]: %.1fs" % cooldown_left

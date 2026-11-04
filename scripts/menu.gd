@@ -5,7 +5,8 @@ extends Control
 
 const TOP_DOWN_SCENE := "res://topdown.tscn"
 const STYLED_NOTE := "Styled look: visual test only — not the current game."
-const HOW_TO_PLAY_WIDTH := 760
+# Checkpoint 5 follow-up: wider (was 760) so the longer Keys line stays two lines at 720p.
+const HOW_TO_PLAY_WIDTH := 880
 const HOW_TO_PLAY_FONT := 18
 const HOW_TO_PLAY_TEXT := (
 	"[center][font_size=26][b]How to play[/b][/font_size][/center]\n"
@@ -20,7 +21,8 @@ const HOW_TO_PLAY_TEXT := (
 	+ "At zero you go dim.\n"
 	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered ·"
 	+ "! faltering.\n"
-	+ "[b]Keys:[/b] WASD move · Shift run · E shape zone · G or Q burst · F patch gap · Mouse point "
+	+ "[b]Keys:[/b] WASD move · Shift run · hold E to aim, release to place (right-click cancels) · G or Q burst · "
+	+ "F patch gap · Mouse point "
 	+ "(F2 targeting) · Wheel zoom · F3 debug · F4 look · R restart · M menu"
 )
 

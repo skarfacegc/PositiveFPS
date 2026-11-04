@@ -313,6 +313,7 @@ func test_the_limited_preview_is_a_red_outline_with_no_words() -> void:
 	# A fine stretch (nothing holds it back) is the calm blue one. Round 24: no words while hovering.
 	td.player._has_aim = true
 	td.player._aim_point = CENTRE + Vector3(0, 0, _radius() + 6.0)
+	TopDownTestUtil.press_e(td)  # Checkpoint 5 follow-up: the preview shows only while E is held.
 	td.reach_guide.sync(td.border, td.player)
 	assert_object(td.reach_guide._label).is_null()
 	# Round 23: a far aim alone is no longer limited (it just goes as far as the people allow), so the limit here is an

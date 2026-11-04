@@ -17,6 +17,7 @@ const GROUP_TOKEN := {
 	"fire": "Mouse",
 	"zoom_in": "Wheel",
 	"zoom_out": "Wheel",
+	"cancel_beacon": "right-click",
 }
 
 

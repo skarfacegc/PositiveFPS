@@ -45,18 +45,23 @@ func test_the_styled_reach_guide_shows_the_zone_preview_and_the_travel() -> void
 	await runner.simulate_frames(3)
 	var guide: StyleReach = td.reach_guide._styled
 	assert_object(guide).is_not_null()
-	# Graphics checkpoint 5: no aim, nothing; aim within reach: the zone outline and its fill (not limited).
+	# Graphics checkpoint 5: no aim, nothing; aim within reach while E is held: the zone outline (not limited).
+	# Checkpoint 5 follow-up: no fill, and nothing at all while E is up.
 	td.player._has_aim = false
 	td.reach_guide.sync(td.border, td.player)
 	assert_int(_visible_count(guide)).is_equal(0)
 	var reach: float = td.border.stretch_info()["max"]
 	td.player._aim_point = td.border.centre + Vector3(reach * 0.95, 0.0, 0.0)
 	td.player._has_aim = true
+	TopDownTestUtil.release_e(td)
+	td.reach_guide.sync(td.border, td.player)
+	assert_bool(guide.showing_preview).is_false()
+	assert_int(_visible_count(guide)).is_equal(0)
+	TopDownTestUtil.press_e(td)
 	td.reach_guide.sync(td.border, td.player)
 	assert_bool(guide.showing_preview).is_true()
 	assert_bool(guide.showing_limited).is_false()
 	assert_bool(guide._line.visible).is_true()
-	assert_bool(guide._fill.visible).is_true()
 	assert_bool(guide._cross.visible).is_false()
 	# A beacon beyond the reach: the path, the tip, the dashes on to the beacon, then, once it arrives, nothing (round
 	# 22: no hold).

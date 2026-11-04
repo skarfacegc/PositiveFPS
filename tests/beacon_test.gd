@@ -65,7 +65,8 @@ func _formed() -> Dictionary:
 	return s
 
 
-# Moves the cursor over the ground point `spot` and presses E.
+# Moves the cursor over the ground point `spot`, then presses and releases E (hold to aim, release to place: the
+# beacon goes down on the release). simulate_key_pressed sends the press and the release.
 func _press_e(runner: GdUnitSceneRunner, td: TopDownMain, spot: Vector3) -> void:
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, spot))
 	await runner.simulate_frames(4)
@@ -82,7 +83,7 @@ func test_e_places_a_beacon_at_the_cursor_and_costs_spirit() -> void:
 	assert_bool(td.border.has_beacon()).is_true()
 	assert_float(td.border.beacon_pos().x).is_equal_approx(8.0, 0.6)
 	assert_float(td.border.beacon_pos().z).is_equal_approx(6.0, 0.6)
-	# The key is delivered twice by gdUnit: one beacon, one charge.
+	# One press and one release: one beacon, one charge.
 	assert_float(before - td.player.spirit).is_equal_approx(Config.BEACON_SPIRIT_COST, 0.5)
 	assert_bool(td.beacon_marker.visible).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)

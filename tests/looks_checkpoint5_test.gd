@@ -263,17 +263,18 @@ func test_the_styled_reach_preview_marks_a_limited_zone_and_tags_a_stretch() -> 
 	td.set_look(Looks.Mode.STYLED)
 	await runner.simulate_frames(3)
 	var guide: StyleReach = td.reach_guide._styled
-	# Aimed at a spot already inside the zone the plan has a reason: the preview is coral with a cross and the hatching.
+	# Aimed at a spot already inside the zone the plan has a reason, with E held: the preview is a thin coral outline and a
+	# cross at the tip (Checkpoint 5 follow-up: no fill, no hatching, no tip disc).
 	var dir := Vector3(1, 0, 0)
 	var edge: float = td.border.stretch_info()["radius"]
 	td.player._aim_point = td.border.centre + dir * (edge * 0.5)
 	td.player._has_aim = true
+	TopDownTestUtil.press_e(td)
 	td.reach_guide.sync(td.border, td.player)
 	assert_bool(guide.showing_preview).is_true()
 	assert_bool(guide.showing_limited).is_true()
 	assert_bool(guide._cross.visible).is_true()
-	# Only "already inside the zone": the outline and the cross, no hatching over the whole zone.
-	assert_bool(guide._fill.visible).is_false()
+	assert_bool(guide._tip_disc.visible).is_false()
 	# A finished stretch draws the wave and the ring until the pulse ends, and then hides them.
 	td.reach_guide._on_zone_grew(30.0, td.border.centre + dir * 9.0, 0.0)
 	td.reach_guide.sync(td.border, td.player)
