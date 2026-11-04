@@ -79,6 +79,11 @@ func view_colour() -> Color:
 	return Color.WHITE
 
 
+# Checkpoint 5: the colour of a wobbling person's blip, `pulse` 0 to 1 over its beat. Alpha 0 means none here.
+func wobble_colour(_pulse: float) -> Color:
+	return Color(0, 0, 0, 0)
+
+
 # The outline round a marker of this kind ("member", "dimmed", "landmark", "beacon" or "player"). Alpha 0 means none.
 func halo_colour(_kind: String) -> Color:
 	return Color(0, 0, 0, 0)

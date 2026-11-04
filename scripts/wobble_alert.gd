@@ -1,0 +1,212 @@
+class_name WobbleAlert
+extends Control
+
+# Checkpoint 5: the wobble alert. A drained rescued person wobbles for about WOBBLE_SECONDS before they relapse (Person
+# .wobbling), and a joy hit saves them. Wobbles used to start off screen and were lost before the player knew. This
+# draws a pulsing pointer at the screen edge toward each cluster of off-screen wobblers (the most urgent clusters first,
+# at most WOBBLE_ALERT_MAX). The pulse speeds up as wobble_left runs out. The pointers are worked out every
+# WOBBLE_ALERT_REFRESH seconds (the pulse is redrawn every frame while one is shown), and they vanish when the person is
+# saved, relapses, comes on screen, or the round ends. The placement (clear of the HUD) is LandmarkPointers.place. The
+# minimap blips are in minimap.gd. Placeholder look: a warm ring and arrow; styled look: the same, in StyleUi cells with
+# an ink edge.
+
+var main: TopDownMain
+var _hud: Hud
+var _minimap: Control
+# Each pointer: place()'s tip, dir, label and box, plus "count" (wobblers it stands for) and "urgency" (0..1).
+var _shown: Array[Dictionary] = []
+var _since: float = 1.0e9
+var _clock: float = 0.0
+
+
+# Builds the node on the HUD and returns it. (The only wiring TopDownMain needs.)
+static func attach(level: TopDownMain) -> WobbleAlert:
+	var a := WobbleAlert.new()
+	a.main = level
+	level.hud.add_child(a)
+	a.setup(level.hud, level.minimap)
+	return a
+
+
+func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+
+
+# Takes the HUD panels to keep clear of (the same list the landmark pointers keep clear of) and the minimap.
+func setup(hud: Hud, minimap: Control) -> void:
+	_hud = hud
+	_minimap = minimap
+
+
+func _process(delta: float) -> void:
+	_clock += delta
+	_since += delta
+	if _since >= Config.WOBBLE_ALERT_REFRESH:
+		update_now()
+	elif not _shown.is_empty():
+		queue_redraw()
+
+
+# Works the pointers out now. The game calls it every WOBBLE_ALERT_REFRESH seconds (from _process); the tests call it
+# directly. Nothing is shown while the round is not running, or in a window too small for the HUD (headless 64 x 64).
+func update_now() -> void:
+	_since = 0.0
+	_shown.clear()
+	var screen := get_viewport_rect().size
+	if main != null and _hud != null and main.running and screen.x >= 400.0 and screen.y >= 300.0:
+		var clusters := group(_off_screen_entries(screen), Config.WOBBLE_ALERT_CLUSTER_RADIUS)
+		var avoid := _avoid_rects()
+		for ci: int in range(mini(clusters.size(), Config.WOBBLE_ALERT_MAX)):
+			var cluster: Dictionary = clusters[ci]
+			var centre: Vector3 = cluster["pos"]
+			var placed := LandmarkPointers.place(
+				main.world_to_screen(centre), screen, Vector2.ONE * Config.WOBBLE_ALERT_BADGE, avoid
+			)
+			placed["count"] = cluster["count"]
+			placed["urgency"] = cluster["urgency"]
+			_shown.append(placed)
+	queue_redraw()
+
+
+# How many pointers are shown now (tests read this).
+func shown_count() -> int:
+	return _shown.size()
+
+
+# The first pointer shown (empty dictionary if none), for tests and the styled look's checks.
+func first_pointer() -> Dictionary:
+	return _shown[0] if not _shown.is_empty() else {}
+
+
+# Every wobbling, rescued person whose spot is off screen, as {"pos": Vector3, "urgency": float}.
+func _off_screen_entries(screen: Vector2) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for p: Person in main.people:
+		if not (p.wobbling and p.is_rescued):
+			continue
+		if LandmarkPointers.on_screen(main.world_to_screen(p.global_position), screen):
+			continue
+		out.append({"pos": p.global_position, "urgency": p.wobble_progress()})
+	return out
+
+
+# Groups the wobblers (entries {"pos": Vector3, "urgency": float}) into clusters. The most urgent entry goes first; each
+# later one joins the first cluster whose first member is within `radius` metres on the ground, else starts its own.
+# A cluster is {"pos": Vector3 (the mean of its members), "count": int, "urgency": float (the highest of its members)},
+# and the clusters come most urgent first.
+static func group(entries: Array[Dictionary], radius: float) -> Array[Dictionary]:
+	var sorted: Array[Dictionary] = entries.duplicate()
+	sorted.sort_custom(WobbleAlert._more_urgent)
+	var seeds: Array[Vector3] = []
+	var sums: Array[Vector3] = []
+	var counts: Array[int] = []
+	var peaks: Array[float] = []
+	var out: Array[Dictionary] = []
+	for e: Dictionary in sorted:
+		var at: Vector3 = e["pos"]
+		var urgency: float = e["urgency"]
+		var found := -1
+		for k: int in range(seeds.size()):
+			if _flat_distance(seeds[k], at) <= radius:
+				found = k
+				break
+		if found < 0:
+			seeds.append(at)
+			sums.append(Vector3.ZERO)
+			counts.append(0)
+			peaks.append(0.0)
+			found = seeds.size() - 1
+		sums[found] += at
+		counts[found] += 1
+		peaks[found] = maxf(peaks[found], urgency)
+	for k: int in range(seeds.size()):
+		out.append({"pos": sums[k] / float(counts[k]), "count": counts[k], "urgency": peaks[k]})
+	return out
+
+
+static func _more_urgent(a: Dictionary, b: Dictionary) -> bool:
+	var ua: float = a["urgency"]
+	var ub: float = b["urgency"]
+	return ua > ub
+
+
+# Flat distance on the ground (x and z), in metres.
+static func _flat_distance(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x, a.z).distance_to(Vector2(b.x, b.z))
+
+
+# The pulse rate (per second) for a wobble at `urgency` (0 just begun, 1 about to relapse).
+static func hz_for(urgency: float) -> float:
+	return lerpf(Config.WOBBLE_ALERT_PULSE_HZ_CALM, Config.WOBBLE_ALERT_PULSE_HZ_URGENT, clampf(urgency, 0.0, 1.0))
+
+
+# The pulse at clock time `t` for `urgency`: 0 at rest, 1 at the top of each beat.
+static func pulse_at(t: float, urgency: float) -> float:
+	return 0.5 - 0.5 * cos(TAU * t * hz_for(urgency))
+
+
+# The pointer's colour: the warm amber, brighter as the pulse rises and as the wobble nears its end.
+static func colour_at(urgency: float, pulse: float) -> Color:
+	var col := Config.WOBBLE_ALERT_COLOUR
+	col.a = lerpf(0.55 + 0.35 * clampf(urgency, 0.0, 1.0), 1.0, pulse)
+	return col
+
+
+func _draw() -> void:
+	var font := get_theme_default_font()
+	for s: Dictionary in _shown:
+		var tip: Vector2 = s["tip"]
+		var dir: Vector2 = s["dir"]
+		var count: int = s["count"]
+		var urgency: float = s["urgency"]
+		var pulse := pulse_at(_clock, urgency)
+		var ring := Config.WOBBLE_ALERT_RING * (1.0 + Config.WOBBLE_ALERT_PULSE_GROW * pulse)
+		var centre := tip - dir * (Config.WOBBLE_ALERT_ARROW + Config.WOBBLE_ALERT_RING)
+		var col := colour_at(urgency, pulse)
+		if Looks.is_styled():
+			_draw_styled(centre, tip, dir, ring, col)
+		else:
+			draw_circle(centre, ring, Color(col.r, col.g, col.b, col.a * 0.2))
+			draw_arc(centre, ring, 0.0, TAU, 24, col, 2.0, true)
+			var side := Vector2(-dir.y, dir.x)
+			var base := tip - dir * Config.WOBBLE_ALERT_ARROW
+			var a := Config.WOBBLE_ALERT_ARROW * 0.6
+			draw_colored_polygon(PackedVector2Array([tip, base + side * a, base - side * a]), col)
+		if count > 1:
+			var shade := StyleUi.INK if Looks.is_styled() else Color(0.0, 0.0, 0.0, col.a)
+			draw_string(
+				font,
+				centre + Vector2(-4.0, 4.0),
+				str(count),
+				HORIZONTAL_ALIGNMENT_LEFT,
+				-1,
+				Config.WOBBLE_ALERT_FONT_SIZE,
+				shade
+			)
+
+
+# Graphics checkpoint 5 (styled look): a pixel ring with an ink edge and a stepped arrow, in StyleUi's cells.
+func _draw_styled(centre: Vector2, tip: Vector2, dir: Vector2, ring: float, col: Color) -> void:
+	var cell := StyleUi.cell(self)
+	var edge := StyleUi.INK
+	edge.a = col.a
+	StyleUi.ring(self, centre, ring, cell, edge, 2)
+	StyleUi.ring(self, centre, ring, cell, col, 1)
+	var side := Vector2(-dir.y, dir.x)
+	var base := tip - dir * Config.WOBBLE_ALERT_ARROW
+	var a := Config.WOBBLE_ALERT_ARROW * 0.6
+	StyleUi.poly(self, PackedVector2Array([tip, base + side * (a + cell), base - side * (a + cell)]), cell, edge)
+	StyleUi.poly(self, PackedVector2Array([tip, base + side * a, base - side * a]), cell, col)
+
+
+# The HUD rectangles a pointer must keep clear of: the HUD panels that are visible, and the minimap.
+func _avoid_rects() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	var controls: Array[Control] = _hud.layout_controls()
+	if _minimap != null:
+		controls.append(_minimap)
+	for c: Control in controls:
+		if c.is_visible_in_tree():
+			out.append(c.get_global_rect())
+	return out

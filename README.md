@@ -22,6 +22,8 @@ mode was retired.)
   about five seconds before they relapse, and a joy hit in that time saves them. A joy burst lifts every dimmed person
   near you, and joy wins a dimmed person back faster. In the last 45 seconds **first light** creeps in from the map edge:
   people it has passed lift out of the gloom and stop draining, so the end of the night is a rally.
+- **Wobble alert (checkpoint 5):** a wobbling person out of view gets a pulsing amber pointer at the screen edge (one per
+  nearby cluster; it pulses faster as the wobble runs out), and each wobbler is a pulsing blip on the minimap.
 - **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered (its pips count the four hits left) · ! = faltering. The night
   introduces them one at a time, with a short one-time prompt each.
 - **Keys:** WASD move · Shift run · E shape the zone (spirit beacon) · G or Q joy burst · F patch gap · Mouse point at
