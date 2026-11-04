@@ -1868,3 +1868,50 @@ saves and first light. `--update-baseline` refused twice on drops the gate let t
 **Playtest questions:** does the end feel winnable? Can you get on top of dimmed people, and does catching a wobbler work?
 Does first light feel like a rally? Do people reacting make patch and burst readable? Is pull-in followable? Does the
 nearer Garden get claimed?
+
+## Round 24 playtest and graphics checkpoint 5 plan (2026-11-04)
+
+Played `ee96777` twice, recorded (`20261102-141255`, `20261104-094734`), placeholder look.
+
+| | Game 1 | Game 2 |
+|---|---|---|
+| Outcome | win, 3 of 3 dawn lights | win, 3 of 3 dawn lights |
+| Rescued at the end (people share, ground share) | 47 (78%, 21%) | 50 (83%, 26%) |
+| Gaps by phase (calm, rising, midnight, easing) | 4, 0, 32, 2 | 5, 0, 12, 62 |
+| Wobbles, saved, relapses | 16, 3, 13 | 0, 0, 0 |
+| Patches (gaps fell after), bursts (dimmed lifted) | 3 (3 of 3), 3 (3) | 4 (3 of 4), 2 (2) |
+| Arms kept, pull-ins, landmarks | 5, 0, Garden at 13 s | 3, 0, Garden at 12 s |
+
+Round 23's unwinnable end is gone. Game 1 still had a real midnight crisis (10 to 12 gaps around 2:00), which cleared by
+2:30 after patches, bursts and first light. **What the user said:** "this was good", then asked for a graphical update.
+
+**Findings:**
+- **Wobbles start off-screen.** Game 1's first six wobbles began on the west flank about 60 m from the player, who was
+  at the far arm. Once there, the player saved 3 of 4. The catch works when the wave can be seen.
+- **End flicker (game 2).** From 2:36 there were no pressers and nobody dimmed, yet 46 border people held a 181 m loop
+  (about 3.9 m apart, on the gap threshold), so gaps blinked open and shut every 1.4 s at the same spots. Spacing gaps
+  on a fully stretched border, not gloom.
+- **A stretch cut short cost 50 spirit for nothing** (game 2 at 2:12, "Dimmed people are in the way"). The user chose
+  to keep it: no refund.
+- **3 dawn lights is easy:** 60% rescued plus one landmark, and the Garden is 14 m from the start. No other landmark was
+  claimed in either game.
+- **Spirit sat full** for most of the first minute of game 1 and again around 1:20 and 2:40, so rescues there were lost.
+
+### Plan
+
+The user chose: catch the styled look up (reading the fight and first light get the most care), fix the end flicker
+alongside, an edge pointer and minimap blip for wobbles, the third dawn light at 75% rescued and 2 landmarks, spare
+spirit warms the border, no stretch refund, difficulty unchanged.
+
+1. **Split `scripts/topdown_main.gd`** (992 of 1000 lines) before anything adds to it. Alone first.
+2. In parallel, each in a worktree:
+   - **I. Graphics checkpoint 5:** styled art for everything since round 20: gaps and warning rings, patch, burst, the
+     wobble, hops and glows, first light (the front, the lifted ground and the minimap edge), the shape preview
+     (`style_reach.gd` still has the old guide), the cue panel, dimmed warming, notices. Check the dimmed walk and the
+     player's jog. New screenshots in `design/renders/checkpoint_05/`. Original art only.
+   - **J. Wobble alert:** a pulsing pointer at the screen edge toward off-screen wobbling people, and a blip on the
+     minimap, in both looks.
+   - **K. Rules:** the end flicker fix (a fully stretched border with no pressure doesn't blink gaps), spare spirit
+     warms the border (rescues at full spirit slowly top up border people's joy, with a visible glow in both looks),
+     and the third dawn light at 75% rescued and 2 landmarks.
+3. Merge, then `tools/round_end.py`. Then a playtest in the styled look.
