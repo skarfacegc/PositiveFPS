@@ -113,6 +113,7 @@ func attach(main: TopDownMain) -> bool:
 	main.grabs.grab_landed.connect(_on_grab_landed)
 	main.grabs.grab_avoided.connect(_on_grab_avoided)
 	main.beacon_placed.connect(_on_beacon_placed)
+	main.spirit_warmth.warmed.connect(_on_spirit_warm)
 	main.border.beacon_reached.connect(_on_beacon_reached)
 	main.border.stretch_started.connect(_on_stretch_started)
 	main.border.zone_grew.connect(_on_zone_grew)
@@ -459,6 +460,20 @@ func _on_relapsed(p: Person) -> void:
 # Round 24: a drained person began their wobble (`seconds` to be saved), and a joy hit saved one.
 func _on_wobbled(seconds: float, p: Person) -> void:
 	emit_event("wobble", {"id": _id(p), "pos": _pos(p.global_position), "seconds": snappedf(seconds, 0.01)})
+
+
+# Checkpoint 5: a gift of spare spirit (`joy` units of joy for `spirit` spirit) to a border member.
+func _on_spirit_warm(p: Person, joy: float, spirit: float) -> void:
+	emit_event(
+		"spirit_warm",
+		{
+			"id": _id(p),
+			"pos": _pos(p.global_position),
+			"joy": snappedf(joy, 0.1),
+			"amount": snappedf(spirit, 0.01),
+			"pool": snappedf(_main.spirit_warmth.pool, 0.01)
+		}
+	)
 
 
 func _on_saved(p: Person) -> void:

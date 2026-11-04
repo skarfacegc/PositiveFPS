@@ -80,13 +80,17 @@ to the menu. **R** restarts the level.
   Dimmed people arrive sooner than they did, then ease off: the last third of the night is gentler.
 - **Dusk to dawn**: a bar at the top shows the night. The level ends at dawn, and reaching dawn wins. The end screen gives
   1 to 3 **dawn lights** and why: 1 for reaching dawn; 2 when two of "40% of the people rescued", "20% of the plaza held"
-  and "one landmark held" are met; 3 when 60% of the people are rescued and one landmark is held at dawn.
+  and "one landmark held" are met; 3 when 75% of the people are rescued and two landmarks are held at dawn.
 
 ## Spirit, going dim and the dance with the gloom (round 12a)
 
 - **Spirit** is your spendable resource (0 to 100, you start with 50). Every rescue gives +20. The joy burst costs 30,
   so with less than that it is unavailable (the HUD says "needs 30 spirit"). Your joy fire rate depends on spirit:
   full at 50 or more, then slower, down to 40% of the rate just above 0. The spirit bar is bottom left, above the burst.
+- **Spare spirit warms the border.** When the bar is full, the spirit a rescue would have added is not lost: it goes
+  into a pool (up to 40) that slowly tops up the joy of the most strained people on the border, one at a time (about 80
+  joy a second in all, 25 joy for each spirit, and only people under 90% of their joy), and they glow softly as it
+  reaches them.
 - **Dimmed people reach for you.** A dimmed person who notices you (within 7 m) walks toward you. Within 2 m they start a
   **grab**: a clear wind-up (0.7 s) where they lean back and a red ring grows at their feet toward you, then a lunge. If
   you are within 1.3 m of them when the lunge ends, it lands and drains 25 spirit. Each person waits 2.5 s between grabs.

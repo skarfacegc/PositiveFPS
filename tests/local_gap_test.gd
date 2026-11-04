@@ -333,6 +333,9 @@ func test_with_nobody_spare_a_faltering_member_keeps_their_place_and_the_gap_sta
 	var border: Border = td.border
 	var weak: Person = border.members[4]
 	weak.joy = Config.JOY_MAX * 0.6
+	# Checkpoint 5: the rescues that built this level spilled spirit past a full meter, which would warm the weak
+	# member and close the gap; this test is about nobody helping, so the pool is emptied.
+	td.spirit_warmth.pool = 0.0
 	await runner.simulate_frames(int((Config.GAP_HEAL_DELAY + 2.0) * 60.0))
 	assert_bool(border.members.has(weak)).is_true()
 	assert_int(border.gap_region_count()).is_equal(1)

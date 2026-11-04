@@ -36,6 +36,8 @@ var formed: bool = false
 var perimeter: float = 0.0
 # Distance between neighbouring border members, in metres (perimeter / border members).
 var spacing: float = 0.0
+# Checkpoint 5: the slot count the loop holds, with hysteresis (BorderShape.held_slot_count); 0 until the first update.
+var slot_count: int = 0
 var member_count: int = 0
 # Beautified buildings on the line that count as posts (see BorderSlots). Each holds BORDER_POST_WORTH slots.
 var post_count: int = 0
@@ -573,7 +575,8 @@ func _bench_replaced(rescued: Array[Person], m: int) -> void:
 
 # The members the loop needs now: the slots its perimeter holds, less BORDER_POST_WORTH for each post.
 func required_members() -> int:
-	return maxi(0, BorderShape.slot_count_for(perimeter) - Config.BORDER_POST_WORTH * post_count)
+	var slots := slot_count if slot_count > 0 else BorderShape.slot_count_for(perimeter)
+	return maxi(0, slots - Config.BORDER_POST_WORTH * post_count)
 
 
 # The beautified buildings the loop passes within BORDER_POST_REACH of. Each entry has the building and the arc length

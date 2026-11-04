@@ -22,7 +22,7 @@ enum Mood { NONE, GUARDED, SKITTISH, GLUM }
 # Round 13b: why joy was turned away (see joy_blocked).
 enum Block { GUARDED, SHELTERED }
 # Round 24: what a reaction is to (see react).
-enum React { NONE, PATCH, LIFT }
+enum React { NONE, PATCH, LIFT, WARM }
 
 var affinity: int = 0
 # A small number that picks cosmetic variety (the pose and outfit variant a styled look draws). Set by the level.

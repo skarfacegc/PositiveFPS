@@ -22,16 +22,19 @@ func test_a_round_18_style_quick_push_with_one_landmark_gets_two_lights_not_thre
 	var r := DawnRating.rate(31, 60, 0.35, 1)
 	assert_int(r["lights"]).is_between(1, 2)
 	assert_int(r["lights"]).is_equal(2)
-	# Round 23: with most people rescued, one landmark is now enough for three lights.
-	assert_int(DawnRating.rate(58, 60, 0.9, 1)["lights"]).is_equal(3)
+	# Checkpoint 5: round 23 made one landmark enough for three lights; it now takes two, however many are rescued.
+	assert_int(DawnRating.rate(58, 60, 0.9, 1)["lights"]).is_equal(2)
 
 
-func test_three_lights_need_most_people_and_one_landmark() -> void:
-	assert_int(DawnRating.rate(40, 60, 0.3, 2)["lights"]).is_equal(3)
+func test_three_lights_need_75_percent_of_the_people_and_two_landmarks() -> void:
+	assert_float(Config.DAWN_PEOPLE_HIGH).is_equal(0.75)
+	assert_int(Config.DAWN_LANDMARKS_HIGH).is_equal(2)
+	assert_int(DawnRating.rate(45, 60, 0.3, 2)["lights"]).is_equal(3)  # exactly 75%
 	assert_int(DawnRating.rate(60, 60, 0.6, 3)["lights"]).is_equal(3)
-	# Most people but no landmark, or landmarks but too few people: not three lights.
-	assert_int(DawnRating.rate(40, 60, 0.3, 0)["lights"]).is_equal(2)
-	assert_int(DawnRating.rate(40, 60, 0.3, 1)["lights"]).is_equal(3)
+	# Just under 75%, one landmark only, or no landmark: two lights.
+	assert_int(DawnRating.rate(44, 60, 0.3, 2)["lights"]).is_equal(2)
+	assert_int(DawnRating.rate(45, 60, 0.3, 1)["lights"]).is_equal(2)
+	assert_int(DawnRating.rate(45, 60, 0.3, 0)["lights"]).is_equal(2)
 	assert_int(DawnRating.rate(30, 60, 0.3, 2)["lights"]).is_equal(2)
 
 
@@ -44,6 +47,8 @@ func test_the_reasons_are_spelt_out() -> void:
 	assert_str(DawnRating.lights_text(2)).is_equal("[*][*][ ]")
 	assert_str(DawnRating.hint_for(3)).is_equal("")
 	assert_str(DawnRating.hint_for(2)).contains("three")
+	assert_str(DawnRating.hint_for(2)).contains("75%")
+	assert_str(DawnRating.hint_for(2)).contains("2 landmarks")
 	assert_str(DawnRating.hint_for(1)).contains("two")
 
 

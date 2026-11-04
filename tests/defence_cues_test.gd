@@ -109,10 +109,11 @@ func test_the_burst_cue_and_the_lift_mark() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_landmark_boosts_are_stronger_and_one_landmark_gives_the_third_light() -> void:
+func test_landmark_boosts_are_stronger_and_two_landmarks_give_the_third_light() -> void:
 	assert_float(Config.LANDMARK_MUSIC_MULT).is_equal(2.0)
 	assert_float(Config.LANDMARK_NATURE_MULT).is_equal(2.0)
 	assert_float(Config.LANDMARK_BELL_LOSS_MULT).is_equal(0.4)
-	assert_int(Config.DAWN_LANDMARKS_HIGH).is_equal(1)
-	assert_int(DawnRating.rate(40, 60, 0.3, 1)["lights"]).is_equal(3)
-	assert_int(DawnRating.rate(40, 60, 0.3, 0)["lights"]).is_less(3)
+	# Checkpoint 5: the third light needs 2 landmarks and 75% rescued (was 1 and 60%).
+	assert_int(Config.DAWN_LANDMARKS_HIGH).is_equal(2)
+	assert_int(DawnRating.rate(45, 60, 0.3, 2)["lights"]).is_equal(3)
+	assert_int(DawnRating.rate(45, 60, 0.3, 1)["lights"]).is_less(3)

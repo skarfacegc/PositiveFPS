@@ -121,6 +121,9 @@ func test_a_patch_runs_out_and_the_gap_comes_back() -> void:
 	td.gap_patch.patch_at(td.border.gap_midpoints()[0])
 	await runner.simulate_frames(5)
 	assert_int(td.border.gap_count()).is_equal(0)
+	# Checkpoint 5: spare spirit (the add_spirit above spilled past a full meter) would warm the faltering member and
+	# heal the gap; this test is about the patch alone, so the pool is emptied.
+	td.spirit_warmth.pool = 0.0
 	await runner.simulate_frames(int((Config.PATCH_SECONDS + 1.0) * 60.0))
 	assert_int(td.gap_patch.patches.size()).is_equal(0)
 	assert_float(m.patch_mult).is_equal(1.0)
