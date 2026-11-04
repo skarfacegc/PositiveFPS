@@ -742,15 +742,8 @@ def load_saved_run(fp):
 DIFF_LINES_ALLOWED = 10  # the session-folder name race in scripts/recorder.gd moves 2 lines when two sessions start
 # within one wall-clock second; anything under this is that kind of noise
 # Known races, each with its cause (a suite name from tools/run_tests.py plan_units, or "suite (rest)"):
-KNOWN_REAL_TIME_UNITS = {
-    "looks_round20_test": "CAUSE NOT FOUND. Hit counts differed in 2 of 4 round 23 determinism runs and "
-                          "test_a_styled_person_swings_legs_and_arms... failed once (line 226), always under heavy CPU "
-                          "load; the suite alone gave identical hits 4 of 4. Every test in it is synchronous, so look "
-                          "for wall-clock use in scripts/looks (Time.get_ticks_msec in person_look.gd and "
-                          "person_look_styled.gd) or frames run between tests. Remove this entry when fixed.",
-    "looks_test": "CAUSE NOT FOUND. The same few person_look_styled.gd lines (27, 71-76, 162-165) moved by 1 to 11 "
-                  "hits in 3 of 5 round 23 runs; looks_round20_test shows the same family. See looks_round20_test.",
-}
+# Empty since round 24: the looks suites' wobble was wall-clock use in the looks (fixed, see COVERAGE_TOOL_NOTES.md).
+KNOWN_REAL_TIME_UNITS: dict = {}
 
 
 def det_units_file():
@@ -803,8 +796,8 @@ def unit_rule_problems(differences, names):
             notes.append("%s: %d lines differ in hit count (known: %s)" % (label, n, KNOWN_REAL_TIME_UNITS[base]))
         else:
             problems.append("%s: %d lines differ in hit count between the two runs. Something in this suite depends on "
-                            "wall-clock time or thread timing; make it repeatable (KNOWN_REAL_TIME_UNITS in "
-                            "tools/coverage.py lists the one known case)" % (label, n))
+                            "wall-clock time (Time.get_ticks_*, a real timer) or thread timing; use the fixed-step "
+                            "delta or a frame counter instead (see COVERAGE_TOOL_NOTES.md, round 24)" % (label, n))
     return problems, notes
 
 

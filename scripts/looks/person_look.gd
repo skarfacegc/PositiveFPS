@@ -29,6 +29,10 @@ var frac: float = 0.0
 var warning: bool = false
 var danger: float = 0.0
 var wave: float = 0.0
+# The look's own animation clock: the sum of the fixed-step deltas Person.tick hands to advance(). It drives the
+# warning flicker, the wobble shake and the idle rock, so what is drawn (and which branches run) repeats exactly from
+# run to run; Time.get_ticks_msec() made the flicker sign, and with it which body showed, depend on the wall clock.
+var clock: float = 0.0
 # Round 24: true while the person wobbles before a relapse; `wobble_prog` is 0..1 through the wobble (the greying).
 var wobbling: bool = false
 var wobble_prog: float = 0.0
@@ -123,6 +127,7 @@ func is_styled() -> bool:
 func advance(delta: float) -> void:
 	if subject == null or visual == null:
 		return
+	clock += delta
 	if subject.react_kind == Person.React.WARM or warm_ring != null:
 		_update_warm()
 	if subject.react_kind != Person.React.NONE or _reacting:
@@ -238,13 +243,13 @@ func sync() -> void:
 			var relapse_line := need * Config.RELAPSE_FRACTION
 			warning = true
 			danger = clampf((warn_line - subject.joy) / (warn_line - relapse_line), 0.0, 1.0)
-			wave = sin(Time.get_ticks_msec() / 1000.0 * lerpf(4.0, 14.0, danger))
+			wave = sin(clock * lerpf(4.0, 14.0, danger))
 			if subject.wobbling:
 				# Round 24: the last stretch before a relapse: a fast, wide wobble that greys as the time runs out.
 				wobbling = true
 				wobble_prog = subject.wobble_progress()
 				danger = 1.0
-				wave = sin(Time.get_ticks_msec() / 1000.0 * Config.WOBBLE_RATE)
+				wave = sin(clock * Config.WOBBLE_RATE)
 			label.text = "!"
 			label.modulate = Color(1, 0.6, 0.1)
 			label.font_size = 72

@@ -169,3 +169,23 @@ drop the saved run: the check then just runs both passes.
 - **`--check-files SCRIPT...`** (`--suites S...` to choose): runs only the suites that name those scripts, instrumented, and
   prints each script's line coverage against the baseline with the lines not hit. A floor, since other suites are not run.
   `tools/run_tests.py --suites` is the matching targeted plain run.
+
+## Round 24 (2026-11-04): the looks hit-count wobble found and fixed
+- **Cause: wall-clock reads in look and HUD code that choose a code path.** `PersonLook.update` set `wave = sin(Time.get_ticks_msec() ...)`
+  and `PersonLookStyled.shown_kind()` returns the grey body whenever a warning's `wave < 0`, so which body showed (and every
+  branch behind it in `_sync_body`, `_apply_body_light`, the StylePeople/StyleKit rigs) followed the real clock. Any test with a
+  rescued person below the warn line in the styled look hit it (`spirit_warmth_test`: 200 lines; `person_look_styled.gd:39` 7 vs 0
+  hits, the JOYFUL branch 0 vs 3). The old `looks_test` / `looks_round20_test` family is the same cause. Also,
+  `gap_patch.gd` took the cue panel's pulse `beat` from `Time.get_ticks_msec()`; `StyledPanel.set_cue` redraws when the beat
+  changes, so `StyleDawn.draw_cue` ran 1 or 2 times (`looks_cues_test (rest)`, 41 lines).
+- **Fix.** `PersonLook.clock` (sum of the `advance(delta)` fixed steps) replaces the wall clock for the flicker, the wobble, the
+  idle rock and the wobble ring. The cosmetic pulses (`gap_patch.gd`, `style_reach.gd`, `landmark_look_styled.gd`,
+  `first_light.gd`) use `float(Engine.get_process_frames()) / 60.0`, which at `--fixed-fps 60` is exact. `looks_round20_test`'s
+  `_person` helper gave a rescued level-0 person too little joy (below the warn line), so the gait test had been passing only
+  when the wall clock happened to show the joyful body; it now gives `maxf(JOY_MAX, joy_needed())`.
+- **Proof.** Seven suites (spirit_warmth, looks_cues, looks, looks_round20, gap_patch, first_light, looks_checkpoint5) run
+  instrumented three times with `--check-files --suites`: all 20 units had identical hit counts. Before the fix the same
+  comparison of `spirit_warmth_test` alone gave 200 differing lines. `KNOWN_REAL_TIME_UNITS` is now empty (the mechanism stays,
+  tested with a made-up entry in `tools/test_determinism.py`).
+- **Rule of thumb.** A wall-clock read is only a determinism problem when it picks a branch, a redraw or a count; but any
+  `Time.get_ticks_*` in code the tests run is a risk, so use the fixed-step delta or a frame counter.
