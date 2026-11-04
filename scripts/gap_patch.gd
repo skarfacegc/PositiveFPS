@@ -140,13 +140,13 @@ func _update_label() -> void:
 		var size := StyleDawn.cue_size(text)
 		cue_panel.size = size
 		cue_panel.position = Vector2(at.x, at.y - (size.y - 34.0) * 0.5)
-		var beat := int(Time.get_ticks_msec() / 1000.0 * Config.CUE_PULSE_HZ * 4.0) % 4 if cue_ready else 0
+		var beat := int(float(Engine.get_process_frames()) / 60.0 * Config.CUE_PULSE_HZ * 4.0) % 4 if cue_ready else 0
 		cue_panel.set_cue(text, cue_ready, beat)
 		return
 	patch_label.text = text
 	patch_label.position = at
 	if cue_ready:
-		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * TAU * Config.CUE_PULSE_HZ)
+		var pulse := 0.5 + 0.5 * sin(float(Engine.get_process_frames()) / 60.0 * TAU * Config.CUE_PULSE_HZ)
 		var edge := Config.CUE_READY_COLOUR
 		edge.a = 0.55 + 0.45 * pulse
 		_cue_style.border_color = edge

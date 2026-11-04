@@ -62,7 +62,7 @@ func sync() -> void:
 		_held = held
 		_show_held(held)
 	if held:
-		_animate(Time.get_ticks_msec() * 0.001)
+		_animate(float(Engine.get_process_frames()) / 60.0)
 
 
 # Graphics checkpoint 4: a claim sends a gold dithered ring out from the landmark (and the beam flares); a loss sends a

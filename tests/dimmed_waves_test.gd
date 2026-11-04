@@ -290,9 +290,9 @@ func test_the_wobble_is_seen_in_the_placeholder_look_as_greying_and_sway() -> vo
 	# The body sways: over a few readings the wave is not zero.
 	var swayed := false
 	for i: int in range(40):
+		p.look.advance(1.0 / 60.0)  # the look's own clock moves with the fixed step, not the wall clock
 		p.look.sync()
 		swayed = swayed or absf(look.body.rotation.y) > 0.01
-		OS.delay_msec(7)
 	assert_bool(swayed).is_true()
 	# A saved person stops swaying.
 	p.receive_joy(0, 1.0, 0.0)

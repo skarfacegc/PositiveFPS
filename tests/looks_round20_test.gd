@@ -187,9 +187,10 @@ func _person(mode: int, rescued: bool, level: int = 1) -> Person:
 	add_child(p)
 	p.rotation.y = -PI * 0.5  # faces +x, the way the tests walk
 	p.is_rescued = rescued
-	p.joy = Config.JOY_MAX if rescued else 0.0
 	p.level = level
 	p.gloom = 0.95 if level == 2 else 0.45
+	# Enough joy for the person's level, so they are not in the flickering warning (that swaps the body that shows).
+	p.joy = maxf(Config.JOY_MAX, p.joy_needed()) if rescued else 0.0
 	p.look.sync()
 	return p
 

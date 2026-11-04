@@ -139,7 +139,7 @@ func _preview(c: Vector2, plan: Dictionary) -> void:
 	_line.visible = true
 	_ribbon(_line_mesh, outline, true, LIMITED_WIDTH if limited else OUTLINE_WIDTH, Y)
 	var end := c + Vector2(cos(ang), sin(ang)) * reach
-	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * TAU * 1.2)
+	var pulse := 0.5 + 0.5 * sin(float(Engine.get_process_frames()) / 60.0 * TAU * 1.2)
 	if limited:
 		_set_disc(_tip_disc, end, 0.0, CORAL, CORAL_LIGHT, 0.0)
 		_cross.visible = true

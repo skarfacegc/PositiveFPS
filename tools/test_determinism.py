@@ -11,6 +11,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+import unittest.mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -46,12 +47,14 @@ class UnitRuleTest(unittest.TestCase):
         self.assertEqual(notes, [])
 
     def test_the_known_race_is_noted_not_failed_including_the_rest_unit_and_single_test_units(self):
-        self.assertIn("looks_round20_test", coverage.KNOWN_REAL_TIME_UNITS)
-        for label in ("looks_round20_test", "looks_round20_test (rest)", "looks_round20_test::test_x"):
-            problems, notes = coverage.unit_rule_problems({"hits_03.json": 1090}, {"hits_03.json": label})
-            self.assertEqual(problems, [], label)
-            self.assertEqual(len(notes), 1, label)
-            self.assertIn("1090 lines", notes[0])
+        # The list is empty since round 24 (the looks suites were made repeatable), so the rule is tried on a made-up entry.
+        self.assertEqual(coverage.KNOWN_REAL_TIME_UNITS, {})
+        with unittest.mock.patch.dict(coverage.KNOWN_REAL_TIME_UNITS, {"racy_test": "made up"}):
+            for label in ("racy_test", "racy_test (rest)", "racy_test::test_x"):
+                problems, notes = coverage.unit_rule_problems({"hits_03.json": 1090}, {"hits_03.json": label})
+                self.assertEqual(problems, [], label)
+                self.assertEqual(len(notes), 1, label)
+                self.assertIn("1090 lines", notes[0])
 
     def test_a_unit_with_no_known_name_uses_the_file_name(self):
         problems, _ = coverage.unit_rule_problems({"hits_09.json": 50}, {})

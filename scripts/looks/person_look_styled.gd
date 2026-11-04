@@ -76,7 +76,7 @@ func _sync_body() -> void:
 			_holder(k)
 		if _holders[k] != null:
 			_holders[k].visible = on
-	var seconds := Time.get_ticks_msec() / 1000.0
+	var seconds := clock
 	if shown == Kind.GREY:
 		_light_pips()
 	elif shown == Kind.JOYFUL:
@@ -286,7 +286,7 @@ func _sync_wobble_ring() -> void:
 		_wobble_ring = StyleFight.ring_node(self, 0.6, Config.CP5_WOBBLE_GREY, Color.WHITE, 0.5)
 		_wobble_ring.position.y = 0.07
 	var r := lerpf(Config.CP5_WOBBLE_RING_FROM, Config.CP5_WOBBLE_RING_TO, wobble_prog)
-	var blink := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * lerpf(6.0, 16.0, wobble_prog))
+	var blink := 0.5 + 0.5 * sin(clock * lerpf(6.0, 16.0, wobble_prog))
 	_wobble_ring.visible = true
 	_wobble_ring.scale = Vector3(r, 1.0, r)
 	var col := Config.CP5_WOBBLE_GREY.lerp(StyleFight.CORAL, wobble_prog)

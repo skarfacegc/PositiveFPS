@@ -161,7 +161,7 @@ func _sync_styled(e: float) -> void:
 	var ground_look := main.ground.look as GroundLookStyled
 	if ground_look != null:
 		ground_look.set_dawn_front(e)
-	_styled.sync(e, main.player.global_position, Time.get_ticks_msec() / 1000.0)
+	_styled.sync(e, main.player.global_position, float(Engine.get_process_frames()) / 60.0)
 	main.environment().background_color = StyleFirstLight.sky_at(main.night.first_light_progress())
 
 
