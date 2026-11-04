@@ -324,6 +324,27 @@ const BEACON_PULL_URGENT_RATIO := 1.2  # Loop over the people's length by this f
 const BEACON_PULL_URGENT_MULT := 4.0
 const LANDMARK_NEAR_INDEX := 1  # The Garden: within the first arm's reach of the start (the other two stay far).
 
+# ---- Checkpoint 5: wobble alert (scripts/wobble_alert.gd, minimap.gd, looks/minimap_look*.gd). ----
+# A wobble (a drained rescued person, about WOBBLE_SECONDS before a relapse) used to start off screen and go unseen. Now
+# a pulsing pointer sits on the screen edge toward each cluster of off-screen wobblers (most urgent first, at most
+# WOBBLE_ALERT_MAX). It pulses faster as the wobble runs out, and it is smaller than the gap arrows' urgency pulse but
+# warmer than the landmark pointers. On the minimap each wobbler is a pulsing blip.
+const WOBBLE_ALERT_REFRESH := 0.2  # Seconds between two works-out of the pointers (the pulse is redrawn every frame).
+# Off-screen wobblers this close (on the ground) share a pointer.
+const WOBBLE_ALERT_CLUSTER_RADIUS := 12.0 * WORLD_SCALE
+const WOBBLE_ALERT_MAX := 3  # Most pointers on screen at once.
+const WOBBLE_ALERT_BADGE := 20.0  # The size (pixels) of the count badge that the pointer's placement keeps clear.
+const WOBBLE_ALERT_RING := 9.0  # The pointer's ring radius (pixels) before it pulses.
+const WOBBLE_ALERT_ARROW := 8.0  # The arrow's length (pixels), between the ring and the screen edge.
+const WOBBLE_ALERT_PULSE_GROW := 0.35  # The ring swells by this fraction at the top of each pulse.
+const WOBBLE_ALERT_PULSE_HZ_CALM := 1.2  # Pulses a second for a wobble that has just begun.
+const WOBBLE_ALERT_PULSE_HZ_URGENT := 3.4  # Pulses a second for a wobble about to relapse.
+const WOBBLE_ALERT_COLOUR := Color(1.0, 0.74, 0.42)  # A gentle warm amber (not the coral of the gaps).
+const WOBBLE_ALERT_FONT_SIZE := 12
+const WOBBLE_BLIP_RADIUS := 2.6  # Minimap: the core radius (picture pixels) of a wobbling person's blip.
+const WOBBLE_BLIP_PULSE_GROW := 2.0  # The blip's ring grows by this many pixels at the top of its pulse.
+const WOBBLE_BLIP_COLOUR := Color(1.0, 0.74, 0.42)  # The placeholder minimap blip (the styled look has its own).
+
 static var intro_override: int = -1
 
 # The matchups form a soft cycle:

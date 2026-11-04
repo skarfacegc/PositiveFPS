@@ -47,6 +47,8 @@ var cloud_cells: Array[Dictionary] = []
 # Round 24: the dawn front, as the half size (metres) of the square it has reached; people outside it are lit. Negative
 # when first light has not begun (set by FirstLight).
 var first_light_edge: float = -1.0
+# Checkpoint 5: a pulsing blip on each rescued person who is wobbling ({"pos": Vector2, "urgency": 0..1}).
+var wobble_marks: Array[Dictionary] = []
 
 # The look: the palette and the frame (see scripts/looks/minimap_look.gd). The picture itself is built here.
 var look: MinimapLook
@@ -54,6 +56,7 @@ var _image: Image
 var _texture: ImageTexture
 var _ground: PaintedGround
 var _timer: float = Config.TD_MINIMAP_REFRESH_SECONDS
+var _wobble_clock: float = 0.0  # Checkpoint 5: the clock for the wobble blips' pulse (see WobbleAlert.pulse_at).
 # Round 20: the cloud's alpha for each picture pixel (RESOLUTION x RESOLUTION, row by row; 0 where there is none).
 var _cloud_alpha := PackedFloat32Array()
 var _cloud_age: float = 0.0
@@ -101,6 +104,7 @@ func radius() -> float:
 # Advances the refresh timer by `delta`. Returns true when the picture should be rebuilt now (about 10 times a
 # second).
 func tick(delta: float) -> bool:
+	_wobble_clock += delta
 	for i: int in range(blips.size() - 1, -1, -1):
 		var left: float = blips[i]["left"] - delta
 		blips[i]["left"] = left
@@ -183,6 +187,10 @@ func refresh_from(
 	for b: Building in border.buildings:
 		building_rects.append(Rect2(b.centre - b.half, b.half * 2.0))
 		building_warm.append(b.beautified)
+	wobble_marks.clear()
+	for w: Person in people:
+		if w.wobbling and w.is_rescued:
+			wobble_marks.append({"pos": Vector2(w.position.x, w.position.z), "urgency": w.wobble_progress()})
 	if _cloud_due:
 		refresh_clouds(people)
 	_render()
@@ -394,6 +402,15 @@ func _render() -> void:
 		_marker(at, 1.4 + 1.8 * u, look.line_colour(true).lerp(Color(1.0, 0.9, 0.82), u * 0.8), "gap")
 		if u > 0.5:
 			_ring(at, 3.4 + 2.0 * u, look.line_colour(true))
+	# Checkpoint 5: a wobbling person is a blip that pulses (faster as the wobble runs out); the look sets its colour.
+	for wb: Dictionary in wobble_marks:
+		var wpos: Vector2 = wb["pos"]
+		var wurgency: float = wb["urgency"]
+		var pulse := WobbleAlert.pulse_at(_wobble_clock, wurgency)
+		var wcol := look.wobble_colour(pulse)
+		if wcol.a > 0.0:
+			_marker(wpos, Config.WOBBLE_BLIP_RADIUS, wcol, "wobble")
+			_ring(wpos, Config.WOBBLE_BLIP_RADIUS + Config.WOBBLE_BLIP_PULSE_GROW * pulse, wcol)
 	for wm: Dictionary in warn_markers:
 		var wu: float = wm["urgency"]
 		var wat: Vector2 = wm["pos"]

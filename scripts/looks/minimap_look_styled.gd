@@ -76,6 +76,13 @@ func cloud_colour() -> Color:
 	return Color("#54479a")
 
 
+# Checkpoint 5: a wobbling person is a warm orange-amber blip, outlined in ink like the other markers, that pulses.
+func wobble_colour(pulse: float) -> Color:
+	var col := Color("#ffb45c")
+	col.a = lerpf(0.7, 1.0, pulse)
+	return col
+
+
 # The spirit beacon: the teal-white of its flame in the world, outlined like the other markers.
 func beacon_colour() -> Color:
 	return Color("#9cf0dc")

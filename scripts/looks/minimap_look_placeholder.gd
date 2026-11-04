@@ -26,6 +26,13 @@ func dimmed_colour() -> Color:
 	return Config.TD_MINIMAP_DIMMED_COLOUR
 
 
+# Checkpoint 5: a wobbling person is a warm amber blip whose alpha swells with its pulse.
+func wobble_colour(pulse: float) -> Color:
+	var col := Config.WOBBLE_BLIP_COLOUR
+	col.a = lerpf(0.6, 1.0, pulse)
+	return col
+
+
 func landmark_colour() -> Color:
 	return Config.TD_MINIMAP_LANDMARK_COLOUR
 
