@@ -233,6 +233,28 @@ func test_the_styled_minimap_warms_and_dithers_the_lit_ground() -> void:
 	assert_bool(styled.first_light("line", base, 0, 0).is_equal_approx(Config.FIRST_LIGHT_MINIMAP_COLOUR)).is_false()
 
 
+func test_the_styled_minimap_draws_a_dark_line_just_ahead_of_the_dawn_front() -> void:
+	var s: Dictionary = await _level()
+	var td: TopDownMain = s["td"]
+	var runner: GdUnitSceneRunner = s["runner"]
+	td.set_look(Looks.Mode.STYLED)
+	td.minimap.rebuild_look()
+	td.minimap.first_light_edge = 30.0
+	td.minimap._render()
+	assert_bool(td.minimap.look.first_light("ink", Color.WHITE, 0, 0).a > 0.0).is_true()
+	td.set_look(Looks.Mode.PLACEHOLDER)
+	td.minimap.rebuild_look()
+	td.minimap.first_light_edge = -1.0
+	await runner.simulate_frames(2)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_an_empty_cue_draws_nothing() -> void:
+	var ci: Control = auto_free(Control.new())
+	StyleDawn.draw_cue(ci, "", true, 0)
+	assert_bool(ci.is_inside_tree()).is_false()
+
+
 func test_the_styled_reach_preview_marks_a_limited_zone_and_tags_a_stretch() -> void:
 	var s: Dictionary = await _ring_level(16, 6.0)
 	var td: TopDownMain = s["td"]
