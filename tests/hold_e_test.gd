@@ -160,6 +160,27 @@ func test_right_click_while_held_cancels_with_nothing_spent_and_the_preview_hide
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
+# Snag round: the window losing focus while E is held cancels the aim like a right-click: the preview hides and nothing
+# is spent, and the release that follows (E let go in another window) places nothing.
+func test_losing_focus_while_e_is_held_cancels_the_aim_with_nothing_spent() -> void:
+	var s: Dictionary = await _formed()
+	var td: TopDownMain = s["td"]
+	var runner: GdUnitSceneRunner = s["runner"]
+	var before := td.player.spirit
+	TopDownTestUtil.press_e(td)
+	await _aim(runner, td, Vector3(8, 0, 6))
+	assert_bool(_preview_shown(td)).is_true()
+	td.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
+	await runner.simulate_frames(2)
+	assert_bool(td.reach_guide.held).is_false()
+	assert_bool(_preview_shown(td)).is_false()
+	assert_float(td.player.spirit).is_equal(before)
+	TopDownTestUtil.release_e(td)
+	assert_bool(td.border.has_beacon()).is_false()
+	assert_float(td.player.spirit).is_equal(before)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
 func test_the_helpers_drive_the_same_press_release_and_cancel_path() -> void:
 	var s: Dictionary = await _formed()
 	var td: TopDownMain = s["td"]

@@ -20,7 +20,8 @@ static func release(main: TopDownMain) -> bool:
 	return try_place(main)
 
 
-# Right-click while E is held: the aim ends, nothing is spent and the preview hides until E is pressed again.
+# Right-click while E is held, or the window losing focus (TopDownMain._notification): the aim ends, nothing is
+# spent and the preview hides until E is pressed again.
 static func cancel(main: TopDownMain) -> void:
 	main.reach_guide.held = false
 

@@ -134,6 +134,66 @@ func test_the_pointer_is_drawn_in_the_styled_look_too() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
+# --- The HUD snags (snag round) -------------------------------------------------------------------------------------
+
+
+# A floor spot off screen whose screen direction from the window centre is up and to the right (screen y grows down).
+func _up_right_off_screen_spot(td: TopDownMain) -> Vector3:
+	for r: int in range(10, 41, 2):
+		for k: int in range(16):
+			var a := TAU * float(k) / 16.0
+			var spot := td.player.global_position + Vector3(cos(a), 0.0, sin(a)) * float(r)
+			var off := TopDownTestUtil.screen_of(td, spot) - Vector2(640, 360)
+			if off.x > 0.0 and off.y < 0.0 and not _on_screen(td, spot):
+				return spot
+	assert_bool(false).override_failure_message("no off-screen spot up and to the right").is_true()
+	return Vector3.ZERO
+
+
+func test_an_up_right_pointer_stays_in_the_safe_rect_and_clear_of_the_hud() -> void:
+	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
+	await runner.simulate_frames(5)
+	var td: TopDownMain = runner.scene()
+	TopDownTestUtil.send_everyone_away(td)
+	var p: Person = td.people[0]
+	TopDownTestUtil.place(p, _up_right_off_screen_spot(td), 0, 0.0)
+	_start_wobble(p)
+	td.wobble_alert.update_now()
+	assert_int(td.wobble_alert.shown_count()).is_equal(1)
+	var s := td.wobble_alert.first_pointer()
+	var tip: Vector2 = s["tip"]
+	var dir: Vector2 = s["dir"]
+	assert_bool(dir.x > 0.0 and dir.y < 0.0).is_true()
+	var safe := td.wobble_alert.safe_rect(Vector2(1280, 720))
+	assert_bool(safe.has_point(tip)).is_true()
+	# The whole pointer (ring, arrow and count) is inside the safe rectangle and touches no HUD rectangle.
+	var reach := Config.WOBBLE_ALERT_REACH
+	var box := Rect2(tip - Vector2.ONE * reach, Vector2.ONE * reach * 2.0)
+	assert_bool(safe.grow(0.01).encloses(box)).is_true()
+	for r: Rect2 in td.wobble_alert.avoid_rects():
+		assert_bool(box.intersects(r)).is_false()
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_safe_rect_is_the_screen_less_the_hud_top_and_bottom() -> void:
+	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
+	await runner.simulate_frames(5)
+	var td: TopDownMain = runner.scene()
+	var screen := Vector2(1280, 720)
+	var safe := td.wobble_alert.safe_rect(screen)
+	# Every shown panel in the top half sits above the safe rectangle, every one in the bottom half below it.
+	var rects := td.wobble_alert.avoid_rects()
+	assert_bool(rects.is_empty()).is_false()
+	for r: Rect2 in rects:
+		if r.get_center().y < screen.y * 0.5:
+			assert_float(safe.position.y).is_greater_equal(r.end.y)
+		else:
+			assert_float(safe.end.y).is_less_equal(r.position.y)
+	assert_float(safe.position.x).is_equal_approx(Config.WOBBLE_ALERT_SAFE_INSET, 0.001)
+	assert_float(safe.end.x).is_equal_approx(screen.x - Config.WOBBLE_ALERT_SAFE_INSET, 0.001)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
 # --- Clusters -------------------------------------------------------------------------------------------------------
 
 

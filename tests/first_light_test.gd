@@ -245,21 +245,20 @@ func test_in_the_level_a_dimmed_person_at_the_edge_is_lifted_over_real_frames() 
 # --- The look ----------------------------------------------------------------------------------------------------
 
 
-func test_a_small_first_light_line_shows_when_it_begins_and_fades_out() -> void:
+# Snag round: the start line is an Intro notice (the helper both looks use for short notices). It shows when first
+# light starts, and it goes away NOTICE_SECONDS later (Intro.update counts it down).
+func test_a_first_light_notice_shows_when_it_begins_and_goes_away() -> void:
 	var s: Dictionary = await _level(_start_of_light() - 1.0)
 	var td: TopDownMain = s["td"]
-	var label: Label = td.first_light.label
-	assert_bool(label.visible).is_false()
+	assert_bool(td.intro.current == Intro.Prompt.FIRST_LIGHT).is_false()
 	td.night.elapsed = _start_of_light()
 	td.first_light.step(0.1)
-	assert_bool(label.visible).is_true()
-	assert_str(label.text).is_equal("First light")
-	# Quiet: well under the 34 pt alert.
-	assert_int(label.get_theme_font_size("font_size")).is_less_equal(20)
-	td.first_light.step(Config.FIRST_LIGHT_TEXT_HOLD - 0.5)
-	assert_float(label.modulate.a).is_equal(1.0)
-	td.first_light.step(Config.FIRST_LIGHT_TEXT_FADE + 0.5)
-	assert_bool(label.visible).is_false()
+	assert_bool(td.intro.current == Intro.Prompt.FIRST_LIGHT).is_true()
+	assert_str(td.intro.current_text()).is_equal("First light: dawn is coming in from the edges")
+	td.intro.update(Config.NOTICE_SECONDS - 0.5)
+	assert_bool(td.intro.current == Intro.Prompt.FIRST_LIGHT).is_true()
+	td.intro.update(1.0)
+	assert_int(td.intro.current).is_equal(-1)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
