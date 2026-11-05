@@ -28,7 +28,8 @@ enum Prompt {
 	PATCH_SPIRIT,
 	PATCH_NONE,
 	PATCH_ALREADY,
-	PATCH_MAX
+	PATCH_MAX,
+	FIRST_LIGHT  # Snag round: the notice when first light starts (first_light.gd).
 }
 
 var enabled: bool = true
@@ -205,6 +206,8 @@ static func text_for(id: int) -> String:
 			return Config.PATCH_ALREADY_TEXT
 		Prompt.PATCH_MAX:
 			return Config.PATCH_MAX_TEXT
+		Prompt.FIRST_LIGHT:
+			return Config.FIRST_LIGHT_TEXT
 	return "You're dim — rest inside your border"
 
 

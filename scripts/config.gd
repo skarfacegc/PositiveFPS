@@ -291,11 +291,8 @@ const FIRST_LIGHT_TINT := Color(1.0, 0.86, 0.55, 0.1)  # The lit ground behind t
 const FIRST_LIGHT_BAND_COLOUR := Color(1.0, 0.8, 0.45, 0.22)
 const FIRST_LIGHT_MINIMAP_COLOUR := Color(1.0, 0.82, 0.45)
 const FIRST_LIGHT_MINIMAP_TINT := 0.2  # How much of the warm colour the lit part of the minimap takes.
-const FIRST_LIGHT_TEXT := "First light"
-const FIRST_LIGHT_FONT_SIZE := 18
-const FIRST_LIGHT_TEXT_COLOUR := Color(1.0, 0.9, 0.62)
-const FIRST_LIGHT_TEXT_HOLD := 3.0  # Seconds the line stays, then it fades over FIRST_LIGHT_TEXT_FADE.
-const FIRST_LIGHT_TEXT_FADE := 1.5
+const FIRST_LIGHT_TEXT := "First light: dawn is coming in from the edges"  # The notice when it starts (Intro.notice).
+const FIRST_LIGHT_TEXT_COLOUR := Color(1.0, 0.9, 0.62)  # Still read by tools/checkpoint (the styled alert's colour).
 
 # ---- Round 24: reactions (person.gd, person_look*.gd, gap_patch.gd, reach_guide.gd, border_centre.gd). ----
 # Things react: a patch makes the border people at that spot hop, turn toward it and glow; a burst makes each lifted
@@ -389,6 +386,13 @@ const AIM_CROSS_SIZE := 1.1  # Half the length of the small cross at a limited p
 const AIM_CROSS_WIDTH := 0.22  # The cross's stroke width (metres, placeholder look).
 const SPIRIT_LABEL_TOP := -146.0  # The spirit label's top, in pixels above the bottom of the screen (above the bar).
 const SPIRIT_LABEL_HEIGHT := 28.0
+
+# ---- Snag round: HUD snags (scripts/wobble_alert.gd, topdown_main.gd, first_light.gd). ----
+# The wobble pointers keep clear of the HUD: each tip sits in the safe rectangle (the screen less the shown HUD panels,
+# WobbleAlert.safe_rect), and the whole pointer (ring, arrow and count) stays WOBBLE_ALERT_REACH inside it.
+const WOBBLE_ALERT_SAFE_INSET := 8.0  # Pixels between the safe rectangle and the screen edge.
+const WOBBLE_ALERT_PANEL_GAP := 6.0  # Pixels a pointer keeps from a HUD panel.
+const WOBBLE_ALERT_REACH := 34.0  # Pixels from a tip to the furthest part of its pointer (ring, arrow and count).
 
 static var intro_override: int = -1
 

@@ -240,6 +240,13 @@ func _process(delta: float) -> void:
 	_check_end()
 
 
+# Snag round: losing the window's focus while E is held cancels the aim, with nothing spent (BeaconPlacement.cancel), so
+# the preview cannot stay up when the release happens in another window.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and reach_guide != null:
+		BeaconPlacement.cancel(self)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("restart"):
 		_leave_level("restart", "")

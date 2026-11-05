@@ -6,9 +6,11 @@ extends Control
 # draws a pulsing pointer at the screen edge toward each cluster of off-screen wobblers (the most urgent clusters first,
 # at most WOBBLE_ALERT_MAX). The pulse speeds up as wobble_left runs out. The pointers are worked out every
 # WOBBLE_ALERT_REFRESH seconds (the pulse is redrawn every frame while one is shown), and they vanish when the person is
-# saved, relapses, comes on screen, or the round ends. The placement (clear of the HUD) is LandmarkPointers.place. The
-# minimap blips are in minimap.gd. Placeholder look: a warm ring and arrow; styled look: the same, in StyleUi cells with
-# an ink edge.
+# saved, relapses, comes on screen, or the round ends. Snag round: a tip is never placed by a walk round the screen
+# edge any more. It sits where the ray from the screen centre leaves the safe rectangle (safe_rect: the screen less the
+# shown HUD panels, the minimap and the spirit cue), shrunk by WOBBLE_ALERT_REACH so the whole pointer stays inside it.
+# The minimap blips are in minimap.gd. Placeholder look: a warm ring and arrow; styled look: the same, in StyleUi cells
+# with an ink edge.
 
 var main: TopDownMain
 var _hud: Hud
@@ -55,23 +57,63 @@ func update_now() -> void:
 	_shown.clear()
 	var screen := get_viewport_rect().size
 	if main != null and _hud != null and main.running and screen.x >= 400.0 and screen.y >= 300.0:
-		var clusters := group(_off_screen_entries(screen), Config.WOBBLE_ALERT_CLUSTER_RADIUS)
-		var avoid := _avoid_rects()
-		for ci: int in range(mini(clusters.size(), Config.WOBBLE_ALERT_MAX)):
-			var cluster: Dictionary = clusters[ci]
-			var centre: Vector3 = cluster["pos"]
-			var placed := LandmarkPointers.place(
-				main.world_to_screen(centre), screen, Vector2.ONE * Config.WOBBLE_ALERT_BADGE, avoid
-			)
-			placed["count"] = cluster["count"]
-			placed["urgency"] = cluster["urgency"]
-			_shown.append(placed)
+		var tips := safe_rect(screen).grow(-Config.WOBBLE_ALERT_REACH)
+		if tips.size.x > 0.0 and tips.size.y > 0.0:
+			var clusters := group(_off_screen_entries(screen), Config.WOBBLE_ALERT_CLUSTER_RADIUS)
+			for ci: int in range(mini(clusters.size(), Config.WOBBLE_ALERT_MAX)):
+				var cluster: Dictionary = clusters[ci]
+				var centre: Vector3 = cluster["pos"]
+				var placed := tip_for(main.world_to_screen(centre), screen, tips)
+				placed["count"] = cluster["count"]
+				placed["urgency"] = cluster["urgency"]
+				_shown.append(placed)
 	queue_redraw()
 
 
 # How many pointers are shown now (tests read this).
 func shown_count() -> int:
 	return _shown.size()
+
+
+# Snag round: the rectangle the pointers stay in, for a window of size `screen`: the screen inset by
+# WOBBLE_ALERT_SAFE_INSET, cut at the top by every shown HUD rectangle in the top half of the screen and at the bottom
+# by every one in the bottom half (each with WOBBLE_ALERT_PANEL_GAP to spare). The rectangles come from the HUD itself
+# (avoid_rects), so a panel that moves or is hidden moves or frees the rectangle with it.
+func safe_rect(screen: Vector2) -> Rect2:
+	var inset := Config.WOBBLE_ALERT_SAFE_INSET
+	var top := inset
+	var bottom := screen.y - inset
+	var gap := Config.WOBBLE_ALERT_PANEL_GAP
+	for r: Rect2 in avoid_rects():
+		if r.get_center().y < screen.y * 0.5:
+			top = maxf(top, r.end.y + gap)
+		else:
+			bottom = minf(bottom, r.position.y - gap)
+	return Rect2(inset, top, screen.x - inset * 2.0, bottom - top)
+
+
+# The tip and outward direction for a wobbler at window position `target`: the point where the ray from the screen
+# centre to it leaves `tips` (the safe rectangle shrunk by WOBBLE_ALERT_REACH; the centre is clamped into it first).
+# Returns {"tip": Vector2, "dir": Vector2 (unit, outward)}.
+static func tip_for(target: Vector2, screen: Vector2, tips: Rect2) -> Dictionary:
+	var centre := screen * 0.5
+	var dir := (target - centre).normalized() if (target - centre).length() > 0.0001 else Vector2.UP
+	var origin := centre.clamp(tips.position, tips.end)
+	var t := minf(
+		_exit_param(origin.x, dir.x, tips.position.x, tips.end.x),
+		_exit_param(origin.y, dir.y, tips.position.y, tips.end.y)
+	)
+	var tip := (origin + dir * t).clamp(tips.position, tips.end)
+	return {"tip": tip, "dir": dir}
+
+
+# How far along a ray from `origin` (one axis: `step` is its direction) it leaves [lo, hi]; INF when it never does.
+static func _exit_param(origin: float, step: float, lo: float, hi: float) -> float:
+	if step > 0.0001:
+		return (hi - origin) / step
+	if step < -0.0001:
+		return (lo - origin) / step
+	return INF
 
 
 # The first pointer shown (empty dictionary if none), for tests and the styled look's checks.
@@ -200,13 +242,20 @@ func _draw_styled(centre: Vector2, tip: Vector2, dir: Vector2, ring: float, col:
 	StyleUi.poly(self, PackedVector2Array([tip, base + side * a, base - side * a]), cell, col)
 
 
-# The HUD rectangles a pointer must keep clear of: the HUD panels that are visible, and the minimap.
-func _avoid_rects() -> Array[Rect2]:
+# The HUD rectangles a pointer must keep clear of: the HUD panels that are shown (Hud.layout_controls), the minimap, and
+# the spirit cue beside the spirit meter (GapPatch's panel and label, which the HUD does not list). A control at zero
+# alpha (the placeholder alert line between alerts) does not count. Tests read this too.
+func avoid_rects() -> Array[Rect2]:
 	var out: Array[Rect2] = []
 	var controls: Array[Control] = _hud.layout_controls()
 	if _minimap != null:
 		controls.append(_minimap)
+	if main != null and main.gap_patch != null:
+		if main.gap_patch.cue_panel != null:
+			controls.append(main.gap_patch.cue_panel)
+		if main.gap_patch.patch_label != null:
+			controls.append(main.gap_patch.patch_label)
 	for c: Control in controls:
-		if c.is_visible_in_tree():
+		if c.is_visible_in_tree() and c.modulate.a > 0.0:
 			out.append(c.get_global_rect())
 	return out

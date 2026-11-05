@@ -8,8 +8,9 @@ extends Node3D
 #    nobody sinks behind the front;
 #  - rescued people no longer drain joy (Person.dawn_lit, honoured by Person.drain_joy).
 # People ahead of the front get none of this, so it is a rally, not a free win: the rating still depends on what the
-# player held. The look is a soft warm tint on the lit ground and a band just inside the front (placeholder), one small
-# HUD line when it begins, and the minimap draws the front too. The recorder gets first_light_start and first_light_end.
+# player held. The look is a soft warm tint on the lit ground and a band just inside the front (placeholder), a notice
+# when it begins (Intro.notice, the helper the other notices use in both looks), and the minimap draws the front too.
+# The recorder gets first_light_start and first_light_end.
 # It runs just before TopDownMain each frame (process_priority -1) so the end event is written before the round closes.
 
 var main: TopDownMain
@@ -18,9 +19,7 @@ var finished: bool = false
 # Distinct people lifted at least once, and the number of stage lifts (one person can lift twice).
 var people_lifted: int = 0
 var stages_lifted: int = 0
-var label: Label
 var _lifted: Dictionary = {}
-var _label_left: float = 0.0
 var _tint: Array[MeshInstance3D] = []
 var _band: Array[MeshInstance3D] = []
 var _styled: StyleFirstLight  # Graphics checkpoint 5: built the first time the styled look is on.
@@ -39,20 +38,6 @@ static func attach(level: TopDownMain) -> FirstLight:
 func _build() -> void:
 	_tint = _make_strips(Config.FIRST_LIGHT_TINT)
 	_band = _make_strips(Config.FIRST_LIGHT_BAND_COLOUR)
-	label = Label.new()
-	label.text = Config.FIRST_LIGHT_TEXT
-	label.add_theme_font_size_override("font_size", Config.FIRST_LIGHT_FONT_SIZE)
-	label.add_theme_color_override("font_color", Config.FIRST_LIGHT_TEXT_COLOUR)
-	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
-	label.add_theme_constant_override("outline_size", 4)
-	label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	label.offset_left = -150
-	label.offset_right = 150
-	label.offset_top = 40
-	label.offset_bottom = 64
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.visible = false
-	main.hud.add_child(label)
 
 
 func _process(delta: float) -> void:
@@ -81,7 +66,7 @@ func step(delta: float) -> void:
 		p.dawn_lit = passed
 		if passed and not p.is_rescued:
 			_lift(p, delta)
-	_sync_look(delta)
+	_sync_look()
 	main.minimap.first_light_edge = edge()
 	if not finished and main.night.elapsed + delta >= Config.NIGHT_LENGTH:
 		finish()
@@ -102,12 +87,8 @@ func _lift(p: Person, delta: float) -> void:
 
 func _begin() -> void:
 	started = true
-	label.visible = true
-	_label_left = Config.FIRST_LIGHT_TEXT_HOLD + Config.FIRST_LIGHT_TEXT_FADE
-	if Looks.is_styled():
-		# Graphics checkpoint 5: the styled banner, not the plain label.
-		label.visible = false
-		main.hud.show_alert(Config.FIRST_LIGHT_TEXT, Config.FIRST_LIGHT_TEXT_COLOUR, Config.FIRST_LIGHT_TEXT_HOLD)
+	# Snag round: the start notice is an Intro notice, drawn by PromptBar (placeholder) or StyleHud (styled).
+	main.intro.notice(Intro.Prompt.FIRST_LIGHT)
 	var dimmed := 0
 	for p: Person in main.people:
 		if GloomSim.is_dimmed(p):
@@ -131,13 +112,9 @@ func _emit(type: String, fields: Dictionary) -> void:
 		main.recorder.emit_event(type, fields)
 
 
-# The small line fades out after its hold; the tint and band follow the front.
-func _sync_look(delta: float) -> void:
+# The tint and band follow the front (the start notice is Intro's, not this).
+func _sync_look() -> void:
 	var styled := Looks.is_styled()
-	if _label_left > 0.0:
-		_label_left -= delta
-		label.modulate.a = clampf(_label_left / Config.FIRST_LIGHT_TEXT_FADE, 0.0, 1.0)
-		label.visible = _label_left > 0.0 and not styled
 	var half := Config.TD_PLAZA_SIZE * 0.5
 	var e := edge()
 	if styled:
