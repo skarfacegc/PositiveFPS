@@ -378,6 +378,11 @@ const CP5_WARM_TINT := 0.75  # How far a dimmed body's coat takes the affinity c
 const CP5_FIRST_LIGHT_SKY := Color("#f2b886")  # The sky the styled view warms toward as first light moves in.
 const CP5_FIRST_LIGHT_SKY_MIX := 0.5  # How much of it at dawn.
 
+# ---- Snag round: shader instances (project.godot, tests/shader_instances_test.gd). ----
+# The renderer reserves this many vec4 of rendering/limits/global_shader_variables/buffer_size for every mesh whose
+# material declares an `instance uniform` (a fixed engine cost, hidden meshes included).
+const SNAG_INSTANCE_VEC4S := 16
+
 # ---- Checkpoint 5 follow-up: hold E (scripts/beacon_placement.gd, reach_guide.gd, controls.gd, hud.gd). ----
 # E is hold to aim, release to place: the preview shows only while E is held and right-click cancels. The HUD's spirit
 # label sits above its bar so the burst line on the left never runs into it.
