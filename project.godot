@@ -12,6 +12,13 @@ config/features=PackedStringArray("4.7")
 window/size/viewport_width=1280
 window/size/viewport_height=720
 
+[rendering]
+
+; Every mesh that uses the styled toon shader (it has `instance uniform`s) reserves 16 vec4 of this buffer, hidden or not.
+; The default 65536 holds 4096 meshes, and a styled game needs about 4400 once every block has built its whimsical
+; version (tests/shader_instances_test.gd counts it). 262144 vec4 (4 MiB) holds 16384, about twice the worst case.
+limits/global_shader_variables/buffer_size=262144
+
 [debug]
 
 gdscript/warnings/exclude_addons=true
