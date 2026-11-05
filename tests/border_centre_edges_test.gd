@@ -142,6 +142,22 @@ func test_the_body_radius_cache_empties_itself_before_it_grows_without_end() -> 
 	assert_float(first).is_greater_equal(radius * Config.BEACON_BODY_MIN)
 
 
+# Checkpoint 5 follow-up: the preview no longer plans on every hover (only while E is held), so this guard needs its own
+# test: arms that already use all of the loop's length leave no reach for another stretch.
+func test_arms_that_already_use_the_whole_length_leave_no_reach_for_another() -> void:
+	var border: Border = auto_free(Border.new())
+	var ctl: BorderCentre = border._centre_ctl
+	var radius := 8.0
+	var long_arms: Array[Vector2] = []
+	for i: int in range(Config.BEACON_MAX_ARMS):
+		long_arms.append(Vector2(TAU * float(i) / float(Config.BEACON_MAX_ARMS), radius * 6.0))
+	ctl.arms = long_arms
+	assert_float(ctl.arm_cap(PI * 0.25, radius, radius * 3.0)).is_equal(0.0)
+	# With no arms the same aim gets some reach.
+	ctl.arms = []
+	assert_float(ctl.arm_cap(PI * 0.25, radius, radius * 3.0)).is_greater(0.0)
+
+
 func test_a_loop_that_fits_keeps_its_plain_body_radius_and_one_that_does_not_is_squeezed() -> void:
 	var short_arm: Array[Vector2] = [Vector2(0.0, 4.0)]
 	var fitted := 0
