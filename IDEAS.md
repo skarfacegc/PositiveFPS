@@ -2008,3 +2008,29 @@ work next; fix the worst and keep the rest.
 - **HUD overlap:** the burst line ("Joy burst [G]: READY - N dimmed ...") must not run into the spirit label, in either
   look.
 - Refresh the checkpoint 5 reach shots. Spare spirit, the strain rings and the other effects stay as they are.
+
+## Graphics checkpoint 5 follow-up build (2026-11-04)
+
+One agent (`c74afdc`, merge `00f25df`). Gate (712 tests, 99.8%), determinism (0 lines differing) and baseline passed
+through `tools/round_end.py`. The baseline first refused `border_centre.gd` (99.7% to 99.4%): the arm-cap guard for arms
+that already use the whole loop had been reached only through the always-on preview. It now has its own test
+(`8dd3f4e`). An earlier determinism pass showed 2 lines differing in `recorder.gd:521-522` (2 hits vs 1, under the
+limit; likely the recorder's background save); the final pass had 0.
+
+- **E:** holding E shows the zone preview, which follows the cursor; releasing E places the beacon, with the same refusals,
+  notices and cost as before; right-click while holding cancels with nothing spent. With E up there is no preview (the
+  "Stretching" travel still shows during a stretch). Both looks. The how-to-play panel went from 760 to 880 px wide to fit
+  the longer Keys line.
+- **Quiet preview:** outline only, no fill, in both looks (placeholder 0.2 m; limited 0.26 m coral, was 0.6 m). Limited
+  is a thin coral outline and a small cross. The styled hatching, stripes and zone shader are gone. The normal preview keeps
+  its small tip marker.
+- **HUD:** the spirit label sits above its bar, and the burst line reads "READY - clears N dimmed", so they no longer
+  overlap (tested at 1280x720 in both looks).
+- **Tests changed:** preview tests now hold E first (`shaped_zone_test`, `reactions_test`, `shaping_tuning_test`,
+  `looks_round20_pieces_test`, `looks_checkpoint5_test`); `gap_patch_test` checks the new burst text;
+  `how_to_play_keys_test` knows right-click. New: `hold_e_test`, and a HUD overlap test. **Loosened:** nothing.
+
+**Open:** the limited shot uses "inside the zone already", not a dimmed block. `checkpoint_shots` printed about 2000
+"Too many instances using shader instance variables" lines on some styled runs; checkpoint 5 thought it had fixed this, so
+it may still show in play and needs a look. Losing window focus while holding E may leave the preview showing until the
+next E press.
