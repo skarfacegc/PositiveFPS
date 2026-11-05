@@ -2034,3 +2034,35 @@ limit; likely the recorder's background save); the final pass had 0.
 "Too many instances using shader instance variables" lines on some styled runs; checkpoint 5 thought it had fixed this, so
 it may still show in play and needs a look. Losing window focus while holding E may leave the preview showing until the
 next E press.
+
+## Checkpoint 5 follow-up playtest and snag round plan (2026-11-04)
+
+Played `18a39a5` once in the styled look, recorded (`20261104-233132`, saved with its `godot.log` in
+`recordings/playtests/cp5b/`): a win, 2 of 3 dawn lights (44 rescued, 73%; ground 17%; Garden at 39 s). 35 gaps (calm 6,
+midnight 23, easing 6; the last styled game had 0 at midnight), no relapses, 2 wobbles both saved. 5 beacons, all reached
+(zone 1729 sq m). 2 bursts (3 dimmed cleared), spare spirit made 38 gifts (1500 joy). First light ran from 135 s and
+lifted 18 people.
+
+**What the user said:** hold E to aim and release to place is good, keep it. The thin outline preview is quiet enough. The
+busier midnight was exciting, keep it. They did not understand "the square that showed up": the first light front (a hard
+square edge closing in from the plaza edge) has no on-screen explanation. Next: fix the open snags.
+
+**Seen in the log and shots:** the game's log has 277 "Too many instances using shader instance variables" and 77
+`instance_buffer_pos.has(p_instance)` errors, so the shader error happens in real play, not only in checkpoint runs. The
+wobble edge pointer sits over the top-right HUD (targeting line and REC mark) when the wobble is up and to the right.
+
+### Plan (three parts in parallel)
+
+- **Part L, shader errors (Sonnet):** find which shaders use `instance uniform`, why the instance count overflows (and the
+  `instance_buffer_pos` error, probably freeing or reusing instances), and fix the cause so a full styled game logs none.
+  Raising the global shader buffer size is acceptable only alongside a reason it is the right size; add a test or a check
+  that fails if the errors come back.
+- **Part M, HUD snags (Haiku):** the wobble pointers keep clear of the HUD panels (top-right targeting/REC/landmarks,
+  minimap, bottom bar), in both looks. Losing window focus while E is held cancels the aim (nothing spent). First light
+  gets a short line when it starts ("First light: dawn is coming in from the edges", wording in the gloom terms), in both
+  looks; its look otherwise stays.
+- **Part N, context tooling (Sonnet):** `tools/source_map.py` writes `SOURCE_MAP.md` from the GDScript (per script: class,
+  extends, signals, constants count, public functions with signature, line and the first comment line). The commit hook
+  refuses a commit when the map is stale (like lint), with a one-line fix command. IDEAS.md gets a short "Current state"
+  section at the top (mechanics, controls, open items, push status); resolved items and finished round history move to
+  `IDEAS_RESOLVED.md`. CLAUDE.md, ARCHITECTURE.md and the brief-build-agent skill point agents to both.
