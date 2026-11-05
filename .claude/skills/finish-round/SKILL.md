@@ -78,7 +78,11 @@ Still true for the individual steps:
 
 ## 5. Docs
 
-Update IDEAS.md (what was built, what was loosened or deferred, the playtest notes), README.md's feature and key list,
+Regenerate the code map after merging (`python tools/source_map.py`; it conflicts on merge, so never resolve it by hand)
+and commit `SOURCE_MAP.md` with the docs. Update IDEAS.md (what was built, what was loosened or deferred, the playtest
+notes) and refresh its "Current state" section (mechanics, open items, push status); move the round's resolved items
+and finished round history to `IDEAS_RESOLVED.md` (text unchanged, add its heading to the index line at the top), keeping
+the two newest round sections in IDEAS.md. Update README.md's feature and key list,
 and ARCHITECTURE.md's script map, config and tests sections for what changed. `tools/COVERAGE_TOOL_NOTES.md` only if
 the coverage tool changed. Agents' own commits must not have staged `design/`.
 

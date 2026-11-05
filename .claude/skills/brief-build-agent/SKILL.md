@@ -18,6 +18,9 @@ the BASE CHECK block with local main's hash. Worktree agents start from `origin/
 ```
 PositiveFPS (Godot 4.7.2 GDScript with Python tools). Read CLAUDE.md, then ARCHITECTURE.md; your task is
 "<round and item names>" in IDEAS.md. <One or two sentences on what to build and the numbers to use.>
+To find code, search SOURCE_MAP.md first (every script's public functions with line numbers), then Read only the
+lines you need. Do not read whole scripts, and do not read all of IDEAS.md: its "Current state" section and your
+round's section are enough (history is in IDEAS_RESOLVED.md).
 
 FIRST, before any edit: run `git merge --ff-only <local main hash>` in your worktree. If `git log --oneline -1`
 doesn't then show that hash, stop and report.                                   <- BASE CHECK, worktree agents only
@@ -47,6 +50,10 @@ it can't check, and every agent in checkpoint 5 tripped it this way.)
 EVERY GODOT RUN MUST END ITSELF. Give every scripted Godot run a timeout and a log, with
 `python tools/godot_run.py --timeout <seconds> -- <command>` (it ends only the process tree it started and prints the
 exit, time and log path). Never leave a Godot process behind, and never end one you did not start.
+
+SOURCE_MAP.md: the commit hook refuses a commit with .gd files when the map is stale. Before committing, run
+`python tools/source_map.py` and add SOURCE_MAP.md to your commit. (Parallel parts: the coordinator regenerates it
+after the merge, so a conflict there is resolved by regenerating, never by hand.)
 
 Commits: explicit paths only (include new .gd.uid files), never `git add -A`, never push, never amend. Set
 POSITIVEFPS_PARALLEL_PART=1 for your commits.                                    <- parallel parts only

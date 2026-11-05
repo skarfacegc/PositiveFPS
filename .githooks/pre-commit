@@ -21,6 +21,14 @@ PYTHON="${PYTHON:-python}"
 
 staged=$(git diff --cached --name-only --diff-filter=ACMR)
 . tools/hook_paths.sh
+
+# SOURCE_MAP.md must match the GDScript (cheap: reads the files, no Godot). Checked whenever a .gd file is staged,
+# or SOURCE_MAP.md itself is, so it also runs before the docs-only skip below.
+if printf '%s
+' "$staged" | grep -Eq '\.gd$|^SOURCE_MAP\.md$'; then
+  "$PYTHON" tools/source_map.py --check || exit 1
+fi
+
 if printf '%s
 ' "$staged" | is_docs_only; then
   echo "pre-commit: design/docs-only change, skipping tests"
