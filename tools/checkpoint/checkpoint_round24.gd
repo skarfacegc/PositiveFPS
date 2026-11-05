@@ -300,14 +300,9 @@ func _r24_dawn(label: String) -> void:
 	await _r24_move_player(Vector3(32.0, 0.0, 8.0))
 	_r24_front(0.22)
 	await _r24_shot("dawn_early", label, {}, 20)
-	# The "First light" line: the styled banner, or the placeholder's plain label.
-	if Looks.is_styled():
-		main.hud.show_alert(Config.FIRST_LIGHT_TEXT, Config.FIRST_LIGHT_TEXT_COLOUR, 30.0)
-	else:
-		main.first_light.label.visible = true
-		main.first_light.label.modulate.a = 1.0
-	await _r24_shot("dawn_banner", label, {"rect": Rect2i(240, 20, 800, 260), "scale": 1}, 3)
-	main.first_light.label.visible = false
+	# The "First light" line (snag round: an intro notice in both looks).
+	main.intro.notice(Intro.Prompt.FIRST_LIGHT)
+	await _r24_shot("dawn_banner", label, {}, 3)
 	await _r24_shot("dawn_minimap_early", label, {"rect": Rect2i(10, 10, 270, 270), "scale": 3}, 2)
 	# Middle: the front has passed the nearer people; the ones behind it are lifted a stage (set by hand: the rules lift
 	# 0.03 gloom a second, which takes tens of seconds).

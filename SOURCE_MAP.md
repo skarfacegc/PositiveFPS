@@ -13,8 +13,8 @@ extends Node3D | 0 const | Round 19: the spirit beacon as it stands in the world
 extends RefCounted | 0 const | Round 19: E. Moved out of topdown_main.gd in round 22.
 - L10 `static press(main: TopDownMain) -> void` - E pressed: the zone preview shows and follows the cursor until E is released.
 - L16 `static release(main: TopDownMain) -> bool` - E released: places the beacon at the cursor (the same refusals and costs as try_place). Does nothing unless...
-- L24 `static cancel(main: TopDownMain) -> void` - Right-click while E is held: the aim ends, nothing is spent and the preview hides until E is pressed again.
-- L31 `static try_place(main: TopDownMain) -> bool` - Puts the spirit beacon at the cursor's ground point for BEACON_SPIRIT_COST spirit (the zone then stretches...
+- L25 `static cancel(main: TopDownMain) -> void` - Right-click while E is held, or the window losing focus (TopDownMain._notification): the aim ends, nothing is
+- L32 `static try_place(main: TopDownMain) -> bool` - Puts the spirit beacon at the cursor's ground point for BEACON_SPIRIT_COST spirit (the zone then stretches...
 
 ### scripts/bloom.gd (Bloom)
 extends Node3D | 2 const | A flower patch left where a nature projectile stopped. For TD_BLOOM_SECONDS, everyone standing inside its r...
@@ -148,12 +148,12 @@ extends RefCounted | 0 const | Round 22: the joy burst's job is to clear dimmed 
 - L41 `static run(people: Array[Person], at: Vector3, border: Border) -> Dictionary` - Uses the burst at `at`. Returns a report: {"cleared": Array of {"person", "from", "to"} (position before an...
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 217 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L402 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L409 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L418 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L428 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L439 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 216 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L405 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L412 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L421 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L431 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L442 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -192,12 +192,12 @@ extends Control | 0 const | Round 13b: the communication layer. Everything here 
 
 ### scripts/first_light.gd (FirstLight)
 extends Node3D | 0 const | Round 24: first light. Over the last Config.FIRST_LIGHT_SECONDS of the night a front of dawn starts at the...
-- L30 `static attach(level: TopDownMain) -> FirstLight` - Builds the node under `level` and returns it. (The only wiring TopDownMain needs.)
-- L64 `edge() -> float` - Half size (metres) of the square the front has reached: the plaza edge at the start, 0 at dawn.
-- L69 `has_passed(pos: Vector3) -> bool` - True when the front has passed `pos` (its square distance from the centre is at least the front's).
-- L74 `step(delta: float) -> void` - One frame. Nothing happens before the last FIRST_LIGHT_SECONDS of the night.
-- L119 `finish() -> void` - The front has reached the centre: writes how many people it lifted (once).
-- L209 `tint_visible_count() -> int` - For tests and the recorder: how many strips of the tint are showing.
+- L29 `static attach(level: TopDownMain) -> FirstLight` - Builds the node under `level` and returns it. (The only wiring TopDownMain needs.)
+- L49 `edge() -> float` - Half size (metres) of the square the front has reached: the plaza edge at the start, 0 at dawn.
+- L54 `has_passed(pos: Vector3) -> bool` - True when the front has passed `pos` (its square distance from the centre is at least the front's).
+- L59 `step(delta: float) -> void` - One frame. Nothing happens before the last FIRST_LIGHT_SECONDS of the night.
+- L100 `finish() -> void` - The front has reached the centre: writes how many people it lifted (once).
+- L186 `tint_visible_count() -> int` - For tests and the recorder: how many strips of the tint are showing.
 
 ### scripts/floor_effects.gd (FloorEffects)
 extends RefCounted | 4 const | The floor overlay registry (round 10). Every transient floor effect (sound rings, paint splats, splash ring...
@@ -268,16 +268,16 @@ extends CanvasLayer | 0 const | Round 12a: spirit (a label and a bar above the b
 
 ### scripts/intro.gd (Intro)
 extends RefCounted | 0 const | Round 13b, the layered introduction through the night. It is driven by the night's progress (NightCycle), s...
-- L60 `dimmed_allowed() -> bool` - True once dimmed people may emerge (the calm opening is over). Always true when the intro is off.
-- L67 `mood_active(mood: int) -> bool` - True when `mood` (a Person.Mood) is switched on. Always true when the intro is off.
-- L76 `request(id: int, at: Vector3 = Vector3.INF) -> bool` - Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and alway...
-- L89 `notice(id: int, words: String = "") -> void` - Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the i...
-- L100 `current_text() -> String` - The words of the prompt on show (a notice may carry its own).
-- L106 `check_level(main: TopDownMain, delta: float) -> void` - Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
-- L137 `update(delta: float) -> void` - Counts the current prompt down and moves on to the next one in the queue.
-- L164 `static prompt_for_mood(mood: int) -> int` - The prompt for a mood (Person.Mood).
-- L174 `static text_for(id: int) -> String` - The short line of a prompt (the icon sits beside it).
-- L212 `static icon_for(id: int) -> int` - The icon (MoodIcons.Kind) that goes with a prompt.
+- L61 `dimmed_allowed() -> bool` - True once dimmed people may emerge (the calm opening is over). Always true when the intro is off.
+- L68 `mood_active(mood: int) -> bool` - True when `mood` (a Person.Mood) is switched on. Always true when the intro is off.
+- L77 `request(id: int, at: Vector3 = Vector3.INF) -> bool` - Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and alway...
+- L90 `notice(id: int, words: String = "") -> void` - Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the i...
+- L101 `current_text() -> String` - The words of the prompt on show (a notice may carry its own).
+- L107 `check_level(main: TopDownMain, delta: float) -> void` - Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
+- L138 `update(delta: float) -> void` - Counts the current prompt down and moves on to the next one in the queue.
+- L165 `static prompt_for_mood(mood: int) -> int` - The prompt for a mood (Person.Mood).
+- L175 `static text_for(id: int) -> String` - The short line of a prompt (the icon sits beside it).
+- L215 `static icon_for(id: int) -> int` - The icon (MoodIcons.Kind) that goes with a prompt.
 
 ### scripts/joy_projectile.gd (JoyProjectile)
 extends Node3D | 6 const | A joy projectile for top-down mode. It has no physics body: each physics frame it steers, moves, and checks
@@ -840,15 +840,15 @@ signals: warmed(person: Person, joy: float, spirit: float)
 ### scripts/topdown_main.gd (TopDownMain)
 extends Node3D | 5 const | The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a...
 signals: beacon_placed(pos: Vector3, cost: float, spirit_after: float)
-- L270 `try_place_beacon() -> bool` - Round 19: E. See BeaconPlacement.
-- L293 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
-- L298 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
-- L325 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
-- L329 `sun_light() -> DirectionalLight3D`
-- L333 `environment() -> Environment`
-- L396 `dim_recovery_rate() -> float` - Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
-- L543 `view_half_extents() -> Vector2` - The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the v...
-- L731 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
+- L277 `try_place_beacon() -> bool` - Round 19: E. See BeaconPlacement.
+- L300 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
+- L305 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
+- L332 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
+- L336 `sun_light() -> DirectionalLight3D`
+- L340 `environment() -> Environment`
+- L403 `dim_recovery_rate() -> float` - Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
+- L550 `view_half_extents() -> Vector2` - The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the v...
+- L738 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
 
 ### scripts/topdown_player.gd (TopDownPlayer)
 extends CharacterBody3D | 0 const | The player in top-down mode. WASD moves in world space and the mouse picks an aim point on the floor. The p...
@@ -865,15 +865,18 @@ signals: target_changed(affinity: int), targeting_changed(mode: int), debug_togg
 
 ### scripts/wobble_alert.gd (WobbleAlert)
 extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued person wobbles for about WOBBLE_SECONDS before they relap...
-- L23 `static attach(level: TopDownMain) -> WobbleAlert` - Builds the node on the HUD and returns it. (The only wiring TopDownMain needs.)
-- L37 `setup(hud: Hud, minimap: Control) -> void` - Takes the HUD panels to keep clear of (the same list the landmark pointers keep clear of) and the minimap.
-- L53 `update_now() -> void` - Works the pointers out now. The game calls it every WOBBLE_ALERT_REFRESH seconds (from _process); the tests...
-- L73 `shown_count() -> int` - How many pointers are shown now (tests read this).
-- L78 `first_pointer() -> Dictionary` - The first pointer shown (empty dictionary if none), for tests and the styled look's checks.
-- L98 `static group(entries: Array[Dictionary], radius: float) -> Array[Dictionary]` - Groups the wobblers (entries {"pos": Vector3, "urgency": float}) into clusters. The most urgent entry goes...
-- L140 `static hz_for(urgency: float) -> float` - The pulse rate (per second) for a wobble at `urgency` (0 just begun, 1 about to relapse).
-- L145 `static pulse_at(t: float, urgency: float) -> float` - The pulse at clock time `t` for `urgency`: 0 at rest, 1 at the top of each beat.
-- L150 `static colour_at(urgency: float, pulse: float) -> Color` - The pointer's colour: the warm amber, brighter as the pulse rises and as the wobble nears its end.
+- L25 `static attach(level: TopDownMain) -> WobbleAlert` - Builds the node on the HUD and returns it. (The only wiring TopDownMain needs.)
+- L39 `setup(hud: Hud, minimap: Control) -> void` - Takes the HUD panels to keep clear of (the same list the landmark pointers keep clear of) and the minimap.
+- L55 `update_now() -> void` - Works the pointers out now. The game calls it every WOBBLE_ALERT_REFRESH seconds (from _process); the tests...
+- L74 `shown_count() -> int` - How many pointers are shown now (tests read this).
+- L82 `safe_rect(screen: Vector2) -> Rect2` - Snag round: the rectangle the pointers stay in, for a window of size `screen`: the screen inset by
+- L98 `static tip_for(target: Vector2, screen: Vector2, tips: Rect2) -> Dictionary` - The tip and outward direction for a wobbler at window position `target`: the point where the ray from the s...
+- L120 `first_pointer() -> Dictionary` - The first pointer shown (empty dictionary if none), for tests and the styled look's checks.
+- L140 `static group(entries: Array[Dictionary], radius: float) -> Array[Dictionary]` - Groups the wobblers (entries {"pos": Vector3, "urgency": float}) into clusters. The most urgent entry goes...
+- L182 `static hz_for(urgency: float) -> float` - The pulse rate (per second) for a wobble at `urgency` (0 just begun, 1 about to relapse).
+- L187 `static pulse_at(t: float, urgency: float) -> float` - The pulse at clock time `t` for `urgency`: 0 at rest, 1 at the top of each beat.
+- L192 `static colour_at(urgency: float, pulse: float) -> Color` - The pointer's colour: the warm amber, brighter as the pulse rises and as the wobble nears its end.
+- L248 `avoid_rects() -> Array[Rect2]` - The HUD rectangles a pointer must keep clear of: the HUD panels that are shown (Hud.layout_controls), the m...
 
 ## tests/
 
@@ -903,7 +906,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - grab_test (tests/grab_test.gd): 9 tests
 - grace_cue_test (tests/grace_cue_test.gd): 3 tests
 - guarded_wedge_test (tests/guarded_wedge_test.gd): 6 tests
-- hold_e_test (tests/hold_e_test.gd): 10 tests
+- hold_e_test (tests/hold_e_test.gd): 11 tests
 - hover_stick_test (tests/hover_stick_test.gd): 3 tests
 - how_to_play_keys_test (tests/how_to_play_keys_test.gd): 3 tests
 - hud_test (tests/hud_test.gd): 12 tests
@@ -952,7 +955,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - targeting_test (tests/targeting_test.gd): 11 tests
 - topdown_crowd_test (tests/topdown_crowd_test.gd): 8 tests
 - topdown_mode_test (tests/topdown_mode_test.gd): 10 tests
-- wobble_alert_test (tests/wobble_alert_test.gd): 12 tests
+- wobble_alert_test (tests/wobble_alert_test.gd): 14 tests
 - wobble_end_test (tests/wobble_end_test.gd): 2 tests
 - world_scale_test (tests/world_scale_test.gd): 8 tests
 - zoom_test (tests/zoom_test.gd): 5 tests

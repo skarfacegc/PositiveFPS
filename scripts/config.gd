@@ -292,7 +292,6 @@ const FIRST_LIGHT_BAND_COLOUR := Color(1.0, 0.8, 0.45, 0.22)
 const FIRST_LIGHT_MINIMAP_COLOUR := Color(1.0, 0.82, 0.45)
 const FIRST_LIGHT_MINIMAP_TINT := 0.2  # How much of the warm colour the lit part of the minimap takes.
 const FIRST_LIGHT_TEXT := "First light: dawn is coming in from the edges"  # The notice when it starts (Intro.notice).
-const FIRST_LIGHT_TEXT_COLOUR := Color(1.0, 0.9, 0.62)  # Still read by tools/checkpoint (the styled alert's colour).
 
 # ---- Round 24: reactions (person.gd, person_look*.gd, gap_patch.gd, reach_guide.gd, border_centre.gd). ----
 # Things react: a patch makes the border people at that spot hop, turn toward it and glow; a burst makes each lifted
