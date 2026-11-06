@@ -39,11 +39,11 @@ and post shaders, in a 640x360 SubViewport). F4 or the menu switches mid-game. G
 the styled look changes only in graphics checkpoints (latest: checkpoint 5, then a follow-up for the preview and HUD).
 Still placeholder in styled mode: the target highlight, the beacon marker and the HUD text labels.
 
-**Open items** (each checked against the code on 2026-11-04):
-- Shader errors in real styled play: 277 "Too many instances using shader instance variables" and 77
-  `instance_buffer_pos` errors in one game log (`style_toon.gdshader` has three `instance uniform`s). Part L, in progress.
-- The wobble pointer can sit over the top-right HUD; losing window focus while E is held may leave the preview up; first
-  light has no on-screen explanation. Part M, in progress.
+**Open items** (each checked against the code on 2026-11-05):
+- Confirm in the next styled playtest that the game log has no shader instance errors (the screenshot run had 0).
+- The first light square itself still looks like a hard square edge; only the explanation was added. Soften it or make
+  it a ring if the user still finds it odd.
+- A wobble pointer can still overlap an ordinary prompt shown at the bottom middle (the PromptBar is not an avoid rect).
 - The second arm is much shorter than the first (7.3 m against 34.2 m at 24 people); a design call (a reserve for it would
   give back the reach gain). Earlier arm retreat, if pull-in feels late.
 - Whether one burst per 8 s keeps pace with arrivals every 9 s (bursts were barely used in the last recordings).
@@ -62,7 +62,8 @@ and `border_shape.gd` hold the rest); the determinism check's 1088 differing lin
 read the wall clock; fixed in `140c94e`, `KNOWN_REAL_TIME_UNITS` is empty); the how-to-play key list lacking E
 (`how_to_play_keys_test`); the HUD burst text overlapping the spirit label and the thick coral stripe preview (follow-up
 build: outline only, spirit label above its bar); styled look lagging for first light, reactions and the cue panel
-(checkpoint 5).
+(checkpoint 5); shader instance errors in styled play, the wobble pointer over the HUD, the preview staying up after a
+focus loss, and first light having no explanation (snag round, 2026-11-05).
 
 **Push status.** `origin/main` is `4d8ea8d`; rounds 23 onward are unpushed (local main is ahead). Rounds are not pushed
 until the user asks.
@@ -270,3 +271,29 @@ wobble edge pointer sits over the top-right HUD (targeting line and REC mark) wh
   refuses a commit when the map is stale (like lint), with a one-line fix command. IDEAS.md gets a short "Current state"
   section at the top (mechanics, controls, open items, push status); resolved items and finished round history move to
   `IDEAS_RESOLVED.md`. CLAUDE.md, ARCHITECTURE.md and the brief-build-agent skill point agents to both.
+
+## Snag round build (2026-11-05)
+
+Three parts in parallel, merged in order N, M, L. Gate (all tests, coverage ratchet, timing), determinism and baseline
+passed through `tools/round_end.py`. The first gate refused `wobble_alert.gd` (100% to 99.3%: the axis-aligned ray case of
+the new pointer placement); it now has a test (`322abc5`).
+
+- **Part L, shader errors (`86c9106`):** only `style_toon.gdshader` has instance uniforms (3), and each mesh using it
+  reserves 16 vec4 of the global shader buffer, hidden or not. The default 65536 holds 4096 meshes; a styled level starts
+  with 2803 and reaches about 4344 once each block has built its whimsical version, so the extra meshes got no slot (the
+  277 errors) and the engine then logged its follow-on `instance_buffer_pos` errors (77). No leak (switching looks three
+  times does not grow the count). `project.godot` now sets `buffer_size=262144` (16384 meshes, 4 MiB).
+  `tests/shader_instances_test.gd` counts the worst case and fails if twice it would exceed capacity. The screenshot run
+  went from 2078 errors to 0. The styled look is unchanged.
+- **Part M, HUD snags (`762c28b`):** wobble pointer tips sit where the ray from the centre leaves a safe rectangle (the
+  screen less the shown HUD panels, minimap and spirit cue), with the whole pointer inside it. Losing window focus while E
+  is held cancels the aim with nothing spent. First light starts with a 4 s notice "First light: dawn is coming in from
+  the edges", in both looks; its tint, band and motes are unchanged. Tests added in `wobble_alert_test`,
+  `hold_e_test`, `first_light_test`.
+- **Part N, context tooling (`45a2a48`):** `tools/source_map.py` writes `SOURCE_MAP.md` (every script's public functions
+  with line numbers; tests listed with counts); the commit hook refuses a stale map. IDEAS.md went from 2068 to about 280
+  lines with a Current state section on top; history and resolved items moved unchanged to `IDEAS_RESOLVED.md`. CLAUDE.md,
+  ARCHITECTURE.md and the brief-build-agent and finish-round skills point to both.
+- **Coordinator:** `tools/checkpoint/checkpoint_round24.gd` used the removed first light label; it now shows the notice
+  (`ab2cef4`), and the unused `FIRST_LIGHT_TEXT_COLOUR` went.
+- **Loosened:** nothing. Raising the shader buffer is a capacity setting with a test that guards it, not a test threshold.

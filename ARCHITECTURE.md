@@ -107,6 +107,15 @@ mode moves the camera into a 640x360 SubViewport that shares the world, with nea
   - **First light**: the ground shader's `dawn_front` (`GroundLookStyled.set_dawn_front`), `StyleFirstLight` motes and sky,
     `MinimapLook.first_light(part, ...)`. **Preview**: `StyleReach` (outline ribbon `style_outline`, no fill since checkpoint 5 follow-up,
     `StyleReachTag` "Stretching"). **HUD**: `StyledPanel.Kind.CUE` (`StyleDawn.draw_cue`), styled notices (`StyleHud.draw_prompt`).
+  - **Shader instance buffer** (snag round): every mesh using `style_toon.gdshader` reserves 16 vec4 of
+    `rendering/limits/global_shader_variables/buffer_size`, hidden meshes included. `project.godot` sets 262144 (16384
+    meshes); a styled level peaks at about 4344 (people 1780, industrial blocks and their whimsical versions, beacons,
+    landmarks). `tests/shader_instances_test.gd` fails if twice the worst case exceeds the capacity. Adding many
+    instance-uniform meshes: check that test first.
+- **Snag round HUD notes:** `WobbleAlert` places tips where the ray from the screen centre leaves `safe_rect` (the screen
+  less the shown HUD panels, the minimap and the spirit cue), `WOBBLE_ALERT_REACH` inside it. First light's start line is
+  `Intro.notice(Prompt.FIRST_LIGHT)` (no HUD label). `TopDownMain._notification` (focus out) cancels a held E aim via
+  `BeaconPlacement.cancel`.
 - Tests run in the placeholder look; `tests/looks_test.gd` switches to styled on purpose and always switches back.
   Headless uses a dummy renderer, so shaders are not compiled by the tests; the screenshot run is the shader check
   (grep its log for errors).
