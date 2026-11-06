@@ -148,12 +148,12 @@ extends RefCounted | 0 const | Round 22: the joy burst's job is to clear dimmed 
 - L41 `static run(people: Array[Person], at: Vector3, border: Border) -> Dictionary` - Uses the burst at `at`. Returns a report: {"cleared": Array of {"person", "from", "to"} (position before an...
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 216 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L405 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L412 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L421 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L431 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L442 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 217 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L410 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L417 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L426 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L436 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L447 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -940,6 +940,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - recorder_more_test (tests/recorder_more_test.gd): 10 tests
 - recorder_polled_test (tests/recorder_polled_test.gd): 9 tests
 - recorder_test (tests/recorder_test.gd): 15 tests
+- shader_instances_test (tests/shader_instances_test.gd): 2 tests
 - shaped_zone_test (tests/shaped_zone_test.gd): 11 tests
 - shaping_followup_test (tests/shaping_followup_test.gd): 4 tests
 - shaping_tuning_test (tests/shaping_tuning_test.gd): 6 tests
@@ -955,7 +956,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - targeting_test (tests/targeting_test.gd): 11 tests
 - topdown_crowd_test (tests/topdown_crowd_test.gd): 8 tests
 - topdown_mode_test (tests/topdown_mode_test.gd): 10 tests
-- wobble_alert_test (tests/wobble_alert_test.gd): 14 tests
+- wobble_alert_test (tests/wobble_alert_test.gd): 15 tests
 - wobble_end_test (tests/wobble_end_test.gd): 2 tests
 - world_scale_test (tests/world_scale_test.gd): 8 tests
 - zoom_test (tests/zoom_test.gd): 5 tests

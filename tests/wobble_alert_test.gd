@@ -281,3 +281,15 @@ func test_the_minimap_blip_is_drawn_in_both_looks() -> void:
 	# Without a pulse it is still the plain member dot.
 	var plain := MinimapLookPlaceholder.new().member_colour()
 	assert_bool(plain.is_equal_approx(Config.TD_MINIMAP_MEMBER_COLOUR)).is_true()
+
+
+# Snag round: a wobbler straight across from the centre (a ray along one axis) leaves the safe rect through the side it
+# points at; the other axis never limits it.
+func test_a_wobbler_straight_across_points_from_the_matching_side() -> void:
+	var screen := Vector2(1280.0, 720.0)
+	var tips := Rect2(100.0, 80.0, 1080.0, 520.0)
+	var right: Dictionary = WobbleAlert.tip_for(Vector2(5000.0, 360.0), screen, tips)
+	assert_vector(right["tip"]).is_equal_approx(Vector2(tips.end.x, 360.0), Vector2(0.01, 0.01))
+	assert_vector(right["dir"]).is_equal_approx(Vector2.RIGHT, Vector2(0.001, 0.001))
+	var up: Dictionary = WobbleAlert.tip_for(Vector2(640.0, -3000.0), screen, tips)
+	assert_vector(up["tip"]).is_equal_approx(Vector2(640.0, tips.position.y), Vector2(0.01, 0.01))
