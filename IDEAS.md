@@ -176,7 +176,7 @@ lifted 2 and 6 stages, rescued 1 and 3 (16 and 21 s). First light lifted 9 and 1
 **What the user said:** the edge is better but still busy: markers and rings, and text and prompts (e.g. "A gap! Help the
 faltering one (!) to close it." over the spirit bar). They did not notice Embrace or the tides. Too easy now.
 
-### Plan (two parts in parallel)
+### Plan (two parts in parallel) — superseded by the replay below
 
 - **Part U, edge declutter 2 (Sonnet), both looks:** fewer and quieter markers and rings: the ribbon already shows strain,
   so strain gets no marker of its own (only gaps and wobbles get markers, at most 3), markers smaller and calmer; check the
@@ -186,3 +186,36 @@ faltering one (!) to close it." over the spirit bar). They did not notice Embrac
   where nobody presses, sized so a long thin arm on that side wobbles and a short thick side holds. Stronger visual: a fog
   wall visibly rolling in on screen from that side, and the ribbon and members on that side tinted grey while it passes.
 - Embrace unchanged this round (the user did not choose a change); watch whether it gets noticed once the edge is quieter.
+
+## Round 25 replay and revised round 26 plan (2026-11-07)
+
+Replayed the same build (`2c32b30`, no game changes since `9fbb8f1`), placeholder look (`20261107-135118`, in
+`recordings/playtests/round25/`): win, 55 rescued, 3 of 3 dawn lights (people 92%, ground 26%, 2 landmarks held). 55 gaps
+(27 and 28 before), 43 of them at midnight; the north tide at 97 s opened 27 (9 before), but they closed fast (median
+2.1 s). 1 wobble, 1 relapse. No patches, 3 bursts. 5 of 5 beacons reached. Embrace began 5 times, 3 rescues (13.3 s).
+Strict quiet time 9.5%.
+
+**What the user said:** still too easy. Noticed neither the tides nor Embrace. Gaps and pressure do not read: the ambient
+pressure and the pressure from individual dimmed people blur together. Wants only pressure, pushing in, until the line
+gives and lets dimmed people inside, with a more physical look. The F patch does not parse; remove it for now.
+
+### Revised plan: physical push (one Sonnet agent; the pieces depend on each other)
+
+Replaces Parts U and V above. Both looks get the mechanics; visuals in the placeholder look (styled only at a checkpoint).
+
+- **Only visible things push.** Dimmed people leaning on the border, and tides as a visible wave of gloom (fog with
+  figures in it) rolling in and shoving one side. Remove the invisible ambient strain on members with nobody near them.
+- **The line bends inward** where pushed (members are shoved back, the loop dents) and springs back when relieved.
+  Members visibly brace (lean and plant), struggling more as the push grows. Not chosen: members spreading apart.
+- **Break.** Past a dent-depth limit the line snaps at that spot. The pushers spill through and dim the painted land and
+  people inside until the hole is mended. "Gap" is no longer a separate idea: a gap is a break made by pushing.
+- **Fighting back:** joy at the pushers weakens their push (and can still rescue them); joy at bending members makes them
+  push back out; burst (G/Q) shoves the pushers away and lets the line spring back. **Remove the F patch** (key, spirit
+  action, cue panel entry, prompts, docs).
+- **Cues:** the bending line is the warning, so strain markers and rings go; keep at most a pointer for an off-screen
+  break. Help prompts and notices go to the slim banner under the night bar, shorter, one at a time.
+- **Difficulty:** the push model should make the game harder than now (the user finds it too easy); midnight and tides
+  are where the line should really bend and sometimes break.
+- Embrace unchanged; watch whether it gets noticed.
+- Open questions for the build agent to report, not decide alone: how a break is mended (rescue the spillers, joy the
+  broken ends, or both) and whether the recorder/analyser keep "gap" event names or move to "break".
