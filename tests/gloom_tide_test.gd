@@ -1,10 +1,11 @@
 extends GdUnitTestSuite
 
-# Round 25: gloom tides. Two a night (rising and midnight), each from a seeded side; a warning TIDE_WARN_SECONDS before;
-# while it passes the border members facing that side drain TIDE_DRAIN_MULT times as fast (and no one else does). The
-# warning shows the minimap's fog edge, one edge pointer inside the safe rectangle and a notice; the recorder logs
-# tide_warn / tide_start / tide_end. Times are set on the night's clock (night.elapsed) and update() is called directly,
-# so nothing waits on frames. The recorder is pointed at a throw-away folder (as in recorder_test).
+# Round 25: gloom tides. Two a night (rising and midnight), each from a seeded side; a warning TIDE_WARN_SECONDS
+# before; while it passes a wave of fog with figures in it rolls in and shoves the side it comes from (round 26;
+# nobody drains by itself any more). The warning shows the minimap's fog edge, one edge pointer inside the safe
+# rectangle and a notice; the recorder logs tide_warn / tide_start / tide_end. Times are set on the night's clock
+# (night.elapsed) and update() is called directly, so nothing waits on frames. The recorder is pointed at a throw-away
+# folder (as in recorder_test).
 
 var _base: String = ""
 
@@ -147,38 +148,73 @@ func test_the_warning_comes_about_15_seconds_before_the_tide() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_only_members_facing_the_side_drain_faster_and_only_while_it_passes() -> void:
+# A border that exists only as far as the tide cares: active, centred on the origin, with a body radius of 10 m.
+func _pretend_border(td: TopDownMain) -> void:
+	td.border.active = true
+	td.border.body_radius = 10.0
+
+
+func test_a_passing_tide_does_not_drain_anyone_by_itself() -> void:
 	var parts := await _level()
 	var td: TopDownMain = parts[1]
+	var start: float = td.gloom_tide.tides[0]["start"]
+	var angle: float = td.gloom_tide.tides[0]["angle"]
+	var dir := Vector2.from_angle(angle)
+	var facing := _member_at(td, td.border.centre + Vector3(dir.x, 0.0, dir.y) * 10.0, 0)
+	_at(td, start + 4.0)
+	var before := facing.joy
+	facing.drain_joy(10.0)
+	assert_float(before - facing.joy).is_equal_approx(10.0, 0.0001)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_front_of_the_wave_arrives_and_holds_just_past_the_line() -> void:
+	var parts := await _level()
+	var td: TopDownMain = parts[1]
+	_pretend_border(td)
+	var start: float = td.gloom_tide.tides[0]["start"]
+	_at(td, start)
+	var far: float = td.gloom_tide.front_distance(0)
+	assert_float(far).is_equal_approx(Config.TIDE_FOG_FAR - Config.TIDE_FOG_DEPTH * 0.5, 0.01)
+	_at(td, start + Config.TIDE_SECONDS * Config.TIDE_ARRIVE)
+	assert_float(td.gloom_tide.front_distance(0)).is_equal_approx(10.0 - Config.TIDE_SHOVE_DEPTH, 0.01)
+	_at(td, start + Config.TIDE_SECONDS * 0.8)
+	assert_float(td.gloom_tide.front_distance(0)).is_equal_approx(10.0 - Config.TIDE_SHOVE_DEPTH, 0.01)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_wave_shoves_only_the_side_it_comes_from_and_only_while_it_passes() -> void:
+	var parts := await _level()
+	var td: TopDownMain = parts[1]
+	_pretend_border(td)
 	var tide: Dictionary = td.gloom_tide.tides[0]
 	var start: float = tide["start"]
 	var angle: float = tide["angle"]
-	var dir := Vector2.from_angle(angle)
-	var centre: Vector3 = td.border.centre
-	var facing := _member_at(td, centre + Vector3(dir.x, 0.0, dir.y) * 10.0, 0)
-	var away := _member_at(td, centre - Vector3(dir.x, 0.0, dir.y) * 10.0, 1)
-	td.border.members.clear()
-	td.border.members.append(facing)
-	td.border.members.append(away)
-	# Before the warning: nobody is multiplied.
+	var facing_sample: int = td.border.push.sample_of(td.border.centre + Vector3(cos(angle), 0.0, sin(angle)) * 5.0)
+	var away_sample: int = td.border.push.sample_of(td.border.centre - Vector3(cos(angle), 0.0, sin(angle)) * 5.0)
 	_at(td, start - 60.0)
-	assert_float(facing.tide_mult).is_equal(1.0)
-	# While it passes: the facing member drains TIDE_DRAIN_MULT times as fast, the other does not.
-	_at(td, start + 1.0)
-	assert_float(facing.tide_mult).is_equal_approx(Config.TIDE_DRAIN_MULT, 0.0001)
-	assert_float(away.tide_mult).is_equal(1.0)
-	var before := facing.joy
-	facing.drain_joy(10.0)
-	assert_float(before - facing.joy).is_equal_approx(10.0 * Config.TIDE_DRAIN_MULT, 0.0001)
-	var other_before := away.joy
-	away.drain_joy(10.0)
-	assert_float(other_before - away.joy).is_equal_approx(10.0, 0.0001)
-	# After it has passed: back to normal.
+	assert_float(td.border.push.wave[facing_sample]).is_equal(0.0)
+	_at(td, start + 0.5)  # The front is still far out: no shove yet.
+	assert_float(td.gloom_tide.wave_force).is_equal(0.0)
+	_at(td, start + Config.TIDE_SECONDS * 0.6)
+	assert_float(td.gloom_tide.wave_force).is_equal_approx(Config.TIDE_PUSH, 0.001)
+	assert_float(td.border.push.wave[facing_sample]).is_between(Config.TIDE_PUSH * 0.95, Config.TIDE_PUSH)
+	assert_float(td.border.push.wave[away_sample]).is_equal(0.0)
 	_at(td, start + Config.TIDE_SECONDS + 1.0)
-	assert_float(facing.tide_mult).is_equal(1.0)
-	var later := facing.joy
-	facing.drain_joy(10.0)
-	assert_float(later - facing.joy).is_equal_approx(10.0, 0.0001)
+	assert_float(td.border.push.wave[facing_sample]).is_equal(0.0)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_wave_comes_with_dark_figures_in_the_fog() -> void:
+	var parts := await _level()
+	var td: TopDownMain = parts[1]
+	assert_int(td.gloom_tide.figures.size()).is_equal(Config.TIDE_FIGURES)
+	var start: float = td.gloom_tide.tides[0]["start"]
+	_at(td, start + 3.0)
+	var a := td.gloom_tide.figures[0].position
+	_at(td, start + 3.4)
+	assert_bool(td.gloom_tide.figures[0].position.is_equal_approx(a)).is_false()
+	assert_bool(td.gloom_tide.figures[0].get_parent() == td.gloom_tide.fog).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

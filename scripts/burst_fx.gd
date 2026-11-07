@@ -1,43 +1,31 @@
-class_name PatchFx
+class_name BurstFx
 extends Node3D
 
-# Round 22: the world marks for the spirit actions, drawn from GapPatch's state.
-#  - Patches: a teal ward (a disc and a ring) over the sealed stretch; after EDGE_PATCH_SHOW_SECONDS only the thin
-#    ring stays, and it blinks when the patch is about to run out.
+# Round 22: the world marks for the burst (G/Q), drawn from BurstCue's reports (round 26: the F patch is gone).
 #  - Burst: a streak from where each dimmed person stood to where the burst put them, a ring on each person lifted.
-# Round 25 (edge cleanup): the strain rings and pings, the patch posts and the lift columns are gone (EdgeRibbon
-# colours the border by strain and EdgeMarkerFx marks the trouble spots). Every result mark is short, and a new one
-# replaces an earlier one at the same spot (within EDGE_FX_MERGE) instead of stacking on it. Meshes are pooled and
-# only touched when shown.
+# Round 25 (edge cleanup): every result mark is short, and a new one replaces an earlier one at the same spot (within
+# EDGE_FX_MERGE) instead of stacking on it. Meshes are pooled and only touched when shown.
 # Graphics checkpoint 5: the styled look draws the same marks with flat dithered rings (StyleFight). The pools are
 # rebuilt when the look changes (sync notices it).
 
 const GOLD_PLANE_Y := 0.12
 
-var _patch_discs: Array[MeshInstance3D] = []
-var _patch_rings: Array[MeshInstance3D] = []
 var _streaks: Array[MeshInstance3D] = []
 var _bursts: Array[Dictionary] = []  # {"from", "to", "left"}
-var _time: float = 0.0
-# Round 23: the result marks. Texts {"pos", "text", "left", "colour"}, halos {"pos", "left"} on lifted people, pulses
-# {"pos", "left"} for a new patch.
+# Round 23: the result marks. Texts {"pos", "text", "left", "colour"}, halos {"pos", "left"} on lifted people.
 var _texts: Array[Dictionary] = []
 var _text_nodes: Array[Label3D] = []
 var _halos: Array[Dictionary] = []
 var _halo_nodes: Array[MeshInstance3D] = []
-var _pulses: Array[Dictionary] = []
-var _pulse_nodes: Array[MeshInstance3D] = []
 # Which look the pools were built for.
 var _built_styled: bool = false
 var _streak_mat: ShaderMaterial
 
 
-# Shows the patches (Array of {"pos", "left"}); advances the burst and result marks.
-func sync(delta: float, patches: Array[Dictionary]) -> void:
-	_time += delta
+# Advances the burst and result marks.
+func sync(delta: float) -> void:
 	if Looks.is_styled() != _built_styled:
 		_rebuild_pools()
-	_sync_patches(patches)
 	_sync_bursts(delta)
 	_sync_results(delta)
 
@@ -57,25 +45,6 @@ func add_burst(cleared: Array) -> void:
 	_replace_near(_bursts, spots, "to")
 	for c: Dictionary in cleared:
 		_bursts.append({"from": c["from"], "to": c["to"], "left": Config.BURST_FX_SECONDS})
-
-
-# Round 23: a patch was made at `at`: a pulse opens over the sealed stretch and a small count rises ("Held: 3").
-# Round 25: it replaces an earlier pulse and count at the same spot.
-func add_patch_result(at: Vector3, held: int) -> void:
-	_replace_near(_pulses, [at], "pos")
-	_replace_near(_texts, [at], "pos")
-	_pulses.append({"pos": at, "left": Config.FX_PATCH_PULSE_SECONDS})
-	(
-		_texts
-		. append(
-			{
-				"pos": at,
-				"text": Config.FX_PATCH_TEXT % held,
-				"left": Config.FX_TEXT_SECONDS,
-				"colour": Config.PATCH_COLOUR,
-			}
-		)
-	)
 
 
 # Round 23: a halo on each person the burst lifted, and one small count where they now stand. Round 25: earlier halos
@@ -116,14 +85,6 @@ func halo_count() -> int:
 	return _halos.size()
 
 
-func pulse_count() -> int:
-	return _pulses.size()
-
-
-func patch_disc_count() -> int:
-	return _visible_count(_patch_discs)
-
-
 func streak_count() -> int:
 	return _visible_count(_streaks)
 
@@ -149,48 +110,11 @@ func _visible_count(list: Array[MeshInstance3D]) -> int:
 # The look changed: free every pooled piece (the data lists stay) and build the next ones in the new look.
 func _rebuild_pools() -> void:
 	_built_styled = Looks.is_styled()
-	for list: Array in [_patch_discs, _patch_rings, _streaks, _text_nodes, _halo_nodes, _pulse_nodes]:
+	for list: Array in [_streaks, _text_nodes, _halo_nodes]:
 		for n: Node in list:
 			n.queue_free()
 		list.clear()
 	_streak_mat = null
-
-
-func _sync_patches(patches: Array[Dictionary]) -> void:
-	while _patch_discs.size() < patches.size():
-		if _built_styled:
-			_patch_discs.append(_styled_ring(0.0, 0.05))
-			_patch_rings.append(_styled_ring(1.0 - 0.6 / Config.PATCH_RADIUS, 0.1))
-		else:
-			_patch_discs.append(_make_disc(Config.PATCH_RADIUS))
-			_patch_rings.append(_make_ring(Config.PATCH_RADIUS - 0.18, Config.PATCH_RADIUS))
-	for i: int in range(_patch_discs.size()):
-		var show := i < patches.size()
-		_patch_discs[i].visible = show
-		_patch_rings[i].visible = show
-		if not show:
-			continue
-		var at: Vector3 = patches[i]["pos"]
-		var left: float = patches[i]["left"]
-		var blink := 1.0
-		if left < 3.0:
-			blink = 0.4 + 0.6 * (0.5 + 0.5 * sin(_time * 14.0))
-		# Round 25: the disc is only for the first moments; the ring alone says "patched" afterwards.
-		_patch_discs[i].visible = Config.PATCH_SECONDS - left < Config.EDGE_PATCH_SHOW_SECONDS
-		var col := Config.PATCH_COLOUR
-		if _built_styled:
-			var r := Config.PATCH_RADIUS
-			_patch_discs[i].position = Vector3(at.x, 0.05, at.z)
-			_patch_discs[i].scale = Vector3(r, 1.0, r)
-			StyleFight.set_ring(_patch_discs[i], StyleFight.WARD, 0.16 * blink, 0.02)
-			_patch_rings[i].position = Vector3(at.x, 0.1, at.z)
-			_patch_rings[i].scale = Vector3(r, 1.0, r)
-			StyleFight.set_ring(_patch_rings[i], StyleFight.WARD, 0.85 * blink, 0.022)
-			continue
-		_patch_discs[i].position = Vector3(at.x, 0.05, at.z)
-		_patch_rings[i].position = Vector3(at.x, 0.1, at.z)
-		_set_colour(_patch_discs[i], Color(col.r, col.g, col.b, 0.14 * blink))
-		_set_colour(_patch_rings[i], Color(col.r, col.g, col.b, 0.9 * blink))
 
 
 func _sync_bursts(delta: float) -> void:
@@ -228,7 +152,6 @@ func _sync_bursts(delta: float) -> void:
 func _sync_results(delta: float) -> void:
 	_age(_texts, delta)
 	_age(_halos, delta)
-	_age(_pulses, delta)
 	while _text_nodes.size() < _texts.size():
 		_text_nodes.append(_make_text())
 	for i: int in range(_text_nodes.size()):
@@ -244,28 +167,6 @@ func _sync_results(delta: float) -> void:
 		lbl.position = Vector3(at.x, 1.6 + Config.FX_TEXT_RISE * (1.0 - frac), at.z)
 		lbl.modulate = Color(col.r, col.g, col.b, minf(1.0, frac * 2.0))
 	_sync_halos()
-	while _pulse_nodes.size() < _pulses.size():
-		if _built_styled:
-			_pulse_nodes.append(_styled_ring(0.9, 0.14))
-		else:
-			_pulse_nodes.append(_make_ring(0.9, 1.0))
-	for i: int in range(_pulse_nodes.size()):
-		var m2 := _pulse_nodes[i]
-		m2.visible = i < _pulses.size()
-		if not m2.visible:
-			continue
-		var left3: float = _pulses[i]["left"]
-		var frac3 := left3 / Config.FX_PATCH_PULSE_SECONDS
-		var at3: Vector3 = _pulses[i]["pos"]
-		var sc := Config.PATCH_RADIUS * (1.1 - frac3 * 0.9)
-		var col3 := Config.PATCH_COLOUR
-		m2.position = Vector3(at3.x, 0.14, at3.z)
-		if _built_styled:
-			m2.scale = Vector3(sc, 1.0, sc)
-			StyleFight.set_ring(m2, StyleFight.WARD, 0.95, 0.05, frac3)
-			continue
-		m2.scale = Vector3(sc, 1.0, sc)
-		_set_colour(m2, Color(col3.r, col3.g, col3.b, 0.9 * frac3))
 
 
 # The halo on each person a burst lifted: a flat ring that opens and fades (round 25: no column of light any more).
@@ -339,20 +240,6 @@ func _make_ring(inner: float, outer: float) -> MeshInstance3D:
 func _styled_ring(inner_frac: float, y: float) -> MeshInstance3D:
 	var m := StyleFight.ring_node(self, inner_frac, StyleFight.WARD, StyleFight.WARD_RIM, 0.5)
 	m.position.y = y
-	return m
-
-
-func _make_disc(radius: float) -> MeshInstance3D:
-	var m := MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = radius
-	cyl.bottom_radius = radius
-	cyl.height = 0.04
-	m.mesh = cyl
-	m.material_override = _material()
-	m.visible = false
-	add_child(m)
-	Looks.note_placeholder(m, "spirit_fx")
 	return m
 
 

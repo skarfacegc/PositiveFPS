@@ -22,6 +22,9 @@ signal zone_pulling_in
 signal zone_shrunk(lost: float)
 # Round 21: a stretch ended without a snap because the border could no longer support it (`reason` is plain words).
 signal stretch_ended(reason: String)
+# Round 26: the line snapped under a push (`pos` is the middle of the break), and a break mended (`seconds` open).
+signal line_broke(pos: Vector3)
+signal line_mended(pos: Vector3, seconds: float)
 
 # Inner members are placed on a golden-angle spiral, so they spread out without a random number.
 const GOLDEN_ANGLE := 2.39996323
@@ -60,8 +63,8 @@ var player_dim: bool = false
 
 # The look: draws the line, the haze and the gap glow from the state above (see scripts/looks/border_look.gd).
 var look: BorderLook
-# Round 22: the gap patches (set by GapPatch.attach); update() lets it seal gaps after the slots are worked out.
-var patch: GapPatch
+# Round 26: the physical push (border_push.gd): the dent in the line and its breaks.
+var push: BorderPush = BorderPush.new(self)
 var _ground: PaintedGround
 var _has_centre: bool = false
 # Rescued people whose outward push has not been applied yet (see on_rescue).
@@ -90,10 +93,8 @@ var _strength: float = 1.0
 # Round 12b: per angle sample, the time the raw radius was last pushed outward (a rescue or a shove), so dimmed people
 # can prefer the newest stretch (see edge_pressure).
 var _pushed_at: Array[float] = []
-# Round 12b, local gaps: seconds each border member has been faltering (drained below MEMBER_FALTER_FRACTION), and the
-# faltering members a spare inner member has taken the place of (they stay inner while they falter).
+# Seconds each border member has been faltering (drained below MEMBER_FALTER_FRACTION; the "!" cue reads it).
 var _falter_age: Dictionary = {}
-var _benched: Dictionary = {}
 # Round 13b: the age of each open gap (see gap_tracker.gd) and the gap middles as of the last update.
 var _tracker := GapTracker.new()
 var _mids_cache: Array[Vector3] = []
@@ -172,12 +173,12 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 		formed = true
 		_raw_radii = BorderShape.relax_radii(_raw_radii, _sealed, delta)
 		BorderShape.trim_to_map(_raw_radii, centre, _scale)
+		push.update(people, delta, strength)  # Round 26: pushed by what is outside; the dent goes into the loop below.
 		polygon = _organic_polygon(Vector2(centre.x, centre.z), n, delta)
 	else:
 		polygon = PackedVector2Array()
+		push.reset()
 	_assign_members(rescued)
-	if patch != null:
-		patch.apply(self)
 	_move_members(delta)
 	_update_buildings(delta)
 	_press_gloom(people, delta, strength)
@@ -495,6 +496,16 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 			else:
 				_centre_ctl.settled()
 		_scale = lerpf(_scale, desired, clampf(delta / Config.BORDER_NORMALISE_SECONDS, 0.0, 1.0))
+	# Round 26: the push bows the line inward where it is shoved (after the size is worked out, so the size factor does not
+	# grow the loop back out to cancel the dent).
+	for i: int in range(mini(count, pts.size())):
+		var d := push.dent[i]
+		if d <= 0.001 or _sealed[i] > 0.5:
+			continue
+		var inward := c2 - pts[i]
+		var reach := inward.length()
+		if reach > 0.01:
+			pts[i] += inward / reach * minf(d, reach * 0.6)
 	return pts
 
 
@@ -538,39 +549,18 @@ func _update_centre(rescued: Array[Person], delta: float) -> void:
 	_centre_ctl.update(rescued, delta)
 
 
-# Round 12b: tracks how long each border member has been faltering. A member who recovers is forgotten; one who has
-# faltered for GAP_HEAL_DELAY seconds is replaced by a spare inner member (see _bench_replaced).
+# Round 12b: tracks how long each border member has been faltering (the "!" cue and the urgency read it). A member who
+# recovers is forgotten. (Round 26: a faltering member no longer steps back or opens a gap.)
 func _update_falter(rescued: Array[Person], delta: float) -> void:
 	var ages: Dictionary = {}
 	faltering.clear()
 	for p: Person in rescued:
 		if not p.is_faltering():
-			_benched.erase(p)
 			continue
 		faltering.append(p)
-		if _benched.has(p):
-			ages[p] = _falter_age.get(p, 0.0)
-		elif members.has(p):
+		if members.has(p):
 			ages[p] = _falter_age.get(p, 0.0) + delta
 	_falter_age = ages
-	for p: Person in _benched.keys():
-		if not is_instance_valid(p) or not p.is_rescued:
-			_benched.erase(p)
-
-
-# Benches members who have faltered for GAP_HEAL_DELAY, one spare inner member each: there must be rescued people
-# beyond the `m` the loop needs (otherwise nobody can step in and the gap stays until the member is helped).
-func _bench_replaced(rescued: Array[Person], m: int) -> void:
-	var spare := rescued.size() - m - _benched.size()
-	for p: Person in rescued:
-		if spare <= 0:
-			return
-		if _benched.has(p) or not _falter_age.has(p):
-			continue
-		var age: float = _falter_age[p]
-		if age >= Config.GAP_HEAL_DELAY:
-			_benched[p] = true
-			spare -= 1
 
 
 # The members the loop needs now: the slots its perimeter holds, less BORDER_POST_WORTH for each post.

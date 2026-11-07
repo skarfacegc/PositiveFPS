@@ -83,3 +83,14 @@ func test_moving_the_crowd_gives_the_same_positions_with_the_grid() -> void:
 	for i: int in range(slow.size()):
 		assert_vector(fast[i]).is_equal(slow[i])
 	assert_bool(slow[1].is_equal_approx(start[1])).is_false()  # They really moved.
+
+
+func test_regridding_without_a_live_grid_or_for_a_stranger_does_nothing() -> void:
+	var td: TopDownMain = await _start()
+	_crowd_layout(td)
+	td._crowd._grid_live = false
+	td._crowd._regrid(td.people[2])
+	td._crowd.rebuild_grid()
+	var stranger: Person = auto_free(Person.new())
+	td._crowd._regrid(stranger)
+	assert_bool(td._crowd._index.has(stranger)).is_false()

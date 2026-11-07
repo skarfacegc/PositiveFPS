@@ -120,36 +120,45 @@ func test_moods_switch_on_one_type_at_a_time_at_their_fractions() -> void:
 # --- One-time prompts -----------------------------------------------------------------------------------------------
 
 
-func test_the_first_gap_shows_one_prompt_near_it_and_never_again() -> void:
+func test_the_first_bend_shows_one_banner_and_never_again() -> void:
 	var s: Dictionary = await _start(0.5)
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	await _border(td, runner, 16, 6.0)
 	assert_int(td.border.gap_count()).is_equal(0)
 	assert_int(td.intro.current).is_equal(-1)
-	var m: Person = td.border.members[3]
-	m.joy = m.joy_needed() * 0.6
+	td.border.push.dent[3] = Config.PUSH_BREAK_DEPTH * 0.7
 	await runner.simulate_frames(30)
-	assert_int(td.border.gap_count()).is_greater(0)
-	assert_int(td.intro.current).is_equal(Intro.Prompt.GAP)
-	assert_bool(td.intro.anchor != Vector3.INF).is_true()
-	assert_str(td.prompts.text).contains("A gap!")
+	assert_int(td.intro.current).is_equal(Intro.Prompt.PUSH)
+	assert_str(td.prompts.text).is_equal(Config.PUSH_NOTICE_TEXT)
 	assert_int(td.prompts.icon).is_equal(MoodIcons.Kind.BANG)
 	assert_float(td.prompts.alpha).is_greater(0.0)
+	assert_bool(td.prompts.coral).is_false()
 	# It fades in, holds, and fades out.
 	await runner.simulate_frames(90)
 	assert_float(td.prompts.alpha).is_equal(1.0)
 	await runner.simulate_frames(int(Config.PROMPT_SECONDS * 60.0))
 	assert_int(td.intro.current).is_equal(-1)
 	assert_float(td.prompts.alpha).is_equal(0.0)
-	# Recover, falter again: no second prompt.
-	m.joy = m.joy_needed()
-	await runner.simulate_frames(30)
-	m.joy = m.joy_needed() * 0.6
+	# Bent again: no second banner.
+	td.border.push.dent[3] = Config.PUSH_BREAK_DEPTH * 0.7
 	await runner.simulate_frames(60)
-	assert_int(td.border.gap_count()).is_greater(0)
 	assert_int(td.intro.current).is_equal(-1)
 	assert_int(td.intro.queue.size()).is_equal(0)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_first_break_shows_one_banner_near_it() -> void:
+	var s: Dictionary = await _start(0.5)
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	await _border(td, runner, 16, 6.0)
+	td.border.push.dent[3] = Config.PUSH_BREAK_DEPTH + 0.5
+	await runner.simulate_frames(30)
+	assert_int(td.border.push.breaks.size()).is_equal(1)
+	assert_int(td.intro.current).is_equal(Intro.Prompt.BREAK)
+	assert_bool(td.intro.anchor != Vector3.INF).is_true()
+	assert_str(td.prompts.text).is_equal(Config.PUSH_BREAK_TEXT)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -160,7 +169,7 @@ func test_no_gap_prompt_before_dimmed_people_emerge() -> void:
 	await _border(td, runner, 16, 6.0)
 	td.night.elapsed = Config.NIGHT_LENGTH * 0.1
 	var m: Person = td.border.members[3]
-	m.joy = m.joy_needed() * 0.6
+	td.border.push.dent[td.border.push.sample_of(m.position)] = Config.PUSH_BREAK_DEPTH + 0.4
 	await runner.simulate_frames(60)
 	assert_int(td.border.gap_count()).is_greater(0)
 	assert_int(td.intro.current).is_equal(-1)
@@ -210,9 +219,8 @@ func test_the_glum_and_sheltered_prompts_have_their_icons() -> void:
 	await runner.simulate_frames(int(Config.PROMPT_SECONDS * 60.0 * 2.0))
 	assert_int(td.intro.current).is_equal(Intro.Prompt.SHELTERED)
 	assert_int(td.prompts.icon).is_equal(MoodIcons.Kind.UMBRELLA)
-	# Round 15: the prompt says the umbrella lets a little joy through and breaks after a few hits (it used to say to
-	# draw the dimmed one away).
-	assert_str(td.prompts.text).contains("a little joy gets through")
+	# Round 15: the prompt says the umbrella breaks after a few hits (round 26: shorter wording).
+	assert_str(td.prompts.text).contains("umbrella breaks after a few hits")
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -310,5 +318,5 @@ func test_with_the_intro_off_everything_is_available_at_once_and_no_prompt_shows
 	assert_bool(GloomSim.is_dimmed(deep)).is_true()
 	assert_int(guarded.active_mood()).is_equal(Person.Mood.GUARDED)
 	assert_int(td.intro.current).is_equal(-1)
-	assert_bool(td.intro.request(Intro.Prompt.GAP)).is_false()
+	assert_bool(td.intro.request(Intro.Prompt.BREAK)).is_false()
 	await TopDownTestUtil.leave_loaded_scene(td)

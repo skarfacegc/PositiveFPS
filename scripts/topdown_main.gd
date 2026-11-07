@@ -27,8 +27,7 @@ const BLOCK_POSITIONS: Array[Vector3] = [
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
 const HINT_PLAY := (
-	"WASD move | Shift run | Click to lock on | G/Q burst | F patch gap | hold E to aim, release to place | "
-	+ "Right-click cancels"
+	"WASD move | Shift run | Click to lock on | G/Q burst | hold E to aim, release to place | " + "Right-click cancels"
 )
 const HINT := HINT_PLAY + " | R restart | M menu | [F4] look"
 
@@ -41,7 +40,7 @@ var minimap: Minimap
 var arrows: GapArrows
 var landmark_pointers: LandmarkPointers  # Round 22: the edge pointers toward unheld landmarks (placeholder look).
 var border: Border
-var gap_patch: GapPatch  # Round 22: patches, border warning and burst marks.
+var burst_cue: BurstCue  # Round 22 (round 26: no patches): the burst cue and marks.
 var first_light: FirstLight  # Round 24: the dawn front of the last 45 s.
 var wobble_alert: WobbleAlert  # Checkpoint 5: the edge pointers toward off-screen wobblers.
 var spirit_warmth: SpiritWarmth  # Checkpoint 5: spare spirit warms the border.
@@ -181,7 +180,7 @@ func _ready() -> void:
 	arrows = GapArrows.new()
 	hud.add_child(arrows)
 	_build_feedback()
-	gap_patch = GapPatch.attach(self)
+	burst_cue = BurstCue.attach(self)
 	first_light = FirstLight.attach(self)
 	wobble_alert = WobbleAlert.attach(self)
 	spirit_warmth = SpiritWarmth.attach(self)
@@ -421,7 +420,7 @@ func _update_target_mood() -> void:
 
 func _update_spirit_hud() -> void:
 	hud.set_spirit(player.spirit, player.is_dim)
-	hud.set_burst(player.burst_cooldown, player.has_burst_spirit(), gap_patch.burst_targets)
+	hud.set_burst(player.burst_cooldown, player.has_burst_spirit(), burst_cue.burst_targets)
 	spirit_meter.set_values(player.spirit, player.is_dim)
 
 

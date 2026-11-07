@@ -73,7 +73,8 @@ func _r24_move_player(at: Vector3, frames: int = 40) -> void:
 
 # Sets a border member's joy so the warning's urgency is `urgency` (0 healthy .. 1 about to falter).
 func _r24_strain(m: Person, urgency: float) -> void:
-	var frac := Config.BORDER_WARN_START - urgency * (Config.BORDER_WARN_START - Config.MEMBER_FALTER_FRACTION)
+	var warn_start := 0.97  # (round 26: the warning constants are gone from Config)
+	var frac := warn_start - urgency * (warn_start - Config.MEMBER_FALTER_FRACTION)
 	m.joy = m.joy_needed() * frac
 	m._update_visuals()
 
@@ -178,7 +179,7 @@ func _r24_burst(label: String) -> void:
 # A refusal notice (E or F pressed where it cannot be done).
 func _r24_notice(label: String) -> void:
 	main.intro.enabled = true
-	main.intro.notice(Intro.Prompt.PATCH_NONE)
+	main.intro.notice(Intro.Prompt.BEACON_BLOCKED)
 	main.intro.time_left = main.intro.duration - 1.0  # Past the fade-in: fully shown.
 	await _r24_shot("fight_notice", label, {"rect": Rect2i(240, 180, 800, 140), "scale": 2}, 6)
 	main.intro.notice(Intro.Prompt.BEACON_BLOCKED, Config.BEACON_DIM_TEXT)

@@ -42,6 +42,11 @@ func _falter(m: Person, share: float = 0.6) -> void:
 	m.joy = m.joy_needed() * share
 
 
+# Round 26: snaps the line at `m` (a gap is a break made by pushing): the dent there is past the limit.
+func _snap(td: TopDownMain, m: Person) -> void:
+	td.border.push.dent[td.border.push.sample_of(m.position)] = Config.PUSH_BREAK_DEPTH + 0.4
+
+
 # A wistful person with a mood at `spot`.
 func _mooded(td: TopDownMain, index: int, spot: Vector3, mood: int) -> Person:
 	var p: Person = td.people[index]
@@ -94,6 +99,7 @@ func test_urgency_rises_with_the_time_a_gap_stays_open() -> void:
 	var td: TopDownMain = s["td"]
 	var m: Person = td.border.members[3]
 	_falter(m)
+	_snap(td, m)
 	await runner.simulate_frames(60)
 	assert_int(td.border.gap_count()).is_greater(0)
 	var early: float = td.feedback.marker_for(m)["urgency"]
@@ -153,7 +159,7 @@ func test_gloom_leaks_in_from_an_open_gap_and_stops_when_it_closes() -> void:
 	var td: TopDownMain = s["td"]
 	assert_int(td.feedback.motes.size()).is_equal(0)
 	var m: Person = td.border.members[3]
-	_falter(m)
+	_snap(td, m)
 	await runner.simulate_frames(90)
 	assert_int(td.border.gap_count()).is_greater(0)
 	assert_int(td.feedback.motes.size()).is_greater(3)
@@ -163,7 +169,7 @@ func test_gloom_leaks_in_from_an_open_gap_and_stops_when_it_closes() -> void:
 	var vel: Vector3 = mote["vel"]
 	var to_centre := Vector3(td.border.centre.x - pos.x, 0.0, td.border.centre.z - pos.z)
 	assert_float(vel.dot(to_centre)).is_greater(0.0)
-	m.joy = m.joy_needed()
+	m.receive_joy(m.affinity, Config.JOY_MAX * 0.01, 0.0)  # Joy at the broken end mends the break (nobody is near it).
 	await runner.simulate_frames(int((Config.LEAK_LIFE_SECONDS * 1.2 + 0.5) * 60.0))
 	assert_int(td.border.gap_count()).is_equal(0)
 	assert_int(td.feedback.motes.size()).is_equal(0)
@@ -175,7 +181,7 @@ func test_the_minimap_marker_and_the_arrow_intensify_with_urgency() -> void:
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	var m: Person = td.border.members[3]
-	_falter(m)
+	_snap(td, m)
 	await runner.simulate_frames(30)
 	var view := td.view_half_extents()
 	td.minimap.refresh_from(td.ground, td.border, td.people, td.player.global_position, td.player.global_position, view)

@@ -71,31 +71,16 @@ func assign_members(rescued: Array[Person]) -> void:
 	b.spacing = b.perimeter / float(k_total)
 	var slot_taken: Array[bool] = []
 	var post_slot: Array[bool] = []
-	var slot_faltering: Array[bool] = []
 	for k: int in range(k_total):
 		slot_taken.append(false)
 		post_slot.append(false)
-		slot_faltering.append(false)
-	# The outermost m rescued people are border members; the rest are inner members. Round 12b: a faltering member keeps
-	# their place for GAP_HEAL_DELAY seconds (so the gap they open is not smoothed away at once), then a spare inner
-	# member takes it, if there is one (see Border._bench_replaced).
-	b._bench_replaced(rescued, m)
-	var remaining: Array[Person] = []
+	# The outermost m rescued people are border members; the rest are inner members. (Round 26: a faltering member no
+	# longer steps back or opens a gap; the line only breaks where it is pushed too far.)
+	var remaining: Array[Person] = rescued.duplicate()
 	var border_list: Array[Person] = []
-	var benched_list: Array[Person] = []
-	for p: Person in rescued:
-		if b._benched.has(p):
-			benched_list.append(p)
-		elif b._falter_age.has(p) and border_list.size() < m:
-			border_list.append(p)  # Kept in place: it goes first, so it claims its own slot.
-		else:
-			remaining.append(p)
 	while border_list.size() < m and not remaining.is_empty():
 		border_list.append(_take_outermost(remaining))
-	while border_list.size() < m and not benched_list.is_empty():
-		border_list.append(benched_list.pop_front())
 	b.inner = remaining
-	b.inner.append_array(benched_list)
 	# Round 16: where the slot grid starts. Where the map edge seals part of the loop, the open length has no fixed
 	# starting point (the first open point jumps along the edge as the loop changes), so the grid rides with the
 	# members: its phase is the circular mean of where they stand, measured along the open length.
@@ -136,12 +121,6 @@ func assign_members(rescued: Array[Person]) -> void:
 			best_k = nearest_free_slot(Vector2(p.position.x, p.position.z), slots, slot_taken)
 		slot_taken[best_k] = true
 		var slot_at := slots[best_k]
-		if p.is_faltering():
-			# A faltering member steps back toward the centre and leaves a gap on both sides.
-			slot_faltering[best_k] = true
-			var inward := Vector2(b.centre.x, b.centre.z) - slot_at
-			if inward.length() > 0.01:
-				slot_at += inward.normalized() * Config.MEMBER_FALTER_STEP_BACK
 		b._targets[p] = Vector3(slot_at.x, 0.0, slot_at.y)
 		b.members.append(p)
 
@@ -156,7 +135,11 @@ func assign_members(rescued: Array[Person]) -> void:
 	var anchored: Array[bool] = []
 	for k: int in range(k_total):
 		anchored.append(post_slot[k] or post_slot[(k + 1) % k_total])
-	b.segment_gap = BorderShape.gap_flags(b.spacing, slot_taken, anchored, slot_faltering)
+	b.segment_gap = BorderShape.gap_flags(b.spacing, slot_taken, anchored)
+	# Round 26: a break (the line pushed past its limit) is a gap too: the slot stretches it lies in are open.
+	for j: int in range(n):
+		if b.push.segment_broken(j) and not b.is_sealed(j):
+			b.segment_gap[mini(k_total - 1, int(fposmod(b._open[j] - b._phase, b.perimeter) / b.spacing))] = true
 	for j: int in range(n):
 		var k := mini(k_total - 1, int(fposmod(b._open[j] - b._phase, b.perimeter) / b.spacing))
 		b._sample_gap[j] = b.segment_gap[k] and not b.is_sealed(j)

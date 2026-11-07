@@ -14,18 +14,18 @@ static func usable(screen: Vector2) -> bool:
 
 
 # The HUD rectangles a pointer must keep clear of: the HUD panels that are shown (Hud.layout_controls), the minimap, and
-# the spirit cue (GapPatch's panel and label, which the HUD does not list). A control at zero alpha (the placeholder
+# the spirit cue (BurstCue's panel and label, which the HUD does not list). A control at zero alpha (the placeholder
 # alert line between alerts) does not count.
 static func avoid_rects(hud: Hud, minimap: Control, main: TopDownMain = null) -> Array[Rect2]:
 	var out: Array[Rect2] = []
 	var controls: Array[Control] = hud.layout_controls()
 	if minimap != null:
 		controls.append(minimap)
-	if main != null and main.gap_patch != null:
-		if main.gap_patch.cue_panel != null:
-			controls.append(main.gap_patch.cue_panel)
-		if main.gap_patch.patch_label != null:
-			controls.append(main.gap_patch.patch_label)
+	if main != null and main.burst_cue != null:
+		if main.burst_cue.cue_panel != null:
+			controls.append(main.burst_cue.cue_panel)
+		if main.burst_cue.cue_label != null:
+			controls.append(main.burst_cue.cue_label)
 	for c: Control in controls:
 		if c.is_visible_in_tree() and c.modulate.a > 0.0:
 			out.append(c.get_global_rect())

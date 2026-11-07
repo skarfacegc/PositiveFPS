@@ -234,7 +234,7 @@ func _draw_styled(centre: Vector2, tip: Vector2, dir: Vector2, ring: float, col:
 
 
 # The HUD rectangles a pointer must keep clear of: the HUD panels that are shown (Hud.layout_controls), the minimap, and
-# the spirit cue beside the spirit meter (GapPatch's panel and label, which the HUD does not list). A control at zero
+# the spirit cue beside the spirit meter (BurstCue's panel and label, which the HUD does not list). A control at zero
 # alpha (the placeholder alert line between alerts) does not count. Tests read this too.
 func avoid_rects() -> Array[Rect2]:
 	return HudSafeArea.avoid_rects(_hud, _minimap, main)

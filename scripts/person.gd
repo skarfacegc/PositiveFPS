@@ -87,10 +87,14 @@ var shooter_pos := Vector3.INF
 # Round 19, landmark boosts (set by Landmarks.apply_boosts each frame): joy gained is multiplied by joy_boost[element]
 # (music, art, nature), and drain_joy by loss_mult (the bell tower's x0.6 for border members near it).
 var joy_boost: Array[float] = [1.0, 1.0, 1.0]
-# Round 22: set by GapPatch each frame: 1 normally, Config.PATCH_DRAIN_MULT while a gap patch covers this member.
-var patch_mult: float = 1.0
-# Round 25: set by GloomTide each frame: Config.TIDE_DRAIN_MULT for a border member facing a passing tide, else 1.
-var tide_mult: float = 1.0
+# Round 26, physical push: how hard a dimmed person leans on the border (1 full; each joy landing takes
+# Config.PUSH_JOY_WEAKEN off, and it comes back slowly), how many joy hits this person has had (the border reads the
+# count to see a bending member being helped), and how hard they are braced (0 to 1) toward `brace_dir` (a flat unit
+# vector): a border member braces against the push, a pusher leans into the line. The look draws the lean.
+var push_mult: float = 1.0
+var joy_hits: int = 0
+var brace: float = 0.0
+var brace_dir := Vector3.ZERO
 # Round 22: seconds left of the calm a burst gives a cleared person: GloomSim adds no gloom to them meanwhile.
 var calm_left: float = 0.0
 var loss_mult: float = 1.0
@@ -161,8 +165,8 @@ func is_warning() -> bool:
 	return is_rescued and joy < joy_needed() * Config.WARN_FRACTION
 
 
-# Round 12b: a rescued person drained below MEMBER_FALTER_FRACTION of their joy needed. A border member who falters
-# steps back and opens a gap on both sides of them (see Border).
+# Round 12b: a rescued person drained below MEMBER_FALTER_FRACTION of their joy needed (they show the "!" cue and give
+# way more under a push). Round 26: a faltering member no longer steps back or opens a gap.
 func is_faltering() -> bool:
 	return is_rescued and joy < joy_needed() * Config.MEMBER_FALTER_FRACTION
 
@@ -237,8 +241,11 @@ func receive_joy(
 		gain *= Config.DIMMED_JOY_MULT  # Round 24: joy wins a dimmed person back faster.
 	joy = minf(joy + gain, joy_needed())
 	_since_hit = 0.0
+	joy_hits += 1
 	if not is_rescued:
 		joy_landed.emit()
+		if wears_shield and Config.gloom_level(gloom) >= Config.SPREAD_LEVEL:
+			push_mult = maxf(Config.PUSH_WEAKEN_MIN, push_mult - Config.PUSH_JOY_WEAKEN)  # Round 26: joy weakens a pusher.
 	elif wobbling and gain > 0.0:
 		_save()
 	if Config.NUMBERS_ENABLED and look != null:
@@ -297,6 +304,7 @@ func tick(delta: float) -> void:
 	if wobbling:
 		_tick_wobble(delta)
 	if not is_rescued:
+		push_mult = minf(1.0, push_mult + Config.PUSH_WEAKEN_RECOVER * delta)
 		if _since_hit > Config.JOY_FADE_DELAY:
 			# Partial joy does not fade deep inside painted ground (protection 1).
 			var exposure := 1.0 - protection
@@ -345,7 +353,7 @@ func _tick_react(delta: float) -> void:
 func drain_joy(amount: float) -> void:
 	if not is_rescued or grace_left > 0.0 or dawn_lit:
 		return
-	joy -= amount * loss_mult * patch_mult * tide_mult
+	joy -= amount * loss_mult
 	if joy < joy_needed() * Config.RELAPSE_FRACTION:
 		# Round 24: not at once. A wobble comes first, long enough for a joy hit to save them.
 		joy = maxf(joy, 0.0)

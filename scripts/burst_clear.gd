@@ -55,6 +55,8 @@ static func run(people: Array[Person], at: Vector3, border: Border) -> Dictionar
 		if GloomSim.flat_dist(at, p.global_position) <= reach:
 			p.receive_joy(p.affinity, Config.TD_BURST_JOY, 0.0, at)
 			hits += 1
+	if border != null:
+		border.push.relieve(at)  # Round 26: the line near the burst springs back and is pushed less for a while.
 	return {"cleared": cleared, "lifted": cleared.size(), "joy_hits": hits}
 
 
