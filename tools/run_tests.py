@@ -10,7 +10,7 @@ Usage:
     python tools/run_tests.py --perf-only     # only the timing tests (test_perf_*), serially, budget enforced
 
 The Godot console executable is found by tools/godot_path.py (GODOT environment variable, then PATH, then WinGet).
-Reports are written to <project>/reports/<timestamp>/ (HTML and JUnit XML). The exit code is 0 when all
+Reports are written to <project>/reports/<timestamp>/ (HTML and JUnit XML); only the newest REPORTS_KEEP runs are kept. The exit code is 0 when all
 tests pass, 1 when any test fails, and 2 if Godot could not run.
 
 Parallelism: the suites are independent (each builds its own scene), so they are split into units and run in
@@ -58,6 +58,10 @@ WORKERS_DEFAULT = max(1, min(8, (os.cpu_count() or 2) // 2))
 WEIGHTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_weights.json")
 UNKNOWN_TEST_SECONDS = 0.5  # weight of a test that is not in test_weights.json yet
 PERF_PREFIX = "test_perf_"  # timing tests: see the module docstring
+# Each run writes reports/<timestamp>/ (hundreds of files). Only the newest REPORTS_KEEP runs per report root are kept;
+# older ones are removed when a run starts (271 old runs had piled up to 150,000 files).
+REPORTS_KEEP = 10
+_STAMP_RE = re.compile(r"^\d{8}-\d{6}$")
 # Set to 1 by a parallel part agent (see ARCHITECTURE.md): the plain run then skips the serial timing pass, because the
 # other agents' load would make the budget flaky. The coordinator's `gate.py --full` after the merge still enforces it.
 PARALLEL_PART_ENV = "POSITIVEFPS_PARALLEL_PART"
@@ -353,6 +357,24 @@ def parse_results(xml_path):
     return results
 
 
+def prune_reports(report_root, keep=REPORTS_KEEP):
+    """Removes all but the newest `keep` timestamped run folders in report_root. Returns the names removed.
+
+    Only folders named like a run stamp (YYYYMMDD-HHMMSS) are touched; anything else in the folder is left alone. A
+    folder that cannot be removed (still open somewhere) is skipped and tried again next time.
+    """
+    import shutil
+    try:
+        runs = sorted(n for n in os.listdir(report_root)
+                      if _STAMP_RE.match(n) and os.path.isdir(os.path.join(report_root, n)))
+    except OSError:
+        return []
+    old = runs[:-keep] if keep > 0 else runs
+    for name in old:
+        shutil.rmtree(os.path.join(report_root, name), ignore_errors=True)
+    return old
+
+
 def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=False, problems=None, suites=None):
     """Runs the whole suite on `project`. Returns (exit code, list of test result dicts or None, report dir).
 
@@ -370,6 +392,7 @@ def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=F
     report_root = report_root or os.path.join(project, "reports")
     report_dir = os.path.join(report_root, stamp)
     os.makedirs(report_dir, exist_ok=True)
+    prune_reports(report_root)  # the new folder is the newest, so it is always kept
     if not (perf_only and import_is_current(project)):
         import_project(project)
     workers = WORKERS_DEFAULT if workers is None else workers

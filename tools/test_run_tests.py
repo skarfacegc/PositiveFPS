@@ -44,6 +44,22 @@ def remove_tree(path):
         time.sleep(0.5)
 
 
+class PruneReportsTest(unittest.TestCase):
+    def test_keeps_the_newest_runs_and_leaves_other_folders_alone(self):
+        import tempfile
+        root = tempfile.mkdtemp(prefix="prune_reports_")
+        try:
+            stamps = ["20261101-0900%02d" % i for i in range(5)]
+            for name in stamps + ["determinism-1", "notes"]:
+                os.makedirs(os.path.join(root, name, "u00"))
+            removed = run_tests.prune_reports(root, keep=2)
+            self.assertEqual(removed, stamps[:3])
+            self.assertEqual(sorted(os.listdir(root)), sorted(stamps[3:] + ["determinism-1", "notes"]))
+            self.assertEqual(run_tests.prune_reports(os.path.join(root, "missing")), [])
+        finally:
+            remove_tree(root)
+
+
 class BrokenScriptParsingTest(unittest.TestCase):
     def test_parse_error_names_file_and_line(self):
         found = run_tests.broken_scripts(PARSE_OUTPUT)
