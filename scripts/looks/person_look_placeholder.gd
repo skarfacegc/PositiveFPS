@@ -116,6 +116,8 @@ func _sync_body() -> void:
 		body.rotation.y = 0.0
 		body.rotation.z = 0.0
 		wisp.emitting = subject.level == 2
+		# Round 25: a dimmed person outside the border has lower contrast against the ground.
+		body_mat.albedo_color = EdgeDim.faded(body_mat.albedo_color, outside_fade)
 
 
 func _set_glow(amount: float) -> void:

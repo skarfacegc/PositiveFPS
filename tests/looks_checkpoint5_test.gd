@@ -39,56 +39,44 @@ func test_the_styled_fight_marks_are_dithered_pieces_and_follow_the_look() -> vo
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	var fx := td.gap_patch.fx
-	var warnings: Array[Dictionary] = [{"pos": Vector3(3, 0, 3), "urgency": 0.8, "person": null}]
-	var patches: Array[Dictionary] = [{"pos": Vector3(-4, 0, 2), "left": 10.0}]
+	var markers_fx := td.gap_patch.markers_fx
+	var patches: Array[Dictionary] = [{"pos": Vector3(-4, 0, 2), "left": Config.PATCH_SECONDS}]
+	var marker_list: Array[EdgeMarkers.Marker] = [EdgeMarkers.Marker.new(EdgeMarkers.Kind.GAP, Vector3(3, 0, 3), 0.8)]
 	td.set_look(Looks.Mode.STYLED)
-	fx.sync(0.016, warnings, patches)
+	fx.sync(0.016, patches)
+	markers_fx.sync(0.016, marker_list)
 	assert_bool(fx.is_styled_built()).is_true()
-	assert_int(fx.warning_ring_count()).is_equal(1)
-	assert_int(fx.warning_ping_count()).is_equal(1)
+	assert_bool(markers_fx.is_styled_built()).is_true()
 	assert_int(fx.patch_disc_count()).is_equal(1)
-	assert_int(fx.patch_post_count()).is_equal(Config.CP5_PATCH_POSTS)
-	# A mild strain has no ping. A patch about to run out flickers its posts (only some show at a time).
-	warnings[0]["urgency"] = 0.2
-	patches[0]["left"] = 1.0
-	fx.sync(0.016, warnings, patches)
-	assert_int(fx.warning_ping_count()).is_equal(0)
-	assert_int(fx.patch_post_count()).is_less(Config.CP5_PATCH_POSTS)
-	# Results: a halo and a column on each lifted person, a pulse and a count for a patch, a streak for the burst.
+	assert_int(markers_fx.shown_count()).is_equal(1)
+	# A new patch shows its disc for a moment; a patch that has stood a while keeps only its ring.
+	patches[0]["left"] = Config.PATCH_SECONDS - Config.EDGE_PATCH_SHOW_SECONDS - 0.5
+	fx.sync(0.016, patches)
+	assert_int(fx.patch_disc_count()).is_equal(0)
+	# Results: a halo on each lifted person, a pulse and a count for a patch, a streak for the burst.
 	var cleared: Array = [{"person": td.people[0], "from": Vector3(1, 0, 1), "to": Vector3(5, 0, 1)}]
 	fx.add_burst(cleared)
 	fx.add_lift_result(cleared)
 	fx.add_patch_result(Vector3(-4, 0, 2), 3)
-	fx.sync(0.016, warnings, patches)
+	fx.sync(0.016, patches)
 	assert_int(fx.streak_count()).is_equal(1)
 	assert_int(fx.halo_count()).is_equal(1)
-	assert_bool(fx._halo_beams[0].visible).is_true()
 	assert_int(fx.pulse_count()).is_equal(1)
 	assert_int(fx.result_text_count()).is_equal(2)
-	# A wobbling member has its own closing ring, so its strain ring is left out.
-	var wobbler: Person = td.people[1]
-	wobbler.wobbling = true
-	var strained: Array[Dictionary] = [{"pos": Vector3.ZERO, "urgency": 1.0, "person": wobbler}]
-	fx.sync(0.016, strained, patches)
-	assert_int(fx.warning_ring_count()).is_equal(0)
-	# Fewer warnings and patches than before: the spare pings and posts are hidden.
-	var two_patches: Array[Dictionary] = [patches[0], {"pos": Vector3(4, 0, 4), "left": 10.0}]
-	var two_warnings: Array[Dictionary] = [
-		{"pos": Vector3(3, 0, 3), "urgency": 0.9, "person": null},
-		{"pos": Vector3(5, 0, 3), "urgency": 0.9, "person": null}
-	]
-	fx.sync(0.016, two_warnings, two_patches)
-	assert_int(fx.warning_ping_count()).is_equal(2)
-	fx.sync(0.016, [], [])
-	assert_int(fx.warning_ping_count()).is_equal(0)
-	assert_int(fx.patch_post_count()).is_equal(0)
+	# Fewer patches and markers than before: the spare pieces are hidden.
+	var no_patches: Array[Dictionary] = []
+	var no_markers: Array[EdgeMarkers.Marker] = []
+	fx.sync(0.016, no_patches)
+	markers_fx.sync(0.016, no_markers)
+	assert_int(fx.patch_disc_count()).is_equal(0)
+	assert_int(markers_fx.shown_count()).is_equal(0)
 	# Back to the placeholder look: the pools are rebuilt with the plain shapes.
 	td.set_look(Looks.Mode.PLACEHOLDER)
-	fx.sync(0.016, warnings, patches)
+	fx.sync(0.016, patches)
+	markers_fx.sync(0.016, marker_list)
 	assert_bool(fx.is_styled_built()).is_false()
-	assert_int(fx.warning_ring_count()).is_equal(1)
-	assert_int(fx.warning_ping_count()).is_equal(0)
-	assert_int(fx.patch_post_count()).is_equal(0)
+	assert_bool(markers_fx.is_styled_built()).is_false()
+	assert_int(markers_fx.shown_count()).is_equal(1)
 	await runner.simulate_frames(2)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -122,7 +110,15 @@ func test_a_styled_person_glows_hops_and_opens_a_ring_in_a_reaction() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_a_styled_wobble_greys_shakes_and_closes_a_ring() -> void:
+func _wobble_markers(td: TopDownMain, none: Array[Dictionary]) -> int:
+	var n := 0
+	for t: EdgeMarkers.Marker in EdgeMarkers.collect(td.border, td.people, none):
+		n += 1 if t.kind == EdgeMarkers.Kind.WOBBLE else 0
+	return n
+
+
+func test_a_styled_wobble_greys_and_shakes_and_the_ground_marker_carries_the_warning() -> void:
+	# Round 25: the wobble's closing ring at the feet is gone; the wobble marker (EdgeMarkers) takes its place.
 	var s: Dictionary = await _ring_level(16, 6.0)
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
@@ -130,25 +126,21 @@ func test_a_styled_wobble_greys_shakes_and_closes_a_ring() -> void:
 	td.set_look(Looks.Mode.STYLED)
 	await runner.simulate_frames(3)
 	var look := m.look as PersonLookStyled
-	assert_object(look._wobble_ring).is_null()
+	var none: Array[Dictionary] = []
 	m.joy = 0.0
 	m._start_wobble()
 	m.wobble_left = m.wobble_total * 0.9
 	m._update_visuals()
 	await runner.simulate_frames(1)
 	assert_bool(look.wobbling).is_true()
-	assert_bool(look._wobble_ring.visible).is_true()
-	var early := look._wobble_ring.scale.x
-	# A wobble keeps the joyful body (no flicker to the grey one) and its holder shakes.
+	# A wobble keeps the joyful body (no flicker to the grey one).
 	assert_int(look.shown_kind()).is_equal(PersonLook.Kind.JOYFUL)
-	m.wobble_left = m.wobble_total * 0.1
-	m._update_visuals()
-	assert_float(look._wobble_ring.scale.x).is_less(early)
-	# Saved: the ring goes.
+	assert_int(_wobble_markers(td, none)).is_equal(1)
+	# Saved: the marker goes.
 	m.joy = m.joy_needed()
 	m.wobbling = false
 	m._update_visuals()
-	assert_bool(look._wobble_ring.visible).is_false()
+	assert_int(_wobble_markers(td, none)).is_equal(0)
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -366,24 +358,22 @@ func test_the_stretching_tag_draws_nothing_in_the_placeholder_look() -> void:
 	assert_str(tag.text).is_equal("")
 
 
-func test_a_styled_border_hides_its_gap_marks_when_it_is_not_live() -> void:
+func test_a_styled_border_hides_its_ribbon_when_it_is_not_live() -> void:
 	var s: Dictionary = await _ring_level(16, 6.0)
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	td.set_look(Looks.Mode.STYLED)
-	td.border.segment_gap[0] = true
 	await runner.simulate_frames(12)
 	var look := td.border.look as BorderLookStyled
-	td.border.segment_gap[0] = true
 	look._last_frame = -100000
 	look.refresh()
-	assert_int(look._gap_beams.size()).is_greater(0)
+	assert_bool(look._ribbon.visible).is_true()
+	assert_int(look.strips.size()).is_greater(0)
 	td.border.active = false
 	look.refresh()
-	for beam: MeshInstance3D in look._gap_beams:
-		assert_bool(beam.visible).is_false()
-	for ring: MeshInstance3D in look._gap_rings:
-		assert_bool(ring.visible).is_false()
+	assert_bool(look._ribbon.visible).is_false()
+	assert_bool(look._gold_motes.visible).is_false()
+	assert_int(look.strips.size()).is_equal(0)
 	td.border.active = true
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	await TopDownTestUtil.leave_loaded_scene(td)

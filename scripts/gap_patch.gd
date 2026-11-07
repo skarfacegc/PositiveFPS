@@ -15,6 +15,9 @@ signal expired(pos: Vector3)
 
 var main: TopDownMain
 var fx: PatchFx
+# Round 25: the trouble markers (at most EDGE_MARKER_MAX, see EdgeMarkers) and the node that draws them.
+var markers: Array[EdgeMarkers.Marker] = []
+var markers_fx: EdgeMarkerFx
 var patch_label: Label
 var cue_panel: StyledPanel  # Graphics checkpoint 5: the styled look's cue (see StyleDawn.draw_cue).
 # Active patches: {"pos": Vector3, "left": float}.
@@ -40,6 +43,8 @@ static func attach(level: TopDownMain) -> GapPatch:
 	level.player.border = level.border
 	g.fx = PatchFx.new()
 	level.add_child(g.fx)
+	g.markers_fx = EdgeMarkerFx.new()
+	level.add_child(g.markers_fx)
 	level.player.burst_cleared.connect(g._on_burst_cleared)
 	g._build_label()
 	return g
@@ -80,8 +85,19 @@ func _process(delta: float) -> void:
 		_timer = Config.BORDER_WARN_INTERVAL
 		warnings = BorderWarning.compute(main.border, main.people)
 		burst_targets = BurstClear.count_targets(main.people, main.player.global_position, main.border)
-	fx.sync(delta, warnings, patches)
+		_refresh_edge()
+	fx.sync(delta, patches)
+	markers_fx.sync(delta, markers)
 	_update_label()
+
+
+# Round 25 (edge cleanup), every BORDER_WARN_INTERVAL: the trouble markers, the dimmed people outside drawn faded,
+# and the people pressing on the line (which dent the ribbon).
+func _refresh_edge() -> void:
+	markers = EdgeMarkers.choose(main.border, main.people, warnings)
+	EdgeDim.update(main.border, main.people, Config.BORDER_WARN_INTERVAL)
+	if main.border.look != null:
+		main.border.look.pressers = EdgeRibbon.pressers(main.border, main.people)
 
 
 func _tick_patches(delta: float) -> void:

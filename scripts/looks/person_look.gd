@@ -50,8 +50,9 @@ var glint: MeshInstance3D
 var guard_wedge: MeshInstance3D
 var wedge_mat: StandardMaterial3D
 var wedge_open: bool = false
-# Checkpoint 5: the warm disc shown while spare spirit tops this person up (see _update_warm).
-var warm_ring: MeshInstance3D
+# Round 25: how faded this person is, 0 normal to 1 fully faded. EdgeDim sets it for dimmed people outside the border;
+# the body then has lower contrast against the ground (each look applies it in its own way).
+var outside_fade: float = 0.0
 # Graphics checkpoint 4: the walk. The gait follows the person's real movement (see Gait); a look applies its pose in
 # _pose_gait.
 var gait := Gait.new()
@@ -65,7 +66,6 @@ var _grab_mat: StandardMaterial3D
 var _fx_rng := RandomNumberGenerator.new()
 var _carry: float = 0.0
 var _frames: int = 0
-var _warm_mat: StandardMaterial3D
 # Round 24: true while a reaction is posing the body (so the pose is put back once, when it ends).
 var _reacting: bool = false
 
@@ -128,8 +128,6 @@ func advance(delta: float) -> void:
 	if subject == null or visual == null:
 		return
 	clock += delta
-	if subject.react_kind == Person.React.WARM or warm_ring != null:
-		_update_warm()
 	if subject.react_kind != Person.React.NONE or _reacting:
 		_update_react()
 	# The plain capsules update every other frame (it is only a bob and a lean): half the cost for 60 people.
@@ -150,7 +148,7 @@ func advance(delta: float) -> void:
 # glow. Costs nothing for people who are not reacting.
 func _update_react() -> void:
 	if subject.react_kind == Person.React.WARM:
-		return  # Checkpoint 5: spare spirit's warmth is a ground glow (_update_warm), not a hop.
+		return  # Checkpoint 5: spare spirit's warmth is no hop; round 25: EdgeMarkerFx draws it as a gift marker.
 	var p := subject.react_progress()
 	if p < 0.0 and subject.react_kind == Person.React.NONE:
 		_reacting = false
@@ -173,34 +171,6 @@ func _update_react() -> void:
 			turn = atan2(-local.x, -local.z) * clampf(env * 2.0, 0.0, 1.0)
 	_react_pose(hop, turn)
 	_set_react_glow(Config.PATCH_COLOUR, env)
-
-
-# Checkpoint 5 (shared by both looks, like the grace ring): spare spirit warming this person is a soft warm disc on the
-# ground that swells and fades over Person.React.WARM's seconds. Built the first time it is needed.
-func _update_warm() -> void:
-	var p := subject.react_progress() if subject.react_kind == Person.React.WARM else -1.0
-	if p < 0.0:
-		if warm_ring != null:
-			warm_ring.visible = false
-		return
-	if warm_ring == null:
-		warm_ring = MeshInstance3D.new()
-		var disc := CylinderMesh.new()
-		disc.top_radius = Config.SPARE_GLOW_RADIUS
-		disc.bottom_radius = Config.SPARE_GLOW_RADIUS
-		disc.height = 0.03
-		warm_ring.mesh = disc
-		warm_ring.position = Vector3(0, 0.06, 0)
-		_warm_mat = StandardMaterial3D.new()
-		_warm_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		_warm_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		warm_ring.material_override = _warm_mat
-		add_child(warm_ring)
-	var env := sin(PI * p)
-	warm_ring.visible = true
-	warm_ring.scale = Vector3(0.8 + 0.4 * p, 1.0, 0.8 + 0.4 * p)
-	var c := Config.SPARE_GLOW_COLOUR
-	_warm_mat.albedo_color = Color(c.r, c.g, c.b, Config.SPARE_GLOW_ALPHA * env)
 
 
 # Round 24: the reaction's pose: the body lifted `hop` metres and turned `turn` radians about its own up. The

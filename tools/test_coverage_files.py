@@ -63,5 +63,68 @@ class CheckFilesTest(unittest.TestCase):
         self.assertEqual(coverage.suites_for_scripts(["scripts/gap_patch.gd"]).count("gap_patch_test"), 1)
 
 
+INNER_SAMPLE = """class_name Outer
+extends RefCounted
+
+var total := 0
+
+
+class Stop:
+\tvar at := 0.0
+\tfunc _init(a: float) -> void:
+\t\tat = a
+\t\tif a > 1.0:
+\t\t\tat = 1.0
+
+\tclass Deep:
+\t\tfunc go() -> int:
+\t\t\treturn 1
+
+
+func outer_fn() -> int:
+\ttotal += 1
+\treturn total
+"""
+
+
+class InnerClassTest(unittest.TestCase):
+    """An inner class cannot see the outer script's static hit array, so its probes must go through CovProbe."""
+
+    def _instrument(self, text, rel="scripts/outer.gd"):
+        lines = text.split("\n")
+        result = coverage.analyze_script(rel, lines)
+        return lines, result, coverage.instrument_lines(rel, lines, result).split("\n")
+
+    def test_inner_class_lines_use_the_global_registry_and_outer_lines_the_static_array(self):
+        lines, result, out = self._instrument(INNER_SAMPLE)
+        outer = coverage.cov_name("scripts/outer.gd")
+        inner_probe = 'CovProbe.counts("scripts/outer.gd")'
+        by_line = {}
+        for idx in result["exec"]:
+            by_line[idx + 1] = result["exec_map"][idx]["inner"]
+        self.assertEqual(by_line, {10: True, 11: True, 12: True, 16: True, 20: False, 21: False})
+        # Probes sit directly above their statement, keep its indent and use the right store.
+        at = out.index("\t\tat = a")
+        self.assertEqual(out[at - 1], "\t\t" + inner_probe + "[10] += 1")
+        deep = out.index("\t\t\treturn 1")
+        self.assertEqual(out[deep - 1], "\t\t\t" + inner_probe + "[16] += 1")
+        total = out.index("\ttotal += 1")
+        self.assertEqual(out[total - 1], "\t" + outer + "[20] += 1")
+        # No inner-class line mentions the outer static array.
+        body = "\n".join(out[: out.index("func outer_fn() -> int:")])
+        self.assertNotIn(outer + "[", body)
+
+    def test_inner_class_without_class_name_and_one_line_methods(self):
+        text = "extends Node\nclass Box:\n\tfunc get_it() -> int: return 3\nfunc top() -> int: return 4\n"
+        lines, result, out = self._instrument(text, "scripts/box.gd")
+        self.assertIn('\t\tCovProbe.counts("scripts/box.gd")[3] += 1', out)
+        self.assertIn("\t" + coverage.cov_name("scripts/box.gd") + "[4] += 1", out)
+        self.assertNotIn("class_name", "\n".join(out))
+
+    def test_code_after_the_inner_class_is_outer_again(self):
+        _lines, result, _out = self._instrument(INNER_SAMPLE)
+        self.assertFalse(result["exec_map"][19]["inner"])  # outer_fn body, line 20
+
+
 if __name__ == "__main__":
     unittest.main()

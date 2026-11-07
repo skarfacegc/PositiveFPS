@@ -286,25 +286,34 @@ func test_the_styled_ground_gets_the_paint_weights_as_a_texture() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_styled_border_draws_haze_motes_and_gap_glows() -> void:
+func test_the_styled_border_draws_a_ribbon_with_motes_and_breaks_it_at_gaps() -> void:
+	# Round 25: the haze band, coral motes and gap glows became one ribbon through the members.
 	var s: Dictionary = await _start(true)
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	await _rescue_ring(runner, td, 5)
 	var look := td.border.look as BorderLookStyled
 	assert_bool(td.border.active).is_true()
-	assert_bool(look._haze.visible).is_true()
-	assert_object(look._haze.mesh).is_not_null()
-	(
-		assert_int(look._gold_motes.multimesh.visible_instance_count + look._gap_motes.multimesh.visible_instance_count)
-		. is_greater(0)
-	)
-	# Five people on the smallest loop leave every stretch open: glows over the gaps, and the pulse swells the motes.
+	assert_bool(look._ribbon.visible).is_true()
+	assert_int(look._mesh.get_surface_count()).is_equal(0 if look.strips.is_empty() else 1)
+	# Five people on the smallest loop leave stretches open: the ribbon is broken into separate pieces (or empty), never
+	# one closed loop.
 	assert_int(td.border.gap_count()).is_greater(0)
-	assert_int(look._glows.size()).is_greater(0)
-	assert_bool(look._glows[0].visible).is_true()
-	look.refresh()
-	assert_float(look._glows[0].scale.x).is_between(0.8, 1.26)
+	for strip: EdgeStrip in look.strips:
+		assert_bool(strip.closed).is_false()
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_styled_border_caps_its_motes_at_the_maximum() -> void:
+	var s: Dictionary = await _start(true)
+	var td: TopDownMain = s["td"]
+	var look := td.border.look as BorderLookStyled
+	var strip := EdgeStrip.new()
+	for i in range(BorderLookStyled.MAX_MOTES * 4):
+		strip.add(Vector2(float(i) * 0.1, 0.0), 0.0, 0.0, 1.0)
+	look.strips = [strip]
+	look._place_motes()
+	assert_int(look._gold_motes.multimesh.visible_instance_count).is_equal(BorderLookStyled.MAX_MOTES)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

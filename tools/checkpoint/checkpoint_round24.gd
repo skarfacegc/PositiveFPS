@@ -1,8 +1,9 @@
 extends "res://tools/checkpoint/checkpoint_round20.gd"
 
 # Graphics checkpoint 5 (`--set round24`, run by tools/checkpoint_shots.py): everything added since round 20, in both looks.
-# Focus 1, reading the fight: gaps and strain rings, the gap patch (ward, pulse, "Held: N"), the burst and the people it
-# lifts, the wobble (greying, shaking, closing ring), the reactions (hops, turns, glows), the cue panel and a notice.
+# Focus 1, reading the fight: the border ribbon (strain colours, dents, breaks at gaps) and its trouble markers, the gap
+# patch (ward, pulse, "Held: N"), the burst and the people it lifts, the wobble (greying, shaking, its marker), the
+# reactions (hops, turns, glows), the cue panel and a notice.
 # Focus 2, dawn: the first-light front at three moments, the ground it lifts, people lifted behind it, the minimap edge.
 # Then the shape preview (in range, limited, stretching, finish pulse), dimmed people warming as joy builds and the dimmed
 # walk and the player's jog (the round 20 walk strips). For each look it builds fresh levels, so the states run in order.
@@ -94,14 +95,22 @@ func _r24_fight(label: String) -> void:
 	_r24_strain(ring[2], 0.25)
 	_r24_strain(ring[5], 0.62)
 	_r24_strain(ring[8], 0.95)
-	var out := (ring[12].position - centre).normalized()
-	_make_dimmed(main.people[ring_count + 30], ring[12].position + out * 2.6)
-	# An open gap on the far side from the strained ones.
-	_force_gap(0)
+	var out := (ring[10].position - centre).normalized()
+	_make_dimmed(main.people[ring_count + 30], ring[10].position + out * 1.3)
+	_make_dimmed(main.people[ring_count + 31], ring[10].position + out * 1.6 + Vector3(-out.z, 0.0, out.x) * 0.9)
+	# A real gap on the far side from the strained ones: a member below the falter line (the rules run for a moment so
+	# the gap is older than the half second a marker needs and the dimmed people have faded in).
+	ring[15].joy = ring[15].joy_needed() * (Config.MEMBER_FALTER_FRACTION - 0.04)
+	_r24_run(45)
 	r24_gap = main.border.gap_midpoints()[0] if main.border.gap_midpoints().size() > 0 else centre
 	await _r24_move_player(centre + Vector3(0.0, 0.0, 1.5))
 	await _r24_shot("fight_strain", label, {}, 14)
 	await _r24_shot("fight_gap_closeup", label, {"world": r24_gap, "size": Vector2i(426, 240), "scale": 3})
+	await _r24_shot(
+		"fight_dent_closeup",
+		label,
+		{"world": ring[10].position + out * 0.8, "size": Vector2i(426, 240), "scale": 3}
+	)
 	await _r24_shot(
 		"fight_strain_closeup",
 		label,
@@ -132,7 +141,7 @@ func _r24_fight(label: String) -> void:
 	await _r24_notice(label)
 
 
-# The burst: dimmed people near the loop are lifted, with a streak, a ring and a column of light each.
+# The burst: dimmed people near the loop are lifted, with a streak and a ring each.
 func _r24_burst(label: String) -> void:
 	var ring := _r24_ring_members()
 	var centre := main.border.centre
