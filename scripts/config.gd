@@ -424,6 +424,23 @@ const CP6_LINE_GAP := 4.0
 const CP6_TARGET_RING_INNER := 0.72  # The styled target highlight: the ring's hole as a share of its radius.
 const CP6_TARGET_RADIUS_SCALE := 1.2  # The styled ring's radius against TD_HIGHLIGHT_RADIUS.
 
+# ---- Checkpoint 6: dithering and jog (shaders/style_glow, style_ground, scripts/looks/gait.gd, player_look*.gd). ----
+# The styled stipple was too strong: each one is cut to about half (the old value is in the comment). The shadow dither
+# is set on every toon material (StyleKit.mat) and on the ground; the glow and ground dot shares on their shaders.
+const STYLED_DITHER_LIGHT := 0.08  # The shadow band dither amount (was 0.16).
+const STYLED_DITHER_GLOW := 0.5  # The share of a glow halo's dots kept (was all of them): ground glows and the smoke.
+const STYLED_DITHER_GROUND := 0.5  # The share of the ground's dithered edge and sand-ridge dots kept (was all of them).
+# The player's run (Shift) on top of the walk, applied through Gait.jog (the player only; people keep their gait).
+const JOG_CADENCE := 1.15  # Step cycles per second at a full run are multiplied by this.
+const JOG_CYCLE_CAP := 4.2  # The most step cycles per second the player's run may take (the walk's cap is 3.4).
+const JOG_SWING_ANGLE := 1.25  # Radians the legs swing either way at a full run (the walk swings 1.0).
+const JOG_LEAN := 0.14  # Extra forward lean at a full run (radians; the walk leans 0.03).
+const JOG_BOB := 0.06  # Extra bounce at a full run (times the leg length; the walk bounces 0.03).
+const JOG_DUST_MIN_RUN := 0.5  # How much of a run a footfall needs to raise a dust puff (styled look).
+const JOG_DUST_SECONDS := 0.4  # How long a dust puff lasts.
+const JOG_DUST_RADIUS := 0.7  # How far a dust puff spreads (metres).
+const JOG_DUST_SIDE := 0.22  # How far a puff starts to the side of the player's centre (metres, at each foot).
+
 static var intro_override: int = -1
 
 # The matchups form a soft cycle:

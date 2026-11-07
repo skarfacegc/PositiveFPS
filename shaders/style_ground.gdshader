@@ -9,6 +9,9 @@ render_mode cull_back, specular_disabled;
 uniform sampler2D weights : filter_linear, repeat_disable;
 uniform float plaza = 70.0;
 uniform float edge_w = 0.9;
+// Checkpoint 6: the share of the stipple kept (Config.STYLED_DITHER_GROUND). It narrows the dithered edge band and thins
+// the sand-ridge dots. 1 is the old stipple.
+uniform float dither_k = 1.0;
 // Checkpoint 5: first light. `dawn_front` is the radius (metres) of the circle the dawn front has reached; the ground
 // outside it (round distance from the centre at least that) is lit. 1000 = no front yet (nothing changes).
 uniform float dawn_front = 1000.0;
@@ -28,7 +31,7 @@ float joy_field(vec2 p) {
 	return m;
 }
 float joy_dither(float m, vec2 frag) {
-	return step(bayer4(frag), smoothstep(-edge_w, edge_w, m));
+	return step(bayer4(frag), smoothstep(-edge_w * dither_k, edge_w * dither_k, m));
 }
 
 // grey grime pushed into rippling ridges just outside the painted edge
@@ -37,8 +40,8 @@ vec3 sand_ridges(vec3 c, float m, vec2 p, vec2 frag) {
 	float rp = sin(m * 3.3 + w);
 	float fade = smoothstep(-4.6, -2.0, m) * (1.0 - smoothstep(-0.9, -0.4, m));
 	float bay = bayer4(frag);
-	float dsm = smoothstep(0.05, 0.75, rp);
-	float lsm = smoothstep(0.55, 0.95, -rp);
+	float dsm = smoothstep(0.05, 0.75, rp) * dither_k;
+	float lsm = smoothstep(0.55, 0.95, -rp) * dither_k;
 	float dark = step(bay, dsm) * fade;
 	float lite = step(bay, lsm) * fade;
 	c = mix(c, S(vec3(0.22, 0.22, 0.25)), dark * 0.5);

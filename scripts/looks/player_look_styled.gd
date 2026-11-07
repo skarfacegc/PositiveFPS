@@ -5,9 +5,20 @@ extends PlayerLook
 # coat, teal scarf, satchel with three glowing tubes, a gold double ring and a dithered glow on the ground. The outer
 # ring takes the colour of the target's element (cream with no target), as the placeholder ring does.
 
+# Checkpoint 6: a dust puff at each footfall of a run (colours and ring look of the dust puffs).
+const DUST_FILL := Color("#e9dcc0")
+const DUST_RIM := Color("#fff8ea")
+const DUST_DENSITY := 0.5
+const DUST_RIM_WIDTH := 0.18
+
+# How many dust puffs were raised (the tests read it).
+var puffs_started: int = 0
+
 var _ring: MeshInstance3D
 var _last_affinity: int = -2
 var _parts: Dictionary = {}
+# The half cycle (one footfall) last seen.
+var _last_step: int = -1
 
 
 func is_styled() -> bool:
@@ -57,3 +68,34 @@ func _build_body() -> void:
 
 func _pose_gait() -> void:
 	StyleWalk.apply(gait, _parts)
+	# Each half cycle is one footfall (the two legs take turns).
+	var step := floori(gait.phase * 2.0)
+	if step == _last_step:
+		return
+	var was := _last_step
+	_last_step = step
+	if was >= 0 and gait.run >= Config.JOG_DUST_MIN_RUN and gait.move > 0.5:
+		_dust(step)
+
+
+# A flat dithered puff on the ground under the foot that just came down (the left or the right, by the half cycle).
+func _dust(step: int) -> void:
+	var parent := subject.get_parent()
+	if parent == null:
+		return
+	var side := 1.0 if step == 0 else -1.0
+	var at := subject.global_position + subject.global_transform.basis.x * Config.JOG_DUST_SIDE * side
+	var puff := StyleFight.ring_node(parent, 0.0, DUST_FILL, DUST_RIM, DUST_DENSITY)
+	StyleFight.set_ring(puff, DUST_FILL, DUST_DENSITY, DUST_RIM_WIDTH)
+	puff.visible = true
+	puff.global_position = Vector3(at.x, 0.05, at.z)
+	puff.scale = Vector3(0.15, 1.0, 0.15)
+	var mat := puff.material_override as ShaderMaterial
+	var set_fade := func(v: float) -> void: mat.set_shader_parameter("fade", v)
+	var t := puff.create_tween()
+	t.set_parallel(true)
+	var reach := Config.JOG_DUST_RADIUS
+	t.tween_property(puff, "scale", Vector3(reach, 1.0, reach), Config.JOG_DUST_SECONDS)
+	t.tween_method(set_fade, 1.0, 0.0, Config.JOG_DUST_SECONDS)
+	t.chain().tween_callback(puff.queue_free)
+	puffs_started += 1

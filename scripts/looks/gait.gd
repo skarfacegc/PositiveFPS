@@ -34,6 +34,9 @@ var run_from: float = 3.0  # m/s where a run begins and where it is complete
 var run_full: float = 4.2
 var heavy: float = 0.0  # 0 light, 1 a heavy shuffle (dimmed people)
 var legs: bool = true  # false for a body with no legs or arms to pose (the placeholder capsule): they are skipped
+# Checkpoint 6: 1 for the player, whose run is a jog (Config.JOG_*: more cadence, wider swing, more lean and bounce).
+# 0 (people) keeps the walk and run they had.
+var jog: float = 0.0
 
 # This walker's own variety (from the look seed, see configure).
 var cadence_var: float = 1.0
@@ -169,9 +172,11 @@ func _solve(step: float, delta: float) -> void:
 	var vn := speed * 0.9 / leg_world
 	var cycles := clampf(0.55 + 0.38 * vn - 0.012 * vn * vn, 0.5, 2.3 + 0.9 * run)
 	cycles *= (1.0 - 0.18 * heavy) / cadence_var
+	cycles *= lerpf(1.0, Config.JOG_CADENCE, run * jog)
 	stride = maxf(speed / cycles, 0.05)
 	stance = lerpf(0.62, 0.42, run) + 0.06 * heavy
-	phase = fposmod(phase + minf(step / stride, MAX_CYCLES * delta), 1.0)
+	var cap := lerpf(MAX_CYCLES, Config.JOG_CYCLE_CAP, jog)
+	phase = fposmod(phase + minf(step / stride, cap * delta), 1.0)
 
 
 func _pose() -> void:
@@ -181,7 +186,9 @@ func _pose() -> void:
 	# bounding run covers extra ground in the air, so the same angle goes further.
 	var reach := 1.0 + 0.45 * smoothstep(3.0, 8.0, vn) + 0.5 * run
 	var sin_a := clampf(stride * stance / (2.0 * leg_world * reach), 0.0, sin(MAX_SWING))
-	var amp := asin(sin_a) * move * (1.0 - 0.4 * heavy)
+	# A jog swings the legs wider than the walk (Config.JOG_SWING_ANGLE at a full run, for the player only).
+	var swing_angle := lerpf(asin(sin_a), Config.JOG_SWING_ANGLE, run * jog)
+	var amp := swing_angle * move * (1.0 - 0.4 * heavy)
 	var lift_amp := lerpf(0.16, 0.3, run) * move * (1.0 - 0.5 * heavy)
 	var t0 := phase + phase_off
 	if legs:
@@ -194,14 +201,15 @@ func _pose() -> void:
 	# standing leg; the hips and shoulders turning against each other; leaning into the way it is going.
 	var mid := cos(4.0 * PI * (t0 - 0.5 * stance))
 	var dip := leg_len * (1.0 - cos(amp)) * 0.85
-	var spring := leg_len * (0.03 + 0.09 * run) * move * bounce_var
+	var spring := leg_len * (0.03 + 0.09 * run + Config.JOG_BOB * run * jog) * move * bounce_var
 	bob = -dip * 0.5 * (1.0 - mid) + spring * 0.5 * (1.0 + mid)
 	var over := cos(TAU * (t0 + 0.5 - 0.5 * stance))
 	var s_amp := (1.0 + 0.5 * heavy) * sway_var * move
 	sway = 0.05 * leg_len * s_amp * over
 	roll = 0.045 * s_amp * over
 	yaw = 0.07 * (1.0 + 0.5 * run) * move * dir_fwd * (swing[1] - swing[0]) * 0.5 / maxf(amp, 0.001)
-	pitch = (0.03 + 0.07 * run + 0.06 * heavy) * move * dir_fwd + 0.012 * move * cos(4.0 * PI * t0)
+	pitch = (0.03 + 0.07 * run + 0.06 * heavy + Config.JOG_LEAN * run * jog) * move * dir_fwd
+	pitch += 0.012 * move * cos(4.0 * PI * t0)
 	roll += dir_side * (0.03 + 0.06 * run) * move
 	# Standing: a slow shift of weight from foot to foot.
 	var rest := 1.0 - move
