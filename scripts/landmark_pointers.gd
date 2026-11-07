@@ -43,7 +43,7 @@ func update_from(main: TopDownMain, delta: float = -1.0) -> void:
 		return
 	var font := get_theme_default_font()
 	var font_px := Config.LANDMARK_POINTER_FONT_SIZE
-	var avoid := _avoid_rects()
+	var avoid := _avoid_rects(main)
 	for k: int in range(Config.LANDMARK_POSITIONS.size()):
 		if main.landmarks.is_held(k):
 			continue
@@ -215,12 +215,5 @@ static func _perimeter_point(s: float, rect: Rect2) -> Vector2:
 
 
 # The HUD rectangles a pointer must keep clear of: every visible HUD panel that has a place on screen.
-func _avoid_rects() -> Array[Rect2]:
-	var out: Array[Rect2] = []
-	var controls: Array[Control] = _hud.layout_controls()
-	if _minimap != null:
-		controls.append(_minimap)
-	for c: Control in controls:
-		if c.is_visible_in_tree():
-			out.append(c.get_global_rect())
-	return out
+func _avoid_rects(main: TopDownMain = null) -> Array[Rect2]:
+	return HudSafeArea.avoid_rects(_hud, _minimap, main)  # Checkpoint 6: the same list the other edge pointers use.

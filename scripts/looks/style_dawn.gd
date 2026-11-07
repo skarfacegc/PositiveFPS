@@ -13,8 +13,6 @@ const LIGHT_GAP := 24.0
 const FOOTER := "Press R to play again, M for the menu"
 const FONT_ROW := 16
 const FONT_SUB := 13
-const ALERT_FONT := 24
-const ALERT_TOP := 188.0
 const CUE_FONT := 18
 const CUE_PAD := 14.0
 const CUE_SPARK := 26.0
@@ -74,20 +72,21 @@ static func draw_alert(ci: Control, text: String, colour: Color) -> void:
 		return
 	var c := StyleUi.cell(ci)
 	var font := ThemeDB.fallback_font
-	var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, ALERT_FONT)
+	# Checkpoint 6: a slim banner just under the night bar (it was a 52 px panel near the middle of the play area).
+	var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, Config.CP6_ALERT_STYLED_FONT)
 	var star := StyleGlyphs.size_of("alert_star", StyleGlyphs.STAR)
-	var star_w := float(star.x) * c * 2.0
-	var w := size.x + star_w + 70.0
-	var h := 52.0
-	var rect := Rect2(Vector2((ci.size.x - w) * 0.5, ALERT_TOP), Vector2(w, h))
+	var star_w := float(star.x) * c
+	var w := size.x + star_w + 54.0
+	var h := Config.CP6_BANNER_HEIGHT
+	var rect := Rect2(Vector2((ci.size.x - w) * 0.5, Config.CP6_BANNER_TOP), Vector2(w, h))
 	rect.position = (rect.position / c).floor() * c
 	StyleUi.panel(ci, rect, c, StyleUi.PARCHMENT)
 	var pal := StyleGlyphs.palette_for(colour)
-	var star_at := Vector2(rect.position.x + 22.0, rect.position.y + (h - float(star.y) * c * 2.0) * 0.5)
-	StyleGlyphs.draw(ci, "alert_star", StyleGlyphs.STAR, star_at, c * 2.0, pal)
-	var text_x := rect.position.x + 22.0 + star_w + 14.0
-	var text_at := Vector2(text_x, rect.position.y + h * 0.5 + float(ALERT_FONT) * 0.35)
-	ci.draw_string(font, text_at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ALERT_FONT, StyleUi.INK)
+	var star_at := Vector2(rect.position.x + 20.0, rect.position.y + (h - float(star.y) * c) * 0.5)
+	StyleGlyphs.draw(ci, "alert_star", StyleGlyphs.STAR, star_at, c, pal)
+	var text_x := rect.position.x + 20.0 + star_w + 12.0
+	var text_at := Vector2(text_x, rect.position.y + h * 0.5 + float(Config.CP6_ALERT_STYLED_FONT) * 0.35)
+	ci.draw_string(font, text_at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, Config.CP6_ALERT_STYLED_FONT, StyleUi.INK)
 
 
 # The size a cue panel needs for `text`.

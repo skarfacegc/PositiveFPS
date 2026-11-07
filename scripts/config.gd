@@ -222,8 +222,8 @@ const BEACON_PULL_SPEED := 1.2 * WORLD_SCALE
 const LANDMARK_POINTER_REFRESH := 0.2  # Seconds between two works-out of the landmark pointers (5 a second).
 const BEACON_PULL_IN_SQUEEZE := 1.1
 const BEACON_PULL_IN_NOTICE_GAP := 8.0  # Seconds between two "pulling in" notices.
-const NOTICE_FONT_SIZE := 16
-const NOTICE_HEIGHT := 34.0
+const NOTICE_FONT_SIZE := 15  # Checkpoint 6: a slim banner (was 16 and 34).
+const NOTICE_HEIGHT := 32.0
 const BEACON_GUIDE_LABEL_SIZE := 0.012
 const BEACON_GAIN_LABEL_SIZE := 0.03
 const BEACON_GAIN_OUTLINE_SIZE := 8
@@ -403,6 +403,26 @@ const WOBBLE_ALERT_REACH := 34.0  # Pixels from a tip to the furthest part of it
 # the whole play area) and reaches 0 at dawn; a person is passed once the front's radius is at or inside their distance.
 const FIRST_LIGHT_START_RADIUS := 71.0  # Metres: just over half the plaza's diagonal (50 x 1.414 = 70.7).
 const FIRST_LIGHT_RING_SEGMENTS := 72  # Straight pieces in the placeholder ring and in the minimap outline.
+
+# ---- Checkpoint 6: styled HUD (hud_safe_area.gd, gap_arrows.gd, prompt_bar.gd, hud.gd, looks/style_hud_text.gd). ----
+# The edge pointers (gap arrows, landmark pointers, wobble pointers) keep inside HudSafeArea's rectangle. Notices (the
+# prompt bar's refusals and fall-backs, and the HUD alert such as "Someone lost their joy!") are slim banners under the
+# Dusk to Dawn bar instead of big panels over the play area. The styled look draws the HUD text lines (rescued, target,
+# burst, targeting and the key line) as small parchment panels.
+const CP6_GAP_ARROW_REACH := 30.0  # Pixels from a gap arrow's centre to the furthest part of it (with its ink edge).
+const CP6_BANNER_TOP := 62.0  # Top of a notice banner: just under the night bar (which ends at 56).
+const CP6_BANNER_HEIGHT := 32.0
+const CP6_BANNER_GAP := 4.0  # Between two banners shown at once (the alert takes the top slot, the notice moves down).
+const CP6_BANNER_MAX_WIDTH := 620.0
+const CP6_ALERT_FONT := 20  # The placeholder alert label (the styled banner uses CP6_ALERT_STYLED_FONT).
+const CP6_ALERT_STYLED_FONT := 18
+const CP6_LINE_HEIGHT := 34.0  # The styled HUD text lines (parchment panels).
+const CP6_LINE_FONT := 16
+const CP6_KEY_FONT := 13
+const CP6_LINE_MARGIN := 12.0  # From the left edge of the window (and 6 from the bottom).
+const CP6_LINE_GAP := 4.0
+const CP6_TARGET_RING_INNER := 0.72  # The styled target highlight: the ring's hole as a share of its radius.
+const CP6_TARGET_RADIUS_SCALE := 1.2  # The styled ring's radius against TD_HIGHLIGHT_RADIUS.
 
 static var intro_override: int = -1
 

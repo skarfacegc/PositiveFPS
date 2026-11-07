@@ -284,7 +284,7 @@ func test_refusals_last_long_enough_to_read_and_ordinary_prompts_do_not() -> voi
 	assert_str(intro.current_text()).is_equal("Because")
 
 
-func test_a_notice_is_drawn_larger_and_near_the_middle_of_the_screen() -> void:
+func test_a_notice_is_a_slim_banner_centred_in_the_top_half_of_the_screen() -> void:
 	Config.intro_override = 1
 	var s: Dictionary = await _setup()
 	var td: TopDownMain = s["td"]

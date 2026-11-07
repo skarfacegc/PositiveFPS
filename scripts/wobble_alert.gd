@@ -80,16 +80,7 @@ func shown_count() -> int:
 # by every one in the bottom half (each with WOBBLE_ALERT_PANEL_GAP to spare). The rectangles come from the HUD itself
 # (avoid_rects), so a panel that moves or is hidden moves or frees the rectangle with it.
 func safe_rect(screen: Vector2) -> Rect2:
-	var inset := Config.WOBBLE_ALERT_SAFE_INSET
-	var top := inset
-	var bottom := screen.y - inset
-	var gap := Config.WOBBLE_ALERT_PANEL_GAP
-	for r: Rect2 in avoid_rects():
-		if r.get_center().y < screen.y * 0.5:
-			top = maxf(top, r.end.y + gap)
-		else:
-			bottom = minf(bottom, r.position.y - gap)
-	return Rect2(inset, top, screen.x - inset * 2.0, bottom - top)
+	return HudSafeArea.safe_rect(screen, avoid_rects())  # Checkpoint 6: shared with the gap and landmark pointers.
 
 
 # The tip and outward direction for a wobbler at window position `target`: the point where the ray from the screen
@@ -246,16 +237,4 @@ func _draw_styled(centre: Vector2, tip: Vector2, dir: Vector2, ring: float, col:
 # the spirit cue beside the spirit meter (GapPatch's panel and label, which the HUD does not list). A control at zero
 # alpha (the placeholder alert line between alerts) does not count. Tests read this too.
 func avoid_rects() -> Array[Rect2]:
-	var out: Array[Rect2] = []
-	var controls: Array[Control] = _hud.layout_controls()
-	if _minimap != null:
-		controls.append(_minimap)
-	if main != null and main.gap_patch != null:
-		if main.gap_patch.cue_panel != null:
-			controls.append(main.gap_patch.cue_panel)
-		if main.gap_patch.patch_label != null:
-			controls.append(main.gap_patch.patch_label)
-	for c: Control in controls:
-		if c.is_visible_in_tree() and c.modulate.a > 0.0:
-			out.append(c.get_global_rect())
-	return out
+	return HudSafeArea.avoid_rects(_hud, _minimap, main)

@@ -26,7 +26,16 @@ var landmark_panel: StyledPanel
 var dawn_panel: StyledPanel
 # Graphics checkpoint 4: the styled banner that shows the alert's text (the placeholder look shows alert_label).
 var alert_panel: StyledPanel
+# Checkpoint 6: the styled look's versions of the HUD text lines (parchment panels; the Labels above show in the
+# placeholder look). Each is fed the same text as its Label.
+var rescued_panel: StyledPanel
+var burst_panel: StyledPanel
+var target_panel: StyledPanel
+var targeting_panel: StyledPanel
+var key_panel: StyledPanel
 var _alert_tween: Tween
+var _burst_on: bool = false
+var _targeting_on: bool = false
 # Round 12b: the target's element and mood, kept so either can change the label alone.
 var _target_affinity: int = -1
 var _target_mood: String = ""
@@ -160,13 +169,15 @@ func _ready() -> void:
 
 	# Relapse alert: a short orange message near the top that fades out (see show_alert).
 	alert_label = Label.new()
-	alert_label.position = Vector2(0, 200)
-	alert_label.size = Vector2(1280, 60)
+	# Checkpoint 6: a slim line just under the night bar (it was a 34 px line near the middle of the play area).
+	alert_label.position = Vector2(0, Config.CP6_BANNER_TOP)
+	alert_label.size = Vector2(1280, Config.CP6_BANNER_HEIGHT)
 	alert_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	alert_label.add_theme_font_size_override("font_size", 34)
+	alert_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	alert_label.add_theme_font_size_override("font_size", Config.CP6_ALERT_FONT)
 	alert_label.add_theme_color_override("font_color", Color(1, 0.6, 0.1))
 	alert_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	alert_label.add_theme_constant_override("outline_size", 8)
+	alert_label.add_theme_constant_override("outline_size", 6)
 	alert_label.modulate = Color(1, 1, 1, 0)
 	add_child(alert_label)
 	alert_panel = StyledPanel.new()
@@ -192,13 +203,70 @@ func _ready() -> void:
 	dawn_panel.kind = StyledPanel.Kind.DAWN
 	dawn_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	end_panel.add_child(dawn_panel)
+	rescued_panel = _make_line(StyledPanel.Kind.RESCUED)
+	burst_panel = _make_line(StyledPanel.Kind.BURST)
+	target_panel = _make_line(StyledPanel.Kind.TARGET)
+	targeting_panel = _make_line(StyledPanel.Kind.TARGETING)
+	key_panel = _make_line(StyledPanel.Kind.KEYS)
+	_push_line(rescued_panel, rescued_label.text, StyleHudText.IDLE, StyleUi.GOLD)
+	_refresh_target()
 	rebuild_look()
 
 
+func _make_line(kind: int) -> StyledPanel:
+	var p := StyledPanel.new()
+	p.kind = kind
+	p.visible = false
+	add_child(p)
+	move_child(p, end_panel.get_index())  # Under the end screen's dimming, like the Labels.
+	return p
+
+
+# Checkpoint 6: feeds a styled line panel and fits its width to the text. The bottom-left lines (target, burst and keys)
+# stack up from the bottom edge, the targeting line sits at the top right and the rescued line is placed by
+# place_rescued_below.
+func _push_line(p: StyledPanel, text: String, state: int, colour: Color) -> void:
+	if not p.set_line(text, state, colour):
+		return
+	var w := StyleHudText.line_width(p.kind, text)
+	var h := Config.CP6_LINE_HEIGHT
+	var m := Config.CP6_LINE_MARGIN
+	if p.kind == StyledPanel.Kind.RESCUED:
+		p.size = Vector2(w, h)
+	elif p.kind == StyledPanel.Kind.TARGETING:
+		p.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		p.offset_right = -20.0
+		p.offset_left = -20.0 - w
+		p.offset_top = 18.0
+		p.offset_bottom = 18.0 + h
+	else:
+		var slot := 0 if p.kind == StyledPanel.Kind.KEYS else (1 if p.kind == StyledPanel.Kind.BURST else 2)
+		p.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+		p.offset_left = m
+		p.offset_right = m + w
+		p.offset_bottom = -6.0 - float(slot) * (h + Config.CP6_LINE_GAP)
+		p.offset_top = p.offset_bottom - h
+
+
+# Shows `label` in the placeholder look and `panel` in the styled one (neither while `wanted` is false).
+func _show_line(label: Label, panel: StyledPanel, wanted: bool) -> void:
+	var styled := Looks.is_styled()
+	label.visible = wanted and not styled
+	panel.visible = wanted and styled
+
+
 # Graphics checkpoint 3: in the styled look the landmark panel and the end screen are drawn by StyledPanel (pixel
-# panels with icons) and the plain Labels are hidden; the placeholder look shows the Labels.
+# panels with icons) and the plain Labels are hidden; the placeholder look shows the Labels. Checkpoint 6: the same for
+# the text lines (rescued, target, burst, targeting and the key line).
 func rebuild_look() -> void:
 	var styled := Looks.is_styled()
+	_show_line(rescued_label, rescued_panel, true)
+	_show_line(element_label, target_panel, true)
+	_show_line(hint_label, key_panel, true)
+	_show_line(burst_label, burst_panel, _burst_on)
+	_show_line(targeting_label, targeting_panel, _targeting_on)
+	for p: StyledPanel in [rescued_panel, burst_panel, target_panel, targeting_panel, key_panel]:
+		p.rebuild_look()
 	landmark_label.visible = not styled
 	end_label.visible = not styled
 	alert_label.visible = not styled
@@ -233,26 +301,38 @@ func _refresh_target() -> void:
 	if _target_affinity < 0:
 		element_label.text = "No target"
 		element_label.add_theme_color_override("font_color", Config.TD_NO_TARGET_COLOR)
+		_push_line(target_panel, element_label.text, StyleHudText.DIM, Config.TD_NO_TARGET_COLOR)
 	else:
 		element_label.text = "Target: " + Config.ELEMENT_NAMES[_target_affinity]
 		if _target_mood != "":
 			element_label.text += " (" + _target_mood + ")"
 		element_label.add_theme_color_override("font_color", Config.ELEMENT_COLORS[_target_affinity])
+		_push_line(target_panel, element_label.text, StyleHudText.IDLE, Config.ELEMENT_COLORS[_target_affinity])
 
 
 # Top-down: shows the targeting mode (see Config.TargetingMode) in the top right.
 func set_targeting(mode: int) -> void:
-	targeting_label.visible = true
+	_targeting_on = true
 	targeting_label.text = "Targeting: " + Config.TD_TARGETING_NAMES[mode] + "  [F2]"
+	_push_line(targeting_panel, targeting_label.text, StyleHudText.IDLE, StyleUi.AMBER)
+	_show_line(targeting_label, targeting_panel, true)
 
 
 func set_rescued(n: int, total: int) -> void:
 	rescued_label.text = "Rescued: %d / %d" % [n, total]
+	_push_line(rescued_panel, rescued_label.text, StyleHudText.IDLE, StyleUi.GOLD)
 
 
 # Puts the Rescued counter at the left edge, `y` pixels from the top (the level passes the bottom of the minimap).
 func place_rescued_below(y: float) -> void:
 	rescued_label.position = Vector2(20, y)
+	rescued_panel.position = Vector2(20, y)
+
+
+# Checkpoint 6: true while the HUD alert (such as "Someone lost their joy!") is up or fading, so a notice banner moves
+# down below it instead of covering it.
+func alert_showing() -> bool:
+	return alert_label.modulate.a > 0.02
 
 
 # Shows the "[F3] debug" hint while the debug overlay is on.
@@ -274,6 +354,7 @@ func set_debug_text(text: String) -> void:
 # Replaces the controls hint text at the bottom of the screen.
 func set_hint(text: String) -> void:
 	hint_label.text = text
+	_push_line(key_panel, text, StyleHudText.IDLE, StyleUi.AMBER)
 
 
 # Round 19: the landmark panel: "Landmarks 1 of 3" and a line (with the boost) for each one held.
@@ -321,10 +402,11 @@ func set_spirit(spirit: float, is_dim: bool) -> void:
 # Shows the joy burst cooldown: READY in green when it can be used, otherwise the seconds left in grey. `has_spirit`
 # false (round 12a) shows that the burst needs spirit instead.
 func set_burst(cooldown_left: float, has_spirit: bool = true, targets: int = 0) -> void:
-	burst_label.visible = true
+	var state := StyleHudText.READY
 	if not has_spirit:
 		burst_label.text = "Joy burst [G]: needs %d spirit" % roundi(Config.BURST_SPIRIT_COST)
 		burst_label.add_theme_color_override("font_color", Color(0.9, 0.5, 0.4))
+		state = StyleHudText.WARN
 	elif cooldown_left <= 0.0:
 		burst_label.text = "Joy burst [G]: READY"
 		burst_label.add_theme_color_override("font_color", Color(0.6, 1, 0.6))
@@ -335,6 +417,10 @@ func set_burst(cooldown_left: float, has_spirit: bool = true, targets: int = 0) 
 	else:
 		burst_label.text = "Joy burst [G]: %.1fs" % cooldown_left
 		burst_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		state = StyleHudText.DIM
+	_burst_on = true
+	_push_line(burst_panel, burst_label.text, state, StyleUi.GOLD)
+	_show_line(burst_label, burst_panel, true)
 
 
 # Shows a short alert that waits `hold` seconds (0.8s by default), then fades out over 2s. Calling again restarts it.
@@ -368,6 +454,12 @@ func layout_controls() -> Array[Control]:
 		landmark_label,
 		landmark_panel,
 		alert_label,
+		# Checkpoint 6: the styled look's lines (hidden, so not counted, in the placeholder look).
+		rescued_panel,
+		burst_panel,
+		target_panel,
+		targeting_panel,
+		key_panel,
 	]
 	if rec_label != null:
 		out.append(rec_label)

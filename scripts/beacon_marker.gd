@@ -43,6 +43,9 @@ func rebuild_look() -> void:
 	pillar.position = Vector3(0, 3.0, 0)
 	pillar.material_override = _unshaded()
 	add_child(pillar)
+	# Checkpoint 6: the mark sits on the pillar (freed with it when the look changes), not on this node, which lives on in
+	# the styled look and would be counted as a placeholder there.
+	Looks.note_placeholder(pillar, "beacon")
 	var ring := MeshInstance3D.new()
 	var torus := TorusMesh.new()
 	torus.inner_radius = 0.9
@@ -51,7 +54,6 @@ func rebuild_look() -> void:
 	ring.position = Vector3(0, 0.06, 0)
 	ring.material_override = _unshaded()
 	add_child(ring)
-	Looks.note_placeholder(self, "beacon")
 
 
 # Moves to the beacon (or hides when there is none) and pulses a little.

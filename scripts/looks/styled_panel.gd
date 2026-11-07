@@ -6,7 +6,7 @@ extends Control
 # (graphics checkpoint 4) the alert banner (a claim, a loss or a relapse notice). The Hud feeds it the same data its
 # Labels show and flips it with `rebuild_look()` when the look changes.
 
-enum Kind { LANDMARKS, DAWN, ALERT, CUE }
+enum Kind { LANDMARKS, DAWN, ALERT, CUE, RESCUED, BURST, TARGET, TARGETING, KEYS }
 
 var kind: int = Kind.LANDMARKS
 # LANDMARKS: which landmarks are held, in Config.LANDMARK_NAMES order.
@@ -23,6 +23,11 @@ var alert_colour: Color = Color.WHITE
 var cue_text: String = ""
 var cue_ready: bool = false
 var cue_beat: int = 0
+# Checkpoint 6, RESCUED / BURST / TARGET / TARGETING / KEYS: one line of HUD text with its state (StyleHudText.IDLE,
+# READY, WARN or DIM) and the colour of its badge (the target's element, gold for the rescued count).
+var line_text: String = ""
+var line_state: int = 0
+var line_colour: Color = Color.WHITE
 
 
 func _ready() -> void:
@@ -59,6 +64,17 @@ func set_cue(text: String, ready: bool, beat: int) -> void:
 	queue_redraw()
 
 
+# Sets a text line panel's words, state and badge colour. Returns true when one of them changed (it redraws then).
+func set_line(text: String, state: int, colour: Color) -> bool:
+	if text == line_text and state == line_state and colour == line_colour:
+		return false
+	line_text = text
+	line_state = state
+	line_colour = colour
+	queue_redraw()
+	return true
+
+
 # True when this panel is drawn (the styled look is on).
 func is_drawn() -> bool:
 	return Looks.is_styled()
@@ -78,5 +94,7 @@ func _draw() -> void:
 		StyleDawn.draw_alert(self, alert_text, alert_colour)
 	elif kind == Kind.CUE:
 		StyleDawn.draw_cue(self, cue_text, cue_ready, cue_beat)
+	elif kind >= Kind.RESCUED:
+		StyleHudText.draw(self, kind, line_text, line_state, line_colour)
 	else:
 		StyleDawn.draw_dawn(self, title, detail, rating)
