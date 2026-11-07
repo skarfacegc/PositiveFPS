@@ -396,3 +396,47 @@ warning on the minimap and one on-screen edge pointer; no element yet. Edge clea
 
 **Playtest questions:** does reaching out to embrace feel worth it; is the tide warning readable and the hit fair; can
 you now read what is happening at the edge when it is pushed?
+
+## Round 25 build (2026-11-07)
+
+Three parts in parallel, merged S (Embrace, `75ed049`), T (tides, `4bb7613`), R (edge cleanup, `ba7af84`); conflicts in
+`config.gd`, `recorder.gd`, `topdown_main.gd`, `analyse_recording.py` and `SOURCE_MAP.md`, all kept both sides.
+- **Embrace** (`embrace.gd`, `looks/embrace_cue.gd`): inside the loop a person gathers 1 s/s; every 8 s a stage lifts,
+  wistful is rescued through the normal path. Outside, progress fades at 0.25 s/s. The 3 nearest members lose 8 joy/s per
+  embraced person. A relapsed person is skipped for 20 s (stops a relapse-and-re-embrace spirit farm). Placeholder glow
+  and filling ring in both looks.
+- **Gloom tides** (`gloom_tide.gd`, `tide_pointer.gd`): two a night from the level seed (rising 0.30-0.42, midnight
+  0.50-0.60), 15 s warning (minimap fog arcs, grey edge pointer, notice), 12 s passing, facing members (90 degree sector)
+  drain 2x. Multiplier on normal drain only. Off under tests unless `Config.tides_override = 1`.
+- **Edge cleanup** (`edge_ribbon.gd`, `edge_strip.gd`, `edge_markers.gd`, `edge_marker_fx.gd`, `edge_dim.gd`, shader
+  `style_ribbon`): one ribbon through the members, dents for pressers, at most 4 markers by priority, faded dimmed
+  outside, short non-stacking effects; strain rings, patch posts, light columns, breach rings, the styled wobble ring and
+  the warm disc removed; `style_beam` and `style_haze` deleted.
+- **Tooling:** the coverage instrumenter broke on inner classes (`class Stop:`), so every suite loading them failed under
+  coverage; inner-class lines now probe through `CovProbe.counts(...)` (`e269e2a`). `round_end`'s worker used
+  DETACHED_PROCESS, so every child opened a console window; now CREATE_NO_WINDOW, and run_tests/godot_run too
+  (`9fbb8f1`). Coverage tests for `intro.gd`, `border_look_styled.gd` and `minimap.gd` (`6209e59`). Agents still started
+  background polling loops despite the brief; the brief now says so explicitly.
+- **Loosened:** nothing. The parts' changed tests asserted visuals that are gone (listed in the agents' reports).
+
+## Round 25 playtest and round 26 plan (2026-11-07)
+
+Played `9fbb8f1` twice, placeholder then styled (`20261107-103701`, `20261107-104010`, in `recordings/playtests/round25/`):
+two wins, 52 and 48 rescued, 2 of 3 dawn lights each (people 87% and 80%, but only 1 landmark held). Much calmer than the
+last game: 27 and 28 gaps (52 before), 0 wobbles and 0 relapses (17 and 11 before). Tides came from the south at 72 s
+and the north at 97 s in both games (same seed); no wobbles, 9 gaps during the north one. Embrace began 9 and 5 times,
+lifted 2 and 6 stages, rescued 1 and 3 (16 and 21 s). First light lifted 9 and 12 (20 with the square).
+
+**What the user said:** the edge is better but still busy: markers and rings, and text and prompts (e.g. "A gap! Help the
+faltering one (!) to close it." over the spirit bar). They did not notice Embrace or the tides. Too easy now.
+
+### Plan (two parts in parallel)
+
+- **Part U, edge declutter 2 (Sonnet), both looks:** fewer and quieter markers and rings: the ribbon already shows strain,
+  so strain gets no marker of its own (only gaps and wobbles get markers, at most 3), markers smaller and calmer; check the
+  player's and target rings do not stack on border spots. Text and prompts: help prompts and notices go to the slim banner
+  slot under the night bar (not over the spirit bar), shorter wording, one at a time. Stay out of tide visuals.
+- **Part V, tides you notice (Sonnet), both looks:** tides bite: a base drain on facing members while the tide passes, even
+  where nobody presses, sized so a long thin arm on that side wobbles and a short thick side holds. Stronger visual: a fog
+  wall visibly rolling in on screen from that side, and the ribbon and members on that side tinted grey while it passes.
+- Embrace unchanged this round (the user did not choose a change); watch whether it gets noticed once the edge is quieter.
