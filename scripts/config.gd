@@ -101,7 +101,7 @@ const BURST_LIFT_GLOOM := 0.5
 # A cleared person is calm this long (no gloom gain, from growth or from a dimmed neighbour), so they do not sink
 # straight back and walk up to the line again.
 const BURST_CALM_SECONDS := 16.0  # Round 24: was 10.0.
-const BURST_FX_SECONDS := 0.9
+const BURST_FX_SECONDS := 0.6  # Round 25: was 0.9 (short effects).
 const BURST_FX_COLOUR := Color(1.0, 0.9, 0.5)
 
 # ---- Round 22: border warning (scripts/border_warning.gd, gap_patch.gd, minimap.gd). ----
@@ -243,11 +243,11 @@ const CUE_ALPHA := 0.8
 const CUE_PATCH_TEXT := "F: patch"
 const CUE_PATCH_AIM_TEXT := "gap near: aim at it, F"
 const CUE_BURST_TEXT := "G: lift %d"
-const FX_TEXT_SECONDS := 1.6
+const FX_TEXT_SECONDS := 1.1  # Round 25: was 1.6.
 const FX_TEXT_RISE := 1.8
 const FX_TEXT_SIZE := 0.012  # Label3D pixel_size; small.
-const FX_HALO_SECONDS := 1.5
-const FX_PATCH_PULSE_SECONDS := 0.8
+const FX_HALO_SECONDS := 0.9  # Round 25: was 1.5.
+const FX_PATCH_PULSE_SECONDS := 0.6  # Round 25: was 0.8.
 const FX_PATCH_TEXT := "Held: %d"
 const FX_LIFT_TEXT := "lifted %d"
 
@@ -357,23 +357,13 @@ const SPARE_JOY_PER_SPIRIT := 25.0
 const SPARE_WARM_RATE := 80.0
 const SPARE_WARM_INTERVAL := 0.5
 const SPARE_WARM_CEILING := 0.9
-const SPARE_GLOW_SECONDS := 1.4  # How long a warmed person glows (Person.React.WARM).
-const SPARE_GLOW_RADIUS := 1.1
-const SPARE_GLOW_ALPHA := 0.55
-const SPARE_GLOW_COLOUR := Color(1.0, 0.86, 0.5)
+const SPARE_GLOW_SECONDS := 1.4  # How long a warmed person is marked (Person.React.WARM; round 25: a gift marker).
 
 # ---- Checkpoint 5: styled catch-up (scripts/looks/style_fight.gd, style_first_light.gd, style_reach.gd). ----
 # Visual numbers shared by the styled look's new pieces (the rules never read them).
 # The placeholder look ignores all of them.
-const CP5_WARN_RING_INNER := 0.52  # The strain ring's hole as a share of its radius (a thick band reads at 19.5 m).
-const CP5_WARN_PING_URGENCY := 0.5  # From this urgency a strain ring sends out a ping ring as well.
-const CP5_GAP_BEAM_HEIGHT := 3.2  # The coral column over an open gap.
-const CP5_PATCH_POSTS := 8  # Light posts round a patch.
-const CP5_PATCH_POST_HEIGHT := 1.9
-const CP5_LIFT_BEAM_HEIGHT := 4.2  # The column over a person the burst lifted.
-const CP5_WOBBLE_RING_FROM := 2.6  # The wobble's closing ring: radius (m) at the start and at the end of the wobble.
-const CP5_WOBBLE_RING_TO := 0.9
-const CP5_WOBBLE_GREY := Color("#6f7482")
+# Round 25: the strain rings and pings, the coral gap column, the patch posts, the lift column and the wobble's
+# closing ring were removed (EdgeRibbon and EdgeMarkerFx replace them).
 const CP5_WARM_TINT := 0.75  # How far a dimmed body's coat takes the affinity colour at full joy (styled look).
 const CP5_FIRST_LIGHT_SKY := Color("#f2b886")  # The sky the styled view warms toward as first light moves in.
 const CP5_FIRST_LIGHT_SKY_MIX := 0.5  # How much of it at dawn.
@@ -440,6 +430,40 @@ const JOG_DUST_MIN_RUN := 0.5  # How much of a run a footfall needs to raise a d
 const JOG_DUST_SECONDS := 0.4  # How long a dust puff lasts.
 const JOG_DUST_RADIUS := 0.7  # How far a dust puff spreads (metres).
 const JOG_DUST_SIDE := 0.22  # How far a puff starts to the side of the player's centre (metres, at each foot).
+
+# ---- Round 25: edge cleanup (edge_ribbon.gd, edge_markers.gd, edge_marker_fx.gd, edge_dim.gd; both looks). ----
+# The border is one ribbon through its members; pushes bow it inward; one marker per trouble spot (at most four); dimmed
+# people outside it are drawn faded; the patch, burst and gift effects are short and replace each other.
+const EDGE_RIBBON_WIDTH := 0.5  # Metres across a healthy ribbon.
+const EDGE_RIBBON_THIN := 0.4  # The share of the width left at full strain (coral and thin near breaking).
+const EDGE_RIBBON_STEP := 1.0  # Longest stretch (m) of ribbon between two points (so a dent can bend it smoothly).
+const EDGE_RIBBON_CAP := 0.3  # The width share at the very end of a ribbon beside a gap (it tapers off).
+const EDGE_RIBBON_GOLD := Color(1.0, 0.82, 0.4)
+const EDGE_RIBBON_AMBER := Color(1.0, 0.5, 0.1)
+const EDGE_RIBBON_CORAL := Color(1.0, 0.3, 0.28)
+const EDGE_RIBBON_HONEY := Color(0.94, 0.66, 0.24)  # A stretch sealed by the map edge.
+const EDGE_RIBBON_HALO := 2.4  # Styled look: the dithered halo is this many times the ribbon's width.
+const EDGE_RIBBON_REBUILD_FRAMES := 2
+const EDGE_DENT_RANGE := 3.0 * WORLD_SCALE  # A dimmed person this close outside the line presses on it.
+const EDGE_DENT_MAX := 1.1  # The deepest the ribbon bows inward (m).
+const EDGE_DENT_WIDTH := 1.8  # How wide a dent is (m, one standard deviation along the ribbon).
+const EDGE_MARKER_MAX := 4  # The most trouble markers on screen.
+const EDGE_MARKER_MERGE := 5.0  # Troubles this close (m) are one marker.
+const EDGE_GAP_MIN_AGE := 0.5  # A gap open less than this long (s) gets no marker.
+const EDGE_STRAIN_MARK_MIN := 0.4  # A strain below this urgency gets no marker (the ribbon colour already shows it).
+const EDGE_MARKER_RADIUS_GAP := 2.4
+const EDGE_MARKER_RADIUS_WOBBLE := 1.7
+const EDGE_MARKER_RADIUS_STRAIN := 1.3
+const EDGE_MARKER_RADIUS_GIFT := 1.0
+const EDGE_MARKER_COLOUR_GAP := Color(1.0, 0.36, 0.3)
+const EDGE_MARKER_COLOUR_WOBBLE := Color(0.85, 0.87, 0.95)
+const EDGE_MARKER_COLOUR_STRAIN := Color(1.0, 0.7, 0.2)
+const EDGE_MARKER_COLOUR_GIFT := Color(1.0, 0.9, 0.55)
+const EDGE_FX_MERGE := 3.0  # A new patch, burst or gift mark within this distance (m) replaces the earlier one.
+const EDGE_PATCH_SHOW_SECONDS := 2.0  # A new patch's ward shows its disc this long; then only the ring stays.
+const EDGE_OUT_FADE := 0.55  # How far a dimmed person outside the border is faded toward the ground (0 none, 1 gone).
+const EDGE_OUT_FADE_SECONDS := 0.4  # How long the fade takes to come in or go.
+const EDGE_OUT_GROUND := Color(0.5, 0.5, 0.5)  # The tone the fade moves toward (the placeholder floor's grey).
 
 static var intro_override: int = -1
 

@@ -52,7 +52,7 @@ func test_joy_urgency_grows_from_the_warn_start_to_the_falter_line() -> void:
 	assert_float(BorderWarning.joy_urgency(p)).is_equal(0.0)
 
 
-func test_a_draining_member_gets_a_ring_and_a_minimap_marker_before_the_gap_opens() -> void:
+func test_a_draining_member_gets_a_marker_and_a_minimap_marker_before_the_gap_opens() -> void:
 	var s: Dictionary = await _border_level(16, 6.0)
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -65,7 +65,10 @@ func test_a_draining_member_gets_a_ring_and_a_minimap_marker_before_the_gap_open
 	assert_int(td.border.gap_count()).is_equal(0)
 	assert_int(td.gap_patch.warnings.size()).is_equal(1)
 	assert_float(td.gap_patch.warnings[0]["urgency"]).is_between(0.3, 0.7)
-	assert_int(td.gap_patch.fx.warning_ring_count()).is_equal(1)
+	# Round 25: the strain ring is gone; one marker (strain) stands on the member instead.
+	assert_int(td.gap_patch.markers.size()).is_equal(1)
+	assert_int(td.gap_patch.markers[0].kind).is_equal(EdgeMarkers.Kind.STRAIN)
+	assert_int(td.gap_patch.markers_fx.shown_count()).is_equal(1)
 	td.minimap.refresh_from(
 		td.ground, td.border, td.people, td.player.global_position, Vector3.ZERO, td.view_half_extents()
 	)

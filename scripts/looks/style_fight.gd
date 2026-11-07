@@ -1,61 +1,17 @@
 class_name StyleFight
 extends RefCounted
 
-# Graphics checkpoint 5: the styled pieces that read the fight (PatchFx builds and drives them in the styled
-# look): the strain rings and their pings, the patch's ward (a dithered disc, a rim ring and a circle of light
-# posts), the burst's streaks, the halos and light columns over the people it lifted, and the coral breach over
-# an open gap (BorderLookStyled). All of them are flat dithered shapes or open columns with an ink pixel and no
-# alpha, so they stay crisp in the 640x360 pass. Pure visuals: the rules never read them.
+# Graphics checkpoint 5: the styled pieces that read the fight (PatchFx and EdgeMarkerFx build and drive them in the
+# styled look): the patch's ward (a dithered disc and a rim ring), the burst's streaks, the halos over the people it
+# lifted and the trouble markers. Round 25: the light columns and posts are gone (no tall light at the edge). All of
+# them are flat dithered shapes with an ink pixel and no alpha, so they stay crisp in the 640x360 pass. Pure visuals:
+# the rules never read them.
 
-const BEAM_SHADER := "res://shaders/style_beam.gdshader"
 const GOLD := Color("#ffd866")
 const GOLD_RIM := Color("#fff3c4")
-const CORAL := Color("#ff6a58")
-const CORAL_CORE := Color("#ffd2c4")
 const WARD := Color("#5fe3cf")
 const WARD_RIM := Color("#e8fff8")
-const WARD_CORE := Color("#eafffa")
 const INK := Color("#3a2a20")
-
-static var _beam_shader: Shader
-
-
-# A column material (see style_beam.gdshader). Its own copy: the caller changes `fade` as the effect dies away.
-static func beam_material(col: Color, core: Color, height: float, density: float) -> ShaderMaterial:
-	if _beam_shader == null:
-		_beam_shader = load(BEAM_SHADER)
-	var m := ShaderMaterial.new()
-	m.shader = _beam_shader
-	m.set_shader_parameter("beam_color", col)
-	m.set_shader_parameter("core_color", core)
-	m.set_shader_parameter("height", height)
-	m.set_shader_parameter("density", density)
-	return m
-
-
-# An open cylinder `radius` wide and `height` tall (no caps), centred on its middle.
-static func beam_mesh(radius: float, height: float) -> CylinderMesh:
-	var c := CylinderMesh.new()
-	c.top_radius = radius
-	c.bottom_radius = radius
-	c.height = height
-	c.radial_segments = 10
-	c.rings = 1
-	c.cap_top = false
-	c.cap_bottom = false
-	return c
-
-
-# A column standing on the ground at the node's origin: the mesh is lifted so its foot is at y = 0.
-static func beam_node(parent: Node, radius: float, height: float, mat: ShaderMaterial) -> MeshInstance3D:
-	var holder := MeshInstance3D.new()
-	holder.mesh = beam_mesh(radius, height)
-	holder.material_override = mat
-	holder.position.y = height * 0.5
-	holder.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	holder.visible = false
-	parent.add_child(holder)
-	return holder
 
 
 # A flat ring (or disc, `inner` 0) of radius 1 on the ground; scale it to the real radius. Its own material.
