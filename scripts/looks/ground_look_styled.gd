@@ -48,6 +48,8 @@ func _build() -> void:
 	_mat.shader = load(SHADER)
 	_mat.set_shader_parameter("plaza", float(grid_size))
 	_mat.set_shader_parameter("dawn_front", 1000.0)
+	_mat.set_shader_parameter("dither_amt", Config.STYLED_DITHER_LIGHT)
+	_mat.set_shader_parameter("dither_k", Config.STYLED_DITHER_GROUND)
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(PLANE_SIZE, PLANE_SIZE)
 	var inst := MeshInstance3D.new()

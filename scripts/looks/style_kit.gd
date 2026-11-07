@@ -37,6 +37,7 @@ static func mat(
 	m.set_shader_parameter("emit", emit)
 	m.set_shader_parameter("pat", pat)
 	m.set_shader_parameter("vary", vary)
+	m.set_shader_parameter("dither_amt", Config.STYLED_DITHER_LIGHT)
 	_cache[key] = m
 	return m
 
@@ -55,6 +56,7 @@ static func glow_mat(col: Color, strength: float) -> ShaderMaterial:
 	m.shader = _glow
 	m.set_shader_parameter("glow_color", col)
 	m.set_shader_parameter("strength", strength)
+	m.set_shader_parameter("dither_k", Config.STYLED_DITHER_GLOW)
 	return m
 
 

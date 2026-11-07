@@ -18,6 +18,7 @@ var gait := Gait.new()
 func setup(player: TopDownPlayer) -> void:
 	subject = player
 	gait.configure(0, LEG_LENGTH, BODY_SCALE, Config.TD_MOVE_SPEED * 1.12, Config.TD_RUN_SPEED * 0.93)
+	gait.jog = 1.0  # Checkpoint 6: the run is a jog (both looks).
 	_build_body()
 
 

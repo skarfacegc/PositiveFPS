@@ -148,12 +148,12 @@ extends RefCounted | 0 const | Round 22: the joy burst's job is to clear dimmed 
 - L41 `static run(people: Array[Person], at: Vector3, border: Border) -> Dictionary` - Uses the burst at `at`. Returns a report: {"cleared": Array of {"person", "from", "to"} (position before an...
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 217 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L410 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L417 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L426 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L436 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L447 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 229 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L427 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L434 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L443 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L453 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L464 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -352,12 +352,12 @@ extends BuildingLook | 4 const | The styled block: an industrial building (steel
 
 ### scripts/looks/gait.gd (Gait)
 extends RefCounted | 8 const | Graphics checkpoint 4: the walk. One Gait follows one walker (a person or the player) and turns how it actu...
-- L73 `configure(seed_id: int, leg: float, world_per_unit: float, run_start: float, run_end: float) -> void` - Picks this walker's variety from `seed_id` and sets what kind of walker it is.
-- L86 `static hash01(seed_id: int, k: int) -> float` - A repeatable number from 0 to 1 for (seed_id, k): the same every run.
-- L92 `static wave(t: float, stance_share: float) -> float` - The leg's swing at step time `t` (0 to 1) as -1..1, forward positive: the stance line down from +1 to -1 ov...
-- L101 `static lift_curve(t: float, stance_share: float) -> float` - How far through its forward swing the leg is at step time `t`, as a 0..1..0 hump (0 while it is on the grou...
-- L110 `follow(node: Node3D, delta: float) -> bool` - Follows `node` (a person or the player) over `delta` seconds. Reads its facing only when it is not standing...
-- L120 `advance(pos: Vector3, delta: float, basis: Basis) -> bool` - Follows the walker to `pos` (world) over `delta` seconds; `basis` is its facing. Updates the state and the...
+- L76 `configure(seed_id: int, leg: float, world_per_unit: float, run_start: float, run_end: float) -> void` - Picks this walker's variety from `seed_id` and sets what kind of walker it is.
+- L89 `static hash01(seed_id: int, k: int) -> float` - A repeatable number from 0 to 1 for (seed_id, k): the same every run.
+- L95 `static wave(t: float, stance_share: float) -> float` - The leg's swing at step time `t` (0 to 1) as -1..1, forward positive: the stance line down from +1 to -1 ov...
+- L104 `static lift_curve(t: float, stance_share: float) -> float` - How far through its forward swing the leg is at step time `t`, as a 0..1..0 hump (0 while it is on the grou...
+- L113 `follow(node: Node3D, delta: float) -> bool` - Follows `node` (a person or the player) over `delta` seconds. Reads its facing only when it is not standing...
+- L123 `advance(pos: Vector3, delta: float, basis: Basis) -> bool` - Follows the walker to `pos` (world) over `delta` seconds; `basis` is its facing. Updates the state and the...
 
 ### scripts/looks/ground_look.gd (GroundLook)
 extends Node3D | 0 const | The look of the painted ground. The rules (painted_ground.gd) own the paint weights and colours per 1 m til...
@@ -510,20 +510,20 @@ extends PersonLook | 1 const | The styled person (see StylePeople): a stiff grey
 ### scripts/looks/player_look.gd (PlayerLook)
 extends Node3D | 2 const | The look of the player. The rules (topdown_player.gd) own movement, aiming, targeting and firing; this node...
 - L18 `setup(player: TopDownPlayer) -> void`
-- L25 `is_styled() -> bool` - True for the styled look.
-- L30 `sync() -> void` - Reads the player's state (the target's element sets the ring colour). Called every physics tick.
-- L35 `advance(delta: float) -> void` - Graphics checkpoint 4: follows the player's movement over `delta` seconds (every physics tick) and poses th...
-- L48 `play_burst(radius: float, duration: float) -> void` - The joy burst: a flat ring that expands from the player's feet and fades. Shared by both looks.
+- L26 `is_styled() -> bool` - True for the styled look.
+- L31 `sync() -> void` - Reads the player's state (the target's element sets the ring colour). Called every physics tick.
+- L36 `advance(delta: float) -> void` - Graphics checkpoint 4: follows the player's movement over `delta` seconds (every physics tick) and poses th...
+- L49 `play_burst(radius: float, duration: float) -> void` - The joy burst: a flat ring that expands from the player's feet and fades. Shared by both looks.
 
 ### scripts/looks/player_look_placeholder.gd (PlayerLookPlaceholder)
 extends PlayerLook | 0 const | The placeholder player: a saffron capsule with a small nose to show facing, an element ring under the feet...
 - L14 `sync() -> void`
 
 ### scripts/looks/player_look_styled.gd (PlayerLookStyled)
-extends PlayerLook | 0 const | The styled player (see StylePeople.build_player): wide-brim felt hat with a teal band and a glowing feather...
-- L13 `is_styled() -> bool`
-- L17 `sync() -> void`
-- L28 `play_burst(radius: float, duration: float) -> void` - Graphics checkpoint 5: the joy burst is two dithered gold rings that open from the feet (the second a beat...
+extends PlayerLook | 4 const | The styled player (see StylePeople.build_player): wide-brim felt hat with a teal band and a glowing feather...
+- L24 `is_styled() -> bool`
+- L28 `sync() -> void`
+- L39 `play_burst(radius: float, duration: float) -> void` - Graphics checkpoint 5: the joy burst is two dithered gold rings that open from the feet (the second a beat...
 
 ### scripts/looks/plaza_look.gd (PlazaLook)
 extends Node3D | 0 const | The look of the plaza itself: the floor and the four walls round it. (The blocks are BuildingLooks and the...
@@ -614,15 +614,15 @@ extends RefCounted | 3 const | Graphics checkpoint 2: the styled drawing of the 
 extends RefCounted | 2 const | Shared helpers of the styled look (ported from design/style_test/scene.gd): the toon material cache and small
 - L18 `static hexc(h: String) -> Color` - A colour from a "#rrggbb" string.
 - L24 `static mat(col: Color, dmode: int = 0, grime: float = 0.0, emit: float = 0.0, pat: int = 0, vary: float = 0.0) -> ShaderMaterial` - The shared toon material for these values. `dmode` 0 always drawn, 1 industrial, 2 whimsical (see
-- L45 `static unique_mat(col: Color, emit: float) -> ShaderMaterial` - A toon material of its own (not shared), for a value that changes every frame (a pulsing emission).
-- L51 `static glow_mat(col: Color, strength: float) -> ShaderMaterial` - A glow material (dithered radial glow on the ground, see style_glow.gdshader). Not shared: each caller owns...
-- L62 `static glow_plane(parent: Node, m: Material, size: float, pos: Vector3) -> MeshInstance3D` - A flat square of ground glow, `size` metres across, centred on `pos`.
-- L82 `static box(p: Node, size: Vector3, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO, shadow: bool = true) -> MeshInstance3D`
-- L90 `static cyl(p: Node, r: float, h: float, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO, r_top: float = -1.0, sides: int = 10, shadow: bool = true) -> MeshInstance3D`
-- L110 `static sph(p: Node, r: float, pos: Vector3, m: Material, scl: Vector3 = Vector3.ONE, sides: int = 8, shadow: bool = true) -> MeshInstance3D`
-- L123 `static prism(p: Node, size: Vector3, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO, shadow: bool = true) -> MeshInstance3D`
-- L131 `static torus(p: Node, ri: float, ro: float, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO) -> MeshInstance3D`
-- L143 `static seg(p: Node, a: Vector3, b: Vector3, r: float, m: Material, sides: int = 6, shadow: bool = true) -> MeshInstance3D` - A thin cylinder from `a` to `b`.
+- L46 `static unique_mat(col: Color, emit: float) -> ShaderMaterial` - A toon material of its own (not shared), for a value that changes every frame (a pulsing emission).
+- L52 `static glow_mat(col: Color, strength: float) -> ShaderMaterial` - A glow material (dithered radial glow on the ground, see style_glow.gdshader). Not shared: each caller owns...
+- L64 `static glow_plane(parent: Node, m: Material, size: float, pos: Vector3) -> MeshInstance3D` - A flat square of ground glow, `size` metres across, centred on `pos`.
+- L84 `static box(p: Node, size: Vector3, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO, shadow: bool = true) -> MeshInstance3D`
+- L92 `static cyl(p: Node, r: float, h: float, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO, r_top: float = -1.0, sides: int = 10, shadow: bool = true) -> MeshInstance3D`
+- L112 `static sph(p: Node, r: float, pos: Vector3, m: Material, scl: Vector3 = Vector3.ONE, sides: int = 8, shadow: bool = true) -> MeshInstance3D`
+- L125 `static prism(p: Node, size: Vector3, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO, shadow: bool = true) -> MeshInstance3D`
+- L133 `static torus(p: Node, ri: float, ro: float, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO) -> MeshInstance3D`
+- L145 `static seg(p: Node, a: Vector3, b: Vector3, r: float, m: Material, sides: int = 6, shadow: bool = true) -> MeshInstance3D` - A thin cylinder from `a` to `b`.
 
 ### scripts/looks/style_landmarks.gd (StyleLandmarks)
 extends RefCounted | 3 const | Graphics checkpoint 3: the three landmarks in the locked style. Each is built twice on the same footprint:...
@@ -917,6 +917,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - local_gap_test (tests/local_gap_test.gd): 12 tests
 - looks_base_test (tests/looks_base_test.gd): 6 tests
 - looks_checkpoint5_test (tests/looks_checkpoint5_test.gd): 17 tests
+- looks_checkpoint6_test (tests/looks_checkpoint6_test.gd): 8 tests
 - looks_cues_test (tests/looks_cues_test.gd): 8 tests
 - looks_round19_test (tests/looks_round19_test.gd): 10 tests
 - looks_round20_extra_test (tests/looks_round20_extra_test.gd): 3 tests
