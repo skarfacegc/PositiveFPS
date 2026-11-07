@@ -224,5 +224,12 @@ Replaces Parts U and V above. Both looks get the mechanics; visuals in the place
   determinism check depends on it): add a test comparing old and new separation on a fixed crowd, and report the
   per-frame time before and after. Also profile `Border.update` (2 to 3 ms per frame with 20 to 30 members) once
   the push model is in, and report what dominates (fix it only if it is simple and keeps results the same).
+- **Requirement: clear the coverage baseline.** The baseline has refused since round 25: total line coverage would
+  fall from 99.8% to 99.6% because round 25's new scripts entered below 100% (`edge_dim` 90.9%, `embrace` 93.5%,
+  `gloom_tide` 94.3%, `edge_ribbon` 97.4%, `edge_marker_fx` 97.9%, `embrace_cue` 98.0%). Add tests for whichever of
+  these survive the push rewrite, so the round end's baseline update passes without `--allow-decrease`.
+- **Test shape:** the gap, patch, feedback and edge suites get rewritten here anyway; write the new ones as small,
+  focused tests (short scenarios, one behaviour each) rather than whole-night scenarios, so the commit hook's fast tier
+  can skip them for unrelated changes.
 - Open questions for the build agent to report, not decide alone: how a break is mended (rescue the spillers, joy the
   broken ends, or both) and whether the recorder/analyser keep "gap" event names or move to "break".
