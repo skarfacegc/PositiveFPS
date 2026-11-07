@@ -80,7 +80,8 @@ def run(cmd, timeout, log_path=None, env=None, cwd=None):
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     kwargs = {}
     if os.name == "nt":
-        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        # No console window pops up for the Godot console process (its own game window, if any, still shows).
+        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
     else:
         kwargs["start_new_session"] = True
     start = time.monotonic()

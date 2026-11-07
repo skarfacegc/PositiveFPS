@@ -80,7 +80,9 @@ def run_godot(args, cwd, env_extra=None, stream=True):
     env["POSITIVEFPS_TEST"] = "1"
     env.update(env_extra or {})
     cmd = [godot_path(), "--headless", "--path", cwd] + args
-    proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # No console window pops up per headless Godot run on Windows.
+    flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+    proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=flags)
     lines = []
     for raw in proc.stdout:
         line = raw.decode("utf-8", errors="replace").rstrip("\r\n")

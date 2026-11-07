@@ -216,7 +216,9 @@ def start_worker(state_dir, steps_json, restart):
     os.makedirs(state_dir, exist_ok=True)
     flags = 0
     if os.name == "nt":
-        flags = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+        # CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP: a hidden console the worker's children inherit. (DETACHED_PROCESS
+        # left the worker with no console at all, so Windows opened a new window for every python, godot and git child.)
+        flags = 0x08000000 | 0x00000200
     out = open(os.path.join(state_dir, "worker-stdout.log"), "a")
     subprocess.Popen(cmd, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT,
                      creationflags=flags, close_fds=True, start_new_session=(os.name != "nt"))
