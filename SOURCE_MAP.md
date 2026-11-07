@@ -967,14 +967,14 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 
 ## tests/
 
-- beacon_test (tests/beacon_test.gd): 17 tests
-- border_centre_edges_test (tests/border_centre_edges_test.gd): 8 tests
+- beacon_test (tests/beacon_test.gd): 16 tests
+- border_centre_edges_test (tests/border_centre_edges_test.gd): 5 tests
 - border_edge_test (tests/border_edge_test.gd): 10 tests
 - border_edges_test (tests/border_edges_test.gd): 4 tests
 - border_flicker_test (tests/border_flicker_test.gd): 3 tests
 - border_growth_test (tests/border_growth_test.gd): 11 tests
 - border_level_test (tests/border_level_test.gd): 20 tests
-- border_motion_test (tests/border_motion_test.gd): 6 tests
+- border_motion_test (tests/border_motion_test.gd): 5 tests
 - border_shape_test (tests/border_shape_test.gd): 16 tests
 - burst_clear_test (tests/burst_clear_test.gd): 1 tests
 - config_test (tests/config_test.gd): 5 tests
@@ -1027,24 +1027,24 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - projectile_rhythm_test (tests/projectile_rhythm_test.gd): 5 tests
 - projectile_test (tests/projectile_test.gd): 7 tests
 - projectile_trail_test (tests/projectile_trail_test.gd): 4 tests
-- reactions_test (tests/reactions_test.gd): 15 tests
+- reactions_test (tests/reactions_test.gd): 12 tests
 - readability_test (tests/readability_test.gd): 10 tests
 - recorder_more_test (tests/recorder_more_test.gd): 10 tests
 - recorder_polled_test (tests/recorder_polled_test.gd): 9 tests
 - recorder_test (tests/recorder_test.gd): 15 tests
 - shader_instances_test (tests/shader_instances_test.gd): 2 tests
-- shaped_zone_test (tests/shaped_zone_test.gd): 11 tests
+- shaped_zone_test (tests/shaped_zone_test.gd): 10 tests
 - shaping_followup_test (tests/shaping_followup_test.gd): 4 tests
 - shaping_tuning_test (tests/shaping_tuning_test.gd): 6 tests
 - shelter_nearest_test (tests/shelter_nearest_test.gd): 3 tests
 - shield_readability_test (tests/shield_readability_test.gd): 8 tests
 - shield_test (tests/shield_test.gd): 11 tests
 - spirit_defence_test (tests/spirit_defence_test.gd): 3 tests
-- spirit_test (tests/spirit_test.gd): 14 tests
+- spirit_test (tests/spirit_test.gd): 13 tests
 - spirit_warmth_test (tests/spirit_warmth_test.gd): 11 tests
 - stage_change_test (tests/stage_change_test.gd): 4 tests
 - stagger_test (tests/stagger_test.gd): 3 tests
-- stretch_safety_test (tests/stretch_safety_test.gd): 11 tests
+- stretch_safety_test (tests/stretch_safety_test.gd): 7 tests
 - targeting_test (tests/targeting_test.gd): 11 tests
 - topdown_crowd_test (tests/topdown_crowd_test.gd): 8 tests
 - topdown_mode_test (tests/topdown_mode_test.gd): 10 tests

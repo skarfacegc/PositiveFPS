@@ -86,11 +86,23 @@ func test_the_seeded_collapse_is_refused_and_the_border_keeps_its_people() -> vo
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_a_stretch_stops_short_of_a_dimmed_person_and_never_swallows_them() -> void:
+# Merged: covers "a stretch stops short of a dimmed person and never swallows them" and "the guide shows the zone
+# without words and says Stretching during a stretch" (same set-up; the hover checks come first, the Stretching check
+# is made 30 frames into the stretch).
+func test_a_stretch_stops_short_of_a_dimmed_person_and_the_guide_has_no_words_until_it_says_stretching() -> void:
 	var dimmed: Array[Vector3] = [Vector3(2, 0, 22)]
 	var s: Dictionary = await _setup(dimmed, true)
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
+	# Round 24: no words while hovering, whether or not something holds the stretch back.
+	await _aim(runner, td, CENTRE + Vector3(0, 0, -20))
+	await runner.simulate_frames(2)
+	assert_bool(td.reach_guide._label == null or not td.reach_guide._label.visible).is_true()
+	await _aim(runner, td, CENTRE + Vector3(0, 0, 26))
+	await runner.simulate_frames(2)
+	var hover_plan: Dictionary = td.border.plan_stretch(td.player.aim_point())
+	assert_str(hover_plan["reason"]).is_equal(Config.BEACON_DIM_TEXT)
+	assert_bool(td.reach_guide._label == null or not td.reach_guide._label.visible).is_true()
 	await _aim(runner, td, CENTRE + Vector3(0, 0, 26))
 	var plan: Dictionary = td.border.plan_stretch(td.player.aim_point())
 	var why: String = plan["reason"]
@@ -107,6 +119,9 @@ func test_a_stretch_stops_short_of_a_dimmed_person_and_never_swallows_them() -> 
 	# on the border can drain a member and slip through the gap it opens, as with any border, so watch 9 s.
 	for k: int in range(9 * 6):
 		await runner.simulate_frames(10)
+		if k == 2:  # 30 frames into the stretch the guide says so.
+			assert_bool(td.border.stretch_info()["on"]).is_true()
+			assert_str(td.reach_guide._label.text).is_equal("Stretching")
 		worst_inside = maxi(worst_inside, _dimmed_inside(td, PEOPLE, 1))
 		var tip: Vector3 = td.border.stretch_info()["tip"]
 		farthest = maxf(farthest, GloomSim.flat_dist(tip, CENTRE))
@@ -130,32 +145,6 @@ func test_a_clear_path_still_stretches_the_whole_way() -> void:
 	await runner.simulate_frames(1200)
 	var tip: Vector3 = td.border.stretch_info()["tip"]
 	assert_float(GloomSim.flat_dist(tip, CENTRE)).is_equal_approx(24.0, 0.5)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_a_stretch_the_dimmed_make_impossible_falls_back_and_keeps_no_arm() -> void:
-	var s: Dictionary = await _setup()
-	var td: TopDownMain = s["td"]
-	var runner: GdUnitSceneRunner = s["runner"]
-	var snaps: Array[int] = [0]
-	var reasons: Array[String] = []
-	td.border.zone_grew.connect(func(_g: float, _t: Vector3, _a: float) -> void: snaps[0] += 1)
-	td.border.stretch_ended.connect(func(why: String) -> void: reasons.append(why))
-	var c0 := td.border.centre
-	# A dimmed person right outside the border where the stretch would go (placed by hand, so E's own refusal is skipped).
-	TopDownTestUtil.open_dim_gate(td)
-	var q: Person = td.people[PEOPLE]
-	TopDownTestUtil.place(q, CENTRE + Vector3(0, 0, _radius() + 1.0), q.affinity, 1.0)
-	await runner.simulate_frames(4)
-	td.border.place_beacon(CENTRE + Vector3(0, 0, 25))
-	await runner.simulate_frames(10)
-	assert_bool(td.border.stretch_info()["on"]).is_false()
-	assert_bool(td.border.has_beacon()).is_false()
-	assert_int(snaps[0]).is_equal(0)
-	assert_int(reasons.size()).is_equal(1)
-	assert_str(reasons[0]).is_equal(Config.BEACON_DIM_TEXT)
-	assert_int(td.intro.current).is_equal(Intro.Prompt.BEACON_FELL_BACK)
-	assert_float(GloomSim.flat_dist(td.border.centre, c0)).is_less(0.01)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -240,42 +229,20 @@ func test_the_preview_matches_the_zone_the_stretch_really_makes() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_guide_shows_the_zone_without_words_and_says_stretching_during_a_stretch() -> void:
-	var dimmed: Array[Vector3] = [Vector3(2, 0, 22)]
-	var s: Dictionary = await _setup(dimmed, true)
-	var td: TopDownMain = s["td"]
-	var runner: GdUnitSceneRunner = s["runner"]
-	# Round 24: no words while hovering, whether or not something holds the stretch back.
-	await _aim(runner, td, CENTRE + Vector3(0, 0, -20))
-	await runner.simulate_frames(2)
-	assert_bool(td.reach_guide._label == null or not td.reach_guide._label.visible).is_true()
-	await _aim(runner, td, CENTRE + Vector3(0, 0, 26))
-	await runner.simulate_frames(2)
-	var plan: Dictionary = td.border.plan_stretch(td.player.aim_point())
-	assert_str(plan["reason"]).is_equal(Config.BEACON_DIM_TEXT)
-	assert_bool(td.reach_guide._label == null or not td.reach_guide._label.visible).is_true()
-	# During a stretch the guide says so.
-	await _aim(runner, td, CENTRE + Vector3(0, 0, -20))
-	await _press_e(runner)
-	await runner.simulate_frames(30)
-	assert_bool(td.border.stretch_info()["on"]).is_true()
-	assert_str(td.reach_guide._label.text).is_equal("Stretching")
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_the_plan_is_reused_for_a_moment_so_it_costs_little_per_frame() -> void:
+# Merged (one settled border, no frames run between the first three parts): covers "the plan is reused for a moment so
+# it costs little per frame", "the reach guide draws nothing with a settled border and no aim", "a zero-length line adds
+# no geometry to the guide" and then "a stretch the dimmed make impossible falls back and keeps no arm" (which runs the
+# frames and so goes last).
+func test_the_plan_is_reused_the_guide_draws_nothing_without_aim_and_an_impossible_stretch_falls_back() -> void:
 	var s: Dictionary = await _setup()
 	var td: TopDownMain = s["td"]
+	var runner: GdUnitSceneRunner = s["runner"]
+	# The plan is reused for a moment so it costs little per frame.
 	var aim := CENTRE + Vector3(0, 0, 20)
 	var a: Dictionary = td.border.plan_stretch(aim)
 	var b: Dictionary = td.border.plan_stretch(aim)
 	assert_bool(is_same(a, b)).is_true()
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_the_reach_guide_draws_nothing_with_a_settled_border_and_no_aim() -> void:
-	var s: Dictionary = await _setup()
-	var td: TopDownMain = s["td"]
+	# The reach guide draws nothing with a settled border and no aim.
 	# The level's mouse picks an aim point even with no mouse motion, so clear it: this is the cursor-off-the-ground case.
 	td.player._has_aim = false
 	assert_bool(td.player.has_aim()).is_false()
@@ -285,12 +252,7 @@ func test_the_reach_guide_draws_nothing_with_a_settled_border_and_no_aim() -> vo
 	assert_int(td.reach_guide._mesh.get_surface_count()).is_equal(0)
 	var label: Label3D = td.reach_guide._label
 	assert_bool(label == null or not label.visible).is_true()
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_a_zero_length_line_adds_no_geometry_to_the_guide() -> void:
-	var s: Dictionary = await _setup()
-	var td: TopDownMain = s["td"]
+	# A zero-length line adds no geometry to the guide.
 	var mesh: ImmediateMesh = td.reach_guide._mesh
 	# No frame runs between these calls, so the per-frame sync does not touch the mesh under the test.
 	mesh.clear_surfaces()
@@ -301,4 +263,29 @@ func test_a_zero_length_line_adds_no_geometry_to_the_guide() -> void:
 	assert_int(mesh.get_surface_count()).is_equal(1)
 	# Only the real line is in the bounds: the degenerate one at (5, 5) added nothing.
 	assert_float(mesh.get_aabb().end.x).is_less(2.0)
+	# A stretch the dimmed make impossible falls back and keeps no arm.
+	var snaps: Array[int] = [0]
+	var reasons: Array[String] = []
+	td.border.zone_grew.connect(func(_g: float, _t: Vector3, _a: float) -> void: snaps[0] += 1)
+	td.border.stretch_ended.connect(func(why: String) -> void: reasons.append(why))
+	var c0 := td.border.centre
+	# A dimmed person right outside the border where the stretch would go (placed by hand, so E's own refusal is skipped).
+	TopDownTestUtil.open_dim_gate(td)
+	var q: Person = td.people[PEOPLE]
+	TopDownTestUtil.place(q, CENTRE + Vector3(0, 0, _radius() + 1.0), q.affinity, 1.0)
+	await runner.simulate_frames(4)
+	# A dimmed person on the far side does not hold a stretch the other way back (the guide test's old second half).
+	var away: Dictionary = td.border.plan_stretch(CENTRE + Vector3(0, 0, -20))
+	assert_str(away["reason"]).is_equal("")
+	assert_bool(away["refused"]).is_false()
+	assert_float(away["reach"]).is_greater(_radius() + Config.BEACON_MIN_GAIN)
+	td.border.place_beacon(CENTRE + Vector3(0, 0, 25))
+	await runner.simulate_frames(10)
+	assert_bool(td.border.stretch_info()["on"]).is_false()
+	assert_bool(td.border.has_beacon()).is_false()
+	assert_int(snaps[0]).is_equal(0)
+	assert_int(reasons.size()).is_equal(1)
+	assert_str(reasons[0]).is_equal(Config.BEACON_DIM_TEXT)
+	assert_int(td.intro.current).is_equal(Intro.Prompt.BEACON_FELL_BACK)
+	assert_float(GloomSim.flat_dist(td.border.centre, c0)).is_less(0.01)
 	await TopDownTestUtil.leave_loaded_scene(td)

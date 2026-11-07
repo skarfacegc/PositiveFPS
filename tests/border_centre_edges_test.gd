@@ -37,24 +37,23 @@ func _land(ctl: BorderCentre, reach: float, ang: float) -> void:
 	ctl._arrive()
 
 
-func test_with_no_stretch_the_target_is_the_tip_and_pulling_in_with_no_arms_does_nothing() -> void:
+# Merged (one settled border, no frames run between the parts; each part sets the controller's state itself): covers
+# "with no stretch the target is the tip and pulling in with no arms does nothing", "a stretch whose tip is still
+# walking back has not ended yet", "a tip that lands near an arm updates it and the farther reach wins" and "one arm
+# too many drops the shortest".
+func test_the_controller_edges_idle_walking_back_merging_arms_and_one_arm_too_many() -> void:
 	var s: Dictionary = await _setup()
 	var td: TopDownMain = s["td"]
 	var ctl: BorderCentre = td.border._centre_ctl
+	# With no stretch the target is the tip and pulling in with no arms does nothing.
 	assert_bool(ctl.has_beacon()).is_false()
 	assert_vector(ctl.target()).is_equal(ctl.tip)
 	assert_int(ctl.arms.size()).is_equal(0)
-	var version := ctl.arm_version
+	var idle_version := ctl.arm_version
 	ctl.pull_in(0.5, 5.0)
 	assert_int(ctl.arms.size()).is_equal(0)
-	assert_int(ctl.arm_version).is_equal(version)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_a_stretch_whose_tip_is_still_walking_back_has_not_ended_yet() -> void:
-	var s: Dictionary = await _setup()
-	var td: TopDownMain = s["td"]
-	var ctl: BorderCentre = td.border._centre_ctl
+	assert_int(ctl.arm_version).is_equal(idle_version)
+	# A stretch whose tip is still walking back has not ended yet.
 	var c := td.border.centre
 	ctl.beacon = c + Vector3(0.0, 0.0, 30.0)
 	ctl.stretching = true
@@ -70,13 +69,7 @@ func test_a_stretch_whose_tip_is_still_walking_back_has_not_ended_yet() -> void:
 	assert_bool(ctl._fell_back(goal, plan)).is_true()
 	assert_bool(ctl.stretching).is_false()
 	assert_bool(ctl.has_beacon()).is_false()
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_a_tip_that_lands_near_an_arm_updates_it_and_the_farther_reach_wins() -> void:
-	var s: Dictionary = await _setup()
-	var td: TopDownMain = s["td"]
-	var ctl: BorderCentre = td.border._centre_ctl
+	# A tip that lands near an arm updates it and the farther reach wins.
 	var body := maxf(td.border.body_radius, td.border._mean_radius())
 	ctl.arms = [Vector2(0.0, body * 2.0)]
 	var version := ctl.arm_version
@@ -91,14 +84,7 @@ func test_a_tip_that_lands_near_an_arm_updates_it_and_the_farther_reach_wins() -
 	assert_float(ctl.arms[0].y).is_equal_approx(body * 2.6, 0.01)
 	assert_float(ctl.arms[0].x).is_equal_approx(Config.BEACON_ARM_MERGE * 0.5, 0.01)
 	assert_int(ctl.arm_version).is_greater(version)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_one_arm_too_many_drops_the_shortest() -> void:
-	var s: Dictionary = await _setup()
-	var td: TopDownMain = s["td"]
-	var ctl: BorderCentre = td.border._centre_ctl
-	var body := maxf(td.border.body_radius, td.border._mean_radius())
+	# One arm too many drops the shortest.
 	var full: Array[Vector2] = []
 	for i: int in range(Config.BEACON_MAX_ARMS):
 		full.append(Vector2(float(i), body * (1.5 + 0.1 * float(i))))

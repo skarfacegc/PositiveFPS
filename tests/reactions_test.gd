@@ -148,10 +148,22 @@ func test_a_waiting_reaction_does_not_pose_the_body_until_its_turn() -> void:
 # --- A burst makes the lifted people perk up ------------------------------------------------------------------------
 
 
-func test_a_burst_makes_each_lifted_person_hop_and_glow_warm() -> void:
+# Merged: covers "the grace glow still works when no one is reacting" (no frames, so it goes first) and "a burst makes
+# each lifted person hop and glow warm" (same border level).
+func test_the_grace_glow_works_when_no_one_reacts_and_a_burst_makes_each_lifted_person_hop_and_glow_warm() -> void:
 	var s: Dictionary = await _border_level(16, 6.0)
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
+	var glow_look := td.people[20].look as PersonLookPlaceholder
+	glow_look._set_glow(1.0)
+	assert_bool(glow_look.body_mat.emission_enabled).is_true()
+	assert_float(glow_look.body_mat.emission_energy_multiplier).is_equal_approx(Config.GRACE_GLOW_ENERGY, 0.001)
+	glow_look._set_react_glow(Config.PATCH_COLOUR, 1.0)
+	assert_bool(glow_look.body_mat.emission.is_equal_approx(Config.PATCH_COLOUR)).is_true()
+	glow_look._set_react_glow(Color.WHITE, 0.0)
+	assert_bool(glow_look.body_mat.emission.is_equal_approx(Config.GRACE_GLOW_COLOR)).is_true()
+	glow_look._set_glow(0.0)
+	assert_bool(glow_look.body_mat.emission_enabled).is_false()
 	var lifted: Person = td.people[20]
 	var other: Person = td.people[21]
 	var cleared: Array[Dictionary] = [{"person": lifted, "from": lifted.position, "to": lifted.position}]
@@ -201,22 +213,6 @@ func test_the_styled_look_hops_and_turns_in_a_reaction_and_settles() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_grace_glow_still_works_when_no_one_is_reacting() -> void:
-	var s: Dictionary = await _border_level(16, 6.0)
-	var td: TopDownMain = s["td"]
-	var look := td.people[20].look as PersonLookPlaceholder
-	look._set_glow(1.0)
-	assert_bool(look.body_mat.emission_enabled).is_true()
-	assert_float(look.body_mat.emission_energy_multiplier).is_equal_approx(Config.GRACE_GLOW_ENERGY, 0.001)
-	look._set_react_glow(Config.PATCH_COLOUR, 1.0)
-	assert_bool(look.body_mat.emission.is_equal_approx(Config.PATCH_COLOUR)).is_true()
-	look._set_react_glow(Color.WHITE, 0.0)
-	assert_bool(look.body_mat.emission.is_equal_approx(Config.GRACE_GLOW_COLOR)).is_true()
-	look._set_glow(0.0)
-	assert_bool(look.body_mat.emission_enabled).is_false()
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
 # --- The cues are on the HUD beside the spirit meter ----------------------------------------------------------------
 
 
@@ -254,7 +250,7 @@ func test_the_cue_sits_right_of_the_spirit_meter_and_glows_when_it_is_ready() ->
 # --- A quiet reminder -----------------------------------------------------------------------------------------------
 
 
-func test_hovering_shows_no_words_and_a_refusal_shows_only_when_e_is_pressed() -> void:
+func test_hovering_shows_no_words_a_refusal_shows_only_on_e_and_the_pull_in_retreats_calmly_or_hurries() -> void:
 	Config.intro_override = 1
 	var s: Dictionary = await _zone_level()
 	var td: TopDownMain = s["td"]
@@ -276,42 +272,8 @@ func test_hovering_shows_no_words_and_a_refusal_shows_only_when_e_is_pressed() -
 	assert_int(td.intro.current).is_equal(Intro.Prompt.BEACON_BLOCKED)
 	assert_bool(td.intro.big).is_true()
 	assert_float(td.player.spirit).is_equal(spirit)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_no_world_text_can_fill_the_view_and_the_notice_is_small() -> void:
-	# What filled the screen in the round 23 playtest: the limited-preview reason was a Label3D (default font 32, pixel
-	# size 0.035 m) with BEACON_FULL_TEXT, a 71-character line about 40 m wide, more than the whole 19.5 m view height.
-	var font := ThemeDB.fallback_font
-	var old_width := font.get_string_size(Config.BEACON_FULL_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x * 0.035
-	assert_float(old_width).is_greater(Config.TD_CAMERA_ORTHO_SIZE)
-	# Now the only world label of the preview is "Stretching", a few metres.
-	var now_width := (
-		font.get_string_size("Stretching", HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x * Config.BEACON_GUIDE_LABEL_SIZE
-	)
-	assert_float(now_width).is_less(Config.TD_CAMERA_ORTHO_SIZE * 0.15)
-	assert_int(Config.NOTICE_FONT_SIZE).is_less_equal(16)
-	assert_float(Config.NOTICE_HEIGHT).is_less_equal(34.0)
-	# The notice bar for the longest refusal is a fraction of a 1280 px window.
-	var bar := (
-		font.get_string_size(Config.BEACON_FULL_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1, Config.NOTICE_FONT_SIZE).x + 90.0
-	)
-	assert_float(bar).is_less(1280.0 * 0.8)
-
-
-# --- A calm pull-in -------------------------------------------------------------------------------------------------
-
-
-func _centre_ctl(td: TopDownMain) -> BorderCentre:
-	var ctl: BorderCentre = td.border._centre_ctl
-	td.border.body_radius = 5.0
-	ctl.arms = [Vector2(0.0, 20.0), Vector2(2.0, 16.0), Vector2(4.0, 12.0)]
-	return ctl
-
-
-func test_one_arm_retreats_at_a_time_the_longest_first_after_its_outline_fades() -> void:
-	var s: Dictionary = await _zone_level()
-	var td: TopDownMain = s["td"]
+	# Merged below (no frames run in these parts, and they set the arms themselves, so they go last): "one arm retreats
+	# at a time, the longest first, after its outline fades" and "a loop far over its length hurries and skips the fade".
 	var ctl := _centre_ctl(td)
 	var step := 1.0 / 60.0
 	# While it fades, nothing walks in, and the fade deepens.
@@ -358,14 +320,8 @@ func test_one_arm_retreats_at_a_time_the_longest_first_after_its_outline_fades()
 	ctl.settled()
 	assert_bool(ctl.is_retreating()).is_false()
 	assert_float(ctl.outline_alpha(seg_a, seg_a + Vector2(0.0, 1.0))).is_equal(1.0)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_a_loop_far_over_its_length_hurries_and_skips_the_fade() -> void:
-	var s: Dictionary = await _zone_level()
-	var td: TopDownMain = s["td"]
-	var ctl := _centre_ctl(td)
-	var step := 1.0 / 60.0
+	# A loop far over its length hurries and skips the fade (a fresh set of arms).
+	ctl = _centre_ctl(td)
 	# Over by the urgent ratio: the arm starts walking at once, at the urgent speed.
 	ctl.pull_in(step, 5.0, Config.BEACON_PULL_URGENT_RATIO + 0.05)
 	var y0 := ctl.arms[0].y
@@ -376,6 +332,36 @@ func test_a_loop_far_over_its_length_hurries_and_skips_the_fade() -> void:
 	assert_float(walked).is_equal_approx(Config.BEACON_PULL_CALM_RATE * Config.BEACON_PULL_URGENT_MULT, 0.2)
 	assert_float(Config.BEACON_PULL_URGENT_RATIO).is_less(Config.BORDER_MAX_GAP / Config.BORDER_TARGET_SPACING)
 	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_no_world_text_can_fill_the_view_and_the_notice_is_small() -> void:
+	# What filled the screen in the round 23 playtest: the limited-preview reason was a Label3D (default font 32, pixel
+	# size 0.035 m) with BEACON_FULL_TEXT, a 71-character line about 40 m wide, more than the whole 19.5 m view height.
+	var font := ThemeDB.fallback_font
+	var old_width := font.get_string_size(Config.BEACON_FULL_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x * 0.035
+	assert_float(old_width).is_greater(Config.TD_CAMERA_ORTHO_SIZE)
+	# Now the only world label of the preview is "Stretching", a few metres.
+	var now_width := (
+		font.get_string_size("Stretching", HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x * Config.BEACON_GUIDE_LABEL_SIZE
+	)
+	assert_float(now_width).is_less(Config.TD_CAMERA_ORTHO_SIZE * 0.15)
+	assert_int(Config.NOTICE_FONT_SIZE).is_less_equal(16)
+	assert_float(Config.NOTICE_HEIGHT).is_less_equal(34.0)
+	# The notice bar for the longest refusal is a fraction of a 1280 px window.
+	var bar := (
+		font.get_string_size(Config.BEACON_FULL_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1, Config.NOTICE_FONT_SIZE).x + 90.0
+	)
+	assert_float(bar).is_less(1280.0 * 0.8)
+
+
+# --- A calm pull-in -------------------------------------------------------------------------------------------------
+
+
+func _centre_ctl(td: TopDownMain) -> BorderCentre:
+	var ctl: BorderCentre = td.border._centre_ctl
+	td.border.body_radius = 5.0
+	ctl.arms = [Vector2(0.0, 20.0), Vector2(2.0, 16.0), Vector2(4.0, 12.0)]
+	return ctl
 
 
 func test_losing_people_pulls_the_arms_in_one_at_a_time_and_keeps_the_spacing_held() -> void:

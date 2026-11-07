@@ -107,7 +107,17 @@ func test_the_tip_stretches_toward_the_beacon_at_the_pull_speed_and_the_centre_s
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_zone_covers_ground_toward_the_tip_that_the_circle_did_not() -> void:
+# Merged: covers "the zone covers ground toward the tip that the circle did not" (checked at 900 frames) and "the reach
+# never squeezes the body below its minimum and the loop keeps its length" (pure checks first, the body radius at 1000
+# frames). Both place the same beacon after the same 180 frames.
+func test_the_zone_covers_ground_toward_the_tip_without_squeezing_the_body_below_its_minimum() -> void:
+	for people: int in [3, 6, 12, 30, 52]:
+		var radius := BorderCentre.circle_radius(people)
+		var far_reach := BorderCentre.feasible_distance(radius)
+		var body_min := radius * Config.BEACON_BODY_MIN
+		var hull := BorderCentre.hull_perimeter(body_min, Config.BEACON_TIP_WIDTH * body_min, far_reach)
+		assert_float(hull).is_equal_approx(TAU * radius, TAU * radius * 0.01)
+		assert_float(far_reach).is_greater(radius)
 	var s: Dictionary = await _formed()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
@@ -115,6 +125,7 @@ func test_the_zone_covers_ground_toward_the_tip_that_the_circle_did_not() -> voi
 	var c := td.border.centre
 	var far := c + Vector3(1.0, 0.0, 0.0) * (BorderCentre.circle_radius(6) + 3.0)
 	assert_float(td.border.cover_at(far)).is_equal(0.0)
+	var r0 := td.border._mean_radius()
 	td.border.place_beacon(c + Vector3(60, 0, 0))
 	await runner.simulate_frames(900)
 	assert_bool(td.border.polygon.is_empty()).is_false()
@@ -123,6 +134,14 @@ func test_the_zone_covers_ground_toward_the_tip_that_the_circle_did_not() -> voi
 	assert_bool(Geometry2D.is_point_in_polygon(Vector2(tip.x - 1.0, tip.z), td.border.polygon)).is_true()
 	# The body stays round the old centre: the point just behind the centre is still inside.
 	assert_bool(Geometry2D.is_point_in_polygon(Vector2(c.x - 1.0, c.z), td.border.polygon)).is_true()
+	await runner.simulate_frames(100)
+	var cx := Vector2(td.border.centre.x, td.border.centre.z)
+	var back := INF
+	for pt: Vector2 in td.border.polygon:
+		back = minf(back, pt.distance_to(cx))
+	print("PROBE body radius before %.2f m, smallest during the stretch %.2f m" % [r0, back])
+	# Round 23: was * 0.5, with BEACON_BODY_MIN at 0.6.
+	assert_float(back).is_greater(BorderCentre.circle_radius(6) * Config.BEACON_BODY_MIN)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -188,31 +207,6 @@ func test_reach_grows_with_the_people_rescued() -> void:
 	var many: float = td.border.stretch_info()["max"]
 	print("PROBE max reach with 6 people %.1f m, with 12 people %.1f m" % [few, many])
 	assert_float(many).is_greater(few + 3.0)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_the_reach_never_squeezes_the_body_below_its_minimum_and_the_loop_keeps_its_length() -> void:
-	for people: int in [3, 6, 12, 30, 52]:
-		var radius := BorderCentre.circle_radius(people)
-		var far := BorderCentre.feasible_distance(radius)
-		var body := radius * Config.BEACON_BODY_MIN
-		var hull := BorderCentre.hull_perimeter(body, Config.BEACON_TIP_WIDTH * body, far)
-		assert_float(hull).is_equal_approx(TAU * radius, TAU * radius * 0.01)
-		assert_float(far).is_greater(radius)
-	var s: Dictionary = await _formed()
-	var td: TopDownMain = s["td"]
-	var runner: GdUnitSceneRunner = s["runner"]
-	await runner.simulate_frames(180)
-	var r0 := td.border._mean_radius()
-	td.border.place_beacon(td.border.centre + Vector3(60, 0, 0))
-	await runner.simulate_frames(1000)
-	var cx := Vector2(td.border.centre.x, td.border.centre.z)
-	var back := INF
-	for pt: Vector2 in td.border.polygon:
-		back = minf(back, pt.distance_to(cx))
-	print("PROBE body radius before %.2f m, smallest during the stretch %.2f m" % [r0, back])
-	# Round 23: was * 0.5, with BEACON_BODY_MIN at 0.6.
-	assert_float(back).is_greater(BorderCentre.circle_radius(6) * Config.BEACON_BODY_MIN)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

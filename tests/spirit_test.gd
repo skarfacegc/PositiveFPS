@@ -210,7 +210,9 @@ func _form_border(runner: GdUnitSceneRunner, td: TopDownMain) -> void:
 	assert_bool(td.border.active).is_true()
 
 
-func test_recovery_inside_the_border_grows_with_depth_and_stops_outside_it() -> void:
+# Merged: covers "recovery inside the border grows with depth and stops outside it" (frameless, so it goes first) and
+# "a dim player deep inside the border recovers and leaves dim at thirty" (same formed border).
+func test_recovery_grows_with_depth_stops_outside_and_a_dim_player_deep_inside_leaves_dim_at_thirty() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -233,14 +235,6 @@ func test_recovery_inside_the_border_grows_with_depth_and_stops_outside_it() -> 
 	var outside := edge - inward * 3.0
 	td.player.global_position = Vector3(outside.x, 0.0, outside.y)
 	assert_float(td.dim_recovery_rate()).is_equal(0.0)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_a_dim_player_deep_inside_the_border_recovers_and_leaves_dim_at_thirty() -> void:
-	var s: Dictionary = await _start()
-	var runner: GdUnitSceneRunner = s["runner"]
-	var td: TopDownMain = s["td"]
-	await _form_border(runner, td)
 	var player: TopDownPlayer = td.player
 	player.global_position = Vector3(td.border.centre.x, 0.0, td.border.centre.z)
 	player.spirit = 0.0

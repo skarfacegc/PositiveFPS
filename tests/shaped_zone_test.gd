@@ -106,12 +106,33 @@ func test_a_second_stretch_starts_at_the_existing_arm() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_head_count_limits_how_much_border_can_be_held() -> void:
+# Merged: covers "the head count limits how much border can be held" and "the limited preview is a red outline with no
+# words" (same border, same arm east; the preview's checks come before and just after the arm, the head count's go on to
+# rescue more people).
+func test_the_head_count_limits_the_border_and_the_limited_preview_is_a_red_outline_with_no_words() -> void:
 	var s: Dictionary = await _setup()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
+	await runner.simulate_frames(2)
+	# A fine stretch (nothing holds it back) is the calm blue one. Round 24: no words while hovering.
+	td.player._has_aim = true
+	td.player._aim_point = CENTRE + Vector3(0, 0, _radius() + 6.0)
+	TopDownTestUtil.press_e(td)  # Checkpoint 5 follow-up: the preview shows only while E is held.
+	td.reach_guide.sync(td.border, td.player)
+	assert_object(td.reach_guide._label).is_null()
 	var fresh: Dictionary = td.border.plan_stretch(CENTRE + Vector3(-60, 0, 0))
+	# Round 23: a far aim alone is no longer limited (it just goes as far as the people allow), so the limit here is an
+	# arm east that uses up the length, and the cursor west of it (no frame runs between setting it and the guide's sync).
 	await _stretch(td, runner, CENTRE + Vector3(60, 0, 0))
+	td.player._aim_point = CENTRE + Vector3(-60, 0, 0)
+	td.reach_guide.sync(td.border, td.player)
+	var preview_plan: Dictionary = td.border.plan_stretch(td.player.aim_point())
+	assert_str(preview_plan["reason"]).is_not_equal("")
+	# Limited too: still no words (the reason shows only as a notice when E is pressed on a refused spot).
+	if td.reach_guide._label != null:
+		assert_bool(td.reach_guide._label.visible).is_false()
+	assert_float(Config.BEACON_LIMITED_OUTLINE_WIDTH).is_greater(Config.BEACON_GUIDE_OUTLINE_WIDTH)
+	assert_float(absf(Config.BEACON_LIMITED_COLOUR.r - Config.BEACON_GUIDE_PREVIEW_COLOUR.r)).is_greater(0.3)
 	await runner.simulate_frames(20)
 	var limited: Dictionary = td.border.plan_stretch(CENTRE + Vector3(-60, 0, 0))
 	var f_reach: float = fresh["reach"]
@@ -302,32 +323,6 @@ func test_a_notice_is_a_slim_banner_centred_in_the_top_half_of_the_screen() -> v
 	# Three and a half seconds on, it is still up.
 	await runner.simulate_frames(60 * 3)
 	assert_float(bar.alpha).is_greater(0.0)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_the_limited_preview_is_a_red_outline_with_no_words() -> void:
-	var s: Dictionary = await _setup()
-	var td: TopDownMain = s["td"]
-	var runner: GdUnitSceneRunner = s["runner"]
-	await runner.simulate_frames(2)
-	# A fine stretch (nothing holds it back) is the calm blue one. Round 24: no words while hovering.
-	td.player._has_aim = true
-	td.player._aim_point = CENTRE + Vector3(0, 0, _radius() + 6.0)
-	TopDownTestUtil.press_e(td)  # Checkpoint 5 follow-up: the preview shows only while E is held.
-	td.reach_guide.sync(td.border, td.player)
-	assert_object(td.reach_guide._label).is_null()
-	# Round 23: a far aim alone is no longer limited (it just goes as far as the people allow), so the limit here is an
-	# arm east that uses up the length, and the cursor west of it (no frame runs between setting it and the guide's sync).
-	await _stretch(td, runner, CENTRE + Vector3(60, 0, 0))
-	td.player._aim_point = CENTRE + Vector3(-60, 0, 0)
-	td.reach_guide.sync(td.border, td.player)
-	var plan: Dictionary = td.border.plan_stretch(td.player.aim_point())
-	assert_str(plan["reason"]).is_not_equal("")
-	# Limited too: still no words (the reason shows only as a notice when E is pressed on a refused spot).
-	if td.reach_guide._label != null:
-		assert_bool(td.reach_guide._label.visible).is_false()
-	assert_float(Config.BEACON_LIMITED_OUTLINE_WIDTH).is_greater(Config.BEACON_GUIDE_OUTLINE_WIDTH)
-	assert_float(absf(Config.BEACON_LIMITED_COLOUR.r - Config.BEACON_GUIDE_PREVIEW_COLOUR.r)).is_greater(0.3)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
