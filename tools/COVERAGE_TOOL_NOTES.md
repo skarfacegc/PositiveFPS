@@ -205,3 +205,14 @@ drop the saved run: the check then just runs both passes.
   `static var` that is reachable through it; skipping inner-class lines would hide real code from the ratchet's denominator.
 - **Proof.** `tools/test_coverage_files.py` (`InnerClassTest`, no Godot) checks the generated text; `coverage.py --check-files
   scripts/edge_ribbon.gd scripts/edge_markers.gd --suites edge_cleanup_test` compiles and reports 96.5% and 91.1%.
+
+## Round 26 tooling: baseline reuse and the fast-tier map
+- `--update-baseline` and `--check-baseline` reuse the saved clean run (`load_saved_run(code_fingerprint())`: code, results,
+  `line_overall`, `line_files`, exactly what `compare_to_baseline` reads) when its fingerprint matches, and print that they did.
+  The rules are unchanged: any decrease is refused unless `--allow-decrease` is given, and a run with a failed test never
+  updates the baseline. `--fresh` forces a real run (`gate.py --no-cache` passes it). In `round_end.py` the order gate --full ->
+  determinism -> baseline works because the determinism check re-saves its (identical, by the check) pass 2 under the same
+  fingerprint, and the fingerprint includes `coverage_baseline.json`, which only the last step rewrites.
+- The per-unit file (`positivefps-determinism-units.json.gz`) now also holds `plan` (which tests each `hits_NN.json` ran,
+  written by the run itself as `cov_hits/unit_plan.dat`, so it survives weight changes) and `scripts` (every game script's text
+  at save time). `tools/fast_tier.py` uses them to map a diff onto the slow tests that cover the changed functions.

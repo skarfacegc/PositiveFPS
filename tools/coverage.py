@@ -6,6 +6,8 @@ Usage:
     python tools/coverage.py --check-baseline # also fail (exit 3) if coverage dropped versus coverage_baseline.json
     python tools/coverage.py --update-baseline                    # record the numbers (only if the tests pass)
     python tools/coverage.py --update-baseline --allow-decrease   # also accept lower numbers
+    python tools/coverage.py --fresh --update-baseline   # the baseline options reuse a saved clean run of the same code
+                                                  # (same fingerprint); --fresh runs the suite anyway
     python tools/coverage.py --check-determinism   # run twice, fail (exit 3) if any covered line differs
                                                   # (the two runs go at once; a saved run of the same code is reused)
 
@@ -779,8 +781,35 @@ def unit_hits(hits_dir):
     return units or None
 
 
+def read_unit_plan(hits_dir):
+    """{hits file name: {name, suite, tests}} written by the run itself (run_tests.write_unit_plan), or None."""
+    try:
+        with open(os.path.join(hits_dir, run_tests.UNIT_PLAN_FILE), encoding="utf-8") as fh:
+            plan = json.load(fh)
+    except (OSError, ValueError):
+        return None
+    return plan if isinstance(plan, dict) else None
+
+
+def read_scripts(root=ROOT):
+    """{scripts/x.gd: text} of every game script, line endings normalised: the code the saved hits' line numbers refer to
+    (tools/fast_tier.py maps a change onto them)."""
+    out = {}
+    for dirpath, _dirs, files in os.walk(os.path.join(root, "scripts")):
+        for name in files:
+            if name.endswith(".gd"):
+                full = os.path.join(dirpath, name)
+                rel = os.path.relpath(full, root).replace("\\", "/")
+                with open(full, encoding="utf-8", errors="replace", newline="") as fh:
+                    out[rel] = fh.read().replace("\r\n", "\n")
+    return out
+
+
 def unit_names(build):
     """{hits file name: unit name} as run_tests.run_parallel numbers them. Empty when the plan cannot be rebuilt."""
+    plan_file = read_unit_plan(os.path.join(build, "cov_hits"))
+    if plan_file:
+        return {k: v["name"] for k, v in plan_file.items()}
     try:
         plan = run_tests.plan_units(run_tests.discover_tests(build), run_tests.load_weights(), with_perf=True)
     except (OSError, ValueError, KeyError):
@@ -817,11 +846,12 @@ def unit_rule_problems(differences, names):
     return problems, notes
 
 
-def save_clean_run(fp, code, results, stats, hits, units=None):
+def save_clean_run(fp, code, results, stats, hits, units=None, hits_dir=None):
     """Keeps a run in which every test passed, so a later --check-determinism can use it as its first pass.
 
     Called by every instrumented run (the ratchet run, the baseline run and the determinism check). A run that
-    failed is never kept.
+    failed is never kept. The per-unit file also gets what the fast test tier needs (tools/fast_tier.py): the tests each
+    unit ran (read from `hits_dir`, where the run wrote its unit plan) and the text of every script.
     """
     if fp is None or code != 0 or not results or any(not r["ok"] for r in results):
         return
@@ -833,7 +863,9 @@ def save_clean_run(fp, code, results, stats, hits, units=None):
             json.dump(payload, fh)
         if units is not None:
             with gzip.open(det_units_file(), "wt", encoding="utf-8") as fh:
-                json.dump({"fingerprint": fp, "units": units}, fh)
+                json.dump({"fingerprint": fp, "units": units, "when": payload["when"],
+                           "plan": read_unit_plan(hits_dir) if hits_dir else None,
+                           "scripts": read_scripts() if hits_dir else None}, fh)
     except (OSError, subprocess.CalledProcessError) as err:
         print("note: the run could not be saved for reuse (%s)" % err)
 
@@ -947,7 +979,7 @@ def check_determinism(workers, fresh=False):
         for line in problems:
             print("  - " + line)
         return 3
-    save_clean_run(fp, code_b, res_b, stats_b, hits_b, units_b)
+    save_clean_run(fp, code_b, res_b, stats_b, hits_b, units_b, os.path.join(DET_BUILDS[1], "cov_hits"))
     print("Determinism OK: both runs hit exactly the same lines (%.0f s)." % (time.time() - started))
     return 0
 
@@ -1093,43 +1125,9 @@ def check_files(paths, suites, workers):
     return 0
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Line and function coverage for the PositiveFPS scripts.")
-    gate = parser.add_mutually_exclusive_group()
-    gate.add_argument("--check-baseline", action="store_true",
-                      help="fail (exit 3) if coverage dropped versus coverage_baseline.json")
-    gate.add_argument("--update-baseline", action="store_true",
-                      help="write the current numbers to coverage_baseline.json (only if the tests pass)")
-    parser.add_argument("--check-determinism", action="store_true",
-                        help="run the instrumented suite twice and fail (exit 3) if the covered lines differ")
-    parser.add_argument("--check-files", nargs="+", metavar="SCRIPT",
-                        help="quick check for a part agent: run only the suites that cover these scripts, instrumented, "
-                             "and report each script's line coverage against the baseline with the lines not hit")
-    parser.add_argument("--suites", nargs="+", metavar="SUITE",
-                        help="with --check-files: the test suites to run (default: the ones that name the scripts)")
-    parser.add_argument("--fresh", action="store_true",
-                        help="with --check-determinism: ignore the saved run and make two fresh runs")
-    parser.add_argument("--allow-decrease", action="store_true",
-                        help="with --update-baseline: accept numbers lower than the baseline")
-    parser.add_argument("--workers", type=int, default=None,
-                        help="test processes to run at once (default: tools/run_tests.py WORKERS_DEFAULT)")
-    args = parser.parse_args()
-    if args.allow_decrease and not args.update_baseline:
-        parser.error("--allow-decrease only applies with --update-baseline")
-
-    if args.suites and not args.check_files:
-        parser.error("--suites only applies with --check-files")
-    if args.check_files:
-        if args.check_baseline or args.update_baseline or args.check_determinism:
-            parser.error("--check-files cannot be combined with the baseline or determinism options")
-        return check_files(args.check_files, args.suites, args.workers)
-
-    if args.check_determinism:
-        if args.check_baseline or args.update_baseline:
-            parser.error("--check-determinism cannot be combined with the baseline options")
-        return check_determinism(args.workers, fresh=args.fresh)
-
-    fp = code_fingerprint()  # the code this run measures; a clean run is saved against it (save_clean_run)
+def _fresh_run(args, fp):
+    """Copies, instruments and runs the suite, writes the reports and saves a clean run. Returns an exit code (the run
+    could not complete) or (code, results, stats, tests_ok)."""
     print("== Copying project to %s" % BUILD)
     copy_project()
     print("== Instrumenting scripts/*.gd (line probes)")
@@ -1173,7 +1171,64 @@ def main():
     for p in problems:
         print("BROKEN " + p)
     tests_ok = not failed and not problems and code == 0
-    save_clean_run(fp, code, results, stats, hits, unit_hits(HITS_DIR))
+    save_clean_run(fp, code, results, stats, hits, unit_hits(HITS_DIR), HITS_DIR)
+    return code, results, stats, tests_ok
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Line and function coverage for the PositiveFPS scripts.")
+    gate = parser.add_mutually_exclusive_group()
+    gate.add_argument("--check-baseline", action="store_true",
+                      help="fail (exit 3) if coverage dropped versus coverage_baseline.json")
+    gate.add_argument("--update-baseline", action="store_true",
+                      help="write the current numbers to coverage_baseline.json (only if the tests pass)")
+    parser.add_argument("--check-determinism", action="store_true",
+                        help="run the instrumented suite twice and fail (exit 3) if the covered lines differ")
+    parser.add_argument("--check-files", nargs="+", metavar="SCRIPT",
+                        help="quick check for a part agent: run only the suites that cover these scripts, instrumented, "
+                             "and report each script's line coverage against the baseline with the lines not hit")
+    parser.add_argument("--suites", nargs="+", metavar="SUITE",
+                        help="with --check-files: the test suites to run (default: the ones that name the scripts)")
+    parser.add_argument("--fresh", action="store_true",
+                        help="ignore the saved clean run: --check-determinism makes two fresh runs, and the baseline "
+                             "options run the suite instead of reusing the saved run of the same code")
+    parser.add_argument("--allow-decrease", action="store_true",
+                        help="with --update-baseline: accept numbers lower than the baseline")
+    parser.add_argument("--workers", type=int, default=None,
+                        help="test processes to run at once (default: tools/run_tests.py WORKERS_DEFAULT)")
+    args = parser.parse_args()
+    if args.allow_decrease and not args.update_baseline:
+        parser.error("--allow-decrease only applies with --update-baseline")
+
+    if args.suites and not args.check_files:
+        parser.error("--suites only applies with --check-files")
+    if args.check_files:
+        if args.check_baseline or args.update_baseline or args.check_determinism:
+            parser.error("--check-files cannot be combined with the baseline or determinism options")
+        return check_files(args.check_files, args.suites, args.workers)
+
+    if args.check_determinism:
+        if args.check_baseline or args.update_baseline:
+            parser.error("--check-determinism cannot be combined with the baseline options")
+        return check_determinism(args.workers, fresh=args.fresh)
+
+    fp = code_fingerprint()  # the code this run measures; a clean run is saved against it (save_clean_run)
+    saved = None
+    if (args.update_baseline or args.check_baseline) and not args.fresh:
+        saved = load_saved_run(fp)
+    if saved is not None:
+        # A clean run of this exact code (same fingerprint) is saved: its stats and results are what a fresh run would
+        # give, so the baseline rules below run on them and the instrumented suite is not run a second time.
+        print("== Reusing the clean run of this exact code from %s (saved by an earlier coverage run; --fresh runs "
+              "again)" % saved.get("when", "earlier"))
+        code, results = saved["code"], saved["results"]
+        stats = {"line_overall": saved["line_overall"], "line_files": saved["line_files"]}
+        tests_ok = code == 0 and not any(not r["ok"] for r in results)
+    else:
+        outcome = _fresh_run(args, fp)
+        if isinstance(outcome, int):
+            return outcome
+        code, results, stats, tests_ok = outcome
 
     if args.update_baseline:
         if not tests_ok:
