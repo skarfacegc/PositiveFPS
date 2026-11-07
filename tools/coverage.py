@@ -59,6 +59,7 @@ NEW_FILE_MIN = 60.0  # points: a new file must reach at least this line coverage
 
 FUNC_RE = re.compile(r"^(\t*)(static\s+)?func\s+(\w+)\s*\(")
 MATCH_HEADER_RE = re.compile(r"^match\b.*:$")
+CLASS_RE = re.compile(r"^\t*class\s+\w+")
 CONTINUATION_KEYWORDS_RE = re.compile(r"^(elif|else)\b")
 
 # Each instrumented script gets its own static counter array (see COV_TAIL) and probes are inline statements
@@ -69,6 +70,8 @@ extends RefCounted
 static var regs := {}
 static func register(rel: String, arr: PackedInt32Array) -> void:
 \tregs[rel] = arr
+static func counts(rel: String) -> PackedInt32Array:
+\treturn regs[rel]
 static func to_hits() -> Dictionary:
 \tvar out := {}
 \tfor rel: String in regs:
@@ -202,13 +205,21 @@ def analyze_script(rel, raw_lines):
     oneliners = {}  # 0-based index -> (header text, body text, body indent)
     funcs = []  # {"func", "line", "first"} (1-based)
     uninstr = []
+    class_stack = []  # indents of the inner classes (`class X:`) enclosing the current line
     i = 0
     while i < n:
         inf = info[i]
+        if not inf["cont"] and inf["code"].strip():
+            cur = len(indent_of(inf["raw"]))
+            while class_stack and cur <= class_stack[-1]:
+                class_stack.pop()
+            if CLASS_RE.match(inf["code"]):
+                class_stack.append(cur)
         m = None if inf["cont"] else FUNC_RE.match(inf["code"])
         if m is None:
             i += 1
             continue
+        inner = bool(class_stack)
         func_indent = m.group(1)
         fname = m.group(3)
         # Find the colon that ends the signature: first ":" at bracket depth 0 after the parameter list.
@@ -239,7 +250,7 @@ def analyze_script(rel, raw_lines):
             # One-line function: header on its own line, body on the next line.
             raw_j = raw_lines[j]
             oneliners[j] = (raw_j[:k + 1], raw_j[k + 1:].strip(), func_indent + "\t")
-            exec_map[j] = {"func": fname, "indent": func_indent + "\t"}
+            exec_map[j] = {"func": fname, "indent": func_indent + "\t", "inner": inner}
             funcs.append({"func": fname, "line": i + 1, "first": j + 1})
             i = j + 1
             continue
@@ -272,7 +283,7 @@ def analyze_script(rel, raw_lines):
         if body:
             funcs.append({"func": fname, "line": i + 1, "first": body[0] + 1})
             for idx in body:
-                exec_map[idx] = {"func": fname, "indent": indent_of(info[idx]["raw"])}
+                exec_map[idx] = {"func": fname, "indent": indent_of(info[idx]["raw"]), "inner": inner}
         else:
             uninstr.append({"file": rel, "func": fname, "line": i + 1, "reason": "no executable lines"})
         i = k2
@@ -294,7 +305,12 @@ def instrument_lines(rel, raw_lines, result):
     """Returns the instrumented source text. Probe keys use the original 1-based line numbers."""
     out = []
     for idx, raw in enumerate(raw_lines):
-        probe = "%s[%d] += 1" % (cov_name(rel), idx + 1)
+        if result["exec_map"].get(idx, {}).get("inner"):
+            # An inner class cannot see the outer script's static array unqualified (and may have no class_name to
+            # qualify it with), so its probes go through the global CovProbe registry instead: slower, but rare.
+            probe = 'CovProbe.counts("%s")[%d] += 1' % (rel, idx + 1)
+        else:
+            probe = "%s[%d] += 1" % (cov_name(rel), idx + 1)
         if idx in result["oneliners"]:
             header, body, body_indent = result["oneliners"][idx]
             out.append(header)

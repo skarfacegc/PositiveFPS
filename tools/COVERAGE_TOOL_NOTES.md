@@ -189,3 +189,19 @@ drop the saved run: the check then just runs both passes.
   tested with a made-up entry in `tools/test_determinism.py`).
 - **Rule of thumb.** A wall-clock read is only a determinism problem when it picks a branch, a redraw or a count; but any
   `Time.get_ticks_*` in code the tests run is a risk, so use the fixed-step delta or a frame counter.
+
+## Inner classes (round 25, 2026-11-07)
+- **Bug.** A script with an inner class that has methods (`class Stop:` in `edge_ribbon.gd`, `class Marker:` in `edge_markers.gd`)
+  failed to compile in the instrumented copy: `Identifier "_cov_h_scripts_edge_ribbon_gd" not declared in the current scope`.
+  The probe `_cov_h_...[LINE] += 1` refers to a `static var` of the outer script, and a GDScript inner class cannot see its
+  outer script's members unqualified. Every suite that loaded the script then failed (exit 105). The plain run was fine.
+- **Fix.** `analyze_script` tracks `class X:` indents and marks each executable line `inner` when its function sits in an inner
+  class (any nesting depth, works without `class_name`, one-line methods too). Those lines get
+  `CovProbe.counts("scripts/x.gd")[LINE] += 1` instead: `CovProbe` is a global `class_name` script, so it is visible everywhere,
+  and `counts` returns the same array the outer script registered, so the hits land in the same per-file store and the reports
+  are unchanged. Outer-class lines keep the fast inline probe (about 18 ns); inner-class lines pay a call (about 200 ns), which
+  is fine because inner classes are small and rare.
+- **Why not the alternatives.** Qualifying with the outer `class_name` needs the script to have one (not all do) and a
+  `static var` that is reachable through it; skipping inner-class lines would hide real code from the ratchet's denominator.
+- **Proof.** `tools/test_coverage_files.py` (`InnerClassTest`, no Godot) checks the generated text; `coverage.py --check-files
+  scripts/edge_ribbon.gd scripts/edge_markers.gd --suites edge_cleanup_test` compiles and reports 96.5% and 91.1%.
