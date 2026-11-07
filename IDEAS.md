@@ -361,3 +361,38 @@ two rounds) gave 4.99 ms before checkpoint 6 and 4.81 ms after, so it was load; 
   count, motes on the circle), `looks_test` (target highlight and HUD text no longer placeholder), `landmark_pointers_test`
   (shared avoid list), `shaped_zone_test` (one test renamed: it asserted the old big centre notice), `hud_test` (styled
   lines in the overlap test). New: `hud_checkpoint6_test`, `looks_checkpoint6_test`. **Loosened:** nothing.
+
+## Round 25 plan: border control (2026-11-07)
+
+**Why.** The user wants border control to be the mechanic to dig into. Today it has one verb (stretch toward a point) and
+one reason (get landmarks and ground inside). This round adds a reason to reach out (Embrace) and a reason to pull in
+(gloom tides), so every beacon is a choice. The user also finds the border edge visually chaotic under pressure: too
+many per-person effects stacked on the same few metres while dimmed bodies overlap the members. Ideas kept for later:
+Brace (pull a section in two deep), Gate, arrange the ranks (elements by side), lanterns and posts, hearths, stragglers,
+smothering gloom sources, carry the light, pinch into two loops.
+
+**Interview answers.** Embrace: rescue outright; about 8 s a stage; a little extra strain on the nearest members; warm
+glow and a fill ring. Tides: drain that side harder (no dimmed wave); two a night, rising and midnight; about 15 s
+warning on the minimap and one on-screen edge pointer; no element yet. Edge cleanup: all four suggestions, in both looks
+(the user asked for it as graphics work); all three parts in parallel.
+
+### Plan (three parts in parallel)
+
+- **Part R, edge cleanup (Sonnet), both looks:** the border is drawn as one continuous ribbon through its members, gold
+  when healthy, amber when strained, coral and thin near breaking; a gap is a real break in it. This replaces the
+  per-person strain rings, light columns and breach rings. Pushes show as inward dents in the ribbon, deeper for harder
+  pushes. One marker per trouble spot (priority gap > wobble > strain > warm gift), at most 4 on screen, gaps shorter than
+  half a second never shown. Dimmed people outside the border are drawn at lower contrast (or a soft vignette outside).
+  Patch, burst and gift effects are brief and replace rather than stack; no tall light columns.
+- **Part S, Embrace (Sonnet):** an unrescued gloomy or dimmed person inside the border loop lifts one stage about every
+  8 s (dimmed, gloomy, wistful) and is rescued at the end (joins the border like any rescue). While someone is embraced the
+  nearest border members drain a little faster. Cue: a warm glow and a ring filling toward the next stage (placeholder
+  look; styled in a later graphics checkpoint). Recorder events and an EMBRACE line in `analyse_recording.py`.
+- **Part T, gloom tides (Haiku):** two tides a night, one in the rising phase and one at midnight, each from a side picked
+  from the seed. About 15 s before it hits: a fog edge on the minimap and one on-screen edge pointer (inside
+  `HudSafeArea`). While it passes, border members facing that side lose joy faster. A short, thick side should hold; a
+  long thin arm there should wobble. No dimmed wave, no element. Placeholder visuals for the fog. Recorder events and a
+  TIDES line in `analyse_recording.py`.
+
+**Playtest questions:** does reaching out to embrace feel worth it; is the tide warning readable and the hit fair; can
+you now read what is happening at the edge when it is pushed?
