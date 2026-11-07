@@ -439,3 +439,54 @@ func test_the_styled_look_tints_a_faded_dimmed_person_toward_the_ground() -> voi
 	look.sync()
 	assert_float(mesh.get_instance_shader_parameter("tint")).is_less(3.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+# --- Round 25: sealed stretches, the tide's fog edge and the beacon's halo ---------------------------
+
+
+func _styled_map() -> Minimap:
+	var m: Minimap = auto_free(Minimap.new())
+	add_child(m)
+	m.look = MinimapLookStyled.new()
+	return m
+
+
+func _count_not_equal(m: Minimap, before: PackedByteArray) -> int:
+	var after := m._image.get_data()
+	var n := 0
+	for i: int in range(after.size()):
+		if after[i] != before[i]:
+			n += 1
+	return n
+
+
+func test_a_sealed_stretch_is_drawn_thicker_in_the_styled_look() -> void:
+	var plain := _styled_map()
+	plain.border_pts = PackedVector2Array([Vector2(-10, -10), Vector2(10, -10), Vector2(0, 10)])
+	plain.gap_flags = [false, false, false]
+	plain._render()
+	var plain_data := plain._image.get_data()
+	var sealed := _styled_map()
+	sealed.border_pts = plain.border_pts
+	sealed.gap_flags = [false, false, false]
+	sealed.seal_flags = [true, true, true]
+	sealed._render()
+	assert_bool(sealed._image.get_data() == plain_data).is_false()
+
+
+func test_the_tide_fog_edge_is_drawn_on_the_rim_toward_the_tide() -> void:
+	var m := _styled_map()
+	m._render()
+	var before := m._image.get_data()
+	m.tide_fog = Vector2(1.0, 0.0)
+	m._render()
+	assert_int(_count_not_equal(m, before)).is_greater(10)
+
+
+func test_the_beacon_gets_a_halo_ring_in_the_styled_look() -> void:
+	var m := _styled_map()
+	m._render()
+	var before := m._image.get_data()
+	m.beacon_pos = Vector2(10.0, 10.0)
+	m._render()
+	assert_int(_count_not_equal(m, before)).is_greater(10)

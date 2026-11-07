@@ -984,7 +984,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - defence_cues_test (tests/defence_cues_test.gd): 5 tests
 - dimmed_help_test (tests/dimmed_help_test.gd): 4 tests
 - dimmed_waves_test (tests/dimmed_waves_test.gd): 18 tests
-- edge_cleanup_test (tests/edge_cleanup_test.gd): 16 tests
+- edge_cleanup_test (tests/edge_cleanup_test.gd): 19 tests
 - edge_pressure_test (tests/edge_pressure_test.gd): 11 tests
 - embrace_test (tests/embrace_test.gd): 15 tests
 - feedback_test (tests/feedback_test.gd): 16 tests
@@ -1001,7 +1001,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - how_to_play_keys_test (tests/how_to_play_keys_test.gd): 3 tests
 - hud_checkpoint6_test (tests/hud_checkpoint6_test.gd): 9 tests
 - hud_test (tests/hud_test.gd): 12 tests
-- intro_test (tests/intro_test.gd): 11 tests
+- intro_test (tests/intro_test.gd): 12 tests
 - landmark_clarity_test (tests/landmark_clarity_test.gd): 10 tests
 - landmark_pointers_test (tests/landmark_pointers_test.gd): 9 tests
 - landmarks_test (tests/landmarks_test.gd): 11 tests
@@ -1014,7 +1014,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - looks_round20_extra_test (tests/looks_round20_extra_test.gd): 3 tests
 - looks_round20_pieces_test (tests/looks_round20_pieces_test.gd): 11 tests
 - looks_round20_test (tests/looks_round20_test.gd): 17 tests
-- looks_test (tests/looks_test.gd): 18 tests
+- looks_test (tests/looks_test.gd): 19 tests
 - menu_test (tests/menu_test.gd): 14 tests
 - minimap_clouds_test (tests/minimap_clouds_test.gd): 18 tests
 - moods_test (tests/moods_test.gd): 14 tests

@@ -304,6 +304,19 @@ func test_the_styled_border_draws_a_ribbon_with_motes_and_breaks_it_at_gaps() ->
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
+func test_the_styled_border_caps_its_motes_at_the_maximum() -> void:
+	var s: Dictionary = await _start(true)
+	var td: TopDownMain = s["td"]
+	var look := td.border.look as BorderLookStyled
+	var strip := EdgeStrip.new()
+	for i in range(BorderLookStyled.MAX_MOTES * 4):
+		strip.add(Vector2(float(i) * 0.1, 0.0), 0.0, 0.0, 1.0)
+	look.strips = [strip]
+	look._place_motes()
+	assert_int(look._gold_motes.multimesh.visible_instance_count).is_equal(BorderLookStyled.MAX_MOTES)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
 func test_the_styled_player_ring_takes_the_targets_colour() -> void:
 	var s: Dictionary = await _start(true)
 	var runner: GdUnitSceneRunner = s["runner"]
