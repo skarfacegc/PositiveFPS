@@ -65,8 +65,10 @@ End every commit message with:
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
 (use the trailer line the session's attribution reminder gives, if it differs)
 
-Report: your branch and commit hashes, what you built and how to use it, test and lint results, anything loosened
-(say "nothing" if so), and anything left undone. Deliver it with SubagentHandback.
+Report in at most 15 lines: branch and commit hashes; what you built, one line per item; tests and lint pass or fail
+(with counts); anything loosened (say "nothing" if so); anything left undone or any open question for the
+coordinator. No tables, no per-test lists and no measurement logs: put details the coordinator might need in the
+commit message or in .scratch/report_<branch>.md and give its path. Deliver it with SubagentHandback.
 ```
 
 ## Why the per-file check
