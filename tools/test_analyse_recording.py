@@ -234,5 +234,45 @@ class CompareTest(unittest.TestCase):
             self.assertEqual(ar.cli(["--compare", os.path.join(tmp, "missing")]), 2)
 
 
+class TidesTest(unittest.TestCase):
+    """Round 25: the TIDES section (its own events only)."""
+
+    def test_each_tide_reports_its_side_members_and_what_happened_in_it(self):
+        events = [
+            {"t": 1.0, "type": "session_start"},
+            {"t": 40.0, "type": "tide_warn", "side": "north", "angle": -1.57},
+            {"t": 55.0, "type": "tide_start", "side": "north", "angle": -1.57, "members": 4},
+            {"t": 57.0, "type": "wobble"},
+            {"t": 58.0, "type": "gap_open"},
+            {"t": 59.0, "type": "relapse"},
+            {"t": 67.0, "type": "tide_end", "side": "north", "angle": -1.57, "members": 3},
+            {"t": 80.0, "type": "wobble"},
+            {"t": 95.0, "type": "tide_start", "side": "west", "angle": 3.1, "members": 2},
+            {"t": 97.0, "type": "relapse"},
+            {"t": 98.0, "type": "relapse"},
+            {"t": 120.0, "type": "tide_end", "side": "west", "angle": 3.1, "members": 0},
+            {"t": 130.0, "type": "session_end", "reason": "win"},
+        ]
+        res = ar.analyse(events)
+        lines = ar.tide_lines(res)
+        self.assertEqual(lines[0], "TIDES (round 25): 2 tides started, 1 warnings")
+        self.assertIn("tide at t=55 s from the north, 4 members on that side: 1 wobbles, 1 relapses, 1 gaps opened",
+                      lines[1])
+        self.assertIn("tide at t=95 s from the west, 2 members on that side: 0 wobbles, 2 relapses, 0 gaps opened",
+                      lines[2])
+
+    def test_no_tides_is_a_zero_line_and_a_tide_still_running_ends_at_the_recording(self):
+        res = ar.analyse([{"t": 1.0, "type": "session_start"}, {"t": 30.0, "type": "sample", "stages": {}}])
+        self.assertEqual(ar.tide_lines(res), ["TIDES (round 25): 0 tides started, 0 warnings"])
+        res = ar.analyse([
+            {"t": 1.0, "type": "session_start"},
+            {"t": 60.0, "type": "tide_start", "side": "east", "angle": 0.0, "members": 1},
+            {"t": 75.0, "type": "wobble"},
+            {"t": 90.0, "type": "session_end", "reason": "quit"},
+        ])
+        lines = ar.tide_lines(res)
+        self.assertIn("1 wobbles, 0 relapses, 0 gaps opened", lines[1])
+
+
 if __name__ == "__main__":
     unittest.main()

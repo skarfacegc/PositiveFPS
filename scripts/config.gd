@@ -441,7 +441,43 @@ const JOG_DUST_SECONDS := 0.4  # How long a dust puff lasts.
 const JOG_DUST_RADIUS := 0.7  # How far a dust puff spreads (metres).
 const JOG_DUST_SIDE := 0.22  # How far a puff starts to the side of the player's centre (metres, at each foot).
 
+# ---- Round 25: gloom tides (scripts/gloom_tide.gd, tide_pointer.gd, minimap.gd, person.gd). ----
+# Two tides a night: one in the rising phase and one at midnight. Each comes from an angle drawn from the level's seed
+# (RNG_SEED + TIDE_SEED_OFFSET), starting at a time drawn inside its window (night progress). TIDE_WARN_SECONDS before
+# it hits: a fog edge on the minimap, one edge pointer toward that side and a notice. While it passes (TIDE_SECONDS,
+# constant) border members within TIDE_HALF_WIDTH of that direction (seen from the border's centre) drain joy
+# TIDE_DRAIN_MULT times as fast (Person.tide_mult, on their normal drain only). Placeholder look: a grey fog band.
+const TIDE_SEED_OFFSET := 25
+const TIDE_RISING_FROM := 0.3  # Night progress window for the rising tide's start (the rising phase is 0.25 to 0.5).
+const TIDE_RISING_TO := 0.42
+const TIDE_MIDNIGHT_FROM := 0.5  # The midnight tide's window (the midnight phase is 0.5 to 0.75).
+const TIDE_MIDNIGHT_TO := 0.6
+const TIDE_WARN_SECONDS := 15.0
+const TIDE_SECONDS := 12.0
+const TIDE_HALF_WIDTH := PI / 4.0  # Radians either side of the tide's direction: a quarter of the compass (90 degrees).
+const TIDE_DRAIN_MULT := 2.0  # A facing border member drains this many times as fast while the tide passes.
+const TIDE_TEXT := "A gloomy tide is rolling in from the %s"  # The notice at the warning (%s is the side).
+const TIDE_PLAIN_TEXT := "A gloomy tide is rolling in"  # The prompt's own line, when no side is given.
+const TIDE_POINTER_REFRESH := 0.2  # Seconds between two works-out of the edge pointer.
+const TIDE_POINTER_FAR := 100.0  # Metres out from the border's centre: the pointer uses only the direction.
+const TIDE_POINTER_RING := 9.0  # Pixels, as WOBBLE_ALERT_RING.
+const TIDE_POINTER_ARROW := 8.0  # Pixels, as WOBBLE_ALERT_ARROW.
+const TIDE_POINTER_COLOUR := Color(0.74, 0.8, 0.86)  # A cool grey (gaps are coral, wobbles amber).
+const TIDE_FOG_FAR := float(TD_PLAZA_SIZE) * 0.6  # Metres from the centre: where the fog band starts (outside).
+const TIDE_FOG_NEAR := float(TD_PLAZA_SIZE) * 0.2  # Metres from the centre: where its drift in over the passing ends.
+const TIDE_FOG_WIDTH := float(TD_PLAZA_SIZE) * 0.9  # The band's length along the side.
+const TIDE_FOG_DEPTH := 12.0 * WORLD_SCALE  # The band's depth (metres).
+const TIDE_FOG_Y := 0.06  # Height above the ground (just above the first light front's 0.05).
+const TIDE_FOG_COLOUR := Color(0.6, 0.64, 0.7)
+const TIDE_FOG_ALPHA := 0.42  # The band's most opaque alpha.
+const TIDE_FOG_FADE := 0.15  # The share of the passing over which the band fades in and out.
+const TIDE_MINIMAP_COLOUR := Color(0.7, 0.74, 0.8, 0.9)  # The minimap's fog edge (the outer band; inner ones fade).
+const TIDE_MINIMAP_BANDS := 3  # Concentric arcs making the edge.
+const TIDE_MINIMAP_BAND_STEP := 1.6  # Metres between two arcs of the edge (about two minimap pixels).
+const TIDE_MINIMAP_SEGMENTS := 16  # Straight pieces per arc.
+
 static var intro_override: int = -1
+static var tides_override: int = -1  # Round 25: as intro_override, for the gloom tides (see tides_on).
 
 # The matchups form a soft cycle:
 #   Music is strong against Art, Art is strong against Nature, Nature is strong against Music.
@@ -453,6 +489,14 @@ static var intro_override: int = -1
 static func intro_on() -> bool:
 	if intro_override >= 0:
 		return intro_override == 1
+	return not is_automated_test()
+
+
+# Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scenario suites
+# see no tide warnings or notices. A test sets `tides_override` to 1 (on) or 0 (off), and back to -1.
+static func tides_on() -> bool:
+	if tides_override >= 0:
+		return tides_override == 1
 	return not is_automated_test()
 
 

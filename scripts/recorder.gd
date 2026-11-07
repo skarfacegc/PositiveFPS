@@ -114,6 +114,9 @@ func attach(main: TopDownMain) -> bool:
 	main.grabs.grab_avoided.connect(_on_grab_avoided)
 	main.beacon_placed.connect(_on_beacon_placed)
 	main.spirit_warmth.warmed.connect(_on_spirit_warm)
+	main.gloom_tide.tide_warned.connect(_on_tide_warned)  # Round 25: gloom tides.
+	main.gloom_tide.tide_started.connect(_on_tide_started)
+	main.gloom_tide.tide_ended.connect(_on_tide_ended)
 	main.border.beacon_reached.connect(_on_beacon_reached)
 	main.border.stretch_started.connect(_on_stretch_started)
 	main.border.zone_grew.connect(_on_zone_grew)
@@ -187,6 +190,20 @@ func _on_zone_shrunk(lost: float) -> void:
 			"zone": snappedf(BorderCentre.polygon_area(_main.border.polygon), 0.1)
 		}
 	)
+
+
+# Round 25: a gloom tide's warning, start and end, with its side (the compass name and the angle) and how many rescued
+# border members faced it at that moment (`members`).
+func _on_tide_warned(side: String, angle: float) -> void:
+	emit_event("tide_warn", {"side": side, "angle": snappedf(angle, 0.01)})
+
+
+func _on_tide_started(side: String, angle: float, members: int) -> void:
+	emit_event("tide_start", {"side": side, "angle": snappedf(angle, 0.01), "members": members})
+
+
+func _on_tide_ended(side: String, angle: float, members: int) -> void:
+	emit_event("tide_end", {"side": side, "angle": snappedf(angle, 0.01), "members": members})
 
 
 func is_open() -> bool:
