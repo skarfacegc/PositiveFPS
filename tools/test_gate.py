@@ -175,6 +175,31 @@ expect("the integrity check still expects the timing tests otherwise",
 expect("the skip notice names the coordinator's gate", "gate --full" in run_tests.PARALLEL_PART_NOTICE, True)
 
 
+# --- Fast tier (the hook): a fast pass answers only a fast request; a tests or full pass answers it. No Godot here. ---
+try:
+    gate.load_cache = lambda: {"last_pass": {"fingerprint": "fp-y", "level": "fast", "summary": "F", "perf_skipped": False}}
+    expect("a fast pass answers a fast request", gate.cached_summary("fp-y", "fast", False), "F")
+    expect("a fast pass never answers the plain run", gate.cached_summary("fp-y", "tests", False), None)
+    expect("a fast pass never answers --full", gate.cached_summary("fp-y", "full", False), None)
+    gate.load_cache = lambda: {"last_pass": {"fingerprint": "fp-y", "level": "tests", "summary": "T", "perf_skipped": False}}
+    expect("a plain pass answers a fast request", gate.cached_summary("fp-y", "fast", False), "T")
+    gate.load_cache = lambda: {"last_pass": {"fingerprint": "fp-y", "level": "full", "summary": "U", "perf_skipped": False}}
+    expect("a full pass answers a fast request", gate.cached_summary("fp-y", "fast", False), "U")
+finally:
+    gate.load_cache = real_load_cache
+
+expect("docs and non-test tools are a tools-only commit",
+       gate.hook_kind(["README.md", "tools/lint.py", "tools/test_lint.py", "design/a.png"]), "tools")
+expect("a script makes it a Godot commit", gate.hook_kind(["README.md", "scripts/border.gd"]), "godot")
+expect("the test tooling makes it a Godot commit", gate.hook_kind(["tools/run_tests.py"]), "godot")
+expect("the gate and the fast tier make it a Godot commit", gate.hook_kind(["tools/gate.py"]), "godot")
+expect("an empty list is treated as a Godot commit", gate.hook_kind([]), "godot")
+expect("a changed tool runs its own self-check, a changed self-check runs itself, repeats once",
+       gate.tool_self_checks(["tools/source_map.py", "tools/test_source_map.py", "tools/test_perf_compare.py", "README.md",
+                              "tools/nosuchtool.py", "scripts/x.gd"]),
+       ["tools/test_source_map.py", "tools/test_perf_compare.py"])
+
+
 if failures:
     print("test_gate: FAILED")
     for line in failures:

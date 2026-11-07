@@ -132,9 +132,20 @@ in a `_poll_*`) and call `emit_event("name", {...})`; keep it cheap (nothing per
 - On a merge conflict in `SOURCE_MAP.md`, regenerate it rather than merge.
 
 ## Quality gate and tools
-- `python tools/gate.py` = lint + all tests (parallel, about 25 s). `--full` = lint + tests with line coverage + ratchet
-  (about 35 s). `--no-cache` ignores the result cache (sha256 of the tree in `.git/positivefps-gate-cache.json`). The
-  pre-commit hook runs `gate.py --hook`: the same, upgraded to `--full` when `coverage_baseline.json` is staged.
+- `python tools/gate.py` = lint + all tests (parallel). `--full` = lint + tests with line coverage + ratchet. `--no-cache`
+  ignores the result cache (sha256 of the tree in `.git/positivefps-gate-cache.json`) and the saved coverage run.
+- **Pre-commit hook = `gate.py --hook`:** lint + the fast tier (`run_tests.py --tier fast`: every test under 5 s, plus the
+  slow tests that the changed functions of staged `scripts/*.gd` can reach per the saved per-unit coverage map, plus the
+  whole suite of a changed `tests/*_test.gd`; `tools/fast_tier.py` prints what it chose; anything it cannot map, such as
+  `config.gd`, scenes, `project.godot`, the test tooling or a missing/old map, runs everything). `--full` when
+  `coverage_baseline.json` is staged. A commit that cannot change a Godot test (docs, tools other than
+  run_tests/gate/coverage/godot_run/godot_path/fast_tier) runs lint + that tool's `tools/test_*.py` only. A fast pass
+  never answers a plain or `--full` request in the gate cache.
+- Speed: `run_tests.py` uses `WORKERS_DEFAULT` (up to 16) workers and plans units from the durations of the last full plain
+  run (`.git/positivefps-test-times.json`; committed `tools/test_weights.json` is the fallback). It skips `godot --import`
+  when `import_is_current()` (nothing newer than the last import; coverage copies always import). `coverage.py
+  --update-baseline` / `--check-baseline` reuse the saved clean run of the same code fingerprint (`--fresh` runs again);
+  the saved map is written by every instrumented run (`save_clean_run`).
 - **Every round ends with `python tools/gate.py --full`, then `python tools/coverage.py --check-determinism`, then the baseline
   commit (`python tools/coverage.py --update-baseline`).** `python tools/round_end.py` runs all three (stops at the first
   failure; detached worker, state in `.scratch/round_end/`; re-run while it says "still running", exit 124). The hook alone
@@ -148,6 +159,6 @@ in a `_poll_*`) and call `emit_event("name", {...})`; keep it cheap (nothing per
 - `python tools/analyse_recording.py [--compare A B ...]`: analyse recordings (recordings under 10 s skipped unless `--include-restarts`).
 - `python tools/checkpoint_shots.py`: checkpoint renders (see Looks). `python tools/cleanup_worktrees.py`: removes stale worktrees and orphan `.claude/worktrees/agent-*` folders. `python tools/agent_dashboard.py [--port] [--session]`: read-only page of subagent status. `python tools/install_hooks.py`: installs the hook.
 - Details: each tool's `--help`, `tools/COVERAGE_TOOL_NOTES.md`, timing history `tools/BUILD_TIMINGS.md`. Godot is found by `tools/godot_path.py` (`GODOT` env, PATH, WinGet).
-- Self-checks (run by hand when you change a tool): `tools/test_godot_run.py`, `test_perf_compare.py`, `test_analyse_recording.py`, `test_run_tests.py`, `test_gate.py`, `test_round_end.py`, `test_determinism.py`, `test_coverage_files.py`, `test_cleanup_worktrees.py`, `test_source_map.py`, `test_agent_dashboard.py`.
+- Self-checks (run by hand when you change a tool): `tools/test_godot_run.py`, `test_perf_compare.py`, `test_analyse_recording.py`, `test_run_tests.py`, `test_gate.py`, `test_round_end.py`, `test_determinism.py`, `test_fast_tier.py`, `test_coverage_files.py`, `test_cleanup_worktrees.py`, `test_source_map.py`, `test_agent_dashboard.py`.
 - Project skills (`.claude/skills/<name>/SKILL.md`, committed): `launch-playtest`, `finish-round`, `brief-build-agent`.
 - Finding code: search `SOURCE_MAP.md`; for project state read IDEAS.md "Current state" only.

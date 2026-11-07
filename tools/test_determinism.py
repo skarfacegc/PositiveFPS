@@ -95,6 +95,24 @@ class SavedRunUnitsTest(unittest.TestCase):
         self.assertEqual(coverage.load_saved_run("fp-1")["units"], units)
         self.assertIsNone(coverage.load_saved_run("fp-2"))
 
+    def test_the_saved_map_carries_the_unit_plan_and_the_script_texts_for_the_fast_tier(self):
+        import gzip
+        hits_dir = os.path.join(self.tmp, "cov_hits")
+        os.makedirs(hits_dir)
+        plan = {"hits_00.json": {"name": "s_test", "suite": "s_test", "tests": ["test_a"]}}
+        with open(os.path.join(hits_dir, coverage.run_tests.UNIT_PLAN_FILE), "w", encoding="utf-8") as fh:
+            json.dump(plan, fh)
+        results = [{"file": "t", "name": "n", "ok": True, "messages": [], "time": 0.1}]
+        stats = {"line_overall": 50.0, "line_files": {}}
+        coverage.save_clean_run("fp-1", 0, results, stats, {"a:1": 2}, {"hits_00.json": {"a:1": 2}}, hits_dir)
+        with gzip.open(coverage.det_units_file(), "rt", encoding="utf-8") as fh:
+            saved = json.load(fh)
+        self.assertEqual(saved["plan"], plan)
+        self.assertIn("scripts/config.gd", saved["scripts"])
+        self.assertNotIn("\r", saved["scripts"]["scripts/config.gd"])
+        self.assertEqual(coverage.unit_names(self.tmp), {"hits_00.json": "s_test"})  # read from <build>/cov_hits
+        self.assertEqual(coverage.read_unit_plan(hits_dir), plan)
+
     def test_an_older_saved_run_without_units_loads_with_units_none(self):
         results = [{"file": "t", "name": "n", "ok": True, "messages": [], "time": 0.1}]
         stats = {"line_overall": 50.0, "line_files": {}}
@@ -107,6 +125,92 @@ class SavedRunUnitsTest(unittest.TestCase):
         text = "\n".join(coverage.describe_count_diffs(diffs))
         self.assertIn("b.gd 1", text)
         self.assertIn("b.gd:2: 5 vs 50", text)
+
+
+class BaselineReuseTest(unittest.TestCase):
+    """--update-baseline and --check-baseline reuse a saved clean run of the same code instead of running the suite."""
+
+    RESULTS = [{"file": "t", "name": "n", "ok": True, "messages": [], "time": 0.1}]
+
+    def setUp(self):
+        os.makedirs(SCRATCH, exist_ok=True)
+        self.tmp = tempfile.mkdtemp(prefix="baseline_reuse-", dir=SCRATCH)
+        self.baseline = os.path.join(self.tmp, "coverage_baseline.json")
+        self.fresh_calls = []
+        self.saved = None
+        patches = [
+            unittest.mock.patch.object(coverage, "BASELINE", self.baseline),
+            unittest.mock.patch.object(coverage, "code_fingerprint", lambda: "fp-1"),
+            unittest.mock.patch.object(coverage, "load_saved_run", lambda fp: self.saved if fp == "fp-1" else None),
+            unittest.mock.patch.object(coverage, "_fresh_run", self.fake_fresh_run),
+        ]
+        for patch in patches:
+            patch.start()
+            self.addCleanup(patch.stop)
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+
+    def fake_fresh_run(self, args, fp):
+        self.fresh_calls.append(fp)
+        stats = {"line_overall": 70.0, "line_files": {"scripts/a.gd": 70.0}}
+        return 0, self.RESULTS, stats, True
+
+    def save(self, overall, code=0, results=None):
+        self.saved = {"fingerprint": "fp-1", "when": "earlier", "code": code, "results": results or self.RESULTS,
+                      "line_overall": overall, "line_files": {"scripts/a.gd": overall}, "hits": {}, "units": None}
+
+    def write_baseline(self, overall):
+        with open(self.baseline, "w", encoding="utf-8") as fh:
+            json.dump({"line_overall": overall, "line_files": {"scripts/a.gd": overall}}, fh)
+
+    def run_main(self, *flags):
+        with unittest.mock.patch.object(sys, "argv", ["coverage.py"] + list(flags)):
+            return coverage.main()
+
+    def baseline_value(self):
+        with open(self.baseline, encoding="utf-8") as fh:
+            return json.load(fh)["line_overall"]
+
+    def test_update_baseline_uses_the_saved_run_and_writes_its_numbers(self):
+        self.write_baseline(60.0)
+        self.save(65.0)
+        self.assertEqual(self.run_main("--update-baseline"), 0)
+        self.assertEqual(self.fresh_calls, [])
+        self.assertEqual(self.baseline_value(), 65.0)
+
+    def test_a_decrease_is_still_refused_and_allow_decrease_is_never_implied(self):
+        self.write_baseline(60.0)
+        self.save(55.0)
+        self.assertEqual(self.run_main("--update-baseline"), 3)
+        self.assertEqual(self.baseline_value(), 60.0)
+        self.assertEqual(self.fresh_calls, [])
+
+    def test_check_baseline_applies_the_ratchet_to_the_saved_run(self):
+        self.write_baseline(60.0)
+        self.save(65.0)
+        self.assertEqual(self.run_main("--check-baseline"), 0)
+        self.save(50.0)
+        self.assertEqual(self.run_main("--check-baseline"), 3)
+        self.assertEqual(self.fresh_calls, [])
+
+    def test_a_saved_run_with_a_failed_test_does_not_update_the_baseline(self):
+        self.write_baseline(60.0)
+        self.save(65.0, results=[dict(self.RESULTS[0], ok=False)])
+        self.assertEqual(self.run_main("--update-baseline"), 1)
+        self.assertEqual(self.baseline_value(), 60.0)
+
+    def test_no_saved_run_for_this_code_runs_the_suite(self):
+        self.write_baseline(60.0)
+        self.saved = None
+        self.assertEqual(self.run_main("--update-baseline"), 0)
+        self.assertEqual(self.fresh_calls, ["fp-1"])
+        self.assertEqual(self.baseline_value(), 70.0)
+
+    def test_fresh_ignores_the_saved_run(self):
+        self.write_baseline(60.0)
+        self.save(65.0)
+        self.assertEqual(self.run_main("--update-baseline", "--fresh"), 0)
+        self.assertEqual(self.fresh_calls, ["fp-1"])
+        self.assertEqual(self.baseline_value(), 70.0)
 
 
 if __name__ == "__main__":

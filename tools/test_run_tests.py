@@ -85,6 +85,154 @@ class BrokenScriptParsingTest(unittest.TestCase):
         self.assertTrue(any(p.startswith("tests/") and "did not report" in p for p in problems))
 
 
+class ImportIsCurrentTest(unittest.TestCase):
+    """import_is_current() is True only when nothing the Godot import cache depends on is newer than the last import."""
+
+    STAMP = 1_000_000_000.0
+
+    def setUp(self):
+        import tempfile
+        self.root = tempfile.mkdtemp(prefix="import_current_")
+        for sub in ("scripts", "tests", "scenes", "resources", "shaders", "addons/x", "art/fonts", "design", "reports",
+                    ".scratch", "coverage", ".coverage_build", "tools"):
+            os.makedirs(os.path.join(self.root, sub))
+        for rel in ("project.godot", "scripts/a.gd", "tests/a_test.gd", "scenes/a.tscn", "resources/a.tres",
+                    "shaders/a.gdshader", "addons/x/p.gd", "art/a.png", "art/fonts/f.ttf", "art/a.png.import",
+                    "README.md", "tools/x.py"):
+            self.write(rel)
+        os.makedirs(os.path.join(self.root, ".godot"))
+        self.write(".godot/global_script_class_cache.cfg")
+        self.age_everything()
+
+    def tearDown(self):
+        remove_tree(self.root)
+
+    def write(self, rel):
+        with open(os.path.join(self.root, rel), "w", encoding="utf-8") as fh:
+            fh.write("x")
+
+    def age_everything(self):
+        """Every file and folder is older than the class cache."""
+        for dirpath, _dirs, files in os.walk(self.root):
+            for name in files + [""]:
+                os.utime(os.path.join(dirpath, name) if name else dirpath, (self.STAMP - 100, self.STAMP - 100))
+        cache = os.path.join(self.root, ".godot", "global_script_class_cache.cfg")
+        os.utime(cache, (self.STAMP, self.STAMP))
+
+    def touch(self, rel):
+        os.utime(os.path.join(self.root, rel), (self.STAMP + 50, self.STAMP + 50))
+
+    def test_a_project_nothing_changed_in_is_current(self):
+        self.assertTrue(run_tests.import_is_current(self.root))
+
+    def test_no_class_cache_means_import(self):
+        os.remove(os.path.join(self.root, ".godot", "global_script_class_cache.cfg"))
+        self.assertFalse(run_tests.import_is_current(self.root))
+
+    def test_a_newer_file_in_each_place_that_matters_forces_an_import(self):
+        for rel in ("project.godot", "scripts/a.gd", "tests/a_test.gd", "scenes/a.tscn", "resources/a.tres",
+                    "shaders/a.gdshader", "addons/x/p.gd", "art/a.png", "art/fonts/f.ttf", "art/a.png.import"):
+            with self.subTest(rel):
+                self.touch(rel)
+                self.assertFalse(run_tests.import_is_current(self.root))
+                self.age_everything()
+                self.assertTrue(run_tests.import_is_current(self.root))
+
+    def test_a_new_gdignore_import_or_audio_file_forces_an_import(self):
+        for rel in ("scripts/.gdignore", "art/new.png.import", "audio.ogg"):
+            with self.subTest(rel):
+                self.write(rel)
+                self.touch(rel)
+                self.assertFalse(run_tests.import_is_current(self.root))
+                os.remove(os.path.join(self.root, rel))
+                self.age_everything()
+
+    def test_a_removed_or_added_file_moves_its_folder_and_forces_an_import(self):
+        self.touch("scripts")  # what deleting scripts/a.gd does to the folder's time
+        self.assertFalse(run_tests.import_is_current(self.root))
+
+    def test_ignored_folders_and_documents_do_not(self):
+        for rel in ("design/x.tscn", "reports/r.xml", ".scratch/s.gd", "coverage/c.html", ".coverage_build/b.gd",
+                    "README.md", "tools/x.py"):
+            with self.subTest(rel):
+                self.write(rel)
+                self.touch(rel)
+                self.assertTrue(run_tests.import_is_current(self.root))
+
+    def test_the_import_marker_counts_as_a_later_import(self):
+        self.touch("scripts/a.gd")
+        self.assertFalse(run_tests.import_is_current(self.root))
+        marker = os.path.join(self.root, ".godot", run_tests.IMPORT_STAMP)
+        with open(marker, "w", encoding="utf-8") as fh:
+            fh.write("imported\n")
+        os.utime(marker, (self.STAMP + 60, self.STAMP + 60))
+        self.assertTrue(run_tests.import_is_current(self.root))
+
+
+class WeightsAndWorkersTest(unittest.TestCase):
+    def test_recorded_durations_win_over_the_committed_weights(self):
+        import unittest.mock as mock
+        committed = {"a::t": 1.0, "a::u": 2.0}
+
+        def read(path):
+            return dict(committed) if path == run_tests.WEIGHTS_FILE else {"a::t": 9.0}
+        with mock.patch.object(run_tests, "_read_json_dict", side_effect=read), \
+                mock.patch.object(run_tests, "times_cache_path", return_value="recorded.json"):
+            self.assertEqual(run_tests.load_weights(), {"a::t": 9.0, "a::u": 2.0})
+        with mock.patch.object(run_tests, "_read_json_dict", side_effect=read), \
+                mock.patch.object(run_tests, "times_cache_path", return_value=None):
+            self.assertEqual(run_tests.load_weights(), committed)
+
+    def test_a_recorded_slow_test_gets_its_own_unit(self):
+        tests = {"s_test": ["test_a", "test_b"]}
+        before = run_tests.plan_units(tests, {"s_test::test_a": 0.1, "s_test::test_b": 0.1})
+        after = run_tests.plan_units(tests, {"s_test::test_a": 0.1, "s_test::test_b": 20.0})
+        self.assertEqual([u["name"] for u in before], ["s_test"])
+        self.assertEqual({u["name"] for u in after}, {"s_test::test_b", "s_test (rest)"})
+
+    def test_times_are_recorded_for_passing_tests_only_and_read_back(self):
+        import tempfile
+        import unittest.mock as mock
+        path = os.path.join(tempfile.mkdtemp(prefix="times_"), "t.json")
+        try:
+            with mock.patch.object(run_tests, "times_cache_path", return_value=path):
+                run_tests.record_times([{"file": "a_test", "name": "test_x", "ok": True, "time": 1.26},
+                                        {"file": "a_test", "name": "test_bad", "ok": False, "time": 9.0}])
+                self.assertEqual(run_tests.load_recorded_times(), {"a_test::test_x": 1.3})
+        finally:
+            remove_tree(os.path.dirname(path))
+
+    def test_default_workers_leave_cores_free_and_are_capped(self):
+        cpus = os.cpu_count() or 2
+        self.assertLessEqual(run_tests.WORKERS_DEFAULT, 16)
+        self.assertGreaterEqual(run_tests.WORKERS_DEFAULT, max(1, min(16, cpus // 2)))
+
+
+class SelectedTestsTest(unittest.TestCase):
+    def test_a_partial_suite_skips_the_tests_that_were_not_selected(self):
+        import unittest.mock as mock
+        seen = []
+
+        def fake_run(args, cwd, env_extra=None, stream=True):
+            seen.append(args)
+            return 0, ""
+        every = {"s_test": ["test_a", "test_b", "test_c"]}
+        with mock.patch.object(run_tests, "discover_tests", return_value=every), \
+                mock.patch.object(run_tests, "load_weights", return_value={}), \
+                mock.patch.object(run_tests, "run_godot", side_effect=fake_run), \
+                mock.patch.object(run_tests, "latest_results_xml", return_value=None):
+            run_tests.run_parallel("p", os.path.join(run_tests.ROOT, ".scratch", "sel"), 1,
+                                   selected={"s_test": ["test_b"]})
+        skipped = [a for a in seen[0] if a.startswith("res://tests/s_test.gd:")]
+        self.assertEqual(sorted(skipped), ["res://tests/s_test.gd:test_a", "res://tests/s_test.gd:test_c"])
+
+    def test_the_integrity_check_expects_only_the_selected_tests(self):
+        ran = [{"file": "s_test", "name": "test_b", "ok": True}]
+        self.assertEqual(run_tests.integrity_problems(run_tests.ROOT, ran, [], selected={"s_test": ["test_b"]}), [])
+        self.assertTrue(run_tests.integrity_problems(run_tests.ROOT, ran, [],
+                                                     selected={"s_test": ["test_b", "test_z"]}))
+
+
 @unittest.skipIf(godot_console() is None, "Godot not found (GODOT, PATH or WinGet)")
 class BrokenSuiteEndToEndTest(unittest.TestCase):
     """The real CLI on a scratch project with one good suite and the broken fixture: non-zero exit, file named last."""
