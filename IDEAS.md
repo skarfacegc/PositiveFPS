@@ -297,3 +297,34 @@ the new pointer placement); it now has a test (`322abc5`).
 - **Coordinator:** `tools/checkpoint/checkpoint_round24.gd` used the removed first light label; it now shows the notice
   (`ab2cef4`), and the unused `FIRST_LIGHT_TEXT_COLOUR` went.
 - **Loosened:** nothing. Raising the shader buffer is a capacity setting with a test that guards it, not a test threshold.
+
+## Snag round playtest and graphics checkpoint 6 plan (2026-11-07)
+
+Played `c5e819b` once in the styled look, recorded (`20261107-055505`, saved with its `godot.log` in
+`recordings/playtests/snag/`): a win, 2 of 3 dawn lights (40 rescued, 67%; ground 12%), much harder than the last game:
+52 gaps (calm 6, midnight 29, easing 17), 17 wobbles (5 saved, 11 relapses), the Garden claimed at 48 s, lost at 133 s and
+retaken at 171 s, 6 bursts, 1 patch, 3 beacons. First light ran from 135 s and lifted 20 people. **The game's log had 0
+errors** (the last game had 354 shader instance errors), so the buffer fix holds in play.
+
+**What the user said:** a good challenge, keep it. First light: make it a closing ring rather than a square. The styled
+look looked fine apart from the coral edge triangles sitting over the landmarks panel and the key line. Next: more
+graphics work. They like the overall style but there is too much dithering (keep a bit). Also: the player's jog barely
+differs from the walk; the placeholder HUD text, target highlight and beacon marker in the styled look; and big centre
+notices ("Someone lost their joy!") cover the play area.
+
+### Plan: graphics checkpoint 6 (three parts in parallel)
+
+- **Part O, first light ring (Sonnet):** the front is a circle closing on the border's centre (or the plaza centre if
+  that is what the square used), starting where it covers the whole map and reaching the centre at dawn. "Passed" uses
+  the round distance, so the lifting follows the ring. Both looks: the placeholder strips, the styled ground shader's
+  `dawn_front`, `StyleFirstLight` motes, and the minimap. Same timing and lift rates; check the analyser's FIRST LIGHT
+  numbers stay comparable.
+- **Part P, styled HUD (Sonnet):** the coral edge triangles (and any other edge pointers) keep clear of the HUD panels,
+  reusing `WobbleAlert.safe_rect`. Notices move off the play area: a slimmer banner under the Dusk to Dawn bar instead
+  of the big centre panel, in both looks. The styled look gets its own target highlight, beacon marker and HUD text
+  labels (rescued count, burst line, target line, targeting line, key line) in the existing styled UI language
+  (`StyleUi`, parchment panels, pixel font), original art.
+- **Part Q, dithering and jog (Haiku):** cut the styled dithering to roughly half its current strength (post shader,
+  ground and glow stipple), keeping some texture. Make the player's run clearly different from the walk (faster stride,
+  more lean and bob) in both looks.
+- Afterwards the coordinator refreshes the checkpoint screenshots for the user.
