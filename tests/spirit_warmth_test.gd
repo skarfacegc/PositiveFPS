@@ -205,8 +205,9 @@ func test_a_warm_does_not_cut_short_a_patch_or_a_lift() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_warm_gift_is_a_marker_in_both_looks_and_goes_when_it_ends() -> void:
-	# Round 25: the warm disc under the person is gone; a gift is the lowest-priority marker (EdgeMarkers) instead.
+func test_the_warm_gift_is_a_glow_on_the_person_in_both_looks_and_goes_when_it_ends() -> void:
+	# Round 25: the warm disc under the person is gone; round 26: so are the trouble markers. The gift is the person's
+	# own warm reaction (a glow and a hop), which runs for SPARE_GLOW_SECONDS.
 	for styled: bool in [false, true]:
 		Looks.set_mode(Looks.Mode.STYLED if styled else Looks.Mode.PLACEHOLDER)
 		var s: Dictionary = await _start()
@@ -215,15 +216,11 @@ func test_the_warm_gift_is_a_marker_in_both_looks_and_goes_when_it_ends() -> voi
 		p.is_rescued = true
 		p.joy = 10.0
 		SpiritWarmth.warm(p, 20.0)
-		var none: Array[Dictionary] = []
-		var started := EdgeMarkers.collect(td.border, [p], none)
-		assert_int(started.size()).is_equal(1)
-		assert_int(started[0].kind).is_equal(EdgeMarkers.Kind.GIFT)
+		assert_int(p.react_kind).is_equal(Person.React.WARM)
 		p.tick(Config.SPARE_GLOW_SECONDS * 0.5)
-		var mid := EdgeMarkers.collect(td.border, [p], none)
-		assert_int(mid.size()).is_equal(1)
+		assert_int(p.react_kind).is_equal(Person.React.WARM)
 		p.tick(Config.SPARE_GLOW_SECONDS)
-		assert_int(EdgeMarkers.collect(td.border, [p], none).size()).is_equal(0)
+		assert_int(p.react_kind).is_equal(Person.React.NONE)
 		await TopDownTestUtil.leave_loaded_scene(td)
 
 

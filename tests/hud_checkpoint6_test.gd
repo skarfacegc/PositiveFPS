@@ -149,7 +149,7 @@ func test_a_notice_moves_down_below_the_alert_so_the_two_never_overlap_in_both_l
 	for mode: int in [Looks.Mode.PLACEHOLDER, Looks.Mode.STYLED]:
 		await _look(s, mode)
 		td.hud.show_alert("Someone lost their joy!")
-		td.intro.notice(Intro.Prompt.PATCH_NONE)
+		td.intro.notice(Intro.Prompt.BEACON_BLOCKED)
 		await runner.simulate_frames(10)
 		var alert := Rect2(0.0, Config.CP6_BANNER_TOP, SCREEN.x, Config.CP6_BANNER_HEIGHT)
 		assert_bool(td.hud.alert_showing()).is_true()

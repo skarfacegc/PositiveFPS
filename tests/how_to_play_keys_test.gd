@@ -74,7 +74,7 @@ func test_every_player_action_appears_in_the_how_to_play_text() -> void:
 func test_the_shape_zone_key_is_listed_with_the_other_keys() -> void:
 	var keys_line := _text().split("[b]Keys:[/b]")[1]
 	assert_bool(_has_word(keys_line, "E")).is_true()
-	assert_bool(_has_word(keys_line, "F")).is_true()
+	assert_bool(_has_word(keys_line, "F")).is_false()  # Round 26: the F patch is gone.
 	assert_bool(_has_word(keys_line, "G")).is_true()
 	assert_bool(_has_word(keys_line, "Q")).is_true()
 

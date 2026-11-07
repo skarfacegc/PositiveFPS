@@ -1,9 +1,8 @@
 extends GdUnitTestSuite
 
-# Round 12b: edge pressure (dimmed people prefer the newest, outermost stretch of the border) and local gaps (a member
-# drained below MEMBER_FALTER_FRACTION falters, steps back and opens a gap on both sides of them; the gap is local,
-# does not smooth away at once, and closes when the player re-joys the member). The scripted scenario builds a healthy
-# border of rescued people, then sends two dimmed people to press one member.
+# Round 12b: edge pressure (dimmed people prefer the newest, outermost stretch of the border) and the slot gap rules.
+# Round 26: a faltering member no longer opens a gap, so the benching and step-back tests are gone (BorderShape still
+# knows the faltering flag). A break made by pushing is in border_push_test.gd and push_defence_test.gd.
 
 
 # Rescues `count` people on a ring of radius `r` around the origin and lets the border settle (night at midnight).
@@ -151,201 +150,28 @@ func test_a_dimmed_person_outside_the_border_walks_up_to_the_line_and_presses_it
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-# --- Local gaps --------------------------------------------------------------------------------------------------
-
-
-func test_a_focused_push_opens_one_local_gap_and_re_joying_the_member_closes_it() -> void:
-	var s: Dictionary = await _border_level(20, 7.0)
-	var runner: GdUnitSceneRunner = s["runner"]
-	var td: TopDownMain = s["td"]
-	var border: Border = td.border
-	# A healthy border has no gap at all.
-	assert_bool(border.active).is_true()
-	assert_int(border.member_count).is_equal(20)
-	assert_int(border.gap_count()).is_equal(0)
-	assert_int(border.gap_region_count()).is_equal(0)
-
-	# Two dimmed people press the same member from outside.
-	var target: Person = border.members[7]
-	var out := _outward(td, target)
-	var side := Vector3(-out.z, 0.0, out.x)
-	TopDownTestUtil.place(td.people[20], target.position + out * 1.2, 1, 0.95)
-	TopDownTestUtil.place(td.people[21], target.position + out * 1.2 + side * 0.6, 2, 0.95)
-
-	# Round 14: the second presser sinks only DIM_ARRIVAL_MIN_GAP (9 s, round 17) after the first (the midnight stagger),
-	# so the member falters later than before. Exactly one stretch opens, not the whole border, within about 25 seconds.
-	var frames := 0
-	while border.gap_region_count() == 0 and frames < 2400:
-		await runner.simulate_frames(1)
-		frames += 1
-	assert_int(border.gap_region_count()).is_equal(1)
-	assert_int(frames).is_less(1500)
-	assert_int(border.gap_count()).is_between(1, 3)
-	assert_int(border.gap_count()).is_less(border.segment_gap.size() / 2)
-	var faltering: Person = null
-	for m: Person in border.members:
-		if border.is_faltering(m):
-			faltering = m
-	assert_object(faltering).is_not_null()
-	(
-		assert_float(
-			Vector2(faltering.position.x, faltering.position.z).distance_to(
-				Vector2(target.position.x, target.position.z)
-			)
-		)
-		. is_less(5.5)
-	)
-	# Its stretch of the line is a gap (and the other side of the loop is not).
-	assert_int(border.gap_midpoints().size()).is_equal(border.gap_count())
-
-	# The pressers leave, so the member stops losing joy. The neighbours do not shuffle to smooth the gap away: nobody is
-	# spare, and the member stays where they are for at least GAP_HEAL_DELAY.
-	TopDownTestUtil.place(td.people[20], Vector3(-25, 0, 25), 1, 0.95)
-	TopDownTestUtil.place(td.people[21], Vector3(-25, 0, 24), 2, 0.95)
-	await runner.simulate_frames(int(Config.GAP_HEAL_DELAY * 60.0) + 30)
-	assert_int(border.gap_region_count()).is_equal(1)
-	assert_bool(border.is_faltering(faltering)).is_true()
-	# The faltering member stepped back from the line.
-	var target_spot: Vector3 = border._targets[faltering]
-	assert_float(Vector2(target_spot.x, target_spot.z).distance_to(Vector2(border.centre.x, border.centre.z))).is_less(
-		Vector2(target.position.x, target.position.z).distance_to(Vector2(border.centre.x, border.centre.z)) + 0.1
-	)
-
-	# Re-joying them with real input (hover and fire) restores them and the gap closes. Round 19: the centre no longer
-	# drifts toward the player, so the player walks out toward the member first (they were out of range at the middle).
-	td.player.global_position = faltering.global_position * 0.5
-	await runner.simulate_frames(120)  # the camera follows the player
-	# The two pressers may have worn down two neighbours: re-joy whoever still falters, one after the other.
-	var waited := 0
-	while border.gap_count() > 0 and waited < 1200:
-		if waited % 30 == 0 and not border.faltering.is_empty():
-			runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, border.faltering[0].global_position))
-		await runner.simulate_frames(1)
-		waited += 1
-	assert_int(border.gap_count()).is_equal(0)
-	assert_bool(faltering.is_faltering()).is_false()
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-# Scene-free: a radius 6 loop holds 15 slots, a post on it three of them, so 12 members are needed and 8 of the 20
-# rescued people are spare inner members. Returns the border and the rescued people.
-func _post_border() -> Dictionary:
-	var border: Border = auto_free(Border.new())
-	add_child(border)
-	border.setup(null)
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
-	border.active = true
-	var body: StaticBody3D = auto_free(StaticBody3D.new())
-	body.position = Vector3(5.5 * Config.WORLD_SCALE, 0.0, 0.0)
-	add_child(body)
-	border.register_building(body, Vector2(0.5, 0.5), false)
-	border.buildings[0].beautified = true
-	var rescued: Array[Person] = []
-	for i: int in range(20):
-		var a := TAU * float(i) / 20.0
-		var p: Person = auto_free(Person.new())
-		p.is_rescued = true
-		p.joy = Config.JOY_MAX
-		p.position = Vector3(cos(a) * 6.0 * Config.WORLD_SCALE, 0.0, sin(a) * 6.0 * Config.WORLD_SCALE)
-		rescued.append(p)
-	border._assign_members(rescued)
-	assert_int(border.member_count).is_equal(12)
-	assert_int(border.inner_count).is_equal(8)
-	assert_int(border.gap_count()).is_equal(0)
-
-	return {"border": border, "rescued": rescued}
-
-
-func test_a_spare_inner_member_takes_a_faltering_place_only_after_the_heal_delay() -> void:
-	var made := _post_border()
-	var border: Border = made["border"]
-	var rescued: Array[Person] = []
-	var made_list: Array = made["rescued"]
-	rescued.assign(made_list)
-	# Round 16: the weak member is the one standing farthest from the post. (This used to be members[2], which only worked
-	# because the old nearest-free-slot assignment happened to put that member away from the post; with members now kept
-	# in order round the loop, members[2] can sit beside the post, where the segments are anchored and never a gap.)
-	var post_at := Vector3(5.5 * Config.WORLD_SCALE, 0.0, 0.0)
-	var weak: Person = border.members[0]
-	for m: Person in border.members:
-		if GloomSim.flat_dist(m.position, post_at) > GloomSim.flat_dist(weak.position, post_at):
-			weak = m
-	weak.joy = Config.JOY_MAX * 0.6  # Faltering, but not about to relapse (0.5).
-	# Each frame: the level updates the falter clock, then the slots.
-	for i: int in range(60):
-		border._update_falter(rescued, 1.0 / 60.0)
-		border._assign_members(rescued)
-	# After a second the gap is still there and the same member holds the place.
-	assert_int(border.gap_region_count()).is_equal(1)
-	assert_bool(border.members.has(weak)).is_true()
-	for i: int in range(int(Config.GAP_HEAL_DELAY * 60.0)):
-		border._update_falter(rescued, 1.0 / 60.0)
-		border._assign_members(rescued)
-	# After the delay a spare inner member has stepped in and the gap is healed; the weak one waits inside.
-	assert_bool(border.members.has(weak)).is_false()
-	assert_bool(border.inner.has(weak)).is_true()
-	assert_int(border.gap_count()).is_equal(0)
-	assert_int(border.member_count).is_equal(12)
-	# They stay on the bench while they falter (they do not flap back to the line), and come back when they recover.
-	for i: int in range(30):
-		border._update_falter(rescued, 1.0 / 60.0)
-		border._assign_members(rescued)
-	assert_bool(border.inner.has(weak)).is_true()
-	weak.joy = Config.JOY_MAX
-	border._update_falter(rescued, 1.0 / 60.0)
-	assert_bool(border._benched.has(weak)).is_false()
-
-
-func test_a_benched_member_comes_back_when_nobody_else_can_fill_the_line_and_is_forgotten_if_lost() -> void:
-	var made := _post_border()
-	var border: Border = made["border"]
-	var rescued: Array[Person] = []
-	var made_list: Array = made["rescued"]
-	rescued.assign(made_list)
-	border._assign_members(rescued)
-	var weak: Person = border.members[2]
-	weak.joy = Config.JOY_MAX * 0.6
-	for i: int in range(int((Config.GAP_HEAL_DELAY + 1.0) * 60.0)):
-		border._update_falter(rescued, 1.0 / 60.0)
-		border._assign_members(rescued)
-	assert_bool(border._benched.has(weak)).is_true()
-	# Most of the others are lost: with exactly as many people as the line needs, the benched one goes back on it.
-	var few: Array[Person] = []
-	for m: Person in border.members:
-		if few.size() < 11:
-			few.append(m)
-	few.append(weak)
-	border._update_falter(few, 1.0 / 60.0)
-	border._assign_members(few)
-	assert_int(border.member_count).is_equal(12)
-	assert_bool(border.members.has(weak)).is_true()
-	# A benched person who is no longer rescued is forgotten.
-	weak.is_rescued = false
-	var nobody: Array[Person] = []
-	border._update_falter(nobody, 1.0 / 60.0)
-	assert_bool(border._benched.has(weak)).is_false()
-
-
-func test_with_nobody_spare_a_faltering_member_keeps_their_place_and_the_gap_stays() -> void:
-	var s: Dictionary = await _border_level(20, 7.0)
-	var runner: GdUnitSceneRunner = s["runner"]
-	var td: TopDownMain = s["td"]
-	var border: Border = td.border
-	var weak: Person = border.members[4]
-	weak.joy = Config.JOY_MAX * 0.6
-	# Checkpoint 5: the rescues that built this level spilled spirit past a full meter, which would warm the weak
-	# member and close the gap; this test is about nobody helping, so the pool is emptied.
-	td.spirit_warmth.pool = 0.0
-	await runner.simulate_frames(int((Config.GAP_HEAL_DELAY + 2.0) * 60.0))
-	assert_bool(border.members.has(weak)).is_true()
-	assert_int(border.gap_region_count()).is_equal(1)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
 func test_overextending_still_opens_gaps_everywhere() -> void:
 	# Four people on the smallest circle are over the spacing limit: every stretch is a gap, not only one.
 	var s: Dictionary = await _border_level(4, 2.0)
 	var td: TopDownMain = s["td"]
 	assert_int(td.border.gap_count()).is_equal(td.border.segment_gap.size())
 	assert_int(td.border.gap_region_count()).is_equal(1)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_a_faltering_member_no_longer_steps_back_or_opens_a_gap() -> void:
+	var s: Dictionary = await _border_level(20, 7.0)
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	var border: Border = td.border
+	var weak: Person = border.members[4]
+	td.spirit_warmth.pool = 0.0
+	weak.joy = Config.JOY_MAX * 0.6
+	await runner.simulate_frames(int(3.0 * 60.0))
+	assert_bool(border.is_faltering(weak)).is_true()
+	assert_bool(border.members.has(weak)).is_true()
+	assert_int(border.gap_count()).is_equal(0)
+	var spot: Vector3 = border._targets[weak]
+	var out := Vector2(spot.x - border.centre.x, spot.z - border.centre.z).length()
+	assert_float(out).is_greater(border._mean_radius() * 0.9)  # Still on the line, not stepped back.
 	await TopDownTestUtil.leave_loaded_scene(td)

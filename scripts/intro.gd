@@ -12,7 +12,7 @@ extends RefCounted
 # no prompt ever shows.
 
 enum Prompt {
-	GAP,
+	BREAK,  # Round 26: the line broke (was GAP): the first break gets a prompt.
 	GUARDED,
 	SKITTISH,
 	GLUM,
@@ -25,12 +25,9 @@ enum Prompt {
 	BEACON_BLOCKED,
 	BEACON_FELL_BACK,
 	ZONE_PULLED_IN,
-	PATCH_SPIRIT,
-	PATCH_NONE,
-	PATCH_ALREADY,
-	PATCH_MAX,
 	FIRST_LIGHT,  # Snag round: the notice when first light starts (first_light.gd).
-	TIDE  # Round 25: the notice when a gloom tide is coming (gloom_tide.gd; the words name the side).
+	TIDE,  # Round 25: the notice when a gloom tide is coming (gloom_tide.gd; the words name the side).
+	PUSH  # Round 26: the first time the line bends under a push.
 }
 
 var enabled: bool = true
@@ -38,11 +35,12 @@ var night: NightCycle
 # The prompt on show (a Prompt value, or -1 for none), the seconds it has left, and the ones waiting.
 var current: int = -1
 var time_left: float = 0.0
-# Round 22: a notice (a refusal or a fall-back) stays NOTICE_SECONDS in a larger bar near the middle of the screen,
-# and may
-# carry its own words (the plan's reason). The ordinary prompts keep PROMPT_SECONDS.
+# Round 22: a notice (a refusal or a fall-back) stays NOTICE_SECONDS and may carry its own words (the plan's reason);
+# it is drawn coral (`coral`). The ordinary prompts keep PROMPT_SECONDS. Round 26: every prompt and notice is a slim
+# banner under the night bar (`big` stays true), one at a time.
 var duration: float = Config.PROMPT_SECONDS
-var big: bool = false
+var big: bool = true
+var coral: bool = false
 var custom_text: String = ""
 var queue: Array[int] = []
 # Where the current prompt points in the world (Vector3.INF for none: it sits at the bottom centre).
@@ -93,6 +91,7 @@ func notice(id: int, words: String = "") -> void:
 	current = id
 	anchor = Vector3.INF
 	big = true
+	coral = true
 	custom_text = words
 	duration = Config.NOTICE_SECONDS
 	time_left = duration
@@ -112,9 +111,10 @@ func check_level(main: TopDownMain, delta: float) -> void:
 	if _check_timer < Config.INTRO_CHECK_SECONDS:
 		return
 	_check_timer = 0.0
-	if dimmed_allowed() and not main.feedback.markers.is_empty():
-		var faltering: Person = main.feedback.markers[0]["person"]
-		request(Prompt.GAP, faltering.global_position)
+	if dimmed_allowed() and not main.border.push.breaks.is_empty():
+		request(Prompt.BREAK, main.border.push.break_points()[0])
+	elif dimmed_allowed() and main.border.push.deepest >= Config.PUSH_BREAK_DEPTH * Config.PUSH_PROMPT_FRACTION:
+		request(Prompt.PUSH)
 	var view := main.get_viewport().get_visible_rect().grow(-40.0)
 	for p: Person in main.people:
 		if GloomSim.is_dimmed(p) and view.has_point(main.world_to_screen(p.global_position)):
@@ -157,7 +157,8 @@ func _next() -> void:
 
 
 func _reset_look() -> void:
-	big = false
+	big = true
+	coral = false
 	custom_text = ""
 	duration = Config.PROMPT_SECONDS
 
@@ -175,18 +176,20 @@ static func prompt_for_mood(mood: int) -> int:
 # The short line of a prompt (the icon sits beside it).
 static func text_for(id: int) -> String:
 	match id:
-		Prompt.GAP:
-			return "A gap! Help the faltering one (!) to close it."
+		Prompt.BREAK:
+			return Config.PUSH_BREAK_TEXT
+		Prompt.PUSH:
+			return Config.PUSH_NOTICE_TEXT
 		Prompt.GUARDED:
-			return "Guarded — reach them from the front"
+			return "Guarded: reach them from the front"
 		Prompt.SKITTISH:
-			return "Skittish — walk, don't run"
+			return "Skittish: walk, don't run"
 		Prompt.GLUM:
-			return "Glum — help when they look up"
+			return "Glum: help when they look up"
 		Prompt.SHELTERED:
-			return "Sheltered — a little joy gets through; the umbrella breaks after a few hits"
+			return "Sheltered: the umbrella breaks after a few hits"
 		Prompt.SPIRIT_LOW:
-			return "Spirit low — rescue people to refill"
+			return "Spirit low: rescue people to refill"
 		Prompt.DIM_HELP:
 			return Config.DIM_HELP_TEXT
 		Prompt.BEACON_SPIRIT:
@@ -199,14 +202,6 @@ static func text_for(id: int) -> String:
 			return Config.BEACON_FELL_BACK_TEXT
 		Prompt.ZONE_PULLED_IN:
 			return Config.BEACON_PULLED_IN_TEXT
-		Prompt.PATCH_SPIRIT:
-			return Config.PATCH_SPIRIT_TEXT
-		Prompt.PATCH_NONE:
-			return Config.PATCH_NONE_TEXT
-		Prompt.PATCH_ALREADY:
-			return Config.PATCH_ALREADY_TEXT
-		Prompt.PATCH_MAX:
-			return Config.PATCH_MAX_TEXT
 		Prompt.FIRST_LIGHT:
 			return Config.FIRST_LIGHT_TEXT
 		Prompt.TIDE:
@@ -217,7 +212,7 @@ static func text_for(id: int) -> String:
 # The icon (MoodIcons.Kind) that goes with a prompt.
 static func icon_for(id: int) -> int:
 	match id:
-		Prompt.GAP:
+		Prompt.BREAK, Prompt.PUSH:
 			return MoodIcons.Kind.BANG
 		Prompt.GUARDED:
 			return MoodIcons.Kind.SHIELD

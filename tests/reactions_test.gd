@@ -59,45 +59,12 @@ func _stretch(td: TopDownMain, runner: GdUnitSceneRunner, spot: Vector3) -> void
 # --- A patch makes people react -------------------------------------------------------------------------------------
 
 
-func test_a_patch_makes_the_border_people_at_that_spot_react_nearest_first() -> void:
+func test_a_person_who_is_not_reacting_has_no_progress() -> void:
 	var s: Dictionary = await _border_level(16, 6.0)
 	var td: TopDownMain = s["td"]
-	td.player.add_spirit(100.0)
-	var near: Person = td.border.members[4]
-	var far: Person = null
-	for m: Person in td.border.members:
-		if GloomSim.flat_dist(m.position, near.position) > Config.REACT_PATCH_REACH + 1.0:
-			far = m
-	assert_object(far).is_not_null()
-	var n := td.gap_patch.react_to_patch(near.position)
-	assert_int(n).is_between(1, Config.REACT_PATCH_MAX)
-	assert_int(near.react_kind).is_equal(Person.React.PATCH)
-	assert_vector(near.react_toward).is_equal(near.position)
-	assert_float(near.react_delay).is_equal_approx(0.0, 0.001)
-	assert_int(far.react_kind).is_equal(Person.React.NONE)
-	# The others start later the further they stand from the spot.
-	var last := -1.0
-	for m: Person in td.border.members:
-		if m.react_kind == Person.React.PATCH:
-			assert_float(m.react_delay).is_greater_equal(0.0)
-			assert_float(m.react_delay).is_less_equal(Config.REACT_PATCH_STAGGER + 0.001)
-			last = maxf(last, m.react_delay)
-	assert_float(last).is_greater(0.0)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_patch_at_triggers_the_reaction_and_it_costs_nothing_to_people_far_away() -> void:
-	var s: Dictionary = await _border_level(16, 6.0)
-	var td: TopDownMain = s["td"]
-	td.player.add_spirit(100.0)
-	var m: Person = td.border.members[5]
-	td.gap_patch.patch_at(m.position)
-	assert_int(m.react_kind).is_equal(Person.React.PATCH)
-	# Nobody outside the reach reacts, and a person who is not reacting has no progress.
 	for p: Person in td.people:
-		if GloomSim.flat_dist(p.position, m.position) > Config.REACT_PATCH_REACH:
-			assert_int(p.react_kind).is_equal(Person.React.NONE)
-			assert_float(p.react_progress()).is_equal(-1.0)
+		assert_int(p.react_kind).is_equal(Person.React.NONE)
+		assert_float(p.react_progress()).is_equal(-1.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -167,7 +134,7 @@ func test_the_grace_glow_works_when_no_one_reacts_and_a_burst_makes_each_lifted_
 	var lifted: Person = td.people[20]
 	var other: Person = td.people[21]
 	var cleared: Array[Dictionary] = [{"person": lifted, "from": lifted.position, "to": lifted.position}]
-	td.gap_patch._on_burst_cleared({"cleared": cleared, "lifted": 1, "joy_hits": 0})
+	td.burst_cue._on_burst_cleared({"cleared": cleared, "lifted": 1, "joy_hits": 0})
 	assert_int(lifted.react_kind).is_equal(Person.React.LIFT)
 	assert_int(other.react_kind).is_equal(Person.React.NONE)
 	var look := lifted.look as PersonLookPlaceholder
@@ -220,30 +187,25 @@ func test_the_cue_sits_right_of_the_spirit_meter_and_glows_when_it_is_ready() ->
 	var s: Dictionary = await _border_level(16, 6.0)
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	var m: Person = td.border.members[3]
-	m.joy = Config.JOY_MAX * (Config.MEMBER_FALTER_FRACTION - 0.05)
-	await runner.simulate_frames(20)
 	td.player.add_spirit(100.0)
-	td.player.global_position = Vector3.ZERO
-	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, m.position))
-	await runner.simulate_frames(3)
-	var label := td.gap_patch.patch_label
+	td.player.burst_cooldown = 0.0
+	td.burst_cue.burst_targets = 2
+	td.burst_cue._update_label()
+	var label := td.burst_cue.cue_label
 	var screen := td.get_viewport().get_visible_rect().size
 	assert_bool(label.visible).is_true()
-	assert_bool(td.gap_patch.cue_ready).is_true()
+	assert_bool(td.burst_cue.cue_ready).is_true()
+	assert_str(label.text).is_equal(Config.CUE_BURST_TEXT % 2)
 	assert_float(label.position.x).is_greater(screen.x * 0.5 + Config.SPIRIT_METER_WIDTH * 0.5)
 	assert_float(label.position.y).is_greater(screen.y * 0.7)
 	var ready_edge := (label.get_theme_stylebox("normal") as StyleBoxFlat).border_color
-	# Aimed away, the gap near the player only asks to be aimed at: shown, but not glowing.
-	td.player.global_position = m.position * 0.8
-	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, -m.position * 2.0))
-	await runner.simulate_frames(3)
-	assert_str(td.gap_patch.cue_text()).is_equal(Config.CUE_PATCH_AIM_TEXT)
-	assert_bool(td.gap_patch.cue_ready).is_false()
-	var plain_edge := (label.get_theme_stylebox("normal") as StyleBoxFlat).border_color
-	assert_float(ready_edge.a).is_greater(plain_edge.a)
-	# The old cue by the player's feet is gone: the label no longer follows the player.
-	assert_float(label.position.x).is_greater(screen.x * 0.5)
+	assert_float(ready_edge.a).is_greater(0.5)
+	# Nobody to lift: the cue goes (and stops glowing).
+	td.burst_cue.burst_targets = 0
+	td.burst_cue._update_label()
+	assert_bool(label.visible).is_false()
+	assert_bool(td.burst_cue.cue_ready).is_false()
+	await runner.simulate_frames(1)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -263,14 +225,14 @@ func test_hovering_shows_no_words_a_refusal_shows_only_on_e_and_the_pull_in_retr
 	await runner.simulate_frames(120)
 	td.reach_guide.sync(td.border, td.player)
 	assert_bool(td.reach_guide._label == null or not td.reach_guide._label.visible).is_true()
-	assert_bool(td.intro.big).is_false()
+	assert_bool(td.intro.coral).is_false()
 	var plan: Dictionary = td.border.plan_stretch(td.player.aim_point())
 	assert_bool(plan["refused"]).is_true()
 	# Pressing E on it shows the one small notice with the reason, and spends nothing.
 	var spirit := td.player.spirit
 	assert_bool(td.try_place_beacon()).is_false()
 	assert_int(td.intro.current).is_equal(Intro.Prompt.BEACON_BLOCKED)
-	assert_bool(td.intro.big).is_true()
+	assert_bool(td.intro.coral).is_true()
 	assert_float(td.player.spirit).is_equal(spirit)
 	# Merged below (no frames run in these parts, and they set the arms themselves, so they go last): "one arm retreats
 	# at a time, the longest first, after its outline fades" and "a loop far over its length hurries and skips the fade".

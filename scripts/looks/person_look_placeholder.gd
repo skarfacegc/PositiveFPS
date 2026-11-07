@@ -118,6 +118,25 @@ func _sync_body() -> void:
 		wisp.emitting = subject.level == 2
 		# Round 25: a dimmed person outside the border has lower contrast against the ground.
 		body_mat.albedo_color = EdgeDim.faded(body_mat.albedo_color, outside_fade)
+	_pose_brace()
+
+
+# Round 26: a person under push leans into it and plants their feet (the body widens a little); the harder the push, the
+# more they struggle (a quick shake past half brace). A border member leans out against the push, a dimmed pusher leans
+# into the line. Subject.brace is 0 to 1 and brace_dir the flat direction of the lean (world).
+func _pose_brace() -> void:
+	var amount := subject.brace
+	body.scale.x = 1.0 + Config.PUSH_BRACE_WIDEN * amount
+	body.scale.z = body.scale.x
+	if amount <= 0.01 or subject.brace_dir == Vector3.ZERO:
+		body.rotation.x = 0.0
+		return
+	var local := subject.global_transform.basis.inverse() * subject.brace_dir
+	var lean := amount * Config.PUSH_BRACE_LEAN
+	body.rotation.x = local.z * lean
+	body.rotation.z += -local.x * lean
+	if amount > 0.5:
+		body.rotation.z += sin(clock * 40.0) * Config.PUSH_BRACE_SHAKE * (amount - 0.5) * 2.0
 
 
 func _set_glow(amount: float) -> void:

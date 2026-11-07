@@ -6,8 +6,16 @@ extends RefCounted
 # random numbers come from the level's _rng so the walk stays the same as before the move.
 
 var main: TopDownMain
+# Round 26: switches back to the all-pairs separation (for tests).
+var brute_force: bool = false
 # Wander state for each person: a Dictionary of {"target": Vector3, "timer": float}.
 var _wander: Dictionary = {}
+# Round 26: the separation grid. People are indexed by their place in `main.people`; a cell holds the indices of the
+# people in it (cell size TD_SEPARATION_RADIUS).
+var _cells: Dictionary = {}
+var _cell_of: Array[Vector2i] = []
+var _index: Dictionary = {}
+var _grid_live: bool = false
 
 
 func _init(level: TopDownMain) -> void:
@@ -18,6 +26,7 @@ func _init(level: TopDownMain) -> void:
 # (see pursuit_assignments). A dimmed person with nobody to chase drifts to the nearest territory edge, and everyone
 # else wanders. Everyone also steers away from close neighbours (_separation). Rescued people are moved by the border.
 func update_people(delta: float) -> void:
+	rebuild_grid()  # Round 26: the separation grid (see _separation).
 	var pursuit: Dictionary = pursuit_assignments(main.people)
 	for p: Person in main.people:
 		p.shooter_pos = main.player.global_position  # Round 17: the guarded wedge asks whether a shot from here would land.
@@ -53,6 +62,7 @@ func update_people(delta: float) -> void:
 			_steer(p, edge_desired, Config.TD_DIMMED_DRIFT_SPEED, delta)
 		else:
 			_steer(p, _wander_dir(p, delta), Config.TD_WANDER_SPEED, delta)
+	_grid_live = false  # Positions change elsewhere before the next frame; a standalone _separation rebuilds the grid.
 
 
 # How close a pursuing dimmed person walks to their target: right up to the line when they are outside the border and
@@ -153,6 +163,23 @@ func _steer(p: Person, desired: Vector3, speed: float, delta: float) -> void:
 # back together. Two people standing exactly on the same spot are split by array order: the earlier one is pushed
 # right, the later one left.
 func _separation(p: Person) -> Vector3:
+	var my_index: int = _index.get(p, -1)
+	if brute_force or not _grid_live or my_index < 0:
+		return separation_brute(p)  # No grid built for this frame (a standalone call): the reference version.
+	# Round 26: only the neighbours in the nine cells around p are looked at, in array order (so the sum is added up in
+	# the same order as the brute-force version and the result is identical).
+	var near := _near_indices(p.global_position)
+	var push := Vector3.ZERO
+	for i: int in near:
+		if i == my_index:
+			continue
+		push += _push_from(p, main.people[i], my_index, i)
+	return push
+
+
+# Round 26: the reference version (every person against every other, `people.find` for the index). Kept so a test can
+# check the grid gives the same answer, and as the `brute_force` switch.
+func separation_brute(p: Person) -> Vector3:
 	var push := Vector3.ZERO
 	var people := main.people
 	var my_index := people.find(p)
@@ -160,17 +187,78 @@ func _separation(p: Person) -> Vector3:
 		var q: Person = people[i]
 		if q == p:
 			continue
-		var diff: Vector3 = p.global_position - q.global_position
-		diff.y = 0.0
-		var d := diff.length()
-		if d >= Config.TD_SEPARATION_RADIUS:
-			continue
-		if _may_loom(p, q):
-			continue
-		if d < 0.001:
-			diff = Vector3.RIGHT if my_index < i else Vector3.LEFT
-		push += diff.normalized()
+		push += _push_from(p, q, my_index, i)
 	return push
+
+
+# The push on `p` (index `my_index`) from `q` (index `i`): one unit away from q when q is inside TD_SEPARATION_RADIUS
+# and the pair do not loom; zero otherwise.
+func _push_from(p: Person, q: Person, my_index: int, i: int) -> Vector3:
+	var diff: Vector3 = p.global_position - q.global_position
+	diff.y = 0.0
+	var d := diff.length()
+	if d >= Config.TD_SEPARATION_RADIUS:
+		return Vector3.ZERO
+	if _may_loom(p, q):
+		return Vector3.ZERO
+	if d < 0.001:
+		diff = Vector3.RIGHT if my_index < i else Vector3.LEFT
+	return diff.normalized()
+
+
+func _cell_key(pos: Vector3) -> Vector2i:
+	return Vector2i(floori(pos.x / Config.TD_SEPARATION_RADIUS), floori(pos.z / Config.TD_SEPARATION_RADIUS))
+
+
+# Round 26: builds the grid (cell size = the separation radius) and the person -> index cache from the positions now.
+func rebuild_grid() -> void:
+	_cells.clear()
+	_index.clear()
+	_cell_of.clear()
+	for i: int in range(main.people.size()):
+		var q: Person = main.people[i]
+		var key := _cell_key(q.global_position)
+		_index[q] = i
+		_cell_of.append(key)
+		if not _cells.has(key):
+			_cells[key] = PackedInt32Array()
+		var list: PackedInt32Array = _cells[key]
+		list.append(i)
+		_cells[key] = list
+	_grid_live = true
+
+
+# Called after a person moves: puts them in their new cell.
+func _regrid(p: Person) -> void:
+	var i: int = _index.get(p, -1)
+	if i < 0 or not _grid_live:
+		return
+	var key := _cell_key(p.global_position)
+	if key == _cell_of[i]:
+		return
+	var old: PackedInt32Array = _cells[_cell_of[i]]
+	old.remove_at(old.find(i))
+	_cells[_cell_of[i]] = old
+	if not _cells.has(key):
+		_cells[key] = PackedInt32Array()
+	var list: PackedInt32Array = _cells[key]
+	list.append(i)
+	_cells[key] = list
+	_cell_of[i] = key
+
+
+# The indices of the people in the nine cells round `pos`, in ascending (array) order.
+func _near_indices(pos: Vector3) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	var c := _cell_key(pos)
+	for dx: int in range(-1, 2):
+		for dz: int in range(-1, 2):
+			var cell := Vector2i(c.x + dx, c.y + dz)
+			if _cells.has(cell):
+				var here: PackedInt32Array = _cells[cell]
+				out.append_array(here)
+	out.sort()
+	return out
 
 
 # Round 12b: a dimmed person and a wistful or gloomy one do not push each other apart, so a dimmed person can stand
@@ -214,5 +302,6 @@ func _step(p: Person, dir: Vector3, speed: float, delta: float) -> void:
 			_wander[p]["timer"] = 0.0
 		return
 	p.position = next_pos
+	_regrid(p)
 	if p.active_mood() != Person.Mood.GUARDED:  # A guarded person keeps their back to the player (see Moods).
 		p.look_at(next_pos + Vector3(dir.x, 0.0, dir.z), Vector3.UP)

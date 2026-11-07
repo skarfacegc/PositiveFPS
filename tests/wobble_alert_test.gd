@@ -11,7 +11,6 @@ func _start_wobble(p: Person) -> void:
 	p.is_rescued = true
 	p.grace_left = 0.0
 	p.loss_mult = 1.0
-	p.patch_mult = 1.0
 	p.relapse_gate = Callable()
 	p.joy = p.joy_needed()
 	p.drain_joy(p.joy - p.joy_needed() * Config.RELAPSE_FRACTION + 1.0)

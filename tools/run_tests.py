@@ -6,7 +6,7 @@ Usage:
     python tools/run_tests.py --project DIR   # test another copy of the project
     python tools/run_tests.py --workers 1     # one Godot process runs everything (the old, serial behaviour)
     python tools/run_tests.py --update-weights  # after a run, record each test's duration in tools/test_weights.json
-    python tools/run_tests.py --suites gap_patch_test minimap_test   # only these suites (a targeted run for a part agent)
+    python tools/run_tests.py --suites burst_cue_test minimap_test   # only these suites (a targeted run for a part agent)
     python tools/run_tests.py --perf-only     # only the timing tests (test_perf_*), serially, budget enforced
     python tools/run_tests.py --tier fast     # every test under FAST_TIER_SECONDS plus the slow ones the change reaches
 
@@ -482,7 +482,7 @@ def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=F
     workers=1 runs everything in one Godot process; more runs units in parallel (see the module docstring).
     cov_dir: a folder where each process writes its coverage hits (used by tools/coverage.py).
     problems: a list that receives the integrity problems (broken scripts, skipped suites), for the caller's summary.
-    suites: run only these suites (names without .gd, e.g. ["gap_patch_test"]); an unknown name is an error.
+    suites: run only these suites (names without .gd, e.g. ["burst_cue_test"]); an unknown name is an error.
     selected: {suite: [test names]}, run only these tests (--tier fast; see tools/fast_tier.py).
     """
     if suites:
@@ -564,7 +564,7 @@ def main():
                         help="run only the timing tests (test_perf_*), serially, with their budgets enforced")
     parser.add_argument("--suites", nargs="+", metavar="SUITE", default=None,
                         help="run only these suites, named like tests/<name>.gd without the .gd (for example "
-                             "gap_patch_test). A targeted run for a part agent; the round end runs everything")
+                             "burst_cue_test). A targeted run for a part agent; the round end runs everything")
     parser.add_argument("--tier", choices=("all", "fast"), default="all",
                         help="fast: every test under %d s plus the slower ones the changed files and functions can reach "
                              "(tools/fast_tier.py; falls back to everything when it cannot tell). Used by the pre-commit "

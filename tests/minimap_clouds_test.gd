@@ -323,26 +323,3 @@ func test_a_pixel_off_the_picture_is_ignored_and_one_on_it_is_set() -> void:
 	var mid := Minimap.RESOLUTION / 2
 	m._put(mid, mid, Color.RED)
 	assert_bool(m._image.get_pixel(mid, mid).is_equal_approx(Color.RED)).is_true()
-
-
-func test_patched_stretches_are_read_from_the_level_and_ringed_on_the_picture() -> void:
-	var m := _map()
-	add_child(m)
-	m.look = MinimapLookPlaceholder.new()
-	var border: Border = auto_free(Border.new())
-	var gap_patch: GapPatch = auto_free(GapPatch.new())
-	gap_patch.patches.append({"pos": Vector3(-20.0, 0.0, -20.0), "left": 5.0})
-	border.patch = gap_patch
-	var nobody: Array[Person] = []
-	m.refresh_from(null, border, nobody, Vector3.ZERO, Vector3.ZERO, Vector2(10.0, 10.0))
-	assert_int(m.patch_points.size()).is_equal(1)
-	assert_vector(m.patch_points[0]).is_equal_approx(Vector2(-20.0, -20.0), Vector2(0.001, 0.001))
-	# The ring is on the picture in the patch colour, a few pixels out from where it is.
-	var col := Config.PATCH_COLOUR
-	var found := 0
-	for py: int in range(Minimap.RESOLUTION):
-		for px: int in range(Minimap.RESOLUTION):
-			var p := m._image.get_pixel(px, py)
-			if absf(p.r - col.r) < 0.01 and absf(p.g - col.g) < 0.01 and absf(p.b - col.b) < 0.01:
-				found += 1
-	assert_int(found).is_greater(10)

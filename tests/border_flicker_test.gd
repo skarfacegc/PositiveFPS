@@ -62,13 +62,10 @@ func _blink(td: TopDownMain, lengths: Array[float], steps: int, settle: float = 
 	var radius := first_len / (2.0 * float(Config.BORDER_SAMPLES) * sin(PI / float(Config.BORDER_SAMPLES)))
 	bld.centre = Vector2(CENTRE.x + radius, CENTRE.z)
 	bld.beautified = true
-	var weak := 0
-	for i: int in range(rescued.size()):
-		if i % 8 == 3 and weak < 6:
-			rescued[i].joy = rescued[i].joy_needed() * 0.6
-			rescued[i].grace_left = 0.0
-			weak += 1
-	# Settle for 5 s at the first length so the weak members are benched (GAP_HEAL_DELAY is 3 s).
+	# Round 26: a break made by pushing is the real gap that must not blink (faltering members no longer open gaps).
+	for k: int in range(10, 13):
+		b.push.broken[k] = true
+	# Settle for 5 s at the first length.
 	for s: int in range(50):
 		_assign_at(td, rescued, first_len, 0.1)
 	var changes := 0
@@ -93,7 +90,7 @@ func test_a_length_on_the_slot_step_does_not_blink_gaps() -> void:
 	assert_int(out["posts"]).is_equal(1)
 	assert_int(out["changes"]).is_equal(0)
 	assert_int(out["most"]).is_equal(46)
-	# The weak members are still real gaps: the fix does not hide them.
+	# The break is still a real gap: the fix does not hide it.
 	assert_int(out["gaps"]).is_greater(0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 

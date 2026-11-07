@@ -37,9 +37,6 @@ var building_warm: Array[bool] = []
 var blips: Array[Dictionary] = []
 # Round 13b: a marker on each open gap, {"pos": Vector2, "urgency": 0..1}; it grows and brightens with urgency.
 var gap_markers: Array[Dictionary] = []
-# Round 22: strained border members ({"pos": Vector2, "urgency": float}) and patched stretches (positions).
-var warn_markers: Array[Dictionary] = []
-var patch_points: PackedVector2Array = PackedVector2Array()
 # Round 20: the people clouds. Unrescued people binned into a coarse grid: for each cell with enough people, {"centre":
 # Vector2 (world, the mean of its people, kept inside the map circle), "count": int, "radius": float (picture pixels),
 # "peak": float (alpha at the centre)}. Recounted every MINIMAP_CLOUD_SECONDS (see tick).
@@ -152,15 +149,6 @@ func refresh_from(
 	for gi: int in range(mids.size()):
 		var u := urgencies[gi] if gi < urgencies.size() else 0.0
 		gap_markers.append({"pos": Vector2(mids[gi].x, mids[gi].z), "urgency": u})
-	warn_markers.clear()
-	patch_points = PackedVector2Array()
-	if border.patch != null:
-		for w: Dictionary in border.patch.warnings:
-			var wp: Vector3 = w["pos"]
-			warn_markers.append({"pos": Vector2(wp.x, wp.z), "urgency": w["urgency"]})
-		for pt: Dictionary in border.patch.patches:
-			var pp: Vector3 = pt["pos"]
-			patch_points.append(Vector2(pp.x, pp.z))
 	member_pts = PackedVector2Array()
 	for m: Person in border.members:
 		member_pts.append(Vector2(m.position.x, m.position.z))
@@ -415,12 +403,6 @@ func _render() -> void:
 		if wcol.a > 0.0:
 			_marker(wpos, Config.WOBBLE_BLIP_RADIUS, wcol, "wobble")
 			_ring(wpos, Config.WOBBLE_BLIP_RADIUS + Config.WOBBLE_BLIP_PULSE_GROW * pulse, wcol)
-	for wm: Dictionary in warn_markers:
-		var wu: float = wm["urgency"]
-		var wat: Vector2 = wm["pos"]
-		_ring(wat, 2.4 + 1.6 * wu, BorderWarning.colour_for(wu))
-	for pp2: Vector2 in patch_points:
-		_ring(pp2, 3.6, Config.PATCH_COLOUR)
 	for k: int in range(landmark_pts.size()):
 		var held := k < held_landmarks.size() and held_landmarks[k]
 		var star_halo := look.halo_colour("landmark")

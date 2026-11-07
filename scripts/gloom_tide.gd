@@ -4,10 +4,10 @@ extends Node
 # Round 25: gloom tides. Two a night (Config TIDE_*): one in the rising phase, one at midnight. Each comes from an
 # angle drawn from the level's seed (so a replay matches) and starts at a time inside its window. About
 # TIDE_WARN_SECONDS before it hits there is a warning: a fog edge on the minimap, one edge pointer toward it
-# (TidePointer, inside HudSafeArea as the wobble pointers are) and a notice. While the tide passes (TIDE_SECONDS) the
-# border members facing that side lose joy TIDE_DRAIN_MULT times as fast: Person.tide_mult multiplies their normal
-# drain in Person.drain_joy, so a member nothing presses on drains no more than before. The placeholder look draws a
-# soft grey fog band drifting in from that side. Times are the night's own clock (NightCycle.elapsed): fixed-step.
+# (TidePointer, inside HudSafeArea as the wobble pointers are) and a notice. Round 26: the tide is a visible wave, a
+# grey fog band with dark figures in it, rolling in from that side. Once its front reaches the line it SHOVES the side
+# it comes from (BorderPush.set_wave: TIDE_PUSH of force over TIDE_HALF_WIDTH) until it has passed (TIDE_SECONDS); it
+# no longer drains anyone by itself. Times are the night's own clock (NightCycle.elapsed): fixed-step.
 
 signal tide_warned(side: String, angle: float)
 signal tide_started(side: String, angle: float, members: int)
@@ -19,6 +19,8 @@ var main: TopDownMain
 var tides: Array[Dictionary] = []
 var pointer: TidePointer  # The edge pointer (placeholder look), shown during a warning.
 var fog: MeshInstance3D  # The fog band (placeholder look), shown while a tide passes.
+var figures: Array[MeshInstance3D] = []  # Round 26: dark figures walking in the fog (children of `fog`).
+var wave_force: float = 0.0  # The force the wave puts on the line now (0 until its front reaches it).
 var _rng := RandomNumberGenerator.new()
 var _pointer_since: float = 0.0
 
@@ -47,7 +49,7 @@ func update(delta: float) -> void:
 		return
 	if main.running:
 		_advance()
-	_apply_drain()
+	_apply_push()
 	_show(delta)
 
 
@@ -80,8 +82,6 @@ func passing_index() -> int:
 
 # How many rescued border members face `angle` now (see faces).
 func count_facing(angle: float) -> int:
-	if main.border == null:
-		return 0
 	var n := 0
 	for m: Person in main.border.members:
 		if m.is_rescued and faces(m.position, main.border.centre, angle):
@@ -178,17 +178,44 @@ func _advance() -> void:
 			tide_ended.emit(side, angle, left)
 
 
-# Every person's multiplier is reset, then the rescued border members facing a passing tide get TIDE_DRAIN_MULT.
-func _apply_drain() -> void:
-	for p: Person in main.people:
-		p.tide_mult = 1.0
+# Round 26: where the wave's front is, as a distance from the border's centre (the front is its near edge). It arrives
+# over the first TIDE_ARRIVE share of the passing and then holds just past the line, shoving it.
+func front_distance(idx: int) -> float:
+	var start: float = tides[idx]["start"]
+	var f := clampf((main.night.elapsed - start) / Config.TIDE_SECONDS, 0.0, 1.0)
+	var arrive := smoothstep(0.0, Config.TIDE_ARRIVE, f)
+	return lerpf(Config.TIDE_FOG_FAR - Config.TIDE_FOG_DEPTH * 0.5, _shove_front(), arrive)
+
+
+# The front's resting place: TIDE_SHOVE_DEPTH metres inside the border's mean radius.
+func _shove_front() -> float:
+	var r := Config.TIDE_FOG_NEAR
+	if main.border != null and main.border.active:
+		r = main.border.body_radius
+	return r - Config.TIDE_SHOVE_DEPTH
+
+
+# The wave's shove on the line now: 0 until the front is within TIDE_PUSH_REACH of the line, TIDE_PUSH once it is
+# TIDE_SHOVE_DEPTH past it (a smooth ramp between), and eased off at the end of the passing.
+func shove_strength(idx: int) -> float:
+	var r := main.border.body_radius
+	var span := Config.TIDE_PUSH_REACH + Config.TIDE_SHOVE_DEPTH
+	var ramp := clampf((r + Config.TIDE_PUSH_REACH - front_distance(idx)) / span, 0.0, 1.0)
+	var start: float = tides[idx]["start"]
+	var f := clampf((main.night.elapsed - start) / Config.TIDE_SECONDS, 0.0, 1.0)
+	return ramp * clampf((1.0 - f) / Config.TIDE_FOG_FADE, 0.0, 1.0)
+
+
+# Sets (or clears) the wave's force on the border: Config.TIDE_PUSH over the side the passing tide comes from.
+func _apply_push() -> void:
+	wave_force = 0.0
 	var i := passing_index()
-	if i < 0 or main.border == null:
+	if i < 0 or not main.border.active or not main.running:
+		main.border.push.clear_wave()
 		return
+	wave_force = Config.TIDE_PUSH * shove_strength(i)
 	var angle: float = tides[i]["angle"]
-	for m: Person in main.border.members:
-		if m.is_rescued and faces(m.position, main.border.centre, angle):
-			m.tide_mult = Config.TIDE_DRAIN_MULT
+	main.border.push.set_wave(angle, Config.TIDE_HALF_WIDTH, wave_force)
 
 
 # The minimap's fog edge, the fog band and the pointer, from the tide on show.
@@ -221,15 +248,50 @@ func _place_fog(idx: int) -> void:
 	var start: float = tides[idx]["start"]
 	var angle: float = tides[idx]["angle"]
 	var f := clampf((main.night.elapsed - start) / Config.TIDE_SECONDS, 0.0, 1.0)
-	var dist := lerpf(Config.TIDE_FOG_FAR, Config.TIDE_FOG_NEAR, f)
+	var dist := front_distance(idx) + Config.TIDE_FOG_DEPTH * 0.5  # The band's middle (its front is the near edge).
 	var dir := Vector2.from_angle(angle)
-	fog.position = Vector3(dir.x * dist, Config.TIDE_FOG_Y, dir.y * dist)
+	var around := Vector3.ZERO
+	if main.border != null and main.border.active:
+		around = main.border.centre
+	fog.position = Vector3(around.x + dir.x * dist, Config.TIDE_FOG_Y, around.z + dir.y * dist)
+	_sway_figures(f)
 	# The plane's long side runs along the tangent of the side (its local X axis turned to (-sin, 0, cos)).
 	fog.rotation.y = -angle - PI / 2.0
 	var fade := clampf(minf(f, 1.0 - f) / Config.TIDE_FOG_FADE, 0.0, 1.0)
 	var mat := fog.material_override as StandardMaterial3D
 	var c := Config.TIDE_FOG_COLOUR
 	mat.albedo_color = Color(c.r, c.g, c.b, Config.TIDE_FOG_ALPHA * fade)
+
+
+# Round 26: the figures walk on the spot (a small step-bob and sideways drift) so the wave looks alive.
+func _sway_figures(f: float) -> void:
+	for i: int in range(figures.size()):
+		var fig := figures[i]
+		var phase := float(i) * 1.7 + f * Config.TIDE_SECONDS * 3.0
+		fig.position.y = Config.TIDE_FIGURE_HEIGHT * 0.5 - Config.TIDE_FOG_Y + absf(sin(phase)) * 0.18
+		fig.position.x = _figure_x(i) + sin(phase * 0.5) * 0.4
+
+
+func _figure_x(i: int) -> float:
+	return lerpf(-1.0, 1.0, (float(i) + 0.5) / float(Config.TIDE_FIGURES)) * Config.TIDE_FIGURE_SPREAD
+
+
+func _build_figures() -> void:
+	var mesh := CapsuleMesh.new()
+	mesh.radius = 0.36
+	mesh.height = Config.TIDE_FIGURE_HEIGHT
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Config.TIDE_FIGURE_COLOUR
+	for i: int in range(Config.TIDE_FIGURES):
+		var fig := MeshInstance3D.new()
+		fig.mesh = mesh
+		fig.material_override = mat
+		# A fixed zig-zag in the band's depth, so they do not stand in a row.
+		var row := -0.3 if i % 2 == 0 else 0.3
+		fig.position = Vector3(_figure_x(i), 0.0, row * Config.TIDE_FOG_DEPTH)
+		fog.add_child(fig)
+		figures.append(fig)
 
 
 func _build_fog() -> void:
@@ -244,5 +306,6 @@ func _build_fog() -> void:
 	mat.albedo_color = Config.TIDE_FOG_COLOUR
 	fog.material_override = mat
 	fog.visible = false
+	_build_figures()
 	main.add_child(fog)
 	Looks.note_placeholder(fog, "tide_fog")

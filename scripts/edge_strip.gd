@@ -4,11 +4,10 @@ extends RefCounted
 # Round 25: one unbroken run of the border ribbon (see EdgeRibbon). The arrays are parallel: one entry per point.
 
 var pts := PackedVector2Array()
-# Strain 0..1 at each point (colour and width), how much of the point lies on a stretch sealed by the map edge, how
-# deeply a dimmed crowd has bowed it inward (metres, already applied to `pts`) and how faded it is (a retreating arm).
+# Strain 0..1 at each point (colour and width), how much of the point lies on a stretch sealed by the map edge, and how
+# faded it is (a retreating arm).
 var strain := PackedFloat32Array()
 var seal := PackedFloat32Array()
-var dent := PackedFloat32Array()
 var fade := PackedFloat32Array()
 # True for a loop with no gap: the last point joins the first.
 var closed: bool = false

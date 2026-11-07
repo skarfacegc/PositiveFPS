@@ -16,22 +16,29 @@ never "dark people". Art is original, technique-level inspiration only.
 - **Joy and elements:** music, art and nature (a soft cycle: matched 2x, strong 1.5x, weak 1x). Pointing at a person fires
   automatically; a person needs enough joy to be rescued (grace, then the border). Moods: guarded (front-only joy),
   skittish (flees), glum (x3 when looking up), sheltered (umbrella shield, four hits).
-- **Gloom:** unrescued people go wistful, gloomy, then dimmed. Dimmed people press the border and reach for the player. The
-  night has phases: calm opening, rising, midnight (hardest, dimmed sinks staggered by `DIM_ARRIVAL_MIN_GAP`), easing.
-- **Border:** rescued people form a loop. Gaps open where members falter or spacing is too wide. A member drained too far
-  wobbles about five seconds before relapsing; a joy hit saves them. Relapses are gated (`RELAPSE_GATE_GAP`).
+- **Gloom:** unrescued people go wistful, gloomy, then dimmed. Dimmed people lean on the border and reach for the player.
+  The night has phases: calm opening, rising, midnight (hardest, dimmed sinks staggered by `DIM_ARRIVAL_MIN_GAP`), easing.
+  Two gloom tides a night (rising, midnight) are a visible wave of fog with figures that rolls in and shoves one side.
+- **Border (physical push, round 26):** rescued people form a loop. Only visible things push it: dimmed people leaning on
+  it and the tide's wave. The line bends inward where it is pushed (loop and members move, members brace and lean) and
+  springs back when relieved; past `PUSH_BREAK_DEPTH` it snaps (a break; gaps from too few people still exist). Pushers walk
+  through a break and dim what is inside until it mends. Joy at a pusher weakens its push; joy at a bending member (or a
+  burst) calms the spot. A member drained too far wobbles about five seconds before relapsing; a joy hit saves them.
+  Relapses are gated (`RELAPSE_GATE_GAP`). Details and the open questions: "Round 26 build" below.
 - **Spirit:** 0 to 100, start 50; +20 a rescue. At 0 the player goes dim (half speed, no fire, border loses heart). Spare
   spirit at a full meter pools and warms the most strained border member (`spirit_warmth.gd`).
 - **Spirit actions:** beacon (50): hold E to aim a zone preview, release to place, right-click cancels; the zone stretches
-  toward it and the arm stays, limited by headcount. F (25) patches the gap or strained spot nearest the cursor for 12 s.
-  G or Q (30, 8 s cooldown) bursts: lifts dimmed people nearby and pushes back those on the border line.
+  toward it and the arm stays, limited by headcount. (The F patch was removed in round 26.)
+  G or Q (30, 8 s cooldown) bursts: lifts dimmed people nearby, pushes back those on the border line and lets the line
+  near the burst spring back.
 - **Landmarks:** Bandstand, Garden (about 14 m from the start), Bell Tower. Holding one (3 s inside the border) boosts
   joy; the third dawn light needs 75% rescued and 2 landmarks.
 - **First light:** over the last 45 s a square front moves in from the map edge; people it passes lift and stop draining.
-- **Cues:** rings on strained border people, gap arrows, wobble edge pointers and minimap blips, landmark pointers, a cue
-  panel beside the spirit meter (glows when F or G can be used), one-time prompts per mood.
+- **Cues:** the bending line is the warning (ribbon colour and width follow the bend; members lean and struggle); gap
+  arrows point at an off-screen break, wobble edge pointers and minimap blips, landmark pointers, a cue panel beside the
+  spirit meter (glows when G can be used). Prompts and notices are one slim banner under the night bar, one at a time.
 
-**Controls.** WASD move, Shift run, mouse to point, hold E / release E beacon (right-click cancels), F patch, G or Q
+**Controls.** WASD move, Shift run, mouse to point, hold E / release E beacon (right-click cancels), G or Q
 burst, F2 targeting mode, mouse wheel zoom, F3 debug, F4 switch look, R restart, M menu. Menu: Play (Enter, 1, click), Look.
 
 **Look modes.** Placeholder (default, plain shapes, what the tests run) and styled (pixel-diorama 3D: toon, outline, ground
@@ -233,3 +240,31 @@ Replaces Parts U and V above. Both looks get the mechanics; visuals in the place
   can skip them for unrelated changes.
 - Open questions for the build agent to report, not decide alone: how a break is mended (rescue the spillers, joy the
   broken ends, or both) and whether the recorder/analyser keep "gap" event names or move to "break".
+
+## Round 26 build: physical push (2026-11-07)
+
+Built as the revised plan above. Scripts: `border_push.gd` (new), `burst_cue.gd`/`burst_fx.gd` (the old `gap_patch.gd`/`patch_fx.gd`
+without the patch), `gloom_tide.gd` (wave and figures), `border.gd`/`border_slots.gd` (dent in the loop, breaks as gaps),
+`person.gd` (`push_mult`, `joy_hits`, `brace`), `intro.gd`/`prompt_bar.gd` (banner only). Gone: the F patch, `edge_markers.gd`,
+`edge_marker_fx.gd`, `border_warning.gd`, the strain rings and minimap strain rings, the tide's drain, the faltering step-back
+and benching. Constants: `scripts/config.gd` "Round 26: physical push" and the tide block.
+
+- **Model:** force per angle sample = pushers (each `PUSH_PER_PERSON` x night strength x their push strength, spread as a bell,
+  more from a tired member) + the tide wave. Dent follows force at most `PUSH_GIVE_SPEED` m/s deeper and `PUSH_SPRING_SPEED`
+  back; the dent is applied to the loop after the size factor. Past `PUSH_BREAK_DEPTH` (2.4 m) the line snaps (3 samples wide).
+- **Mending (default, easy to switch):** a break mends when no dimmed person is within `PUSH_MEND_CLEAR` and a member near it
+  has had joy since it opened (`PUSH_MEND_NEEDS_JOY`), or by itself after `PUSH_MEND_AUTO` s clear. On mending the dent is
+  halved. That is "joy the ends and rescue/lift the spillers". Open question (a) for the user: joy the ends only, rescue the
+  spillers only, or both.
+- **Event names:** the recorder keeps `gap_open` / `gap_close` (a break shows as a gap); `gap_patched` no longer occurs (the
+  analyser still reads old files). Open question (b): move to `break_*`?
+- **Difficulty numbers** (scratch whole-night runs, 30 rescued on a ring, seed fixed): nobody helping: the rising tide (80 s)
+  and the midnight tide (102 s) each break the line, 5 breaks in the night, the border loses all but 2 people by 140 s. A
+  generous bot (joy at the nearest pusher 3 times a second and at braced members) holds: the rising tide bends the line to
+  96% of the limit, 1 break at midnight open 0.3 s. A human plays between the two. Tuning knobs: `TIDE_PUSH` (2.0),
+  `PUSH_PER_PERSON`, `PUSH_DENT_PER_FORCE`, `PUSH_BREAK_DEPTH`.
+- **Speed:** crowd `update_people` 3.0 ms to 0.75 ms per frame (grid). `Border.update` is 1.5 ms with 28 members: slot
+  assignment 0.8 ms (order the people round the loop 0.35, find slot points 0.15, outermost picks 0.12), the loop 0.36 ms,
+  building share 0.15 ms, the push 0.07 ms. Not changed (the cheap fixes would not keep the results bit-identical).
+- **Not done / for a look:** no styled-look change (the styled people do not lean; the tide fog and figures are placeholder
+  only); README.md still describes the F patch (not touched this round).

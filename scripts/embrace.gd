@@ -177,8 +177,6 @@ func nearest_members(p: Person, count: int) -> Array[Person]:
 	var found: Array[Person] = []
 	var dists: Array[float] = []
 	for m: Person in main.border.members:
-		if not is_instance_valid(m) or not m.is_rescued:
-			continue
 		var d := GloomSim.flat_dist(m.global_position, p.global_position)
 		var at := dists.size()
 		while at > 0 and dists[at - 1] > d:

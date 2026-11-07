@@ -13,7 +13,7 @@ functions with line numbers) and Read only those lines.
 ## Scenes
 - `menu.tscn` (`scripts/menu.gd`): title, Look toggle, Play (Enter, 1, click) -> `topdown.tscn`.
 - `topdown.tscn`: only a `TopDownMain` root; **everything else is built in code** in `TopDownMain._ready()`.
-- Systems that attach to the level use `X.attach(main)` (one line in `TopDownMain`, stored as `main.x`): `GapPatch`,
+- Systems that attach to the level use `X.attach(main)` (one line in `TopDownMain`, stored as `main.x`): `BurstCue`,
   `FirstLight`, `SpiritWarmth`, `WobbleAlert`. New systems should do the same and stay out of `topdown_main.gd` (near the line cap).
 
 ## Script map (`scripts/*.gd`)
@@ -22,7 +22,7 @@ functions with line numbers) and Read only those lines.
 - `person.gd`: one person (affinity, joy, gloom, rescued, wobble, shield, react); `moods.gd`: guarded/skittish/glum and sheltering; `grabs.gd`: dimmed grabs
 - `gloom_sim.gd`: dimming, spreading, draining; `night_cycle.gd`: clock, strength, `dim_gap_at()`; `relapse_wave.gd`: relapse gate; `first_light.gd`: dawn rally
 - `border.gd`: the living border (members, gaps, posts, push-back, polygon); `border_slots.gd`: slot assignment/ordering; `border_shape.gd`: pure static loop rules (call `BorderShape.X`; new pure border rules go here); `border_centre.gd`: centre, beacon stretch, arms, preview plan
-- `gap_patch.gd`, `burst_clear.gd`, `border_warning.gd`, `patch_fx.gd`: spirit actions F and G/Q, warnings and their effects; `spirit_warmth.gd`: spare spirit warms strained members
+- `border_push.gd` (round 26): the physical push (pushers and the tide's wave dent the line, calm, breaks and mending), owned by `Border` as `border.push`; `burst_cue.gd`, `burst_fx.gd`, `burst_clear.gd`: the G/Q burst (cue, world marks, rules); `spirit_warmth.gd`: spare spirit warms strained members
 - `beacon_marker.gd` (+ `BeaconPlacement`): beacon in the world, E hold/release/cancel; `reach_guide.gd`: zone preview; `building.gd`, `landmark.gd`, `landmarks.gd`: blocks, the three landmarks and boosts; `dawn_rating.gd`: pure 1-3 lights rules
 - `painted_ground.gd`: 1 m paint grid; `joy_projectile.gd`, `bloom.gd`: shots; `floor_effects.gd`: floor overlay registry/cap
 - `hud.gd`, `hud_safe_area.gd`, `minimap.gd`, `gap_arrows.gd`, `wobble_alert.gd`, `landmark_pointers.gd`: HUD, minimap, edge pointers (`HudSafeArea` is the one safe rectangle they share)
@@ -30,14 +30,14 @@ functions with line numbers) and Read only those lines.
 - `recorder.gd`: gameplay recorder; `config_base.gd` + `config.gd`: all tuning (see Tuning)
 
 ## Areas (where to start; tests are `tests/<name>.gd`)
-- **Border / territory:** `border.gd`, `border_slots.gd`, `border_shape.gd`, `building.gd`, `painted_ground.gd`; tests `border_*_test`, `edge_pressure_test`, `cover_test`; config `BORDER_*`. Slots are spaced along the open length; the map-edge stretch is sealed (no slots, never a gap).
+- **Border / territory:** `border.gd`, `border_slots.gd`, `border_shape.gd`, `border_push.gd`, `edge_ribbon.gd`, `building.gd`, `painted_ground.gd`; tests `border_*_test` (`border_push_test` for the push), `push_defence_test`, `edge_ribbon_test`, `edge_pressure_test`, `cover_test`; config `BORDER_*`, `PUSH_*`. Slots are spaced along the open length; the map-edge stretch is sealed (no slots, never a gap). Round 26: a gap is a break made by pushing (`BorderPush`): `Border.update` calls `push.update`, applies `push.dent` to the sampled loop AFTER the size is normalised, and `BorderSlots` marks the broken segments as gap (a faltering member no longer steps back or opens one). Pushers are dimmed people within `PUSH_LEAN_RANGE` outside the line and the tide's wave (`GloomTide` calls `push.set_wave`).
 - **Beacon / zone / landmarks / dawn rating:** `border_centre.gd`, `reach_guide.gd`, `beacon_marker.gd`, `landmark(s).gd`, `dawn_rating.gd`, `topdown_main.gd` (`try_place_beacon`, `_check_end`); tests `beacon_test`, `stretch_safety_test`, `shaped_zone_test`, `shaping_followup_test`, `reactions_test`, `landmarks_test`, `dawn_rating_test`; config `BEACON_*`, `LANDMARK_*`, `DAWN_*`. `BorderCentre.plan_toward()` is the one plan used by both the preview and the real stretch. Landmark positions are in the spawn exclusion (`_near_block`): moving one changes who spawns where and their gloom.
 - **People / gloom / night / waves:** `person.gd`, `gloom_sim.gd`, `night_cycle.gd`, `relapse_wave.gd`, `first_light.gd`, `crowd_movement.gd`; tests `person_test`, `gloom_sim_test`, `night_cycle_test`, `topdown_crowd_test`, `dimmed_waves_test`, `first_light_test`; config `GLOOM_*`, `NIGHT_*`, `DIM_*`, `WOBBLE_*`, `FIRST_LIGHT_*`.
 - **Moods / shelter / shield / guarded wedge / hover:** `moods.gd`, `person.gd` (`receive_joy`, `shot_lands_now`), `topdown_player.gd` (`_update_hover_target`), `feedback_layer.gd`; tests `moods_test`, `shield_test`, `shelter_nearest_test`, `guarded_wedge_test`, `hover_stick_test`, `stagger_test`; config `GUARDED_*`, `SKITTISH_*`, `GLUM_*`, `SHELTER_*`, `HOVER_*`.
-- **Spirit / dim / grabs / spirit actions:** `topdown_player.gd`, `grabs.gd`, `gap_patch.gd`, `burst_clear.gd`, `border_warning.gd`, `spirit_warmth.gd`; tests `spirit_test`, `grab_test`, `spirit_warmth_test`, gap patch/burst suites; config `SPIRIT_*`, `DIM_*`, `GRAB_*`, `PATCH_*`, `BURST_*`, `SPARE_*`.
+- **Spirit / dim / grabs / spirit actions:** `topdown_player.gd`, `grabs.gd`, `burst_cue.gd`, `burst_fx.gd`, `burst_clear.gd`, `spirit_warmth.gd`; tests `spirit_test`, `grab_test`, `spirit_warmth_test`, `burst_cue_test`, `burst_clear_test`, `defence_cues_test`; config `SPIRIT_*`, `DIM_*`, `GRAB_*`, `BURST_*`, `SPARE_*`. (The F patch was removed in round 26.)
 - **Projectiles / blooms / floor effects:** `joy_projectile.gd`, `bloom.gd`, `floor_effects.gd`; tests `projectile_*_test`, `floor_test`, `paint_bloom_camera_test`.
 - **Targeting / input / zoom / camera:** `topdown_player.gd`, `controls.gd`, `topdown_main.gd` (`_update_camera`, `view_half_extents`); tests `targeting_test`, `topdown_mode_test`, `zoom_test`, `world_scale_test`.
-- **HUD / minimap / cues / intro:** `hud.gd`, `minimap.gd`, `gap_arrows.gd`, `wobble_alert.gd`, `feedback_layer.gd`, `intro.gd`, `prompt_bar.gd`; tests `hud_test`, `readability_test`, `feedback_test`, `intro_test`, `debug_overlay_test`, `menu_test`. These are screen-space UI: both looks draw them.
+- **HUD / minimap / cues / intro:** `hud.gd`, `minimap.gd`, `gap_arrows.gd` (the pointer to an off-screen break), `wobble_alert.gd`, `feedback_layer.gd`, `intro.gd`, `prompt_bar.gd` (every prompt and notice is a slim banner under the night bar); tests `hud_test`, `readability_test`, `feedback_test`, `intro_test`, `debug_overlay_test`, `menu_test`. These are screen-space UI: both looks draw them.
 - **Looks / styled art:** `scripts/looks/*`, `shaders/*`, `topdown_main.gd` (`set_look`); tests `looks_*_test`; tool `checkpoint_shots.py`. See Looks.
 - **Recorder:** `recorder.gd`; tests `recorder_test`, `python tools/test_analyse_recording.py`.
 - **Tooling:** `tools/*`, `.githooks/pre-commit`, `tools/COVERAGE_TOOL_NOTES.md`; self-checks in `tools/test_*.py`.

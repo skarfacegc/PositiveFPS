@@ -315,3 +315,24 @@ func test_the_recorder_notes_start_lift_and_rescue() -> void:
 	assert_float(rescues[0]["seconds"]).is_equal_approx(2.0 * Config.EMBRACE_STEP_SECONDS, 0.1)
 	assert_float(rescues[0]["id"]).is_equal(float(td.people.find(p)))
 	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_count_of_embraced_people_and_a_rescue_by_other_means_drops_the_entry() -> void:
+	var td: TopDownMain = await _start()
+	var inside := _person(td, 0, Vector3.ZERO, 0.1)
+	var outside := _person(td, 1, Vector3(HALF * 3.0, 0.0, 0.0), 0.1)
+	_run(td, 1.0)
+	assert_int(td.embrace.embraced_count()).is_equal(1)
+	assert_bool(td.embrace.entries.has(outside)).is_false()
+	# Rescued some other way (a joy hit): the next step drops them.
+	inside.is_rescued = true
+	td.embrace.step(DT)
+	assert_bool(td.embrace.entries.has(inside)).is_false()
+	assert_int(td.embrace.embraced_count()).is_equal(0)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_a_cue_not_yet_built_shows_nothing() -> void:
+	var cue: EmbraceCue = auto_free(EmbraceCue.new())
+	cue.show_progress(0.5, true, 1.0)
+	assert_object(cue.get_child(0) if cue.get_child_count() > 0 else null).is_null()

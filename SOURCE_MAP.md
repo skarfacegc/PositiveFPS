@@ -21,45 +21,45 @@ extends Node3D | 2 const | A flower patch left where a nature projectile stopped
 
 ### scripts/border.gd (Border)
 extends Node3D | 1 const | The living border (round 9, organic push only since round 10). Rescued people organise themselves into a lo...
-signals: beacon_reached, stretch_started(beacon: Vector3, tip_target: Vector3), zone_grew(gain: float, tip: Vector3, angle: float), zone_pulling_in, zone_shrunk(lost: float), stretch_ended(reason: String)
-- L109 `setup(ground: PaintedGround) -> void` - Gets the border ready: the ground it paints and the line it draws.
-- L120 `rebuild_look() -> void` - Swaps the look in place (F4).
-- L136 `register_building(body: StaticBody3D, half: Vector2, is_landmark: bool, size: Vector3 = Vector3.ZERO, colour: Color = Color(0.6, 0.6, 0.62)) -> void` - Registers a block the border can beautify. `half` is the half-size of its footprint in x and z.
-- L156 `update(people: Array[Person], delta: float, strength: float) -> void` - Call every frame, before people move. Recomputes the centre, the loop, the slots and the gaps, moves the re...
-- L193 `on_rescue(p: Person) -> void` - A rescued person was made. The border pushes outward at the angle they were rescued from. The push is appli...
-- L226 `on_relapse(p: Person) -> void` - A member relapsed: they step out from the centre and leave the border (the slots reshuffle on the next upda...
-- L234 `cover_at(pos: Vector3) -> float` - How protected a person at `pos` is by the border: 0 outside and on the line, 1 BORDER_EDGE_BAND metres inside.
-- L251 `line_blocks(a: Vector3, b: Vector3) -> bool` - True when the straight move from `a` to `b` crosses an intact stretch of the border.
-- L257 `clip_move(from: Vector3, to: Vector3) -> Vector3` - A dimmed person outside the border moves from `from` toward `to`. If the move crosses an intact stretch, it...
-- L275 `segment_colour(j: int) -> Color` - The colour of polygon segment `j` right now: intact gold, or a flickering grey and red when it is a gap.
-- L282 `segment_fade(j: int) -> float` - Round 24: the outline alpha of segment `j` (1 except along an arm that is pulling in; see BorderCentre.outl...
-- L289 `segment_is_gap(j: int) -> bool`
-- L294 `gap_midpoints() -> Array[Vector3]` - The middle of each gap, in world coordinates (the points the off-screen gap arrows point at).
-- L304 `gap_midpoints_cached() -> Array[Vector3]` - The gap middles as of the last update(), for the things that read them every frame (do not change the result).
-- L316 `gap_urgencies() -> Array[float]` - How urgent each open gap is, 0 (just opened) to 1 (open GAP_URGENCY_SECONDS or more), in gap_midpoints() or...
-- L321 `falter_urgency(p: Person) -> float` - Urgency (0 to 1) of a faltering rescued person: how long they have faltered, over GAP_URGENCY_SECONDS.
-- L327 `pulse() -> float` - The gap pulse right now (see gap_pulse).
-- L332 `set_player_dim(dim: bool) -> void` - Round 12a: a dim player makes the troupe lose heart. The border loses ground DIM_LOSS_MULT times faster and...
-- L338 `flicker() -> float` - How bright the line and haze are drawn: 1 normally, pulsing between DIM_FLICKER_MIN and 1 while the player...
-- L347 `static gap_pulse(t: float) -> float` - The gap pulse at time `t`: 0 at its trough, 1 at its peak, once every BORDER_GAP_PULSE_SECONDS. It is a cos...
-- L354 `edge_pressure(pos: Vector3) -> float` - Round 12b: how much a dimmed person wants to press at the border member standing at `pos`, 0 to 1. It mixes...
-- L370 `gap_region_count() -> int` - How many separate gaps the loop has: runs of neighbouring gap segments count once (a whole open loop counts...
-- L382 `is_faltering(p: Person) -> bool` - True when `p` is a border member who is faltering right now.
-- L386 `gap_count() -> int`
-- L395 `landmark_beautified(index: int = 0) -> bool` - True while landmark block number `index` (Config.LANDMARK_NAMES order) is beautified.
-- L399 `beautified_building_count() -> int`
-- L408 `set_debug(on: bool) -> void` - F3: shows a label per slot segment with its spacing (and GAP). debug_summary gives the counts.
-- L418 `visible_debug_label_count() -> int` - How many debug labels are showing right now.
-- L426 `debug_summary() -> String`
-- L506 `place_beacon(pos: Vector3) -> void` - Round 19/20: puts the spirit beacon at `pos` (clamped inside the map); the zone stretches toward it. One at...
-- L511 `beacon_pos() -> Vector3` - Where the beacon is, or Vector3.INF when there is none.
-- L515 `has_beacon() -> bool`
-- L520 `stretch_info() -> Dictionary` - Round 20: the stretch (see BorderCentre): is one under way, where is its tip, and how far from the centre c...
-- L532 `plan_stretch(aim: Vector3) -> Dictionary` - Round 21: what a stretch toward `aim` would do now (see BorderCentre.plan_toward): reach, outline, reason,...
-- L577 `required_members() -> int` - The members the loop needs now: the slots its perimeter holds, less BORDER_POST_WORTH for each post.
-- L611 `is_sealed(j: int) -> bool` - Round 16: true when polygon segment `j` runs along the map edge (fully closed by the map).
-- L623 `static nearest_free_slot(pos2: Vector2, slots: Array[Vector2], taken: Array[bool]) -> int`
-- L770 `shove(at: Vector3) -> void` - The joy burst shoves the border outward toward the player when they are within BORDER_SHOVE_RANGE of the li...
+signals: beacon_reached, stretch_started(beacon: Vector3, tip_target: Vector3), zone_grew(gain: float, tip: Vector3, angle: float), zone_pulling_in, zone_shrunk(lost: float), stretch_ended(reason: String), line_broke(pos: Vector3), line_mended(pos: Vector3, seconds: float)
+- L110 `setup(ground: PaintedGround) -> void` - Gets the border ready: the ground it paints and the line it draws.
+- L121 `rebuild_look() -> void` - Swaps the look in place (F4).
+- L137 `register_building(body: StaticBody3D, half: Vector2, is_landmark: bool, size: Vector3 = Vector3.ZERO, colour: Color = Color(0.6, 0.6, 0.62)) -> void` - Registers a block the border can beautify. `half` is the half-size of its footprint in x and z.
+- L157 `update(people: Array[Person], delta: float, strength: float) -> void` - Call every frame, before people move. Recomputes the centre, the loop, the slots and the gaps, moves the re...
+- L194 `on_rescue(p: Person) -> void` - A rescued person was made. The border pushes outward at the angle they were rescued from. The push is appli...
+- L227 `on_relapse(p: Person) -> void` - A member relapsed: they step out from the centre and leave the border (the slots reshuffle on the next upda...
+- L235 `cover_at(pos: Vector3) -> float` - How protected a person at `pos` is by the border: 0 outside and on the line, 1 BORDER_EDGE_BAND metres inside.
+- L252 `line_blocks(a: Vector3, b: Vector3) -> bool` - True when the straight move from `a` to `b` crosses an intact stretch of the border.
+- L258 `clip_move(from: Vector3, to: Vector3) -> Vector3` - A dimmed person outside the border moves from `from` toward `to`. If the move crosses an intact stretch, it...
+- L276 `segment_colour(j: int) -> Color` - The colour of polygon segment `j` right now: intact gold, or a flickering grey and red when it is a gap.
+- L283 `segment_fade(j: int) -> float` - Round 24: the outline alpha of segment `j` (1 except along an arm that is pulling in; see BorderCentre.outl...
+- L290 `segment_is_gap(j: int) -> bool`
+- L295 `gap_midpoints() -> Array[Vector3]` - The middle of each gap, in world coordinates (the points the off-screen gap arrows point at).
+- L305 `gap_midpoints_cached() -> Array[Vector3]` - The gap middles as of the last update(), for the things that read them every frame (do not change the result).
+- L317 `gap_urgencies() -> Array[float]` - How urgent each open gap is, 0 (just opened) to 1 (open GAP_URGENCY_SECONDS or more), in gap_midpoints() or...
+- L322 `falter_urgency(p: Person) -> float` - Urgency (0 to 1) of a faltering rescued person: how long they have faltered, over GAP_URGENCY_SECONDS.
+- L328 `pulse() -> float` - The gap pulse right now (see gap_pulse).
+- L333 `set_player_dim(dim: bool) -> void` - Round 12a: a dim player makes the troupe lose heart. The border loses ground DIM_LOSS_MULT times faster and...
+- L339 `flicker() -> float` - How bright the line and haze are drawn: 1 normally, pulsing between DIM_FLICKER_MIN and 1 while the player...
+- L348 `static gap_pulse(t: float) -> float` - The gap pulse at time `t`: 0 at its trough, 1 at its peak, once every BORDER_GAP_PULSE_SECONDS. It is a cos...
+- L355 `edge_pressure(pos: Vector3) -> float` - Round 12b: how much a dimmed person wants to press at the border member standing at `pos`, 0 to 1. It mixes...
+- L371 `gap_region_count() -> int` - How many separate gaps the loop has: runs of neighbouring gap segments count once (a whole open loop counts...
+- L383 `is_faltering(p: Person) -> bool` - True when `p` is a border member who is faltering right now.
+- L387 `gap_count() -> int`
+- L396 `landmark_beautified(index: int = 0) -> bool` - True while landmark block number `index` (Config.LANDMARK_NAMES order) is beautified.
+- L400 `beautified_building_count() -> int`
+- L409 `set_debug(on: bool) -> void` - F3: shows a label per slot segment with its spacing (and GAP). debug_summary gives the counts.
+- L419 `visible_debug_label_count() -> int` - How many debug labels are showing right now.
+- L427 `debug_summary() -> String`
+- L517 `place_beacon(pos: Vector3) -> void` - Round 19/20: puts the spirit beacon at `pos` (clamped inside the map); the zone stretches toward it. One at...
+- L522 `beacon_pos() -> Vector3` - Where the beacon is, or Vector3.INF when there is none.
+- L526 `has_beacon() -> bool`
+- L531 `stretch_info() -> Dictionary` - Round 20: the stretch (see BorderCentre): is one under way, where is its tip, and how far from the centre c...
+- L543 `plan_stretch(aim: Vector3) -> Dictionary` - Round 21: what a stretch toward `aim` would do now (see BorderCentre.plan_toward): reach, outline, reason,...
+- L567 `required_members() -> int` - The members the loop needs now: the slots its perimeter holds, less BORDER_POST_WORTH for each post.
+- L601 `is_sealed(j: int) -> bool` - Round 16: true when polygon segment `j` runs along the map edge (fully closed by the map).
+- L613 `static nearest_free_slot(pos2: Vector2, slots: Array[Vector2], taken: Array[bool]) -> int`
+- L760 `shove(at: Vector3) -> void` - The joy burst shoves the border outward toward the player when they are within BORDER_SHOVE_RANGE of the li...
 
 ### scripts/border_centre.gd (BorderCentre)
 extends RefCounted | 0 const | Round 19 / 20: where the border's centre is, and the spirit beacon that stretches it. Split out of border.g...
@@ -94,6 +94,19 @@ extends RefCounted | 0 const | Round 19 / 20: where the border's centre is, and 
 - L596 `stretch_radius(angle: float, body: float) -> float` - How far the stretch reaches along the ray at `angle` from the centre, for a body of radius `body`, or 0 whe...
 - L608 `static hull_radius(body: float, width: float, reach: float, off: float) -> float` - The teardrop: the convex hull of the body circle (radius `body`, round the origin) and a tip circle of radius
 
+### scripts/border_push.gd (BorderPush)
+extends RefCounted | 0 const | Round 26, physical push. The only things that push the border are visible: dimmed people leaning on the lin...
+- L39 `reset() -> void` - Back to a flat line with nothing pushing (a new border, or no border).
+- L59 `sample_of(pos: Vector3) -> int` - The sample nearest the direction of `pos` from the border's centre.
+- L65 `set_wave(angle: float, half_width: float, force: float) -> void` - The tide pushes the samples within `half_width` of `angle` with up to `force` (a cosine taper to the sides).
+- L72 `clear_wave() -> void`
+- L78 `bend_at(pos: Vector3) -> float` - How bent the line is at `pos`, 0 (flat) to 1 (at the break depth): what the ribbon colours and a member bra...
+- L83 `segment_broken(j: int) -> bool` - True when polygon segment `j` lies in a break.
+- L88 `update(people: Array[Person], delta: float, strength: float) -> void` - One frame. Called by Border.update before the loop is built, so the dent it makes is in this frame's polygon.
+- L162 `calm_at(pos: Vector3, amount: float, spread: int) -> void` - Calms the samples within `spread` of the one nearest `pos` (a joy hit on a member, or a burst).
+- L171 `relieve(at: Vector3) -> void` - A burst at `at` relieves the line within PUSH_BURST_REACH of it: the force there is cut and the line spring...
+- L281 `break_points() -> Array[Vector3]` - The break points, for the pointer to an off-screen break and the recorder.
+
 ### scripts/border_shape.gd (BorderShape)
 extends RefCounted | 1 const | Round 23: the smallest size factor the loop's ease will aim for (Border._organic_polygon).
 - L12 `static clamp_to_map(pts: PackedVector2Array) -> Array[float]` - Round 16: pulls every point onto the map (within BORDER_MAP_LIMIT of the middle) and returns, per segment (...
@@ -117,20 +130,14 @@ extends RefCounted | 1 const | Round 23: the smallest size factor the loop's eas
 ### scripts/border_slots.gd (BorderSlots)
 extends RefCounted | 0 const | The slot code of the living border, split out of border.gd (round 18): where the slots lie on the loop (ope...
 - L18 `assign_members(rescued: Array[Person]) -> void` - Splits the rescued people into border members (the outermost, one per free slot) and inner members, works o...
-- L166 `static nearest_free_slot(pos2: Vector2, slots: Array[Vector2], taken: Array[bool]) -> int` - The index of the free slot nearest to `pos2` (-1 when none is free).
-- L183 `grid_phase(list: Array[Person]) -> float` - Round 16: the start of the slot grid, in open length. 0 when nothing is sealed (the grid then starts at the...
-- L201 `open_of_point(p2: Vector2) -> float` - Round 16: the open length at the point of the open loop nearest to `p2`.
-- L219 `ordered_slots(list: Array[Person], slots: Array[Vector2], taken: Array[bool], prev_targets: Dictionary = {}) -> Array[int]` - Round 16: the slot index for each person in `list`, when the free slots are exactly as many as the people (...
-- L301 `static run_free(taken: Array[bool], s: int) -> bool` - True when slot `s` and the BORDER_POST_WORTH slots after it are all free (see assign_members).
-- L310 `point_at_arc(s: float) -> Vector2` - The point on the loop at arc length `s` from its first point.
-- L325 `point_at_open(s: float) -> Vector2` - Round 16: the point at open length `s` (sealed segments take no length).
-- L340 `open_of_arc(a: float) -> float` - Round 16: the open length at full arc length `a`.
-
-### scripts/border_warning.gd (BorderWarning)
-extends RefCounted | 0 const | Round 22: where the border is about to break. A border member losing joy is under strain long before the ga...
-- L11 `static joy_urgency(p: Person) -> float` - 0..1 for a rescued person's joy alone: 0 when healthy, 1 at the falter line.
-- L21 `static compute(border: Border, people: Array[Person]) -> Array[Dictionary]` - The strained spots right now: Array of {"person": Person, "pos": Vector3, "urgency": float}, strongest firs...
-- L44 `static colour_for(urgency: float) -> Color`
+- L149 `static nearest_free_slot(pos2: Vector2, slots: Array[Vector2], taken: Array[bool]) -> int` - The index of the free slot nearest to `pos2` (-1 when none is free).
+- L166 `grid_phase(list: Array[Person]) -> float` - Round 16: the start of the slot grid, in open length. 0 when nothing is sealed (the grid then starts at the...
+- L184 `open_of_point(p2: Vector2) -> float` - Round 16: the open length at the point of the open loop nearest to `p2`.
+- L202 `ordered_slots(list: Array[Person], slots: Array[Vector2], taken: Array[bool], prev_targets: Dictionary = {}) -> Array[int]` - Round 16: the slot index for each person in `list`, when the free slots are exactly as many as the people (...
+- L284 `static run_free(taken: Array[bool], s: int) -> bool` - True when slot `s` and the BORDER_POST_WORTH slots after it are all free (see assign_members).
+- L293 `point_at_arc(s: float) -> Vector2` - The point on the loop at arc length `s` from its first point.
+- L308 `point_at_open(s: float) -> Vector2` - Round 16: the point at open length `s` (sealed segments take no length).
+- L323 `open_of_arc(a: float) -> float` - Round 16: the open length at full arc length `a`.
 
 ### scripts/building.gd (Building)
 extends RefCounted | 0 const | One block the border can beautify. It is beautified after BORDER_BUILDING_SECONDS with enough of its footpr...
@@ -147,14 +154,29 @@ extends RefCounted | 0 const | Round 22: the joy burst's job is to clear dimmed 
 - L31 `static count_targets(people: Array[Person], at: Vector3, _border: Border = null) -> int` - How many dimmed people a burst from `at` would clear right now (the HUD shows it).
 - L41 `static run(people: Array[Person], at: Vector3, border: Border) -> Dictionary` - Uses the burst at `at`. Returns a report: {"cleared": Array of {"person", "from", "to"} (position before an...
 
+### scripts/burst_cue.gd (BurstCue)
+extends Node | 0 const | Round 22 (as GapPatch), round 26 (the F patch is gone): the burst's cue and marks, wired in one place (TopD...
+- L23 `static attach(level: TopDownMain) -> BurstCue` - Builds the node under `level`, links the player to the border and returns it.
+- L70 `cue_text() -> String` - Round 23: the cue (round 24: on the HUD, just right of the spirit meter, glowing when ready), only when G/Q...
+
+### scripts/burst_fx.gd (BurstFx)
+extends Node3D | 1 const | Round 22: the world marks for the burst (G/Q), drawn from BurstCue's reports (round 26: the F patch is gone).
+- L26 `sync(delta: float) -> void` - Advances the burst and result marks.
+- L34 `is_styled_built() -> bool` - True when the pools hold the styled pieces.
+- L40 `add_burst(cleared: Array) -> void` - A burst happened: remember each clearing so the streaks can fade out. Streaks of an earlier burst that ende...
+- L52 `add_lift_result(cleared: Array) -> void` - Round 23: a halo on each person the burst lifted, and one small count where they now stand. Round 25: earli...
+- L80 `result_text_count() -> int`
+- L84 `halo_count() -> int`
+- L88 `streak_count() -> int`
+
 ### scripts/config.gd (Config)
-extends ConfigBase | 309 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L537 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L545 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
-- L552 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L561 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L571 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L582 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 312 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L549 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L557 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
+- L564 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L573 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L583 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L594 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -165,9 +187,11 @@ extends RefCounted | 0 const | Registers every input action the game uses. Each 
 
 ### scripts/crowd_movement.gd (CrowdMovement)
 extends RefCounted | 0 const | Moves the unrescued people each frame (wander, pursuit, separation, the dimmed reach for the player). Moved...
-- L20 `update_people(delta: float) -> void` - Moves every unrescued person for this frame. Dimmed people drift toward the rescued person they are assigne...
-- L79 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Works out which rescued person each dimmed person drifts toward (the weakest point). Each rescued person ta...
-- L187 `new_wander_target(from: Vector3) -> Vector3` - Picks a random spot within TD_WANDER_RANGE of `from`, inside the plaza and clear of blocks.
+- L28 `update_people(delta: float) -> void` - Moves every unrescued person for this frame. Dimmed people drift toward the rescued person they are assigne...
+- L89 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Works out which rescued person each dimmed person drifts toward (the weakest point). Each rescued person ta...
+- L182 `separation_brute(p: Person) -> Vector3` - Round 26: the reference version (every person against every other, `people.find` for the index). Kept so a...
+- L214 `rebuild_grid() -> void` - Round 26: builds the grid (cell size = the separation radius) and the person -> index cache from the positi...
+- L275 `new_wander_target(from: Vector3) -> Vector3` - Picks a random spot within TD_WANDER_RANGE of `from`, inside the plaza and clear of blocks.
 
 ### scripts/dawn_rating.gd (DawnRating)
 extends RefCounted | 0 const | Round 19: the level is won by reaching dawn, and the end screen rates how well it was held: 1 to 3 "dawn li...
@@ -182,35 +206,19 @@ extends RefCounted | 0 const | Round 25 (edge cleanup): dimmed people who are st
 - L18 `static update(border: Border, people: Array[Person], delta: float) -> void` - Moves each person's fade toward its target over EDGE_OUT_FADE_SECONDS (`delta` is the time since the last u...
 - L29 `static faded(col: Color, fade: float) -> Color` - The body colour of a person at `fade`: `col` moved toward the ground tone by EDGE_OUT_FADE x fade.
 
-### scripts/edge_marker_fx.gd (EdgeMarkerFx)
-extends Node3D | 3 const | Round 25 (edge cleanup): draws the trouble markers (EdgeMarkers.pick) as ONE flat breathing ring per spot,...
-- L20 `sync(delta: float, markers: Array[EdgeMarkers.Marker]) -> void` - Shows `markers` (EdgeMarkers.pick, at most EDGE_MARKER_MAX) and advances the breathing by `delta`.
-- L37 `shown_count() -> int` - How many markers are showing.
-- L42 `is_styled_built() -> bool` - True when the pool holds the styled rings.
-- L47 `ring_at(i: int) -> MeshInstance3D` - The marker ring `i` (for tests and the checkpoint shots).
-
-### scripts/edge_markers.gd (EdgeMarkers)
-extends RefCounted | 0 const | Round 25 (edge cleanup): ONE marker per trouble spot on the border. The troubles are open gaps, wobbling pe...
-- L29 `static collect(border: Border, people: Array[Person], warnings: Array[Dictionary]) -> Array[Marker]` - The troubles right now: gaps (open at least EDGE_GAP_MIN_AGE), wobblers, strained members (the `warnings` of
-- L59 `static pick(troubles: Array[Marker]) -> Array[Marker]` - The markers to show from `troubles`: worst first (gap, wobble, strain, gift; then the more severe), a troub...
-- L79 `static choose(border: Border, people: Array[Person], warnings: Array[Dictionary]) -> Array[Marker]` - The markers for the level right now.
-- L84 `static radius_of(m: Marker) -> float` - How big a marker's ring is (m): by kind, a little more for every trouble merged into it.
-- L96 `static colour_of(m: Marker) -> Color`
-
 ### scripts/edge_ribbon.gd (EdgeRibbon)
 extends RefCounted | 0 const | Round 25 (edge cleanup): the border drawn as ONE ribbon through its members, in the loop's order. The pure...
-- L29 `static strain_map(border: Border) -> Dictionary[Person, float]` - Strain per member (Person -> 0..1): the joy urgency, 1 while wobbling, raised by the warnings (a dimmed person
-- L53 `static pressers(border: Border, people: Array[Person]) -> PackedVector2Array` - The dimmed, unrescued people outside the loop close enough to press on it (their ground positions).
-- L69 `static build(border: Border, push: PackedVector2Array) -> Array[EdgeStrip]` - The ribbon's strips. `push` is the pressers() positions (may be empty).
-- L105 `static width_for(strain: float) -> float` - Width of a ribbon point: full when healthy, EDGE_RIBBON_THIN of it at full strain.
-- L111 `static colour_for(strain: float, seal: float = 0.0) -> Color` - Colour of a ribbon point: gold, amber from about half strain, coral at full; a sealed stretch tends to honey.
-- L123 `static mesh_arrays(strips: Array[EdgeStrip], y: float, alpha: float, halo: float = 1.0) -> Array` - Triangles for a set of strips as mesh arrays (Mesh.ARRAY_*), flat at height `y`, `alpha` on every colour. `...
+- L27 `static strain_map(border: Border) -> Dictionary[Person, float]` - Strain per member (Person -> 0..1): how far the line is bent at them, 1 while they wobble.
+- L35 `static build(border: Border) -> Array[EdgeStrip]` - The ribbon's strips.
+- L68 `static width_for(strain: float) -> float` - Width of a ribbon point: full when healthy, EDGE_RIBBON_THIN of it at full strain.
+- L74 `static colour_for(strain: float, seal: float = 0.0) -> Color` - Colour of a ribbon point: gold, amber from about half strain, coral at full; a sealed stretch tends to honey.
+- L86 `static mesh_arrays(strips: Array[EdgeStrip], y: float, alpha: float, halo: float = 1.0) -> Array` - Triangles for a set of strips as mesh arrays (Mesh.ARRAY_*), flat at height `y`, `alpha` on every colour. `...
 
 ### scripts/edge_strip.gd (EdgeStrip)
 extends RefCounted | 0 const | Round 25: one unbroken run of the border ribbon (see EdgeRibbon). The arrays are parallel: one entry per po...
-- L17 `add(p: Vector2, strain_at: float, seal_at: float, fade_at: float) -> void`
-- L24 `size() -> int`
-- L29 `neighbours(i: int) -> Array[Vector2]` - The point before and after `i` (wrapping on a closed strip, clamped on an open one).
+- L16 `add(p: Vector2, strain_at: float, seal_at: float, fade_at: float) -> void`
+- L23 `size() -> int`
+- L28 `neighbours(i: int) -> Array[Vector2]` - The point before and after `i` (wrapping on a closed strip, clamped on an open one).
 
 ### scripts/embrace.gd (Embrace)
 extends Node | 0 const | Round 25 part S: embrace. A gloomy or dimmed person who is not yet rescued but stands INSIDE the border loo...
@@ -261,17 +269,6 @@ extends Control | 0 const | Off-screen gap arrows (round 10). For each gap whose
 - L97 `rebuild_look() -> void` - The look was swapped (F4): draw again in the new style.
 - L122 `static arrow_colour(urgency: float, t: float, base_alpha: float) -> Color` - The colour of an arrow at `urgency` (0 to 1) at clock time `t`: the coral gap colour, pulsing faster and br...
 
-### scripts/gap_patch.gd (GapPatch)
-extends Node | 0 const | Round 22: the player's ways to fight back with spirit, wired in one place (TopDownMain only calls `attach`).
-signals: patched(pos: Vector3, cost: float, spirit_after: float), expired(pos: Vector3)
-- L38 `static attach(level: TopDownMain) -> GapPatch` - Builds the node under `level`, links the border and the player to it and returns it.
-- L119 `cue_text() -> String` - Round 23: the cue (round 24: on the HUD, just right of the spirit meter, glowing when ready), only when F o...
-- L179 `try_patch() -> bool` - F. Seals the gap or strained spot nearest the cursor. Returns true when a patch was made. Once per frame (t...
-- L204 `patch_at(at: Vector3, kind: String = "gap") -> void` - Seals the stretch round `at`, paying for it. (Public so a test can place one without a cursor.)
-- L231 `react_to_patch(at: Vector3) -> int` - Round 24: the border people at the patched spot react: they hop, turn toward it and glow, the nearest first...
-- L287 `is_patched(pos: Vector3) -> bool`
-- L298 `apply(b: Border) -> void` - Called by Border.update after the slots and gaps are worked out. Gap flags inside a patch are cleared (so t...
-
 ### scripts/gap_tracker.gd (GapTracker)
 extends RefCounted | 0 const | Round 13b: how long each open gap of the border has been open. The border hands over its gap flags and gap...
 - L19 `update(flags: Array[bool], mids: Array[Vector3], delta: float) -> void` - Carries the ages over by `delta`. `flags` are the border's segment_gap flags, `mids` its gap middles (one per
@@ -287,15 +284,17 @@ extends RefCounted | 0 const | Shared gloom rules for the top-down territory gam
 ### scripts/gloom_tide.gd (GloomTide)
 extends Node | 0 const | Round 25: gloom tides. Two a night (Config TIDE_*): one in the rising phase, one at midnight. Each comes fr...
 signals: tide_warned(side: String, angle: float), tide_started(side: String, angle: float, members: int), tide_ended(side: String, angle: float, members: int)
-- L27 `static attach(level: TopDownMain) -> GloomTide` - Builds the schedule, the fog band and the edge pointer, and wires them to `level`. One line in TopDownMain.
-- L45 `update(delta: float) -> void` - Advances the tides by the night's clock and applies them: the warnings and the start and end of each tide (...
-- L55 `showing_index() -> int` - The index of the tide on show now (warned and not yet ended, the earliest first), or -1.
-- L64 `warning_index() -> int` - The index of the tide being warned about (warned, not yet started), or -1.
-- L73 `passing_index() -> int` - The index of the tide passing now (started, not yet ended), or -1.
-- L82 `count_facing(angle: float) -> int` - How many rescued border members face `angle` now (see faces).
+- L29 `static attach(level: TopDownMain) -> GloomTide` - Builds the schedule, the fog band and the edge pointer, and wires them to `level`. One line in TopDownMain.
+- L47 `update(delta: float) -> void` - Advances the tides by the night's clock and applies them: the warnings and the start and end of each tide (...
+- L57 `showing_index() -> int` - The index of the tide on show now (warned and not yet ended, the earliest first), or -1.
+- L66 `warning_index() -> int` - The index of the tide being warned about (warned, not yet started), or -1.
+- L75 `passing_index() -> int` - The index of the tide passing now (started, not yet ended), or -1.
+- L84 `count_facing(angle: float) -> int` - How many rescued border members face `angle` now (see faces).
 - L95 `refresh_pointer() -> void` - Works the edge pointer out now: its tip sits where the ray from the screen centre toward the side leaves th...
 - L116 `static faces(pos: Vector3, centre: Vector3, angle: float) -> bool` - True when `pos` (a point on the ground) lies within TIDE_HALF_WIDTH of `angle` as seen from `centre`.
 - L124 `static side_name(angle: float) -> String` - The compass name of a side (north is -z, as the camera sees it: north is up the screen).
+- L183 `front_distance(idx: int) -> float` - Round 26: where the wave's front is, as a distance from the border's centre (the front is its near edge). I...
+- L200 `shove_strength(idx: int) -> float` - The wave's shove on the line now: 0 until the front is within TIDE_PUSH_REACH of the line, TIDE_PUSH once i...
 
 ### scripts/grabs.gd (Grabs)
 extends Node | 0 const | Round 12a, dance with the gloom: dimmed people within GRAB_RANGE of a player who is not dim start a grab. A...
@@ -336,16 +335,16 @@ extends RefCounted | 0 const | Checkpoint 6: the rectangle the edge pointers sta
 
 ### scripts/intro.gd (Intro)
 extends RefCounted | 0 const | Round 13b, the layered introduction through the night. It is driven by the night's progress (NightCycle), s...
-- L62 `dimmed_allowed() -> bool` - True once dimmed people may emerge (the calm opening is over). Always true when the intro is off.
-- L69 `mood_active(mood: int) -> bool` - True when `mood` (a Person.Mood) is switched on. Always true when the intro is off.
-- L78 `request(id: int, at: Vector3 = Vector3.INF) -> bool` - Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and alway...
-- L91 `notice(id: int, words: String = "") -> void` - Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the i...
-- L102 `current_text() -> String` - The words of the prompt on show (a notice may carry its own).
-- L108 `check_level(main: TopDownMain, delta: float) -> void` - Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
+- L60 `dimmed_allowed() -> bool` - True once dimmed people may emerge (the calm opening is over). Always true when the intro is off.
+- L67 `mood_active(mood: int) -> bool` - True when `mood` (a Person.Mood) is switched on. Always true when the intro is off.
+- L76 `request(id: int, at: Vector3 = Vector3.INF) -> bool` - Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and alway...
+- L89 `notice(id: int, words: String = "") -> void` - Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the i...
+- L101 `current_text() -> String` - The words of the prompt on show (a notice may carry its own).
+- L107 `check_level(main: TopDownMain, delta: float) -> void` - Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
 - L139 `update(delta: float) -> void` - Counts the current prompt down and moves on to the next one in the queue.
-- L166 `static prompt_for_mood(mood: int) -> int` - The prompt for a mood (Person.Mood).
-- L176 `static text_for(id: int) -> String` - The short line of a prompt (the icon sits beside it).
-- L218 `static icon_for(id: int) -> int` - The icon (MoodIcons.Kind) that goes with a prompt.
+- L167 `static prompt_for_mood(mood: int) -> int` - The prompt for a mood (Person.Mood).
+- L177 `static text_for(id: int) -> String` - The short line of a prompt (the icon sits beside it).
+- L213 `static icon_for(id: int) -> int` - The icon (MoodIcons.Kind) that goes with a prompt.
 
 ### scripts/joy_projectile.gd (JoyProjectile)
 extends Node3D | 6 const | A joy projectile for top-down mode. It has no physics body: each physics frame it steers, moves, and checks
@@ -387,9 +386,9 @@ extends Node3D | 3 const | Round 19: the level's three landmarks and what they g
 
 ### scripts/looks/border_look.gd (BorderLook)
 extends Node3D | 0 const | The look of the living border. The rules (border.gd) own the loop, the members and the gaps; this node read...
-- L15 `setup(border: Border) -> void`
-- L21 `is_styled() -> bool` - True for the styled look.
-- L26 `refresh() -> void` - Redraws from the border's current state. Called by the border every update.
+- L14 `setup(border: Border) -> void`
+- L20 `is_styled() -> bool` - True for the styled look.
+- L25 `refresh() -> void` - Redraws from the border's current state. Called by the border every update.
 
 ### scripts/looks/border_look_placeholder.gd (BorderLookPlaceholder)
 extends BorderLook | 0 const | The placeholder border (round 25): one flat ribbon through the members. Gold when healthy, amber when strai...
@@ -775,19 +774,19 @@ extends Node | 5 const | The camera and post-process pipeline, the one switch be
 
 ### scripts/menu.gd
 extends Control | 5 const | The start menu: a title, one Play button, the Look toggle and a "How to play" panel. Play is the button,
-- L95 `look_text() -> String` - The text of the look button.
+- L96 `look_text() -> String` - The text of the look button.
 
 ### scripts/minimap.gd (Minimap)
 extends Control | 2 const | The round minimap (round 10), top-left, about TD_MINIMAP_WIDTH_FRACTION of the screen width. It shows the w...
-- L90 `rebuild_look() -> void` - Swaps the look in place (F4): the data model is kept, the picture is redrawn with the new palette.
-- L97 `is_circular() -> bool` - The minimap is a circle: the picture is clipped to it, and the frame is drawn round it.
-- L102 `radius() -> float` - The circle's radius on screen, in pixels.
-- L108 `tick(delta: float) -> bool` - Advances the refresh timer by `delta`. Returns true when the picture should be rebuilt now (about 10 times a
-- L128 `clouds_due() -> bool` - Round 20: true when the people clouds are due a recount (at the next refresh_from).
-- L134 `refresh_from(ground: PaintedGround, border: Border, people: Array[Person], player_at: Vector3, view_centre: Vector3, view_half: Vector2) -> void` - Reads the level into the data model and redraws the picture. `view_half` is the half size of the camera's v...
-- L205 `refresh_clouds(people: Array[Person]) -> void` - Round 20: bins the unrescued people into the coarse grid and sets one blob per busy cell, at the mean of it...
-- L290 `cloud_alpha_at(px: int, py: int) -> float` - Round 20: the alpha of the people clouds at picture pixel (px, py), 0 to 1. Zero outside every blob.
-- L347 `add_blip(world: Vector2) -> void` - Round 12b: a blip at a world point (x, z) for MINIMAP_BLIP_SECONDS, drawn as a ring (someone became dimmed).
+- L87 `rebuild_look() -> void` - Swaps the look in place (F4): the data model is kept, the picture is redrawn with the new palette.
+- L94 `is_circular() -> bool` - The minimap is a circle: the picture is clipped to it, and the frame is drawn round it.
+- L99 `radius() -> float` - The circle's radius on screen, in pixels.
+- L105 `tick(delta: float) -> bool` - Advances the refresh timer by `delta`. Returns true when the picture should be rebuilt now (about 10 times a
+- L125 `clouds_due() -> bool` - Round 20: true when the people clouds are due a recount (at the next refresh_from).
+- L131 `refresh_from(ground: PaintedGround, border: Border, people: Array[Person], player_at: Vector3, view_centre: Vector3, view_half: Vector2) -> void` - Reads the level into the data model and redraws the picture. `view_half` is the half size of the camera's v...
+- L193 `refresh_clouds(people: Array[Person]) -> void` - Round 20: bins the unrescued people into the coarse grid and sets one blob per busy cell, at the mean of it...
+- L278 `cloud_alpha_at(px: int, py: int) -> float` - Round 20: the alpha of the people clouds at picture pixel (px, py), 0 to 1. Zero outside every blob.
+- L335 `add_blip(world: Vector2) -> void` - Round 12b: a blip at a world point (x, z) for MINIMAP_BLIP_SECONDS, drawn as a ring (someone became dimmed).
 
 ### scripts/mood_icons.gd (MoodIcons)
 extends RefCounted | 1 const | Round 13b: the small icons of the game's communication (screen-space UI, drawn with _draw on any CanvasItem...
@@ -830,48 +829,35 @@ extends Node3D | 0 const | Painted ground: a square grid of flat tiles (1 m each
 - L140 `has_edge() -> bool` - True when some tile is on the territory edge (see _paint). Dimmed people with no one to chase walk there.
 - L145 `nearest_edge_point(from: Vector3) -> Vector3` - The edge tile centre nearest to `from` (ground distance). Returns `from` itself when there is no edge.
 
-### scripts/patch_fx.gd (PatchFx)
-extends Node3D | 1 const | Round 22: the world marks for the spirit actions, drawn from GapPatch's state.
-- L36 `sync(delta: float, patches: Array[Dictionary]) -> void` - Shows the patches (Array of {"pos", "left"}); advances the burst and result marks.
-- L46 `is_styled_built() -> bool` - True when the pools hold the styled pieces.
-- L52 `add_burst(cleared: Array) -> void` - A burst happened: remember each clearing so the streaks can fade out. Streaks of an earlier burst that ende...
-- L64 `add_patch_result(at: Vector3, held: int) -> void` - Round 23: a patch was made at `at`: a pulse opens over the sealed stretch and a small count rises ("Held: 3").
-- L83 `add_lift_result(cleared: Array) -> void` - Round 23: a halo on each person the burst lifted, and one small count where they now stand. Round 25: earli...
-- L111 `result_text_count() -> int`
-- L115 `halo_count() -> int`
-- L119 `pulse_count() -> int`
-- L123 `patch_disc_count() -> int`
-- L127 `streak_count() -> int`
-
 ### scripts/person.gd (Person)
 extends StaticBody3D | 0 const | Round 24: a drained rescued person began to wobble (`seconds` to be saved first), and a joy hit saved one.
 signals: rescued, relapsed, wobbled(seconds: float), saved, stage_changed(from_level: int, to_level: int), joy_blocked(reason: int), joy_landed, shield_popped(at: Vector3)
-- L135 `rebuild_look() -> void` - Swaps the look in place (F4): the rules state is untouched, the visuals are rebuilt from it.
-- L146 `set_ui_scale(value: float) -> void` - Round 14: the label scale (the zoom, see TopDownMain._update_camera). Redraws the label only when the value...
-- L155 `joy_needed() -> float` - The joy this person needs to be rescued. Dimmer levels need more.
-- L160 `is_warning() -> bool` - True when a rescued person is losing joy and close to relapsing (they flicker and show "!").
-- L166 `is_faltering() -> bool` - Round 12b: a rescued person drained below MEMBER_FALTER_FRACTION of their joy needed. A border member who f...
-- L171 `chest_position() -> Vector3` - Where a joy projectile should land: a little above the feet, at chest height.
-- L176 `active_mood() -> int` - The mood that counts right now: none for rescued and dimmed people.
-- L182 `static mood_name(m: int) -> String`
-- L187 `facing_dir() -> Vector3` - The flat direction this person faces (their local forward, -Z).
-- L195 `shot_lands_now() -> bool` - Round 17: true when a shot from the player would land on this person right now (the guarded open arc, the s...
-- L201 `is_open_to(from: Vector3) -> bool` - True when joy coming from `from` (a world point) would arrive at this person's front or side: the angle bet...
-- L217 `receive_joy(element: int, amount: float, distance: float, from: Vector3 = Vector3.INF, wears_shield: bool = true) -> void` - Called when a joy projectile (or a burst) hits this person. Works on rescued people too (top-up). `from` is...
-- L255 `shield_left_frac() -> float` - Round 15: the share of this dimmed person's shield left: 1 when fresh, 0.25 after three hits, and so on.
-- L262 `wear_shield() -> bool` - Round 15: one joy landing on the person this dimmed person shelters wears the shield. On the SHELTER_HITS-t...
-- L286 `tick(delta: float) -> void` - Called every frame by topdown_main.gd: handles joy fading, level changes and visuals.
-- L319 `react(kind: int, seconds: float, toward: Vector3 = Vector3.INF, delay: float = 0.0) -> void` - Round 24: start a reaction of `kind` lasting `seconds`, after `delay` seconds. `toward` is the world point...
-- L328 `react_progress() -> float` - Round 24: how far through the reaction (0 to 1), or -1 when none is running (or it has not started yet).
-- L345 `drain_joy(amount: float) -> void` - Removes joy from a rescued person (used by nearby gloom). Relapses them if they drop too low.
-- L359 `next_wobble_seconds() -> float` - Round 24: how long the next wobble lasts: WOBBLE_SECONDS varied by +/- WOBBLE_JITTER, from the person's see...
-- L365 `wobble_progress() -> float` - 0 at the start of the wobble, 1 when it has run out (0 when not wobbling). The look greys by it.
-- L488 `set_debug_visible(on: bool) -> void` - Shows or hides the cover and protection labels above this person (the F3 debug overlay).
+- L139 `rebuild_look() -> void` - Swaps the look in place (F4): the rules state is untouched, the visuals are rebuilt from it.
+- L150 `set_ui_scale(value: float) -> void` - Round 14: the label scale (the zoom, see TopDownMain._update_camera). Redraws the label only when the value...
+- L159 `joy_needed() -> float` - The joy this person needs to be rescued. Dimmer levels need more.
+- L164 `is_warning() -> bool` - True when a rescued person is losing joy and close to relapsing (they flicker and show "!").
+- L170 `is_faltering() -> bool` - Round 12b: a rescued person drained below MEMBER_FALTER_FRACTION of their joy needed (they show the "!" cue...
+- L175 `chest_position() -> Vector3` - Where a joy projectile should land: a little above the feet, at chest height.
+- L180 `active_mood() -> int` - The mood that counts right now: none for rescued and dimmed people.
+- L186 `static mood_name(m: int) -> String`
+- L191 `facing_dir() -> Vector3` - The flat direction this person faces (their local forward, -Z).
+- L199 `shot_lands_now() -> bool` - Round 17: true when a shot from the player would land on this person right now (the guarded open arc, the s...
+- L205 `is_open_to(from: Vector3) -> bool` - True when joy coming from `from` (a world point) would arrive at this person's front or side: the angle bet...
+- L221 `receive_joy(element: int, amount: float, distance: float, from: Vector3 = Vector3.INF, wears_shield: bool = true) -> void` - Called when a joy projectile (or a burst) hits this person. Works on rescued people too (top-up). `from` is...
+- L262 `shield_left_frac() -> float` - Round 15: the share of this dimmed person's shield left: 1 when fresh, 0.25 after three hits, and so on.
+- L269 `wear_shield() -> bool` - Round 15: one joy landing on the person this dimmed person shelters wears the shield. On the SHELTER_HITS-t...
+- L293 `tick(delta: float) -> void` - Called every frame by topdown_main.gd: handles joy fading, level changes and visuals.
+- L327 `react(kind: int, seconds: float, toward: Vector3 = Vector3.INF, delay: float = 0.0) -> void` - Round 24: start a reaction of `kind` lasting `seconds`, after `delay` seconds. `toward` is the world point...
+- L336 `react_progress() -> float` - Round 24: how far through the reaction (0 to 1), or -1 when none is running (or it has not started yet).
+- L353 `drain_joy(amount: float) -> void` - Removes joy from a rescued person (used by nearby gloom). Relapses them if they drop too low.
+- L367 `next_wobble_seconds() -> float` - Round 24: how long the next wobble lasts: WOBBLE_SECONDS varied by +/- WOBBLE_JITTER, from the person's see...
+- L373 `wobble_progress() -> float` - 0 at the start of the wobble, 1 when it has run out (0 when not wobbling). The look greys by it.
+- L496 `set_debug_visible(on: bool) -> void` - Shows or hides the cover and protection labels above this person (the F3 debug overlay).
 
 ### scripts/prompt_bar.gd (PromptBar)
-extends Control | 3 const | Round 13b: the one-time prompt of the layered introduction (see intro.gd). A small rounded bar with an icon...
+extends Control | 2 const | Round 13b: the one-time prompt of the layered introduction (see intro.gd). Round 26: a slim banner with an...
 - L32 `tick(screen: Rect2) -> void` - Reads the intro's current prompt and redraws. `screen` is the window rectangle.
-- L87 `rebuild_look() -> void` - The look was swapped (F4): draw again in the new style.
+- L75 `rebuild_look() -> void` - The look was swapped (F4): draw again in the new style.
 
 ### scripts/reach_guide.gd (ReachGuide)
 extends Node3D | 3 const | Round 20/21/22: the placeholder look's guide to the stretching zone, drawn flat on the ground. While E is h...
@@ -927,28 +913,28 @@ extends Control | 0 const | Round 25: the gloom tide's edge pointer. A grey ring
 ### scripts/topdown_main.gd (TopDownMain)
 extends Node3D | 5 const | The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a...
 signals: beacon_placed(pos: Vector3, cost: float, spirit_after: float)
-- L280 `try_place_beacon() -> bool` - Round 19: E. See BeaconPlacement.
-- L303 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
-- L308 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
-- L336 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
-- L340 `sun_light() -> DirectionalLight3D`
-- L344 `environment() -> Environment`
-- L401 `dim_recovery_rate() -> float` - Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
-- L548 `view_half_extents() -> Vector2` - The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the v...
-- L754 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
+- L279 `try_place_beacon() -> bool` - Round 19: E. See BeaconPlacement.
+- L302 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
+- L307 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
+- L335 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
+- L339 `sun_light() -> DirectionalLight3D`
+- L343 `environment() -> Environment`
+- L400 `dim_recovery_rate() -> float` - Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
+- L547 `view_half_extents() -> Vector2` - The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the v...
+- L753 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
 
 ### scripts/topdown_player.gd (TopDownPlayer)
 extends CharacterBody3D | 0 const | The player in top-down mode. WASD moves in world space and the mouse picks an aim point on the floor. The p...
 signals: target_changed(affinity: int), targeting_changed(mode: int), debug_toggled, burst_fired(at: Vector3), burst_cleared(report: Dictionary), dim_changed(is_dim: bool), spirit_spilled(amount: float)
 - L70 `rebuild_look() -> void` - Swaps the look in place (F4).
-- L310 `fire_rate_mult() -> float` - The joy fire rate factor from spirit: 1 at SPIRIT_FULL_FIRE_FRACTION of spirit or more, then linearly down to
-- L318 `can_burst() -> bool` - True when the burst is ready, the player is not dim and spirit covers its cost.
-- L323 `has_burst_spirit() -> bool` - True when spirit covers the burst (and the player is not dim).
-- L328 `aim_point() -> Vector3` - Round 19: the ground point under the cursor as of the last physics frame (valid only when `has_aim()`).
-- L332 `has_aim() -> bool`
-- L336 `add_spirit(amount: float) -> void`
-- L343 `lose_spirit(amount: float) -> void`
-- L348 `dim_level() -> float` - 0 when not dim, up to 1 at spirit 0: how grey the player is drawn.
+- L313 `fire_rate_mult() -> float` - The joy fire rate factor from spirit: 1 at SPIRIT_FULL_FIRE_FRACTION of spirit or more, then linearly down to
+- L321 `can_burst() -> bool` - True when the burst is ready, the player is not dim and spirit covers its cost.
+- L326 `has_burst_spirit() -> bool` - True when spirit covers the burst (and the player is not dim).
+- L331 `aim_point() -> Vector3` - Round 19: the ground point under the cursor as of the last physics frame (valid only when `has_aim()`).
+- L335 `has_aim() -> bool`
+- L339 `add_spirit(amount: float) -> void`
+- L346 `lose_spirit(amount: float) -> void`
+- L351 `dim_level() -> float` - 0 when not dim, up to 1 at spirit 0: how grey the player is drawn.
 
 ### scripts/wobble_alert.gd (WobbleAlert)
 extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued person wobbles for about WOBBLE_SECONDS before they relap...
@@ -975,24 +961,30 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - border_growth_test (tests/border_growth_test.gd): 11 tests
 - border_level_test (tests/border_level_test.gd): 20 tests
 - border_motion_test (tests/border_motion_test.gd): 5 tests
+- border_push_test (tests/border_push_test.gd): 22 tests
 - border_shape_test (tests/border_shape_test.gd): 16 tests
 - burst_clear_test (tests/burst_clear_test.gd): 1 tests
+- burst_cue_recorder_test (tests/burst_cue_recorder_test.gd): 1 tests
+- burst_cue_test (tests/burst_cue_test.gd): 4 tests
 - config_test (tests/config_test.gd): 5 tests
 - cover_test (tests/cover_test.gd): 14 tests
+- crowd_separation_test (tests/crowd_separation_test.gd): 5 tests
 - dawn_rating_test (tests/dawn_rating_test.gd): 8 tests
 - debug_overlay_test (tests/debug_overlay_test.gd): 1 tests
-- defence_cues_test (tests/defence_cues_test.gd): 5 tests
+- defence_cues_test (tests/defence_cues_test.gd): 3 tests
 - dimmed_help_test (tests/dimmed_help_test.gd): 4 tests
 - dimmed_waves_test (tests/dimmed_waves_test.gd): 18 tests
-- edge_cleanup_test (tests/edge_cleanup_test.gd): 19 tests
+- edge_cleanup_test (tests/edge_cleanup_test.gd): 6 tests
+- edge_dim_test (tests/edge_dim_test.gd): 5 tests
 - edge_pressure_test (tests/edge_pressure_test.gd): 11 tests
-- embrace_test (tests/embrace_test.gd): 15 tests
+- edge_ribbon_test (tests/edge_ribbon_test.gd): 10 tests
+- embrace_test (tests/embrace_test.gd): 17 tests
 - feedback_test (tests/feedback_test.gd): 16 tests
 - first_light_test (tests/first_light_test.gd): 16 tests
 - floor_test (tests/floor_test.gd): 3 tests
-- gap_patch_test (tests/gap_patch_test.gd): 10 tests
 - gloom_sim_test (tests/gloom_sim_test.gd): 8 tests
-- gloom_tide_test (tests/gloom_tide_test.gd): 10 tests
+- gloom_tide_edges_test (tests/gloom_tide_edges_test.gd): 3 tests
+- gloom_tide_test (tests/gloom_tide_test.gd): 13 tests
 - grab_test (tests/grab_test.gd): 9 tests
 - grace_cue_test (tests/grace_cue_test.gd): 3 tests
 - guarded_wedge_test (tests/guarded_wedge_test.gd): 6 tests
@@ -1001,11 +993,11 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - how_to_play_keys_test (tests/how_to_play_keys_test.gd): 3 tests
 - hud_checkpoint6_test (tests/hud_checkpoint6_test.gd): 9 tests
 - hud_test (tests/hud_test.gd): 12 tests
-- intro_test (tests/intro_test.gd): 12 tests
+- intro_test (tests/intro_test.gd): 13 tests
 - landmark_clarity_test (tests/landmark_clarity_test.gd): 10 tests
 - landmark_pointers_test (tests/landmark_pointers_test.gd): 9 tests
 - landmarks_test (tests/landmarks_test.gd): 11 tests
-- local_gap_test (tests/local_gap_test.gd): 12 tests
+- local_gap_test (tests/local_gap_test.gd): 9 tests
 - looks_base_test (tests/looks_base_test.gd): 6 tests
 - looks_checkpoint5_test (tests/looks_checkpoint5_test.gd): 17 tests
 - looks_checkpoint6_test (tests/looks_checkpoint6_test.gd): 11 tests
@@ -1016,7 +1008,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - looks_round20_test (tests/looks_round20_test.gd): 17 tests
 - looks_test (tests/looks_test.gd): 19 tests
 - menu_test (tests/menu_test.gd): 14 tests
-- minimap_clouds_test (tests/minimap_clouds_test.gd): 18 tests
+- minimap_clouds_test (tests/minimap_clouds_test.gd): 17 tests
 - moods_test (tests/moods_test.gd): 14 tests
 - night_cycle_test (tests/night_cycle_test.gd): 9 tests
 - paint_bloom_camera_test (tests/paint_bloom_camera_test.gd): 8 tests
@@ -1027,7 +1019,8 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - projectile_rhythm_test (tests/projectile_rhythm_test.gd): 5 tests
 - projectile_test (tests/projectile_test.gd): 7 tests
 - projectile_trail_test (tests/projectile_trail_test.gd): 4 tests
-- reactions_test (tests/reactions_test.gd): 12 tests
+- push_defence_test (tests/push_defence_test.gd): 4 tests
+- reactions_test (tests/reactions_test.gd): 11 tests
 - readability_test (tests/readability_test.gd): 10 tests
 - recorder_more_test (tests/recorder_more_test.gd): 10 tests
 - recorder_polled_test (tests/recorder_polled_test.gd): 9 tests
@@ -1039,7 +1032,6 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - shelter_nearest_test (tests/shelter_nearest_test.gd): 3 tests
 - shield_readability_test (tests/shield_readability_test.gd): 8 tests
 - shield_test (tests/shield_test.gd): 11 tests
-- spirit_defence_test (tests/spirit_defence_test.gd): 3 tests
 - spirit_test (tests/spirit_test.gd): 13 tests
 - spirit_warmth_test (tests/spirit_warmth_test.gd): 11 tests
 - stage_change_test (tests/stage_change_test.gd): 4 tests

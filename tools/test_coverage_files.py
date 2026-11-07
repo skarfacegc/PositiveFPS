@@ -60,7 +60,7 @@ class CheckFilesTest(unittest.TestCase):
         suites = coverage.suites_for_scripts(["scripts/menu.gd"])
         self.assertIn("menu_test", suites)
         self.assertIn("how_to_play_keys_test", suites)  # names res://scripts/menu.gd
-        self.assertEqual(coverage.suites_for_scripts(["scripts/gap_patch.gd"]).count("gap_patch_test"), 1)
+        self.assertEqual(coverage.suites_for_scripts(["scripts/burst_cue.gd"]).count("burst_cue_test"), 1)
 
 
 INNER_SAMPLE = """class_name Outer

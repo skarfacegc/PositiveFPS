@@ -73,21 +73,8 @@ const BEACON_GAIN_TEXT := "+%d sq m of ground"
 const BEACON_LIMITED_OUTLINE_WIDTH := 0.26  # Checkpoint 5 follow-up: thin, a touch wider than the normal outline.
 const BEACON_LIMITED_COLOUR := Color(1.0, 0.35, 0.25, 0.95)
 
-# ---- Round 22: gap patch (scripts/gap_patch.gd). ----
-# F spends PATCH_SPIRIT_COST spirit to seal the gap (or the strained spot) nearest the cursor for PATCH_SECONDS. While
-# patched, gloom does not pass the gap (it counts as intact: dimmed people are pushed back) and border members within
-# PATCH_RADIUS of it lose joy at only PATCH_DRAIN_MULT of the usual rate. It buys time; it does not heal anyone.
-const PATCH_SPIRIT_COST := 25.0
-const PATCH_SECONDS := 12.0
-const PATCH_RADIUS := 4.0 * WORLD_SCALE
-const PATCH_REACH := 9.0 * WORLD_SCALE  # How far from the cursor the gap or strained spot may be.
-const PATCH_DRAIN_MULT := 0.15
-const PATCH_MAX := 4
+# The teal glow of Person.React.PATCH (a reaction the looks still draw; the F patch itself is gone in round 26).
 const PATCH_COLOUR := Color(0.35, 0.95, 0.85)
-const PATCH_SPIRIT_TEXT := "Patching a gap needs 25 spirit"
-const PATCH_NONE_TEXT := "No gap or strained spot near the cursor"
-const PATCH_ALREADY_TEXT := "That spot is already patched"
-const PATCH_MAX_TEXT := "Too many patches at once"
 
 # ---- Round 22: burst (scripts/burst_clear.gd, topdown_player.gd). ----
 # G/Q clears dimmed people off the border: within BURST_CLEAR_RADIUS of the player, every dimmed person within
@@ -104,16 +91,8 @@ const BURST_CALM_SECONDS := 16.0  # Round 24: was 10.0.
 const BURST_FX_SECONDS := 0.6  # Round 25: was 0.9 (short effects).
 const BURST_FX_COLOUR := Color(1.0, 0.9, 0.5)
 
-# ---- Round 22: border warning (scripts/border_warning.gd, gap_patch.gd, minimap.gd). ----
-# A border member whose joy has fallen below BORDER_WARN_START of the joy needed is under strain; the warning grows from
-# 0 there to 1 at MEMBER_FALTER_FRACTION, where the gap opens. A dimmed person outside within BORDER_WARN_PRESS_RANGE of
-# a member gives that member at least BORDER_WARN_PRESS_URGENCY. Worked out every BORDER_WARN_INTERVAL seconds.
-const BORDER_WARN_START := 0.97
-const BORDER_WARN_PRESS_RANGE := 4.0
-const BORDER_WARN_PRESS_URGENCY := 0.3
+# Round 26: the burst cue works out its count (and fades the people outside) every BORDER_WARN_INTERVAL seconds.
 const BORDER_WARN_INTERVAL := 0.1
-const BORDER_WARN_COLOUR_LOW := Color(1.0, 0.85, 0.3)
-const BORDER_WARN_COLOUR_HIGH := Color(1.0, 0.25, 0.2)
 
 # ---- Round 19: landmarks (scripts/landmark.gd, landmarks.gd, topdown_main.gd). ----
 # Three landmarks, far enough from the start that the natural ring (LANDMARK_START_REACH from the middle) cannot reach
@@ -240,15 +219,11 @@ const BEACON_PULSE_RING_GROW := 4.0
 const CUE_FONT_SIZE := 18
 const CUE_PLAYER_RANGE := 14.0 * WORLD_SCALE  # A gap or strain this close to the player counts as "near".
 const CUE_ALPHA := 0.8
-const CUE_PATCH_TEXT := "F: patch"
-const CUE_PATCH_AIM_TEXT := "gap near: aim at it, F"
 const CUE_BURST_TEXT := "G: lift %d"
 const FX_TEXT_SECONDS := 1.1  # Round 25: was 1.6.
 const FX_TEXT_RISE := 1.8
 const FX_TEXT_SIZE := 0.012  # Label3D pixel_size; small.
 const FX_HALO_SECONDS := 0.9  # Round 25: was 1.5.
-const FX_PATCH_PULSE_SECONDS := 0.6  # Round 25: was 0.8.
-const FX_PATCH_TEXT := "Held: %d"
 const FX_LIFT_TEXT := "lifted %d"
 
 # ---- Round 24: dimmed and waves (scripts/burst_clear.gd, person.gd, relapse_wave.gd, person_look*.gd). ----
@@ -303,7 +278,7 @@ const REACT_PATCH_SECONDS := 1.2
 const REACT_PATCH_HOPS := 2.0
 const REACT_PATCH_HOP_HEIGHT := 0.55
 const REACT_PATCH_MAX := 10  # Most border people that react to one patch.
-const REACT_PATCH_REACH := PATCH_RADIUS * 1.3
+const REACT_PATCH_REACH := 4.0 * WORLD_SCALE * 1.3
 const REACT_PATCH_STAGGER := 0.35  # Seconds of delay across the patch radius (nearest first).
 const REACT_LIFT_SECONDS := 1.0
 const REACT_LIFT_HOP_HEIGHT := 0.85
@@ -469,7 +444,17 @@ const TIDE_MIDNIGHT_TO := 0.6
 const TIDE_WARN_SECONDS := 15.0
 const TIDE_SECONDS := 12.0
 const TIDE_HALF_WIDTH := PI / 4.0  # Radians either side of the tide's direction: a quarter of the compass (90 degrees).
-const TIDE_DRAIN_MULT := 2.0  # A facing border member drains this many times as fast while the tide passes.
+# Round 26: the wave shoves instead of draining. TIDE_PUSH is the force it puts on the side it comes from once its front
+# is TIDE_SHOVE_DEPTH metres past the line (it ramps in over TIDE_PUSH_REACH + TIDE_SHOVE_DEPTH of approach); the front
+# arrives over the first TIDE_ARRIVE share of the passing. TIDE_FIGURES dark figures walk in the fog band.
+const TIDE_PUSH := 2.0
+const TIDE_PUSH_REACH := 4.0
+const TIDE_SHOVE_DEPTH := 2.0
+const TIDE_ARRIVE := 0.4
+const TIDE_FIGURES := 9
+const TIDE_FIGURE_HEIGHT := 1.7
+const TIDE_FIGURE_SPREAD := 20.0  # Metres either side of the band's middle the figures spread.
+const TIDE_FIGURE_COLOUR := Color(0.2, 0.22, 0.27, 0.85)
 const TIDE_TEXT := "A gloomy tide is rolling in from the %s"  # The notice at the warning (%s is the side).
 const TIDE_PLAIN_TEXT := "A gloomy tide is rolling in"  # The prompt's own line, when no side is given.
 const TIDE_POINTER_REFRESH := 0.2  # Seconds between two works-out of the edge pointer.
@@ -503,26 +488,53 @@ const EDGE_RIBBON_CORAL := Color(1.0, 0.3, 0.28)
 const EDGE_RIBBON_HONEY := Color(0.94, 0.66, 0.24)  # A stretch sealed by the map edge.
 const EDGE_RIBBON_HALO := 2.4  # Styled look: the dithered halo is this many times the ribbon's width.
 const EDGE_RIBBON_REBUILD_FRAMES := 2
-const EDGE_DENT_RANGE := 3.0 * WORLD_SCALE  # A dimmed person this close outside the line presses on it.
-const EDGE_DENT_MAX := 1.1  # The deepest the ribbon bows inward (m).
-const EDGE_DENT_WIDTH := 1.8  # How wide a dent is (m, one standard deviation along the ribbon).
-const EDGE_MARKER_MAX := 4  # The most trouble markers on screen.
-const EDGE_MARKER_MERGE := 5.0  # Troubles this close (m) are one marker.
-const EDGE_GAP_MIN_AGE := 0.5  # A gap open less than this long (s) gets no marker.
-const EDGE_STRAIN_MARK_MIN := 0.4  # A strain below this urgency gets no marker (the ribbon colour already shows it).
-const EDGE_MARKER_RADIUS_GAP := 2.4
-const EDGE_MARKER_RADIUS_WOBBLE := 1.7
-const EDGE_MARKER_RADIUS_STRAIN := 1.3
-const EDGE_MARKER_RADIUS_GIFT := 1.0
-const EDGE_MARKER_COLOUR_GAP := Color(1.0, 0.36, 0.3)
-const EDGE_MARKER_COLOUR_WOBBLE := Color(0.85, 0.87, 0.95)
-const EDGE_MARKER_COLOUR_STRAIN := Color(1.0, 0.7, 0.2)
-const EDGE_MARKER_COLOUR_GIFT := Color(1.0, 0.9, 0.55)
-const EDGE_FX_MERGE := 3.0  # A new patch, burst or gift mark within this distance (m) replaces the earlier one.
-const EDGE_PATCH_SHOW_SECONDS := 2.0  # A new patch's ward shows its disc this long; then only the ring stays.
+const EDGE_FX_MERGE := 3.0  # A new burst mark within this distance (m) replaces the earlier one.
 const EDGE_OUT_FADE := 0.55  # How far a dimmed person outside the border is faded toward the ground (0 none, 1 gone).
 const EDGE_OUT_FADE_SECONDS := 0.4  # How long the fade takes to come in or go.
 const EDGE_OUT_GROUND := Color(0.5, 0.5, 0.5)  # The tone the fade moves toward (the placeholder floor's grey).
+
+# ---- Round 26: physical push (scripts/border_push.gd, border.gd, gloom_tide.gd, person.gd, burst_clear.gd). ----
+# Only visible things push the line. A dimmed person within PUSH_LEAN_RANGE outside it leans on it with force
+# PUSH_PER_PERSON x the night's strength x their push strength (joy at them takes PUSH_JOY_WEAKEN off it for a while,
+# and it comes back at PUSH_WEAKEN_RECOVER a second). A passing tide shoves the side it comes from with TIDE_PUSH
+# (see the tide block). Force spreads along the loop (PUSH_SPREAD radians) and bows the line inward: the dent follows
+# force x PUSH_DENT_PER_FORCE (at most PUSH_DENT_MAX metres), deepening at PUSH_GIVE_SPEED metres a second and springing
+# back at PUSH_SPRING_SPEED when relieved. Joy at a bending member (or a burst near the spot) calms it: the force is cut
+# by PUSH_CALM_CUT while the calm lasts (PUSH_CALM_SECONDS) and the spring is PUSH_CALM_SPRING times as fast. Past
+# PUSH_BREAK_DEPTH the line snaps (a break, PUSH_BREAK_HALF samples either side); dimmed people then pass through.
+# A break mends when no dimmed person is within PUSH_MEND_CLEAR of it and a member near it has had joy since it
+# opened (PUSH_MEND_NEEDS_JOY; with it off, or after PUSH_MEND_AUTO seconds clear, it mends by itself).
+const PUSH_PER_PERSON := 1.0
+const PUSH_LEAN_RANGE := 1.8  # Metres outside the line a dimmed person still leans on it.
+const PUSH_SPREAD := 0.2  # Radians: one standard deviation of a pusher's force along the loop.
+const PUSH_DENT_PER_FORCE := 0.85
+const PUSH_DENT_MAX := 3.2
+const PUSH_BREAK_DEPTH := 2.4  # Metres of dent at which the line snaps.
+const PUSH_GIVE_SPEED := 0.55
+const PUSH_SPRING_SPEED := 0.9
+const PUSH_BREAK_HALF := 1  # Samples either side of the deepest one that open (the break is 2 x this + 1 samples wide).
+const PUSH_JOY_WEAKEN := 0.4
+const PUSH_WEAKEN_MIN := 0.25
+const PUSH_WEAKEN_RECOVER := 0.06
+const PUSH_CALM_SECONDS := 4.0
+const PUSH_CALM_CUT := 0.7
+const PUSH_CALM_SPRING := 2.5
+const PUSH_BURST_CALM := 1.0  # A burst's calm strength (a joy hit gives PUSH_JOY_CALM).
+const PUSH_JOY_CALM := 0.6
+const PUSH_BURST_REACH := 8.0  # Metres: a burst relieves the line this close to it.
+const PUSH_SOFT_BONUS := 0.5  # A tired member (low joy) gives this much more (times the share of joy missing).
+const PUSH_MEND_CLEAR := 5.0  # Metres: no dimmed person this close to the break.
+const PUSH_MEND_REACH := 6.0  # Metres: a joy hit on a member this close to the break counts as mending its ends.
+const PUSH_MEND_NEEDS_JOY := true
+const PUSH_MEND_AUTO := 25.0
+const PUSH_BRACE_TARGET := 0.2  # A member braced this much (0 to 1) can be aimed at (joy makes them push back).
+const PUSH_BRACE_LEAN := 0.5  # Radians of lean at full brace.
+const PUSH_BRACE_SHAKE := 0.07  # Radians of struggle shake at full brace.
+const PUSH_BRACE_WIDEN := 0.18  # How much wider the planted body is at full brace.
+const PUSH_BRACE_SMOOTH := 6.0  # How fast the drawn brace follows (per second).
+const PUSH_PROMPT_FRACTION := 0.4  # The line bent this share of the way to breaking: the first prompt.
+const PUSH_NOTICE_TEXT := "It bends where they push: joy them"
+const PUSH_BREAK_TEXT := "Broken! Joy the ends, lift who got in"
 
 static var intro_override: int = -1
 static var tides_override: int = -1  # Round 25: as intro_override, for the gloom tides (see tides_on).

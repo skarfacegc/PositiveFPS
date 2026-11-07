@@ -26,7 +26,7 @@ var target: Person = null
 var active: bool = true
 # Set by topdown_main.gd after both the player and the people exist.
 var people: Array[Person] = []
-# Round 22: the border the burst clears dimmed people from (set by GapPatch.attach; null means the plain joy hit).
+# Round 22: the border the burst clears dimmed people from (set by BurstCue.attach; null means the plain joy hit).
 var border: Border
 var camera: Camera3D
 # Seconds left before the joy burst can be used again. topdown_main.gd shows this on the HUD.
@@ -246,9 +246,10 @@ func _set_target(p: Person) -> void:
 	target_changed.emit(-1 if p == null else p.affinity)
 
 
-# True when a person can still gain joy: unrescued, or rescued but losing joy (about to relapse).
+# True when a person can still gain joy: unrescued, or rescued but losing joy (about to relapse). Round 26: also a
+# rescued person braced against a push (joy makes them push back).
 func _is_eligible(p: Person) -> bool:
-	return not p.is_rescued or p.is_warning()
+	return not p.is_rescued or p.is_warning() or p.brace >= Config.PUSH_BRACE_TARGET
 
 
 # A valid target: eligible and within auto range of the player.
@@ -292,8 +293,10 @@ func _most_urgent() -> Person:
 
 # True if `a` should be shot at before `b` (see _most_urgent).
 func _more_urgent(a: Person, b: Person) -> bool:
-	if a.is_rescued != b.is_rescued:
-		return a.is_rescued
+	var a_first := a.is_rescued and a.is_warning()  # Round 26: a braced member is not urgent until they are warning.
+	var b_first := b.is_rescued and b.is_warning()
+	if a_first != b_first:
+		return a_first
 	var level_a := Config.gloom_level(a.gloom)
 	var level_b := Config.gloom_level(b.gloom)
 	if level_a != level_b:

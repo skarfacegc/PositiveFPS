@@ -5,10 +5,9 @@ extends RefCounted
 # lives here and both border looks only turn the result into a mesh.
 #  - Between two neighbouring members the ribbon follows the loop (so it bends round arms and runs along a sealed
 #    map edge). A pair whose stretch is a gap is NOT joined: the ribbon really breaks there.
-#  - Strain (0 healthy .. 1 at the falter line) sets the colour (gold, amber, coral) and the width (thinner near
-#    breaking).
-#  - Dents: a dimmed person pressing from outside bows the ribbon inward (drawn offset only, nobody moves), deeper
-#    for a closer or bigger crowd.
+#  - Strain (0 flat .. 1 at the break depth) sets the colour (gold, amber, coral) and the width (thinner near
+#    breaking). Round 26: it is how far the line is bent at the member (BorderPush.bend_at), 1 while they wobble.
+#  - Round 26: no dents of its own. The line really bends (the loop and the members move), and the ribbon follows.
 # `build` returns EdgeStrips, one per unbroken run (a loop with no gap is one closed strip).
 
 
@@ -24,49 +23,16 @@ class Stop:
 		strain = strain_in
 
 
-# Strain per member (Person -> 0..1): the joy urgency, 1 while wobbling, raised by the warnings (a dimmed person
-# pressing), 0 under a patch.
+# Strain per member (Person -> 0..1): how far the line is bent at them, 1 while they wobble.
 static func strain_map(border: Border) -> Dictionary[Person, float]:
 	var out: Dictionary[Person, float] = {}
-	var pressed: Dictionary[Person, float] = {}
-	if border.patch != null:
-		for w: Dictionary in border.patch.warnings:
-			var who: Person = w.get("person")
-			if who != null and is_instance_valid(who):
-				var urgency: float = w["urgency"]
-				pressed[who] = urgency
 	for m: Person in border.members:
-		if not is_instance_valid(m):
-			continue
-		var u := BorderWarning.joy_urgency(m)
-		if pressed.has(m):
-			u = maxf(u, pressed[m])
-		if m.wobbling:
-			u = 1.0
-		if m.patch_mult < 1.0:
-			u = 0.0
-		out[m] = u
+		out[m] = 1.0 if m.wobbling else border.push.bend_at(m.position)
 	return out
 
 
-# The dimmed, unrescued people outside the loop close enough to press on it (their ground positions).
-static func pressers(border: Border, people: Array[Person]) -> PackedVector2Array:
-	var out := PackedVector2Array()
-	if not border.active or border.polygon.size() < 3:
-		return out
-	for p: Person in people:
-		if p.is_rescued or not GloomSim.is_dimmed(p):
-			continue
-		var at := Vector2(p.position.x, p.position.z)
-		if Geometry2D.is_point_in_polygon(at, border.polygon):
-			continue
-		if BorderShape.distance_to_line(border.polygon, at) <= Config.EDGE_DENT_RANGE:
-			out.append(at)
-	return out
-
-
-# The ribbon's strips. `push` is the pressers() positions (may be empty).
-static func build(border: Border, push: PackedVector2Array) -> Array[EdgeStrip]:
+# The ribbon's strips.
+static func build(border: Border) -> Array[EdgeStrip]:
 	var strips: Array[EdgeStrip] = []
 	var n := border.polygon.size()
 	if not border.active or n < 3:
@@ -93,11 +59,8 @@ static func build(border: Border, push: PackedVector2Array) -> Array[EdgeStrip]:
 			continue
 		_add_pair(border, cur, order[k], order[(k + 1) % count], n)
 	_finish(strips, cur, first_gap < 0)
-	var centre := Vector2(border.centre.x, border.centre.z)
-	var hard := _hardness(border, push)
 	for s: EdgeStrip in strips:
 		_densify(s)
-		_dent(s, push, hard, centre)
 	return strips
 
 
@@ -205,7 +168,7 @@ static func _ordered(border: Border) -> Array[Stop]:
 	var out: Array[Stop] = []
 	var strain := strain_map(border)
 	for m: Person in border.members:
-		if not is_instance_valid(m) or not m.is_rescued:
+		if not m.is_rescued:
 			continue
 		var d := Vector2(m.position.x - border.centre.x, m.position.z - border.centre.z)
 		var u: float = strain.get(m, 0.0)
@@ -272,7 +235,7 @@ static func _finish(strips: Array[EdgeStrip], s: EdgeStrip, closed: bool) -> voi
 	strips.append(s)
 
 
-# Splits any piece longer than EDGE_RIBBON_STEP so a dent can bend it, and zeroes the dent depths.
+# Splits any piece longer than EDGE_RIBBON_STEP so the colour and width change smoothly along it.
 static func _densify(s: EdgeStrip) -> void:
 	var m := s.size()
 	var out := EdgeStrip.new()
@@ -295,37 +258,3 @@ static func _densify(s: EdgeStrip) -> void:
 	s.strain = out.strain
 	s.seal = out.seal
 	s.fade = out.fade
-	s.dent = PackedFloat32Array()
-	s.dent.resize(out.size())
-
-
-# How hard each presser pushes (1 pressed against the line, 0 at the edge of the range), parallel to `push`.
-static func _hardness(border: Border, push: PackedVector2Array) -> PackedFloat32Array:
-	var out := PackedFloat32Array()
-	for q: Vector2 in push:
-		var d := BorderShape.distance_to_line(border.polygon, q)
-		out.append(clampf(1.0 - d / Config.EDGE_DENT_RANGE, 0.0, 1.0))
-	return out
-
-
-# Bows each point inward by the pressers' summed push (a bell round each one), clamped to EDGE_DENT_MAX.
-static func _dent(s: EdgeStrip, push: PackedVector2Array, hard: PackedFloat32Array, centre: Vector2) -> void:
-	if push.is_empty():
-		return
-	var inv2 := 1.0 / (2.0 * Config.EDGE_DENT_WIDTH * Config.EDGE_DENT_WIDTH)
-	var moved := s.pts.duplicate()
-	for i: int in range(s.size()):
-		var sum := 0.0
-		for k: int in range(push.size()):
-			sum += hard[k] * exp(-s.pts[i].distance_squared_to(push[k]) * inv2)
-		if sum < 0.01:
-			continue
-		var around := s.neighbours(i)
-		var tangent := (around[1] - around[0]).normalized()
-		var nrm := Vector2(-tangent.y, tangent.x)
-		if nrm.dot(centre - s.pts[i]) < 0.0:
-			nrm = -nrm
-		var depth := Config.EDGE_DENT_MAX * minf(sum, 1.0)
-		s.dent[i] = depth
-		moved[i] = s.pts[i] + nrm * depth
-	s.pts = moved
