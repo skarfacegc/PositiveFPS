@@ -27,7 +27,10 @@ def step(name, code, marker, flag=None, sleep=0.0):
 
 
 def runs(marker):
-    return open(marker).read().count("x") if os.path.exists(marker) else 0
+    if not os.path.exists(marker):
+        return 0
+    with open(marker) as fh:
+        return fh.read().count("x")
 
 
 class RoundEndTest(unittest.TestCase):

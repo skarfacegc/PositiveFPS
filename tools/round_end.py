@@ -81,12 +81,18 @@ def tree_fingerprint():
 
 
 def load_state(state_dir):
-    try:
-        with open(paths(state_dir)["state"], encoding="utf-8") as fh:
-            data = json.load(fh)
-        return data if isinstance(data, dict) and "steps" in data else None
-    except (OSError, ValueError):
-        return None
+    for attempt in range(50):
+        try:
+            with open(paths(state_dir)["state"], encoding="utf-8") as fh:
+                data = json.load(fh)
+            return data if isinstance(data, dict) and "steps" in data else None
+        except FileNotFoundError:
+            return None
+        except PermissionError:
+            time.sleep(0.02)  # Windows: the writer is swapping the file in this very moment; look again
+        except (OSError, ValueError):
+            return None
+    return None
 
 
 def save_state(state_dir, state):
@@ -95,7 +101,16 @@ def save_state(state_dir, state):
     temp = target + ".tmp"
     with open(temp, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(state, fh, indent=2)
-    os.replace(temp, target)  # a reader never sees half a file
+    # os.replace means a reader never sees half a file. On Windows it fails with "Access is denied" while a reader
+    # (the waiting command polling state.json) has the file open, so try again until the reader has closed it.
+    for attempt in range(500):
+        try:
+            os.replace(temp, target)
+            return
+        except PermissionError:
+            if attempt == 499:
+                raise
+            time.sleep(0.02)
 
 
 def pid_alive(pid):
@@ -310,7 +325,7 @@ def command(args, steps):
             if state["state"] in ("passed", "failed"):
                 return finish_report(state)
             if state["state"] == "running" and not pid_alive(state.get("worker_pid")) and (
-                    time.sleep(1.0) or load_state(state_dir)["state"] == "running"
+                    time.sleep(1.0) or (load_state(state_dir) or {}).get("state") == "running"
                     and not pid_alive(state.get("worker_pid"))):
                 print("The worker ended without finishing. Run the command again to carry on.")
                 print("\n".join(progress_lines(state)))
