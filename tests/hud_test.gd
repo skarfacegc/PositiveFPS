@@ -128,6 +128,28 @@ func _check_no_overlap(td: TopDownMain) -> void:
 	assert_bool(burst_rect.intersects(bar_rect)).is_false()
 	assert_bool(screen.encloses(burst_rect)).is_true()
 	assert_bool(screen.encloses(spirit_rect)).is_true()
+	if Looks.is_styled():
+		_check_styled_lines(td, screen, spirit_rect, bar_rect)
+
+
+# Checkpoint 6: in the styled look the text lines are parchment panels. The longest burst line, the target line and the
+# key line stay in the window, clear of the spirit label and bar, the minimap and each other.
+func _check_styled_lines(td: TopDownMain, screen: Rect2, spirit_rect: Rect2, bar_rect: Rect2) -> void:
+	var hud: Hud = td.hud
+	hud.set_burst(0.0, true, 99)
+	var lines: Array[Control] = [hud.burst_panel, hud.target_panel, hud.key_panel]
+	for i: int in range(lines.size()):
+		var r := lines[i].get_global_rect()
+		assert_bool(lines[i].visible).is_true()
+		assert_bool(screen.encloses(r)).is_true()
+		assert_bool(r.intersects(spirit_rect)).is_false()
+		assert_bool(r.intersects(bar_rect)).is_false()
+		for j: int in range(i + 1, lines.size()):
+			assert_bool(r.intersects(lines[j].get_global_rect())).is_false()
+		assert_bool(r.intersects(td.minimap.get_global_rect())).is_false()
+		assert_bool(r.intersects(hud.rescued_panel.get_global_rect())).is_false()
+	assert_bool(hud.targeting_panel.get_global_rect().intersects(hud.landmark_panel.get_global_rect())).is_false()
+	assert_bool(screen.encloses(hud.targeting_panel.get_global_rect())).is_true()
 
 
 func test_the_burst_line_and_the_spirit_label_never_overlap_at_1280_by_720() -> void:

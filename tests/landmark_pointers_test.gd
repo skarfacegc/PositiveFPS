@@ -161,7 +161,7 @@ func test_each_shown_pointer_names_its_landmark_and_boost_and_clears_the_hud() -
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
 	await runner.simulate_frames(2)
-	var rects: Array[Rect2] = td.landmark_pointers._avoid_rects()
+	var rects: Array[Rect2] = td.landmark_pointers._avoid_rects(td)
 	for k: int in range(Config.LANDMARK_NAMES.size()):
 		if td.landmarks.is_held(k):
 			continue

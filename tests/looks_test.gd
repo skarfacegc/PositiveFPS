@@ -189,9 +189,10 @@ func test_the_hud_hint_names_f4_and_f3_shows_the_look_and_fallback_count() -> vo
 	runner.simulate_key_pressed(KEY_F4)
 	await runner.simulate_frames(3)
 	assert_str(td.hud.floor_label.text).contains("Look: Styled")
-	assert_int(Looks.placeholder_fallback_count()).is_greater(1)
-	assert_str(Looks.fallback_summary()).contains("target highlight")
-	assert_str(Looks.fallback_summary()).contains("hud text")
+	# Checkpoint 6: the target highlight and the HUD text have styled looks now, so they are not counted as placeholders.
+	assert_str(Looks.fallback_summary()).not_contains("target highlight")
+	assert_str(Looks.fallback_summary()).not_contains("hud text")
+	assert_str(Looks.fallback_summary()).not_contains("beacon")
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

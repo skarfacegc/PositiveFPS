@@ -5,8 +5,8 @@ extends RefCounted
 # script that reads the rules' public state and draws it. There are two looks: PLACEHOLDER (plain shapes, the default
 # and the one the tests use) and STYLED (the locked art style from design/style_test). Anything without a styled
 # look falls back to its placeholder look and is counted (see note_placeholder). Every kind below has a styled look;
-# what is still placeholder (projectiles, blooms, the target highlight, the burst ring, HUD text, labels) registers
-# itself with note_placeholder.
+# what is still placeholder (projectiles, blooms, the burst ring, labels) registers itself with note_placeholder. (The
+# target highlight and the HUD text lines have styled looks since checkpoint 6.)
 # The mode is static, so it survives a scene reload and the menu choice lasts for the session.
 
 enum Mode { PLACEHOLDER, STYLED }

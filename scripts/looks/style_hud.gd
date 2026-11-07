@@ -119,12 +119,12 @@ static func draw_prompt(bar: PromptBar, rect: Rect2, text: String, icon: int, bi
 		# (it is sized for the smaller notice font, so the words fit; the placeholder look gives it a coral edge too).
 		StyleUi.panel(bar, rect, c, StyleUi.PARCHMENT, Color("#e8453b"))
 		var mid := rect.position.y + rect.size.y * 0.5
-		StyleUi.sparkle(bar, Vector2(rect.position.x + 24.0, mid), 2, c, StyleUi.INK)
-		StyleUi.sparkle(bar, Vector2(rect.position.x + 24.0, mid), 1, c, Color("#e8453b"))
-		var fs := Config.NOTICE_FONT_SIZE
+		StyleUi.sparkle(bar, Vector2(rect.position.x + 22.0, mid), 2, c, StyleUi.INK)
+		StyleUi.sparkle(bar, Vector2(rect.position.x + 22.0, mid), 1, c, Color("#e8453b"))
+		var fs := bar.font_px
 		bar.draw_string(
 			ThemeDB.fallback_font,
-			Vector2(rect.position.x + 48.0, mid + fs * 0.35),
+			Vector2(rect.position.x + 40.0, mid + fs * 0.35),
 			text,
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,

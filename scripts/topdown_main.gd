@@ -192,7 +192,6 @@ func _ready() -> void:
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)
 	hud.set_night_progress(0.0)
 	_update_spirit_hud()
-	_note_shared_placeholders()
 	pipeline.apply(self)
 	if Recorder.requested():
 		recorder = Recorder.new()
@@ -313,6 +312,7 @@ func set_look(new_mode: int) -> void:
 		b.rebuild_look()
 	landmarks.rebuild_look()
 	beacon_marker.rebuild_look()
+	_apply_highlight_look()
 	player.rebuild_look()
 	for p: Person in people:
 		p.rebuild_look()
@@ -339,12 +339,6 @@ func sun_light() -> DirectionalLight3D:
 
 func environment() -> Environment:
 	return _env
-
-
-# Objects the styled look does not redraw yet (they stay placeholder; see Looks.note_placeholder).
-func _note_shared_placeholders() -> void:
-	Looks.note_placeholder(highlight, "target highlight")
-	Looks.note_placeholder(hud, "hud text")
 
 
 # F3: flips the debug overlay. The player reads the key and emits debug_toggled.
@@ -568,7 +562,8 @@ func _update_readability(delta: float) -> void:
 		border.pulse(),
 		pipeline.view_scale(),
 		border.gap_urgencies(),
-		delta
+		delta,
+		HudSafeArea.current(self, screen.size)  # Checkpoint 6: the arrows keep clear of the HUD.
 	)
 	landmark_pointers.update_from(self, delta)  # Round 22 edge pointers (throttled, round 23).
 
@@ -576,6 +571,21 @@ func _update_readability(delta: float) -> void:
 # Builds the target highlight: a flat warm ring that is shown under the target, hidden when there is none.
 func _build_highlight() -> void:
 	highlight = MeshInstance3D.new()
+	highlight.visible = false
+	add_child(highlight)
+	_apply_highlight_look()
+
+
+# Checkpoint 6: the highlight's pieces for the current look: the warm disc (placeholder) or the dithered ring with an
+# element-tinted disc (styled, see StyleTarget). Called at the start and when the look changes.
+func _apply_highlight_look() -> void:
+	for child: Node in highlight.get_children():
+		highlight.remove_child(child)
+		child.queue_free()
+	highlight.scale = Vector3.ONE
+	if Looks.is_styled():
+		StyleTarget.build(highlight)
+		return
 	var mesh := CylinderMesh.new()
 	mesh.top_radius = Config.TD_HIGHLIGHT_RADIUS
 	mesh.bottom_radius = Config.TD_HIGHLIGHT_RADIUS
@@ -586,8 +596,7 @@ func _build_highlight() -> void:
 	_highlight_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_highlight_mat.albedo_color = Config.TD_HIGHLIGHT_COLOR
 	highlight.material_override = _highlight_mat
-	highlight.visible = false
-	add_child(highlight)
+	highlight.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
 
 # Moves the highlight to the target's feet and pulses it slowly. Hidden while there is no valid target.
@@ -600,6 +609,9 @@ func _update_highlight(delta: float) -> void:
 	highlight.visible = true
 	highlight.global_position = Vector3(t.global_position.x, 0.03, t.global_position.z)
 	var s := 1.0 + Config.TD_HIGHLIGHT_PULSE * sin(_pulse_time * Config.TD_HIGHLIGHT_PULSE_SPEED)
+	if Looks.is_styled():
+		StyleTarget.sync(highlight, Config.ELEMENT_COLORS[t.affinity], s)
+		return
 	highlight.scale = Vector3(s, 1.0, s)
 
 

@@ -28,10 +28,11 @@ func update_arrows(
 	pulse: float,
 	view_scale: Vector2 = Vector2.ONE,
 	urgencies: Array[float] = [],
-	delta: float = 0.0
+	delta: float = 0.0,
+	safe: Rect2 = Rect2()
 ) -> void:
 	_clock += delta
-	arrows = off_screen_arrows(camera, screen, gaps, minimap_rect, view_scale, urgencies)
+	arrows = off_screen_arrows(camera, screen, gaps, minimap_rect, view_scale, urgencies, safe)
 	_alpha = lerpf(0.45, 1.0, pulse)
 	queue_redraw()
 
@@ -47,9 +48,23 @@ static func off_screen_arrows(
 	gaps: Array[Vector3],
 	minimap_rect: Rect2,
 	view_scale: Vector2 = Vector2.ONE,
-	urgencies: Array[float] = []
+	urgencies: Array[float] = [],
+	safe: Rect2 = Rect2()
 ) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
+	# Checkpoint 6: with a safe rectangle (HudSafeArea) the badge sits where the ray from the screen centre leaves it,
+	# shrunk by CP6_GAP_ARROW_REACH so the whole arrow stays inside; the minimap is already outside it.
+	var tips := safe.grow(-Config.CP6_GAP_ARROW_REACH)
+	if safe.has_area() and tips.has_area():
+		for gi: int in range(gaps.size()):
+			var sp := camera.unproject_position(gaps[gi]) * view_scale
+			if screen.has_point(sp):
+				continue
+			var placed := WobbleAlert.tip_for(sp, screen.size, tips)
+			var dir: Vector2 = placed["dir"]
+			var urgency := urgencies[gi] if gi < urgencies.size() else 0.0
+			out.append({"pos": placed["tip"], "angle": dir.angle(), "urgency": urgency})
+		return out
 	var inner := screen.grow(-Config.OFFSCREEN_ARROW_MARGIN)
 	var centre := inner.get_center()
 	var half := inner.size * 0.5
