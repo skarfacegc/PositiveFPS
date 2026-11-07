@@ -157,6 +157,10 @@ class RealStepsTest(unittest.TestCase):
             code_lines = [ln for ln in fh if not ln.lstrip().startswith("#")]
         self.assertFalse(any("--allow-decrease" in ln and "STEPS" in ln for ln in code_lines))
 
+    def test_skip_determinism_keeps_gate_then_baseline(self):
+        self.assertEqual([s["name"] for s in ro.chosen_steps(True)], ["gate", "baseline"])
+        self.assertEqual(ro.chosen_steps(False), ro.STEPS)
+
     def test_the_fingerprint_ignores_the_baseline_file(self):
         import gate
         self.assertEqual(ro.SKIP_IN_FINGERPRINT, ("coverage_baseline.json",))

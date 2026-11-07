@@ -15,9 +15,18 @@ SOURCE_MAP.md (every script's public functions with line numbers, generated: reg
    debugging emergent behaviour or tooling). The main session only coordinates.
 5. **Report:** relay the results, list anything loosened, and show `coverage/index.html`.
 
+## Keeping rounds cheap
+
+- **One agent by default.** A round gets one build agent. Split into parallel parts only when each part is large
+  (a new system, not a tweak): every extra agent pays its own start-up reading, and the merge costs the coordinator.
+- **Batch small items.** Tuning numbers, snags and text fixes go together into one Haiku pass, not a round each.
+- **Coordinator model.** Suggest Sonnet for the coordinating session (merges, gates, docs; the `finish-round` skill
+  scripts it). Opus is worth it for the playtest interview and design calls. Start a fresh session per round.
+- **README.md** is updated only at graphics checkpoints and when the user asks, not every round.
+
 ## Parallel builds
 
-- **Split independent parts.** When a round splits into parts that don't depend on each other, give each part its own
+- **Split independent parts.** When a round has large parts that don't depend on each other, give each part its own
   agent with `isolation: "worktree"`, then merge the branches.
   - Expect small conflicts in shared files (`scripts/config.gd`, README.md, IDEAS.md, menu text). The coordinator
     resolves them at merge time.
@@ -32,7 +41,10 @@ SOURCE_MAP.md (every script's public functions with line numbers, generated: reg
   coordinator's post-merge `gate.py --full` enforces it.
 - **Gate once after merging.** After the merge, run these once, in order: `python tools/gate.py --full`, then
   `python tools/coverage.py --check-determinism`, then `python tools/coverage.py --update-baseline` (never
-  `--allow-decrease`). Then make the docs and baseline commit.
+  `--allow-decrease`). Then make the docs and baseline commit. `python tools/round_end.py` runs all three.
+  - **Determinism only when it can change.** Run the determinism check when the round touched the simulation or the
+    tests (people, gloom, border, night cycle, spirit, projectiles, recorder, any `tests/` file), and at least every
+    third round. Otherwise use `python tools/round_end.py --skip-determinism` and say in the report that it was skipped.
 - **Sequential parts stay sequential.** If one part depends on another, or the round is a single bug hunt, use one
   agent.
 - **Build while the user plays.** During a playtest, background agents can work on backlog items that need no

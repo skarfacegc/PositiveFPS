@@ -7,6 +7,7 @@ Usage:
     python tools/round_end.py --status        # show progress and the tail of the current step's log; waits for nothing
     python tools/round_end.py --restart       # forget the saved progress and start from step 1
     python tools/round_end.py --wait-seconds 300
+    python tools/round_end.py --skip-determinism   # rounds that did not touch the simulation (CLAUDE.md says when)
 
 The three steps run one after another, in this order, and the run STOPS at the first one that fails:
     1. python tools/gate.py --full                        (lint, tests with coverage, the ratchet, the timing pass)
@@ -54,6 +55,14 @@ STEPS = [
     {"name": "baseline", "cmd": [PYTHON, os.path.join("tools", "coverage.py"), "--update-baseline"]},
 ]
 SKIP_IN_FINGERPRINT = ("coverage_baseline.json",)
+
+
+def chosen_steps(skip_determinism):
+    """STEPS, without the determinism step when the round did not touch the simulation (see CLAUDE.md)."""
+    return [s for s in STEPS if not (skip_determinism and s["name"] == "determinism")]
+
+
+
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
@@ -322,7 +331,11 @@ def main(argv=None):
     parser.add_argument("--state-dir", default=STATE_DIR, help="where progress and logs go (default .scratch/round_end)")
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--steps-json", default=None, help=argparse.SUPPRESS)  # tests: a JSON list of {name, cmd}
+    parser.add_argument("--skip-determinism", action="store_true",
+                        help="leave out the determinism check (only for rounds that did not touch the simulation)")
     args = parser.parse_args(argv)
+    if args.skip_determinism and not args.steps_json:
+        args.steps_json = json.dumps(chosen_steps(True))  # the worker gets the same, shorter list
     steps = json.loads(args.steps_json) if args.steps_json else STEPS
     if args.worker:
         return worker(os.path.abspath(args.state_dir), steps, tree_fingerprint(), args.restart)

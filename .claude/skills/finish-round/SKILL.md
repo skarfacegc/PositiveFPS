@@ -47,6 +47,9 @@ small commit, or send them to a Haiku agent.
 python tools/round_end.py
 ```
 
+Add `--skip-determinism` when the round did not touch the simulation or the tests and one of the last two rounds ran
+the check (CLAUDE.md, "Gate once after merging"). Say in the report that it was skipped.
+
 It runs `gate.py --full`, then `coverage.py --check-determinism`, then `coverage.py --update-baseline`, in that order, and
 **stops at the first failure** (never `--allow-decrease`; the tool has no such step). The chain can pass the 10-minute
 command limit, so the work happens in a detached background worker and the command only waits (up to 500 s) and reports.
@@ -82,8 +85,10 @@ Regenerate the code map after merging (`python tools/source_map.py`; it conflict
 and commit `SOURCE_MAP.md` with the docs. Update IDEAS.md (what was built, what was loosened or deferred, the playtest
 notes) and refresh its "Current state" section (mechanics, open items, push status); move the round's resolved items
 and finished round history to `IDEAS_RESOLVED.md` (text unchanged, add its heading to the index line at the top), keeping
-the two newest round sections in IDEAS.md. Update README.md's feature and key list,
-and ARCHITECTURE.md's script map, config and tests sections for what changed. `tools/COVERAGE_TOOL_NOTES.md` only if
+only the current round's section in IDEAS.md. Update README.md's feature and key list only at a graphics checkpoint
+or when the user asks (keys and menu text in the game are still checked in step 3). Update ARCHITECTURE.md only where a
+fact an agent needs changed (a new script's one-line purpose, an area's files, a new gotcha or tool): describe how
+things are, with no round labels or history. `tools/COVERAGE_TOOL_NOTES.md` only if
 the coverage tool changed. Agents' own commits must not have staged `design/`.
 
 ## 6. Refresh the playtest copy and report
