@@ -6,7 +6,7 @@ description: Template for briefing a PositiveFPS build agent (Haiku or Sonnet, u
 # Brief a build agent
 
 Fill in the angle-bracket parts, delete the lines that do not apply, and send it as the agent prompt. Do not paste
-CLAUDE.md into it: the agent reads it. Point to ARCHITECTURE.md ("How to brief an agent") for the files of the area
+CLAUDE.md into it: the agent reads it. Point to ARCHITECTURE.md ("Areas") for the files of the area
 instead of listing every file. Choose the model by CLAUDE.md: Haiku for tuning and small features, Sonnet for
 debugging emergent behaviour or tooling.
 
@@ -16,7 +16,7 @@ the BASE CHECK block with local main's hash. Worktree agents start from `origin/
 ## Template
 
 ```
-PositiveFPS (Godot 4.7.2 GDScript with Python tools). Read CLAUDE.md, then ARCHITECTURE.md; your task is
+PositiveFPS (Godot 4.7.2 GDScript with Python tools). Read CLAUDE.md, then only ARCHITECTURE.md's "Known gotchas", "Quality gate and tools" and your area's line under "Areas" (not the whole file); your task is
 "<round and item names>" in IDEAS.md. <One or two sentences on what to build and the numbers to use.>
 To find code, search SOURCE_MAP.md first (every script's public functions with line numbers), then Read only the
 lines you need. Do not read whole scripts, and do not read all of IDEAS.md: its "Current state" section and your

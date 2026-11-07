@@ -1,7 +1,7 @@
 # PositiveFPS — instructions for Claude
 
 The design log is IDEAS.md: start with its "Current state" section (mechanics, controls, open items, push status).
-Finished round history and resolved issues are in IDEAS_RESOLVED.md. The agent map, tooling and gotchas are in
+Finished round history and resolved issues are in IDEAS_RESOLVED.md. Unscheduled long-term ideas are in VISION.md. The agent map, tooling and gotchas are in
 ARCHITECTURE.md, so point build agents there instead of telling them to read every file. To find code, search
 SOURCE_MAP.md (every script's public functions with line numbers, generated: regenerate with
 `python tools/source_map.py`; the commit hook refuses a stale map) and Read only the lines you need.

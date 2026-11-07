@@ -1871,3 +1871,204 @@ with `sed` or Python instead of the edit tools. The brief template now says to u
 light feel like dawn coming in? Do the wobble pointers bring you to the right place in time? Does spare spirit's glow show,
 and does it help hold midnight? Is the third dawn light now earned? Does the border still blink at the end?
 
+## Resolved since they were last listed (moved 2026-11-07)
+
+`topdown_main.gd` size (992 then 805
+lines, split into `crowd_movement.gd`); `config.gd` and `border.gd` near the 1000-line cap (now 444 and 821; `config_base.gd`
+and `border_shape.gd` hold the rest); the determinism check's 1088 differing lines and the `looks_*` wobble (the styled look
+read the wall clock; fixed in `140c94e`, `KNOWN_REAL_TIME_UNITS` is empty); the how-to-play key list lacking E
+(`how_to_play_keys_test`); the HUD burst text overlapping the spirit label and the thick coral stripe preview (follow-up
+build: outline only, spirit label above its bar); styled look lagging for first light, reactions and the cue panel
+(checkpoint 5); shader instance errors in styled play, the wobble pointer over the HUD, the preview staying up after a
+focus loss, and first light having no explanation (snag round, 2026-11-05); the shader errors confirmed gone in play, the first
+light square (now a ring), the placeholder target highlight and HUD text in the styled look, notices over the play area,
+too much dithering, and the jog (checkpoint 6, 2026-11-07).
+
+## Settled open questions (moved 2026-11-07)
+
+- **Rescue mechanic:** Is there a "joy" meter you fill up? Do people withdraw or drift away rather than attack?
+- **Elements:** Launch with three: **music, art, nature**, arranged as a soft cycle (music → art → nature → music).
+  - Matched element does the most, the one it's "strong" against a bit less, the "weak" matchup least (never useless)
+  - Fits inside the three: dance (music), pets/animals (nature), craft/making (art)
+  - Maybe later: **food/cooking** and **play/sport** as extra elements (5 elements also makes a clean cycle)
+  - Maybe: new elements unlock via rebuilt buildings (e.g. bakery → food, playground → play), bringing new people with that affinity
+  - Considered and set aside: humour (hard to make a weapon), stories/words (overlaps art), connection/kindness (better as the *outcome* of every rescue)
+- **Element affinities:** Each person responds best to one of music / art / nature, so the player has a reason to read the person and switch "weapons" mid-fight.
+  - Affinity is shown by visible cues (clothes, what they carry, etc.)
+  - Like other shooters, a non-optimal element still works, just less effectively
+  - Possible hierarchy between elements, e.g. music affects art-types more than nature-types (rock-paper-scissors-ish, but softer). Needs working out: is it a cycle or a ranking?
+- **Threats:** Settled for now: no enemies, the clock is the pressure. Open: is the clock visible and fixed, or can you extend it (e.g. each rescue adds a little time)? Is there any environmental hazard at all, or purely time?
+- **Player health:** Does the player have their own mood/energy that drains, and get topped up by rescued people?
+- **Building → unlock mapping:** e.g. music shop → guitar upgrades, garden centre → flower variants, café → healing item.
+- **Visual progression / style:** Town goes from desaturated to full colour as it's rebuilt. Current POC look is placeholder; want a richer, less plain style later.
+- **Tone:** Keep it light and warm. Joy is something shared with people, not a cure applied to them.
+- **Enemy tiers & bosses:** formalise grey levels into distinct types (light 'routine' people as the bulk, grey normal,
+  dark 'spreaders' rarer and tougher) and design bosses (e.g. a heavily gloomed figure with a big gloom aura) in a
+  dedicated later round.
+
+## Graphics checkpoint 5 playtest and follow-up plan (2026-11-04)
+
+Played `dd9454e` once in the styled look, recorded (`20261104-173313`): a win, 2 of 3 dawn lights (41 rescued, 68%;
+ground 14%; Garden at 61 s). Midnight had no gaps and no relapses (round 24: 32 and 12 midnight gaps): 6 gaps in all, all
+in the first 15 s. Spare spirit made 50 gifts (2000 joy) to 7 people, with spirit at 100 through midnight. 0 wobbles,
+1 burst (lifted nobody), 2 patches on strained spots. No gap blinks at the end. So little trouble meant little of the new
+fight art was seen.
+
+**What the user said:** the night felt pleasantly calm (keep it). The styled look is nicer but harder to read. The border
+visuals were very distracting: the preview in general and the red striped preview in particular. The recorder's shots show
+why: the limited preview hatches a red-and-white striped area over much of the screen whenever the cursor aims where the
+zone can't grow, which is most of the time. The burst text also overlaps "Spirit 100/100" in every shot. More graphics
+work next; fix the worst and keep the rest.
+
+### Plan (one agent)
+
+- **E: hold to aim, release to place,** in both looks. No preview while just moving the cursor. Holding E shows the zone
+  preview, which follows the cursor; releasing E places the beacon; right-click while holding cancels with nothing spent.
+  Update the how-to-play text and the prompt bar.
+- **Quiet preview:** a thin outline only. When blocked, a thin coral outline and a small cross at the tip: no stripes, no
+  hatching, in either look.
+- **HUD overlap:** the burst line ("Joy burst [G]: READY - N dimmed ...") must not run into the spirit label, in either
+  look.
+- Refresh the checkpoint 5 reach shots. Spare spirit, the strain rings and the other effects stay as they are.
+
+## Graphics checkpoint 5 follow-up build (2026-11-04)
+
+One agent (`c74afdc`, merge `00f25df`). Gate (712 tests, 99.8%), determinism (0 lines differing) and baseline passed
+through `tools/round_end.py`. The baseline first refused `border_centre.gd` (99.7% to 99.4%): the arm-cap guard for arms
+that already use the whole loop had been reached only through the always-on preview. It now has its own test
+(`8dd3f4e`). An earlier determinism pass showed 2 lines differing in `recorder.gd:521-522` (2 hits vs 1, under the
+limit; likely the recorder's background save); the final pass had 0.
+
+- **E:** holding E shows the zone preview, which follows the cursor; releasing E places the beacon, with the same refusals,
+  notices and cost as before; right-click while holding cancels with nothing spent. With E up there is no preview (the
+  "Stretching" travel still shows during a stretch). Both looks. The how-to-play panel went from 760 to 880 px wide to fit
+  the longer Keys line.
+- **Quiet preview:** outline only, no fill, in both looks (placeholder 0.2 m; limited 0.26 m coral, was 0.6 m). Limited
+  is a thin coral outline and a small cross. The styled hatching, stripes and zone shader are gone. The normal preview keeps
+  its small tip marker.
+- **HUD:** the spirit label sits above its bar, and the burst line reads "READY - clears N dimmed", so they no longer
+  overlap (tested at 1280x720 in both looks).
+- **Tests changed:** preview tests now hold E first (`shaped_zone_test`, `reactions_test`, `shaping_tuning_test`,
+  `looks_round20_pieces_test`, `looks_checkpoint5_test`); `gap_patch_test` checks the new burst text;
+  `how_to_play_keys_test` knows right-click. New: `hold_e_test`, and a HUD overlap test. **Loosened:** nothing.
+
+**Open:** the limited shot uses "inside the zone already", not a dimmed block. `checkpoint_shots` printed about 2000
+"Too many instances using shader instance variables" lines on some styled runs; checkpoint 5 thought it had fixed this, so
+it may still show in play and needs a look. Losing window focus while holding E may leave the preview showing until the
+next E press.
+
+## Checkpoint 5 follow-up playtest and snag round plan (2026-11-04)
+
+Played `18a39a5` once in the styled look, recorded (`20261104-233132`, saved with its `godot.log` in
+`recordings/playtests/cp5b/`): a win, 2 of 3 dawn lights (44 rescued, 73%; ground 17%; Garden at 39 s). 35 gaps (calm 6,
+midnight 23, easing 6; the last styled game had 0 at midnight), no relapses, 2 wobbles both saved. 5 beacons, all reached
+(zone 1729 sq m). 2 bursts (3 dimmed cleared), spare spirit made 38 gifts (1500 joy). First light ran from 135 s and
+lifted 18 people.
+
+**What the user said:** hold E to aim and release to place is good, keep it. The thin outline preview is quiet enough. The
+busier midnight was exciting, keep it. They did not understand "the square that showed up": the first light front (a hard
+square edge closing in from the plaza edge) has no on-screen explanation. Next: fix the open snags.
+
+**Seen in the log and shots:** the game's log has 277 "Too many instances using shader instance variables" and 77
+`instance_buffer_pos.has(p_instance)` errors, so the shader error happens in real play, not only in checkpoint runs. The
+wobble edge pointer sits over the top-right HUD (targeting line and REC mark) when the wobble is up and to the right.
+
+### Plan (three parts in parallel)
+
+- **Part L, shader errors (Sonnet):** find which shaders use `instance uniform`, why the instance count overflows (and the
+  `instance_buffer_pos` error, probably freeing or reusing instances), and fix the cause so a full styled game logs none.
+  Raising the global shader buffer size is acceptable only alongside a reason it is the right size; add a test or a check
+  that fails if the errors come back.
+- **Part M, HUD snags (Haiku):** the wobble pointers keep clear of the HUD panels (top-right targeting/REC/landmarks,
+  minimap, bottom bar), in both looks. Losing window focus while E is held cancels the aim (nothing spent). First light
+  gets a short line when it starts ("First light: dawn is coming in from the edges", wording in the gloom terms), in both
+  looks; its look otherwise stays.
+- **Part N, context tooling (Sonnet):** `tools/source_map.py` writes `SOURCE_MAP.md` from the GDScript (per script: class,
+  extends, signals, constants count, public functions with signature, line and the first comment line). The commit hook
+  refuses a commit when the map is stale (like lint), with a one-line fix command. IDEAS.md gets a short "Current state"
+  section at the top (mechanics, controls, open items, push status); resolved items and finished round history move to
+  `IDEAS_RESOLVED.md`. CLAUDE.md, ARCHITECTURE.md and the brief-build-agent skill point agents to both.
+
+## Snag round build (2026-11-05)
+
+Three parts in parallel, merged in order N, M, L. Gate (all tests, coverage ratchet, timing), determinism and baseline
+passed through `tools/round_end.py`. The first gate refused `wobble_alert.gd` (100% to 99.3%: the axis-aligned ray case of
+the new pointer placement); it now has a test (`322abc5`).
+
+- **Part L, shader errors (`86c9106`):** only `style_toon.gdshader` has instance uniforms (3), and each mesh using it
+  reserves 16 vec4 of the global shader buffer, hidden or not. The default 65536 holds 4096 meshes; a styled level starts
+  with 2803 and reaches about 4344 once each block has built its whimsical version, so the extra meshes got no slot (the
+  277 errors) and the engine then logged its follow-on `instance_buffer_pos` errors (77). No leak (switching looks three
+  times does not grow the count). `project.godot` now sets `buffer_size=262144` (16384 meshes, 4 MiB).
+  `tests/shader_instances_test.gd` counts the worst case and fails if twice it would exceed capacity. The screenshot run
+  went from 2078 errors to 0. The styled look is unchanged.
+- **Part M, HUD snags (`762c28b`):** wobble pointer tips sit where the ray from the centre leaves a safe rectangle (the
+  screen less the shown HUD panels, minimap and spirit cue), with the whole pointer inside it. Losing window focus while E
+  is held cancels the aim with nothing spent. First light starts with a 4 s notice "First light: dawn is coming in from
+  the edges", in both looks; its tint, band and motes are unchanged. Tests added in `wobble_alert_test`,
+  `hold_e_test`, `first_light_test`.
+- **Part N, context tooling (`45a2a48`):** `tools/source_map.py` writes `SOURCE_MAP.md` (every script's public functions
+  with line numbers; tests listed with counts); the commit hook refuses a stale map. IDEAS.md went from 2068 to about 280
+  lines with a Current state section on top; history and resolved items moved unchanged to `IDEAS_RESOLVED.md`. CLAUDE.md,
+  ARCHITECTURE.md and the brief-build-agent and finish-round skills point to both.
+- **Coordinator:** `tools/checkpoint/checkpoint_round24.gd` used the removed first light label; it now shows the notice
+  (`ab2cef4`), and the unused `FIRST_LIGHT_TEXT_COLOUR` went.
+- **Loosened:** nothing. Raising the shader buffer is a capacity setting with a test that guards it, not a test threshold.
+
+## Snag round playtest and graphics checkpoint 6 plan (2026-11-07)
+
+Played `c5e819b` once in the styled look, recorded (`20261107-055505`, saved with its `godot.log` in
+`recordings/playtests/snag/`): a win, 2 of 3 dawn lights (40 rescued, 67%; ground 12%), much harder than the last game:
+52 gaps (calm 6, midnight 29, easing 17), 17 wobbles (5 saved, 11 relapses), the Garden claimed at 48 s, lost at 133 s and
+retaken at 171 s, 6 bursts, 1 patch, 3 beacons. First light ran from 135 s and lifted 20 people. **The game's log had 0
+errors** (the last game had 354 shader instance errors), so the buffer fix holds in play.
+
+**What the user said:** a good challenge, keep it. First light: make it a closing ring rather than a square. The styled
+look looked fine apart from the coral edge triangles sitting over the landmarks panel and the key line. Next: more
+graphics work. They like the overall style but there is too much dithering (keep a bit). Also: the player's jog barely
+differs from the walk; the placeholder HUD text, target highlight and beacon marker in the styled look; and big centre
+notices ("Someone lost their joy!") cover the play area.
+
+### Plan: graphics checkpoint 6 (three parts in parallel)
+
+- **Part O, first light ring (Sonnet):** the front is a circle closing on the border's centre (or the plaza centre if
+  that is what the square used), starting where it covers the whole map and reaching the centre at dawn. "Passed" uses
+  the round distance, so the lifting follows the ring. Both looks: the placeholder strips, the styled ground shader's
+  `dawn_front`, `StyleFirstLight` motes, and the minimap. Same timing and lift rates; check the analyser's FIRST LIGHT
+  numbers stay comparable.
+- **Part P, styled HUD (Sonnet):** the coral edge triangles (and any other edge pointers) keep clear of the HUD panels,
+  reusing `WobbleAlert.safe_rect`. Notices move off the play area: a slimmer banner under the Dusk to Dawn bar instead
+  of the big centre panel, in both looks. The styled look gets its own target highlight, beacon marker and HUD text
+  labels (rescued count, burst line, target line, targeting line, key line) in the existing styled UI language
+  (`StyleUi`, parchment panels, pixel font), original art.
+- **Part Q, dithering and jog (Haiku):** cut the styled dithering to roughly half its current strength (post shader,
+  ground and glow stipple), keeping some texture. Make the player's run clearly different from the walk (faster stride,
+  more lean and bob) in both looks.
+- Afterwards the coordinator refreshes the checkpoint screenshots for the user.
+
+## Graphics checkpoint 6 build (2026-11-07)
+
+Three parts in parallel, merged in order O, P, Q (conflicts in `config.gd`, `style_ground.gdshader` and `SOURCE_MAP.md`,
+kept both sides; the map regenerated). Gate (739 tests, 99.8%), determinism and baseline passed through
+`tools/round_end.py`. The first gate refused `player_look_styled.gd` (98.2%) and `style_first_light.gd` (94.4%); a test
+agent covered the dust with no parent and the motes' full-circle and instance-cap cases (`afefd31`). The second gate
+failed one timing test, `world_scale_test` full border, at 7.00 ms against 6.7; `perf_compare` (5 rounds, CPU 42-44% on
+two rounds) gave 4.99 ms before checkpoint 6 and 4.81 ms after, so it was load; the rerun passed with the budget unchanged.
+
+- **Part O, first light ring (`ca8ecbc`):** the front is a circle from `FIRST_LIGHT_START_RADIUS` 71 m (the plaza corners)
+  to 0 at dawn; "passed" is the round distance, so lifting follows the ring. Placeholder: two flat ring meshes. Styled:
+  the ground shader's `dawn_front` uses `length(p)`; motes ride the circle at fixed angles. Minimap draws circles. Same
+  timing and rates; the ring reaches the plaza edge about 13 s in, so fewer people may be lifted.
+- **Part P, styled HUD (`804e91f`):** `HudSafeArea` is the shared safe rectangle; wobble pointers, gap arrows and landmark
+  pointers use it. Notices and the HUD alert are slim banners under the night bar (`CP6_BANNER_TOP` 62), the notice moving
+  below the alert when both show, in both looks. Styled HUD text lines (rescued, burst, target, targeting, keys) are
+  parchment panels with small pixel glyphs (`StyleHudText`, `StyledPanel` kinds); the styled target highlight is a
+  dithered ring with an element-tinted disc (`StyleTarget`). The beacon already had a styled marker; a stale placeholder
+  note was fixed. `NOTICE_FONT_SIZE` 16 to 15, `NOTICE_HEIGHT` 34 to 32.
+- **Part Q, dithering and jog (`93dbda8`):** shadow band dither 0.16 to 0.08, glow dot share and ground edge/ridge dot
+  share 1.0 to 0.5 (`STYLED_DITHER_*`, `dither_k` uniforms). The player's run adds cadence, leg swing, lean and bounce
+  (`Gait.jog`, `JOG_*`), both looks; the styled look raises a dust puff per footfall.
+- **Tests changed:** `first_light_test` (round front, positions moved off the square), `looks_checkpoint5_test` (ring
+  count, motes on the circle), `looks_test` (target highlight and HUD text no longer placeholder), `landmark_pointers_test`
+  (shared avoid list), `shaped_zone_test` (one test renamed: it asserted the old big centre notice), `hud_test` (styled
+  lines in the overlap test). New: `hud_checkpoint6_test`, `looks_checkpoint6_test`. **Loosened:** nothing.

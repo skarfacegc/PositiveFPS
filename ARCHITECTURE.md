@@ -1,288 +1,153 @@
 # ARCHITECTURE (for agents)
 
-PositiveFPS is a gentle top-down territory game in Godot 4.7 (GDScript, strict typing). Dimmed people slowly take over a
-plaza; the player rescues them with joy projectiles, and the rescued form a living border that holds the gloom back
-and paints the land inside. One night (dusk to dawn) per level; reaching dawn wins and is rated 1-3 dawn lights (round 19). Player docs: `README.md`.
-Ideas and decisions: `IDEAS.md` (start at "Current state"; history in `IDEAS_RESOLVED.md`). Code index: `SOURCE_MAP.md`. Nothing here describes gameplay changes; it describes where things live.
+PositiveFPS is a gentle top-down territory game in Godot 4.7 (GDScript, strict typing): dimmed people take over a plaza,
+the player rescues them with joy, the rescued form a living border. One night (dusk to dawn) per level, rated 1-3 dawn
+lights. Player docs: `README.md`. Design and state: `IDEAS.md` ("Current state"; history in `IDEAS_RESOLVED.md`).
+This file says where things live, not how the game plays. Project rules (commits, scratch, processes, no loosening) are
+in `CLAUDE.md`.
+
+**Read only the sections you need: Known gotchas and Quality gate always; your area's line in "Areas"; Looks only if you
+touch looks.** To find code, search `SOURCE_MAP.md` (generated: `python tools/source_map.py`; every script's public
+functions with line numbers) and Read only those lines.
 
 ## Scenes
-- `menu.tscn` (`scripts/menu.gd`): title, a Look toggle and one Play button (Enter, 1, or click) -> loads `topdown.tscn`.
-- `topdown.tscn`: only a `TopDownMain` root. **Everything else is built in code** in `TopDownMain._ready()`.
+- `menu.tscn` (`scripts/menu.gd`): title, Look toggle, Play (Enter, 1, click) -> `topdown.tscn`.
+- `topdown.tscn`: only a `TopDownMain` root; **everything else is built in code** in `TopDownMain._ready()`.
+- Systems that attach to the level use `X.attach(main)` (one line in `TopDownMain`, stored as `main.x`): `GapPatch`,
+  `FirstLight`, `SpiritWarmth`, `WobbleAlert`. New systems should do the same and stay out of `topdown_main.gd` (near the line cap).
 
 ## Script map (`scripts/*.gd`)
-| Script (`class_name`) | Owns | Key public API | Config used |
-|---|---|---|---|
-| `topdown_main.gd` (`TopDownMain`) | The level: plaza, blocks, people, camera, light, win/lose, wiring of all systems; spirit rewards, dim recovery and the x1.5 border loss while dim (round 12a); round 14: the mouse-wheel zoom (`_zoom_target`, eased in `_update_camera`, scales labels and the look offset), and the midnight stagger (`_try_dim_sink`, the gate a person asks before sinking: one dimmed sink per `DIM_ARRIVAL_MIN_GAP`) | `people`, `border`, `ground`, `player`, `grabs`, `hud`, `minimap`, `night`, `running`, `rescued_count`; `pursuit_assignments()`, `view_half_extents()`, `dim_recovery_rate()` | `TD_PLAZA_SIZE`, `TD_PEOPLE_COUNT`, `TD_CAMERA_*`, `TD_MINIMAP_*`, `TD_DARK_*`, `TD_WANDER_*`, `TD_SPAWN_*`, `TD_COVER_*`, `RNG_SEED` |
-| `topdown_player.gd` (`TopDownPlayer`) | WASD movement, aiming, targeting modes, firing, joy burst, **spirit and the dim state** (round 12a); round 14: hover is sticky; round 17: a held hover target is kept at most `HOVER_STICK_SECONDS` after the cursor leaves it, and a person directly under the cursor takes over at once (`_update_hover_target`, `_nearest_hover`) | signals `target_changed`, `targeting_changed`, `debug_toggled`, `burst_fired`, `dim_changed`; `target`, `targeting_mode`, `burst_cooldown`, `spirit`, `is_dim`; `add_spirit()`, `lose_spirit()`, `fire_rate_mult()`, `can_burst()` | `TD_PLAYER_*`, `TD_TARGETING_*`, `TD_ELEMENT_*`, `TD_BURST_*`, `TD_HIGHLIGHT_*`, `SPIRIT_*`, `DIM_*`, `HOVER_*` |
-| `moods.gd` (`Moods`) | Round 12b: the moods of wistful and gloomy people (guarded turn, skittish scare, glum look-ups) and the sheltering; round 14: each dimmed person shelters only its nearest wistful or gloomy person within `SHELTER_RADIUS` (`_nearest_ward`, ties to the earlier person); round 15: the shield's regrow timer (`shield_down_left`) and the ward's `shielder` link | `update(people, player, delta)`, `is_fleeing()`, `flee_dir()`, static `assign()`; sets `Person.sheltered` / `shelter_ward` / `shielder` / `glum_up` / `flee_left` | `GUARDED_*`, `SKITTISH_*`, `GLUM_*`, `SHELTER_*` |
-| `grabs.gd` (`Grabs`) | Round 12a: the grabs of dimmed people (wind-up, lunge, landing, cooldown) and how a lunge that misses is reported | `update(people, player, delta)`, `is_grabbing()`, `is_winding_up()`, `cooldown_left()`; signals `grab_landed`, `grab_avoided(person)`; sets `Person.grab_frac` / `grab_lunging` / `grab_toward` | `GRAB_*` |
-| `person.gd` (`Person`) | One person: affinity, joy, gloom, rescued state, grace, visuals, floating numbers; round 12b: `mood`, glancing joy off (guarded) and x3 for a glum look-up, `is_faltering()`; round 14: `shelter_ward`, the `joy_landed` signal; round 15: the shield (`shielder` on the ward; `shield_hits`, `shield_down_left`, `wear_shield()`, `shield_left_frac()` on the dimmed person; a sheltered person's `receive_joy` leaks `SHELTER_LEAK` and wears it); round 17: `shooter_pos` (set by topdown_main each frame) and `shot_lands_now()` (the guarded open-arc rule for the wedge) | `receive_joy(element, amount, distance, from)`, `drain_joy()`, `tick()`, `joy_needed()`, `chest_position()`, `active_mood()`, `is_open_to()`, `wear_shield()`, `shield_left_frac()`, fields `gloom`, `joy`, `cover`, `protection`, `is_rescued`, `mood`, `level`; signals `rescued`, `relapsed`, `stage_changed`, `joy_blocked`, `joy_landed` | `JOY_*`, `PERSON_*`, `GRACE_*`, `GLOOM_*`, `MEMBER_FALTER_*`, `STAGE_*`, `SHELTER_*` |
-| `gloom_sim.gd` (`GloomSim`) | Static rules: dimming, spreading, draining, protection | `update(people, delta, drain_mult, strength, border)`, `is_dimmed()`, `protection_for()` | `GLOOM_*`, `SPREAD_*`, `TD_DRAIN_MULTIPLIER` |
-| `border.gd` (`Border`) | The living border: loop polygon, members, gaps, posts, push-back, building capture; `loss_mult` and `flicker()` while the player is dim | `update()`, `set_player_dim()`, `on_rescue()`, `on_relapse()`, `cover_at()`, `clip_move()`, `shove()`, `polygon`, `members`, `active`, `segment_is_gap()`, `gap_midpoints()`, `gap_region_count()`, `is_faltering()`, `edge_pressure()` (round 12b: newest/outermost stretch score), `gap_urgencies()` / `falter_urgency()` (round 13b: 0..1 over `GAP_URGENCY_SECONDS`), `landmark_beautified()`; statics now on `BorderShape` (round 23): `is_inside()`, `gap_flags()` (spacing, empty slots, faltering members, posts), `slot_count_for()` | `BORDER_*`, `MEMBER_FALTER_*`, `GAP_HEAL_DELAY`, `EDGE_*` |
-| `border_slots.gd` (`BorderSlots`) | Round 18: the slot code split out of `border.gd`. `Border` owns one as `_slots` and `BorderSlots` reads and writes the Border's state (`b`). Slot assignment (`assign_members`: outermost people take the free slots, posts claim `BORDER_POST_WORTH` slots), slot ordering with hysteresis (`ordered_slots`, `_offset_matching`: an offset is kept unless another cuts the total walk by `BORDER_SLOT_HYSTERESIS`), and the arc / open-length helpers (`grid_phase`, `open_of_point`, `open_of_arc`, `point_at_arc`, `point_at_open`, `nearest_free_slot`, `run_free`) | `assign_members()`, `ordered_slots()`, `point_at_open()`, `open_of_point()` | `BORDER_SLOT_HYSTERESIS`, `BORDER_*` |
-| `border_shape.gd` (`BorderShape`) | Round 21/23: the pure static loop rules split out of `border.gd` (round 23 removed the `Border` wrappers: call `BorderShape.X`). Map edge: `clamp_to_map`, `drop_short_seals`. Loop maths: `circle_polygon`, `perimeter_of`, `open_perimeter_of`, `slot_count_for`, `gap_flags`, `is_inside`, `box_distance`, `ray_box`. Radii and crossings, with the state passed in: `relax_radii(raw, sealed, delta)`, `trim_to_map(raw, centre, scale)`, `smoothed_radii(raw)`, `first_block_along(buildings, o, d)`, `distance_to_line(polygon, p)`, `first_crossing(polygon, sample_gap, a, b)`. Checkpoint 5: `held_slot_count(perimeter, previous)` is the slot count with hysteresis (`BORDER_SLOT_COUNT_HOLD`); `Border.slot_count` holds it, so noise in a loop eased to exactly n x spacing no longer flips the member count (the end flicker; test `border_flicker_test`). New pure border rules go here | all static | `BORDER_*` |
-| `border_centre.gd` (`BorderCentre`) | Round 19/20: where the border's centre is, and the stretching zone. Before the border forms the centre is the centroid of the rescued; after that it is ANCHORED. A spirit beacon (`place()`, one at a time, clamped to `BORDER_MAP_LIMIT`) does not move it: it STRETCHES the zone. The body stays round the old centre; a tip travels toward the beacon at `BEACON_PULL_SPEED`, stops at the beacon or at `max_distance()` (circle radius + `BEACON_REACH_BASE` + `BEACON_REACH_PER_PERSON` x people, capped by `feasible_distance()` so the body never squeezes below `BEACON_BODY_MIN`), then (round 22) its arm STAYS: `_arrive()` commits it into `arms` (angle, reach; merged within `BEACON_ARM_MERGE`, at most `BEACON_MAX_ARMS`) and the beacon clears, with no hold and no snap (`zone_snapped` and `BEACON_STRETCH_HOLD` are gone). `Border._organic_polygon` takes `max(smooth radius x scale, arm_ring(body), stretch_radius())` per ray (each teardrop is `hull_radius()`; `arm_ring` redraws the arms for the body radius of the moment, cached), so ground, cover, landmarks, slots, gaps and the minimap all follow the polygon. Round 21 (stretch safety): `plan_toward(aim)` (also `Border.plan_stretch`) is the ONE plan for the preview and the real stretch: reach = min(distance to aim, `max_distance()`, the largest reach whose zone keeps `BEACON_DIM_CLEARANCE` from every dimmed person it would newly cover, `Border.update` feeds `dimmed`), plus the reason text, `refused` (less than `BEACON_MIN_GAIN` to gain because of dimmed people; `try_place_beacon` then shows `Intro.Prompt.BEACON_BLOCKED` and spends nothing) and the `outline` (`body_for()` solves the body radius for a loop of fixed length; `outline()` samples at the loop's angles). When people are lost the tip walks back at the pull speed; if a limit leaves no stretch the tip stops, `Border.stretch_ended(reason)` fires and the zone does not snap. Tests: `stretch_safety_test`. **Round 22 (shaped zone, `shaped_zone_test`):** the head count is the budget: the loop may be as long as `budget_of(circle_radius(people))`; the body squeezes to `BEACON_BODY_MIN` of that radius, so `plan_toward` also asks `arm_cap()` (the farthest reach the shape plus the new tip can hold, by `profile()` / `profile_perimeter()`), reports `BEACON_FULL_TEXT` when that binds, `BEACON_INSIDE_TEXT` when there is nothing to gain, and `refused` whenever the gain is under `BEACON_MIN_GAIN`. `outline()` is the same `profile()` with the body from `body_for_arms()`, so the preview is the real result. With people lost, `Border._organic_polygon` calls `pull_in()` while the loop is over `BEACON_PULL_IN_TOLERANCE` and the body is at its minimum (arms retreat by `BEACON_PULL_IN_RATE` + `BEACON_PULL_IN_FRAC` of their overextension, longest first), `settled()` when not. **Round 23 follow-up (`shaping_followup_test`):** `BEACON_BODY_MIN` is 0.4 (was 0.6), so `feasible_distance()` allows about 19% more reach (17.1 / 34.2 m at 12 / 24 people; at 40 the people formula binds); pull-in now tests the scale against `max(min_scale, BorderShape.SCALE_FLOOR) x BEACON_PULL_IN_SQUEEZE` (the scale cannot go under its floor 0.2, so for a small head count the old test was never true and nothing pulled in), and `zone_pulling_in` fires at most once per `BEACON_PULL_IN_NOTICE_GAP`. Signals on `Border`: `stretch_started`, `beacon_reached` (tip arrived), `zone_grew(gain sq m, tip, angle)`, `zone_pulling_in`, `zone_shrunk(lost sq m)`; `Border.stretch_info()` for the state. **Round 24 (`reactions_test`):** `BorderCentre.pull_in(delta, body, over)` now retreats ONE arm at a time, the longest first (`_longest_arm`, `_arm_at`): its outline fades for `BEACON_PULL_FADE_SECONDS`, then it walks in at `BEACON_PULL_CALM_RATE` and the next arm starts only after it is gone. `over` (loop length as a share of what the people can hold) speeds it up to `BEACON_PULL_URGENT_MULT` times and skips the fade at `BEACON_PULL_URGENT_RATIO`, so the spacing stays under `BORDER_MAX_GAP`. `is_retreating()`, `retreat_angle()` and `outline_alpha(p0, p1)` tell the outline which stretch to fade. `ReachGuide` no longer prints hover words (a refusal shows only when E is pressed) | `update()`, `place()`, `target()`, `stretch_radius()`, `hull_radius()`, `max_distance()`; `beacon`, `stretching`, `tip`, `holding`, `hold_left` | `BEACON_*` ("Round 20: stretching zone"), `BORDER_CENTRE_FOLLOW` (pre-formation only) |
-| `reach_guide.gd` (`ReachGuide`) | Checkpoint 5 follow-up: the zone preview shows only while `held` (E is down) and is a thin outline with no fill; limited is a thin coral outline and a small cross; the stretch's travel shows either way. Round 20/21: ground guide (placeholder: flat mesh; the styled look draws the older ring-and-line `StyleReach` pieces). Round 21: before a stretch it draws the zone a press of E at the cursor would make (`Border.plan_stretch`: teardrop outline, faint fill, tip marker, "E: stretch here"), coral with the reason when something holds the tip back ("Dimmed people are in the way", "Too far for this many people"); during a stretch the tip's travel. Round 22: a limited preview is a thick red outline with the reason in large letters beside the cursor, and `zone_grew` starts a pulse along the new arm with "+N sq m of ground" rising from the tip. Static `preview()` is kept for the styled guide. `TopDownMain.reach_guide` | `sync(border, player)` | `BEACON_GUIDE_*` |
-| `beacon_marker.gd` (`BeaconMarker`) | Round 19: the beacon in the world (placeholder pillar and ring, registered as a placeholder look); `TopDownMain.beacon_marker`. `TopDownMain.try_place_beacon()` charges `BEACON_SPIRIT_COST`, or shows `Intro.notice` (`BEACON_SPIRIT` / `BEACON_BORDER`) and changes nothing. Checkpoint 5 follow-up: E is hold to aim, so `BeaconPlacement.press` (E down: `ReachGuide.held`), `release` (E up: places through `try_place`) and `cancel` (right-click, action `cancel_beacon`) are what `TopDownMain._unhandled_input` calls, and `try_place_beacon` is kept for direct callers; signal `TopDownMain.beacon_placed(pos, cost, spirit_after)` | `sync(pos, delta)` | `BEACON_*` |
-| `gap_patch.gd` (`GapPatch`), `burst_clear.gd` (`BurstClear`), `border_warning.gd` (`BorderWarning`), `patch_fx.gd` (`PatchFx`) | Round 22, spirit actions. `GapPatch.attach(main)` (one line in `TopDownMain`, `main.gap_patch`) builds the node and links `border.patch` and `player.border`. F (`patch_gap`) spends `PATCH_SPIRIT_COST` to seal the gap or strained spot nearest the cursor for `PATCH_SECONDS`: `Border.update` calls `patch.apply(border)` after the slots, which clears the gap flags inside `PATCH_RADIUS` (so `line_blocks` and `_press_gloom` treat it as intact) and sets `Person.patch_mult` on members there (`drain_joy` multiplies by it). The burst (`TopDownPlayer._burst` -> `BurstClear.run`) pushes dimmed people within `BURST_BORDER_BAND` of the line back `BURST_PUSH_DISTANCE`, lifts them to `BURST_LIFT_GLOOM` and calms them (`Person.calm_left`, honoured by `GloomSim`); `burst_cleared(report)` feeds the recorder and `PatchFx` streaks. `BorderWarning.compute` (every `BORDER_WARN_INTERVAL`, in `GapPatch.warnings`) lists members whose joy is falling toward the falter line (or with a dimmed person pressing); `PatchFx` draws rings, patch discs and streaks; the minimap draws `warn_markers` / `patch_points`. Round 23: `GapPatch` also draws the cue (`CUE_*`: a small line near the player, only when F or G/Q can be acted on now) and `_held_near()` counts what a new patch holds for the "Held: N" mark; `PatchFx` draws the result marks (`FX_*`: a rising count at the patched spot, a halo and count on each person the burst lifted). Recorder events `gap_patched`, `burst_clear`. **Round 24:** `GapPatch.cue_text()` sets `cue_ready` (a patch can be placed under the cursor, or a burst has `burst_targets` and `Player.can_burst()`) and the cue label is a HUD panel beside the spirit meter (`CUE_HUD_GAP`, `CUE_HUD_Y`) that pulses in `CUE_READY_COLOUR` when ready and is dim otherwise (no longer a line near the player). `react_to_patch(at)` makes up to `REACT_PATCH_MAX` border members within `REACT_PATCH_REACH` hop, turn and glow, nearest first (`Person.react(PATCH, ...)`); a burst reacts each lifted person (`Person.React.LIFT`) | `try_patch()`, `patch_at()`, `is_patched()`, `apply()`, `warnings`, `patches`, `burst_targets`; `BurstClear.run()`, `is_target()`, `count_targets()` | `PATCH_*`, `BURST_*` (BURST_CLEAR_RADIUS etc.), `BORDER_WARN_*` |
-| `crowd_movement.gd` (`CrowdMovement`) | Round 24, moved out of `topdown_main.gd`: the per-frame movement of the unrescued people (wander, pursuit, separation, the dimmed reach for the player, `_step`). Held as `TopDownMain._crowd` (`update_people(delta)` each frame); uses the level's `_rng`, `_near_block` and `_flat_dist`. `TopDownMain.pursuit_assignments()` and `_new_wander_target()` stay as one-line wrappers because tests and the recorder call them. Tests: `topdown_crowd_test`, `local_gap_test`, `edge_pressure_test` | `update_people()`, `pursuit_assignments()`, `new_wander_target()` | `TD_WANDER_*`, `TD_DIMMED_*`, `TD_SEPARATION_*`, `TD_MAX_PURSUERS_PER_TARGET` |
-| `relapse_wave.gd` (`RelapseWave`), `first_light.gd` (`FirstLight`) | Round 24, waves and the dawn rally. `Person.drain_joy` no longer relapses at once: below the relapse line the person WOBBLES (`wobbling`, `wobble_left` / `wobble_total`, `next_wobble_seconds()` = `WOBBLE_SECONDS` jittered by a hash of `look_seed` and `wobble_count`, `wobble_progress()` for the look; signal `wobbled(seconds)`). A joy hit meanwhile (`receive_joy` -> `_save()`) or joy back above the line ends it: joy goes to `RELAPSE_FRACTION + WOBBLE_SAVE_JOY`, drain skips them for `WOBBLE_SAVE_GRACE`, signal `saved`. When it runs out `_relapse()` is only taken if `Person.relapse_gate` (the level's `RelapseWave.allow`, one relapse per `RELAPSE_GATE_GAP`; `advance(delta)` once a frame) says yes, so a drained group goes a few at a time. A person with `dawn_lit` set no longer drains, and their wobble ends quietly (no relapse, no `saved`). `Person.react(kind, seconds, toward, delay)` / `react_progress()` / `React` enum (`PATCH`, `LIFT`) drive the look's hop, turn and glow. `FirstLight.attach(main)` (one line in `TopDownMain`, `main.first_light`; `process_priority -1`) runs over the last `FIRST_LIGHT_SECONDS`: a square front moves from the map edge to the centre; `step(delta)` sets `Person.dawn_lit` for everyone it has passed, lifts their gloom at `FIRST_LIGHT_LIFT_RATE` and keeps them calm; `has_passed()`, `edge()`, `finish()`. Placeholder look: warm tint strips and a band (`FIRST_LIGHT_*`), a HUD line, minimap front. Recorder events `wobble`, `save`, `first_light_start`, `first_light_end`. `BURST_LIFT_RADIUS` (14 m) is how far a burst reaches: every dimmed person inside it is lifted (`BurstClear.is_target`), while only those near the line are pushed back; joy lands `DIMMED_JOY_MULT` times as hard on a dimmed person and fades `DIMMED_FADE_MULT` times as fast. Tests: `dimmed_waves_test`, `first_light_test`, `reactions_test` | `Person.react()`, `react_progress()`, `wobble_progress()`, `next_wobble_seconds()`; `RelapseWave.advance()`, `allow()`; `FirstLight.step()`, `has_passed()`, `edge()`, `finish()` | `WOBBLE_*`, `RELAPSE_GATE_GAP`, `DIMMED_*`, `BURST_LIFT_RADIUS`, `FIRST_LIGHT_*`, `REACT_*` |
-| `wobble_alert.gd` (`WobbleAlert`) | Checkpoint 5: the wobble alert. A pulsing screen-edge pointer toward each cluster of off-screen wobbling people (at most `WOBBLE_ALERT_MAX`, most urgent first), placed clear of the HUD by `LandmarkPointers.place`. Worked out every `WOBBLE_ALERT_REFRESH` from `_process`, redrawn every frame while shown; the pulse speeds up with `wobble_progress()`. The minimap blip is `Minimap.wobble_marks` (in `minimap.gd`, colour from `look.member_colour(pulse)`, which keeps `MinimapLook` within the public-method limit). `TopDownMain.wobble_alert` is attached with `WobbleAlert.attach(self)` | `update_now()`, `shown_count()`, `first_pointer()`; static `group()`, `hz_for()`, `pulse_at()`, `colour_at()` | `WOBBLE_ALERT_*`, `WOBBLE_BLIP_*` |
-| `spirit_warmth.gd` (`SpiritWarmth`) | Checkpoint 5: spare spirit. `TopDownPlayer.add_spirit` emits `spirit_spilled(amount)` for what did not fit a full meter; `SpiritWarmth.attach(main)` (one line in `TopDownMain`, `main.spirit_warmth`) adds it to `pool` (at most `SPARE_POOL_MAX`) and every `SPARE_WARM_INTERVAL` pours `SPARE_WARM_RATE` x interval joy into the most strained border member under `SPARE_WARM_CEILING` (static `SpiritWarmth.warm(person, amount)`, `SPARE_JOY_PER_SPIRIT` joy per spirit). The warmed person reacts with `Person.React.WARM` and `PersonLook._update_warm` shows a soft disc (`warm_ring`, both looks). Signal `warmed(person, joy, spirit)` feeds the recorder event `spirit_warm`. Test: `spirit_warmth_test` | `add_spare()`, `step()`, `pour()`, `most_strained()` | `SPARE_*` ("Checkpoint 5: rules") |
-| `building.gd` (`Building`) | One block the border can beautify; lantern + ring if it is a post | `update(delta, inside_fraction)`, `set_post()`, `beautified` | `BORDER_BUILDING_SECONDS`, `BORDER_TINT_SECONDS` |
-| `landmark.gd` (`Landmark`) | Round 19: ONE of the three landmarks (`index` into `Config.LANDMARK_*`): its claim hold (`BORDER_LANDMARK_HOLD`, 3 s), signals `claimed` / `lost`. Holding it no longer wins. Round 23: the boosts are doubled (`LANDMARK_MUSIC_MULT` and `_NATURE_MULT` 2.0) and a landmark held at dawn counts toward the third light (checkpoint 5: `DAWN_PEOPLE_HIGH` 0.75 and `DAWN_LANDMARKS_HIGH` 2). Round 24: the Garden (index `LANDMARK_NEAR_INDEX`, 1) moved to about 14 m from the start (`LANDMARK_POSITIONS[1]` (-9, 0, 4) x `WORLD_SCALE`), inside the first arm's reach; the other two stay far. `LandmarkPointers.update_from(main, delta)` works the edge pointers out every `LANDMARK_POINTER_REFRESH` (0.2 s), not every frame; a call without `delta` always works them out | `update(delta, beautified)`, `progress()`, `is_held()`, `landmark_name()`, `boost_text()` | `LANDMARK_*`, `BORDER_LANDMARK_*` |
-| `landmarks.gd` (`Landmarks`) | Round 19: the three `Landmark` nodes (`items`: `BANDSTAND`, `GARDEN`, `BELL_TOWER`), their updates from the border (`Border.landmark_beautified(i)`, `landmark_buildings`), the boosts (`apply_boosts`: sets `Person.joy_boost[element]` and `Person.loss_mult`, used by `receive_joy` and `drain_joy`), the HUD panel lines and the minimap flags. `TopDownMain.landmarks` | `build()`, `update()`, `apply_boosts()`, `held_count()`, `held_lines()`, `held_flags()`, static `near_any()` | `LANDMARK_*` |
-| `dawn_rating.gd` (`DawnRating`) | Round 19: the end-of-night rating, pure rules: 1-3 dawn lights from people rescued, ground held and landmarks held, with the reason lines and a hint for the next light. `TopDownMain.rating` holds the result at dawn; `_current_rating()` computes it any time | static `rate()`, `lights_text()`, `hint_for()` | `DAWN_*` |
-| `painted_ground.gd` (`PaintedGround`) | 1 m tile grid: paint weight and colour (a MultiMesh), erosion by dimmed people | `update_paint()`, `paint_weight_at()`, `paint_colour_at()`, `set_region()`, `average_weight(_excluding)()`, `beautified_fraction()` | `TD_GROUND_*`, `TD_PAINT_*`, `TD_ERODE_*`, `GROUND_*` |
-| `night_cycle.gd` (`NightCycle`) | Dusk to dawn clock, grey strength, sun and ambient keyframes. Round 23: `strength()` fades the part above 1 out between `NIGHT_EASE_START` and dawn (smoothstep), so the easing phase eases; static `dim_gap_at(p)` is the seconds between two people sinking to dimmed (`DIM_GAP_RISING` at the start of the rising phase, `DIM_ARRIVAL_MIN_GAP` at midnight, held to `DIM_GAP_EASE_START`, then lengthening to `DIM_GAP_EASE_END` at dawn); `TopDownMain._try_dim_sink` asks it | `update()`, `progress()`, `strength()`, `dim_gap_at()`, `is_over()`, `elapsed` | `NIGHT_*` (length, peak, calm opening, `NIGHT_EASE_START`), `DIM_GAP_*` |
-| `joy_projectile.gd` (`JoyProjectile`) | A shot: music (homing note), art (lobbed blob), nature (flower); impact effects | `launch_velocity()` (static); set `element`, `velocity`, `target`, `people` before `add_child` | `TD_PROJECTILE_*`, `TD_NOTE_*`, `TD_SPLAT_*`, `TD_FLOWER_*`, `TD_PETAL_*`, `TD_TRAIL_*` |
-| `bloom.gd` (`Bloom`) | Nature flower patch: pulsed joy to people inside, then fades | set `people` before adding | `TD_BLOOM_*` |
-| `floor_effects.gd` (`FloorEffects`) | Registry and cap for transient floor overlays (rings, splats, blooms) | `add()`, `live()`, `enforce_cap()`, `summary()` | `TD_MAX_FLOOR_EFFECTS` and the priority inventory |
-| `hud.gd` (`Hud`) | Labels: target element, rescued count (under the minimap, round 19), night bar, burst bar, spirit bar, alerts, end screen, debug text; round 19: the landmark panel (top right under the REC mark) | `set_*()` (`set_spirit`, `set_burst(cooldown, has_spirit)`, `set_landmarks(lines, total)`, `place_rescued_below(y)`), `show_alert()`, `show_end()` | (few; mostly literals in `hud.gd`) |
-| `minimap.gd` (`Minimap`) | Round minimap: data model (`border_pts`, `member_pts`, `dimmed_pts`, `blips`, ...) then a 128 px image | `tick(delta)`, `refresh_from(...)`, `radius()`, `add_blip()` | `TD_MINIMAP_*` |
-| `gap_arrows.gd` (`GapArrows`) | Coral screen-edge arrows toward off-screen gaps | `update_arrows()`, static `off_screen_arrows()` | `OFFSCREEN_*` |
-| `feedback_layer.gd` (`FeedbackLayer`) | Round 13b: screen-space communication overlay on the HUD: faltering markers (feet ring, "!" badge, progress ring, "closed" flash), gap leak motes, mood and shelter icons, tethers and snaps, blocked-joy sparks, player pulses; round 14: `dim_rings`, the falter progress ring on a dimmed person hit by joy; round 15: an umbrella icon's `wear` (its shielder's share left) fades and shrinks it; data model in `markers`, `motes`, `icons`, `tethers`, `snaps`, `sparks`, `closes`, `player_pulses`, `dim_rings` | `tick(delta)`, `on_blocked()`, `on_dim_joy()`, `pulse_player()`, `marker_for()`, `flash_of()` | `FALTER_*`, `LEAK_*`, `MOOD_ICON_*`, `BLOCK_*`, `TETHER_*`, `DIM_RING_SECONDS`, `UMBRELLA_*`, `PIP_*`, `SHELTER_TETHER_*`, `SHELTER_CANOPY_*`, `SHELTER_POP_*`, `REGROW_RING_*` |
-| `spirit_meter.gd` (`SpiritMeter`) | Round 13b: the 360 px spirit meter over the HUD bar: burst-cost and dim-exit ticks, flash and floating numbers | `set_values()`, `moment(amount, kind)`, `burst_tick_x()`, `dim_tick_x()`; enum `Moment` | `SPIRIT_METER_*`, `SPIRIT_*_COLOUR` |
-| `mood_icons.gd` (`MoodIcons`) | Round 13b: the icon shapes (shield, feet, cloud, umbrella, "!") drawn on any CanvasItem | static `draw()`, `kind_for_mood()`, `kind_for_block()` | `MOOD_ICON_COLOURS` |
-| `intro.gd` (`Intro`), `prompt_bar.gd` (`PromptBar`) | Round 19: `Intro.notice(id, words)` shows a prompt every time (round 22: for `NOTICE_SECONDS`, in a larger coral-edged bar near the middle of the screen, with its own words if given; only while `intro.enabled` counts it down) (not once per level; works with the intro off) and `check_level(main, delta)` (the old `TopDownMain._update_intro`) lives here. Round 13b: the layered introduction (dimmed after `NIGHT_CALM_FRACTION`, moods at `MOOD_INTRO_FRACTIONS`) and the one-at-a-time, once-per-level prompt queue; the bar draws the current prompt; round 14: `Prompt.DIM_HELP` | `dimmed_allowed()`, `mood_active()`, `request()`, `update()`; fields `current`, `queue`, `shown` | `MOOD_INTRO_FRACTIONS`, `PROMPT_*`, `INTRO_*`, `DIM_HELP_TEXT` |
-| `recorder.gd` (`Recorder`) | Round 18: the gameplay recorder. Off unless the menu check box (`Recorder.enabled`, saved in `user://settings.cfg`) or `-- --record` asks for it; `TopDownMain._ready` then adds it as a child (`td.recorder`, else null). Listens to the people's, player's and grabs' signals and polls gaps (`Border.gap_midpoints_cached`, matched by `GAP_TRACK_RADIUS`) and shields every `RECORD_POLL_SECONDS`; writes a buffered `events.jsonl` (flushed every `RECORD_FLUSH_SECONDS`, on round end, on exit and on a window close) and a downscaled screenshot every `RECORD_SHOT_SECONDS` (not headless; saved on a worker thread) into `recordings/<stamp>/` (editor) or `user://recordings/<stamp>/` | `attach()`, `emit_event(type, fields)`, `on_round_end()`, `note_exit()`, `end()`; static `requested()`, `phase_for()`; `Hud.set_recording()` shows the REC mark | `RECORD_*` |
-| `controls.gd` (`Controls`) | Registers every InputMap action (no raw keys elsewhere); round 14: `zoom_in` / `zoom_out` on the mouse wheel | `setup()` | none |
-| `config.gd` (`Config`), `config_base.gd` (`ConfigBase`) | Round 23 split: `Config extends ConfigBase`, so `Config.X` still reaches every constant and nothing else changed. `ConfigBase` (rounds 1-18, the `Element` / `TargetingMode` enums, ~745 lines) comes first; `Config` holds the round 19 onward blocks and the tiny pure helpers. **New constants go in `config.gd`, as a "Round N: <part>" block just above the first helper function (`intro_on`).** A constant in `ConfigBase` cannot read one in `Config`. Keep each file under the 1000-line lint cap | `multiplier()`, `falloff()`, `gloom_level()`, `is_automated_test()` | n/a |
+- `topdown_main.gd`: the level (plaza, camera, zoom, win/lose, wiring, dim sink gate `_try_dim_sink`); `crowd_movement.gd`: unrescued people's movement
+- `topdown_player.gd`: movement, aiming, targeting, firing, burst, spirit and the dim state, sticky hover; `controls.gd`: every InputMap action (no raw keys elsewhere)
+- `person.gd`: one person (affinity, joy, gloom, rescued, wobble, shield, react); `moods.gd`: guarded/skittish/glum and sheltering; `grabs.gd`: dimmed grabs
+- `gloom_sim.gd`: dimming, spreading, draining; `night_cycle.gd`: clock, strength, `dim_gap_at()`; `relapse_wave.gd`: relapse gate; `first_light.gd`: dawn rally
+- `border.gd`: the living border (members, gaps, posts, push-back, polygon); `border_slots.gd`: slot assignment/ordering; `border_shape.gd`: pure static loop rules (call `BorderShape.X`; new pure border rules go here); `border_centre.gd`: centre, beacon stretch, arms, preview plan
+- `gap_patch.gd`, `burst_clear.gd`, `border_warning.gd`, `patch_fx.gd`: spirit actions F and G/Q, warnings and their effects; `spirit_warmth.gd`: spare spirit warms strained members
+- `beacon_marker.gd` (+ `BeaconPlacement`): beacon in the world, E hold/release/cancel; `reach_guide.gd`: zone preview; `building.gd`, `landmark.gd`, `landmarks.gd`: blocks, the three landmarks and boosts; `dawn_rating.gd`: pure 1-3 lights rules
+- `painted_ground.gd`: 1 m paint grid; `joy_projectile.gd`, `bloom.gd`: shots; `floor_effects.gd`: floor overlay registry/cap
+- `hud.gd`, `hud_safe_area.gd`, `minimap.gd`, `gap_arrows.gd`, `wobble_alert.gd`, `landmark_pointers.gd`: HUD, minimap, edge pointers (`HudSafeArea` is the one safe rectangle they share)
+- `feedback_layer.gd`, `spirit_meter.gd`, `mood_icons.gd`, `intro.gd`, `prompt_bar.gd`: screen-space cues, prompts and `Intro.notice(id, words)`
+- `recorder.gd`: gameplay recorder; `config_base.gd` + `config.gd`: all tuning (see Tuning)
+
+## Areas (where to start; tests are `tests/<name>.gd`)
+- **Border / territory:** `border.gd`, `border_slots.gd`, `border_shape.gd`, `building.gd`, `painted_ground.gd`; tests `border_*_test`, `edge_pressure_test`, `cover_test`; config `BORDER_*`. Slots are spaced along the open length; the map-edge stretch is sealed (no slots, never a gap).
+- **Beacon / zone / landmarks / dawn rating:** `border_centre.gd`, `reach_guide.gd`, `beacon_marker.gd`, `landmark(s).gd`, `dawn_rating.gd`, `topdown_main.gd` (`try_place_beacon`, `_check_end`); tests `beacon_test`, `stretch_safety_test`, `shaped_zone_test`, `shaping_followup_test`, `reactions_test`, `landmarks_test`, `dawn_rating_test`; config `BEACON_*`, `LANDMARK_*`, `DAWN_*`. `BorderCentre.plan_toward()` is the one plan used by both the preview and the real stretch. Landmark positions are in the spawn exclusion (`_near_block`): moving one changes who spawns where and their gloom.
+- **People / gloom / night / waves:** `person.gd`, `gloom_sim.gd`, `night_cycle.gd`, `relapse_wave.gd`, `first_light.gd`, `crowd_movement.gd`; tests `person_test`, `gloom_sim_test`, `night_cycle_test`, `topdown_crowd_test`, `dimmed_waves_test`, `first_light_test`; config `GLOOM_*`, `NIGHT_*`, `DIM_*`, `WOBBLE_*`, `FIRST_LIGHT_*`.
+- **Moods / shelter / shield / guarded wedge / hover:** `moods.gd`, `person.gd` (`receive_joy`, `shot_lands_now`), `topdown_player.gd` (`_update_hover_target`), `feedback_layer.gd`; tests `moods_test`, `shield_test`, `shelter_nearest_test`, `guarded_wedge_test`, `hover_stick_test`, `stagger_test`; config `GUARDED_*`, `SKITTISH_*`, `GLUM_*`, `SHELTER_*`, `HOVER_*`.
+- **Spirit / dim / grabs / spirit actions:** `topdown_player.gd`, `grabs.gd`, `gap_patch.gd`, `burst_clear.gd`, `border_warning.gd`, `spirit_warmth.gd`; tests `spirit_test`, `grab_test`, `spirit_warmth_test`, gap patch/burst suites; config `SPIRIT_*`, `DIM_*`, `GRAB_*`, `PATCH_*`, `BURST_*`, `SPARE_*`.
+- **Projectiles / blooms / floor effects:** `joy_projectile.gd`, `bloom.gd`, `floor_effects.gd`; tests `projectile_*_test`, `floor_test`, `paint_bloom_camera_test`.
+- **Targeting / input / zoom / camera:** `topdown_player.gd`, `controls.gd`, `topdown_main.gd` (`_update_camera`, `view_half_extents`); tests `targeting_test`, `topdown_mode_test`, `zoom_test`, `world_scale_test`.
+- **HUD / minimap / cues / intro:** `hud.gd`, `minimap.gd`, `gap_arrows.gd`, `wobble_alert.gd`, `feedback_layer.gd`, `intro.gd`, `prompt_bar.gd`; tests `hud_test`, `readability_test`, `feedback_test`, `intro_test`, `debug_overlay_test`, `menu_test`. These are screen-space UI: both looks draw them.
+- **Looks / styled art:** `scripts/looks/*`, `shaders/*`, `topdown_main.gd` (`set_look`); tests `looks_*_test`; tool `checkpoint_shots.py`. See Looks.
+- **Recorder:** `recorder.gd`; tests `recorder_test`, `python tools/test_analyse_recording.py`.
+- **Tooling:** `tools/*`, `.githooks/pre-commit`, `tools/COVERAGE_TOOL_NOTES.md`; self-checks in `tools/test_*.py`.
+- Before writing a level test read `tests/topdown_test_util.gd`.
 
 ## Looks (rules vs visuals, `scripts/looks/`)
-Every main thing on screen is split into a **rules script** (the table above) and a **look**: a node/object that reads the
-rules' public state and draws it. Rules scripts never reach into look internals; they only call the generic look API
-(`sync()`, `play_bounce()`, `refresh()`, `set_post()` ...). Looks: `PersonLook`, `PlayerLook`, `BuildingLook`,
-`LandmarkLook`, `GroundLook`, `BorderLook`, `MinimapLook`, `PlazaLook`, each with `*_placeholder.gd` (plain shapes, the
-tests' default) and `*_styled.gd` (the locked art style; shaders in `shaders/`, builders in `style_kit.gd`,
-`style_people.gd`, `style_buildings.gd`). `ViewPipeline` (`view_pipeline.gd`) owns the camera and post-process: styled
-mode moves the camera into a 640x360 SubViewport that shares the world, with nearest upscale and outlines.
-- `Looks` (`looks.gd`) holds the mode (`PLACEHOLDER` default, `STYLED`; static, so the menu choice lasts for the session),
-  the factories, and the fallback registry. A kind with no styled look returns its placeholder and registers itself with
-  `Looks.note_placeholder(obj, kind)`; F3 shows `Looks.debug_line()` (`placeholder_fallback_count()`).
-- F4 (`toggle_look` action) calls `TopDownMain.set_look()`: every object calls its own `rebuild_look()`, game state is
-  untouched. The menu has a "Look" button.
-- **Gameplay rounds** add a placeholder look only (extend the base look class and the placeholder; new loose things
-  simply register as placeholder). **Style rounds** add the styled look for what is still listed by F3, then playtest.
-- Pixel view and the mouse: in styled mode window mouse coordinates are divided by `pipeline.view_scale()` before
-  `camera.project_ray_*` (the player's `mouse_mapper`); use `TopDownMain.world_to_screen()` (not `camera.unproject_position`)
-  for window positions. The HUD, minimap and gap arrows stay in the window at full resolution.
-- Checkpoint renders: `python tools/checkpoint_shots.py` (scripted scenario in `tools/checkpoint/checkpoint_shots.gd`,
-  both looks, `design/renders/checkpoint_02/` by default; needs a real window, about 90 s; the script quits itself after
-  170 s). Views: overview, close-ups (gap, wedge, shields, UI, minimap), min/max zoom, and a second level with a sealed map
-  edge; `contact_sheet.png` and `contact_sheet_compare.png`. Look at the PNGs; write `NOTES.md` there.
-- **Graphics checkpoint 2 (styled cues)**: the ground cues of person looks are hooks in `PersonLook` (`_style_grab_ring`,
-  `_style_glint`, `_style_guard_wedge`, `_show_wedge`, `_show_grab`, `play_ripple`) overridden by `PersonLookStyled` using
-  `style_cues.gd` and `shaders/style_wedge|ring.gdshader`. Screen-space UI (feedback layer, mood icons, spirit meter, prompt
-  bar, gap arrows) branches on `Looks.is_styled()` at draw time: `style_ui.gd` (cell helpers + icon bitmaps),
-  `style_feedback.gd`, `style_hud.gd`; `set_look` calls each overlay's `rebuild_look()`. The styled border marks map-sealed
-  stretches (`BorderLookStyled._seal_w`, haze `UV2.y`); the minimap has `seal_flags` and `MinimapLook.seal_colour()`. Still
-  placeholder in styled mode: target highlight, HUD text and bars, landmark label, burst ring, projectiles, blooms, labels.
-  Tests: `looks_cues_test.gd`.
-- **Graphics checkpoint 4 (walk, round 20 styled)**: `python tools/checkpoint_shots.py --set round20` (scene
-  `tools/checkpoint/checkpoint_round20.tscn`, which extends the checkpoint script; `design/renders/checkpoint_04/`, about
-  45 s, needs a real window, `--timeout` sets its own quit time). A script that fails to parse makes this run do nothing
-  and never quit: run the scene directly with `--timeout 90` and read the output if it hangs.
-  - **The walk** (`looks/gait.gd`, `Gait`): one per person look and the player look. `advance(pos, delta, basis)` (called
-    from `Person.tick` and `TopDownPlayer._physics_process` via `look.advance`) follows the real movement: the step phase
-    advances by distance / stride (feet do not slide), stride follows a smoothed speed, a run has a shorter stance and
-    more lean, standing shifts weight at 10 Hz, per-walker variety comes from a hash of `look_seed` (no RNG). Returns false
-    when nothing changed so looks skip the pose. `StyleWalk.apply` poses the styled bodies (`StylePeople` exposes `rig`,
-    `legs`, `arms` pivots); the placeholder capsules only bob, sway and lean (`gait.legs = false`).
-  - **Styled round 20**: `style_reach.gd` (`StyleReach`, built lazily by `ReachGuide`), the minimap cloud colour, the landmark
-    pulse (`LandmarkLookStyled.play_change`) and an alert banner (`StyledPanel.Kind.ALERT`, drawn by `StyleDawn.draw_alert`).
-    Flags fixed: guarded icon (chevron shield), canopy skipped when styled (`FeedbackLayer.canopy_shown`), round sun
-    bitmaps, a lighter bandstand ruin, bigger ink-edged beacon dashes. Tests: `looks_round20_test.gd` (walk),
-    `looks_round20_pieces_test.gd`.
-- **Graphics checkpoint 5 (styled catch-up for rounds 21-24)**: `python tools/checkpoint_shots.py --set round24` (scene
-  `tools/checkpoint/checkpoint_round24.tscn`, extends the round 20 script; `design/renders/checkpoint_05/`, about 65 s;
-  if the run hangs the global class cache is stale: run `python tools/run_tests.py --suites looks_checkpoint5_test` first).
-  Constants: `Config` block "Checkpoint 5". Tests: `looks_checkpoint5_test.gd`.
-  - **The fight**: `StyleFight` (rings, open light columns via `shaders/style_beam.gdshader`, `tint`); `PatchFx` has styled
-    branches and rebuilds its pools when the look changes (strain rings and pings, patch ward and posts, burst streaks, lift
-    halos and columns); `BorderLookStyled` adds a coral column and breach ring per gap; `PlayerLookStyled.play_burst`.
-  - **People**: `PersonLook._update_react` calls `_react_pose` (styled adds PI to the turn); `PersonLookStyled` tints the body
-    through the toon shader's packed `tint` instance float (palette id + amount; a vec4 overflowed the instance buffer) for
-    reactions, the wobble (greying, shake, closing ring) and a dimmed person warming (coat, smoke pool, soot).
-  - **First light**: the ground shader's `dawn_front` (`GroundLookStyled.set_dawn_front`), `StyleFirstLight` motes and sky,
-    `MinimapLook.first_light(part, ...)`. **Preview**: `StyleReach` (outline ribbon `style_outline`, no fill since checkpoint 5 follow-up,
-    `StyleReachTag` "Stretching"). **HUD**: `StyledPanel.Kind.CUE` (`StyleDawn.draw_cue`), styled notices (`StyleHud.draw_prompt`).
-  - **Shader instance buffer** (snag round): every mesh using `style_toon.gdshader` reserves 16 vec4 of
-    `rendering/limits/global_shader_variables/buffer_size`, hidden meshes included. `project.godot` sets 262144 (16384
-    meshes); a styled level peaks at about 4344 (people 1780, industrial blocks and their whimsical versions, beacons,
-    landmarks). `tests/shader_instances_test.gd` fails if twice the worst case exceeds the capacity. Adding many
-    instance-uniform meshes: check that test first.
-- **Snag round HUD notes:** First light's start line is `Intro.notice(Prompt.FIRST_LIGHT)` (no HUD label).
-  `TopDownMain._notification` (focus out) cancels a held E aim via `BeaconPlacement.cancel`.
-- **Checkpoint 6** (constants in the three "Checkpoint 6" blocks of `config.gd`; tests `hud_checkpoint6_test`,
-  `looks_checkpoint6_test`):
-  - **First light ring:** `FirstLight.edge()` is a radius from `FIRST_LIGHT_START_RADIUS` (71 m, the plaza corners) to 0
-    over `FIRST_LIGHT_SECONDS`; passed means round distance from the origin at least `edge()`. Placeholder: two flat ring
-    meshes (`_set_ring`). Styled: `GroundLookStyled.set_dawn_front(radius)` (shader `length(p)`); `StyleFirstLight` motes
-    at fixed angles on the circle. `Minimap.first_light_edge` is a radius drawn with `_round_line`.
-  - **HudSafeArea** (`scripts/hud_safe_area.gd`) is the one place that works out the rectangle edge pointers keep inside:
-    the window less the shown HUD panels (`Hud.layout_controls`), the minimap and the spirit cue. `WobbleAlert` (thin
-    wrappers `safe_rect`/`avoid_rects`), `GapArrows` (optional `safe` argument) and `LandmarkPointers` use it, both looks.
-  - **Notices:** the PromptBar notice and the HUD alert are slim banners under the night bar at `CP6_BANNER_TOP`; a notice
-    moves below the alert while `Hud.alert_showing()`.
-  - **Styled HUD text:** `StyledPanel` kinds RESCUED, BURST, TARGET, TARGETING and KEYS, drawn by `StyleHudText`; `Hud`
-    feeds them the same text as its Labels and shows the Labels in the placeholder look only. `StyleTarget` is the styled
-    target ring (ring shader only, element-tinted disc child); `TopDownMain._apply_highlight_look` swaps it on F4.
-  - **Dithering:** `STYLED_DITHER_LIGHT` (0.08, shadow band, set by `StyleKit.mat` and the ground),
-    `STYLED_DITHER_GLOW` (0.5, `dither_k` in `style_glow.gdshader`, `StyleKit.glow_mat`), `STYLED_DITHER_GROUND` (0.5,
-    `dither_k` in `style_ground.gdshader`, `GroundLookStyled`). The post shader has no dither.
-  - **Jog:** `Gait.jog` (player only) adds `JOG_*` cadence, leg swing, lean and bounce in both looks; the styled look
-    raises a dust puff per footfall (`PlayerLookStyled._dust`).
-- Tests run in the placeholder look; `tests/looks_test.gd` switches to styled on purpose and always switches back.
-  Headless uses a dummy renderer, so shaders are not compiled by the tests; the screenshot run is the shader check
-  (grep its log for errors).
+- Every main thing on screen is a **rules script** plus a **look** that reads its public state and draws it. Rules scripts
+  never reach into look internals; they call only the generic look API (`sync()`, `play_bounce()`, `refresh()`, `set_post()`,
+  `rebuild_look()` ...). Looks: `PersonLook`, `PlayerLook`, `BuildingLook`, `LandmarkLook`, `GroundLook`, `BorderLook`,
+  `MinimapLook`, `PlazaLook`, each with `*_placeholder.gd` (plain shapes, the tests' default) and `*_styled.gd` (locked art
+  style; shaders in `shaders/`, builders in `style_kit.gd`, `style_people.gd`, `style_buildings.gd`, other `style_*.gd`).
+- `Looks` (`looks.gd`) holds the mode (static, `PLACEHOLDER` default or `STYLED`), the factories and the fallback registry:
+  a kind with no styled look returns its placeholder and calls `Looks.note_placeholder(obj, kind)`; F3 lists these.
+  F4 (`toggle_look`) calls `TopDownMain.set_look()`, every object calls `rebuild_look()`, game state is untouched.
+- **Gameplay rounds add a placeholder look only** (extend the base look class and the placeholder). Styled work happens
+  only in graphics checkpoints.
+- `ViewPipeline` owns camera and post-process: styled mode renders in a 640x360 SubViewport with nearest upscale and outlines.
+  Window mouse coordinates are divided by `pipeline.view_scale()` before `camera.project_ray_*`; use
+  `TopDownMain.world_to_screen()` (not `camera.unproject_position`) for window positions. HUD, minimap and edge pointers
+  stay in the window at full resolution. Screen-space UI branches on `Looks.is_styled()` at draw time (`style_ui.gd`, `style_feedback.gd`, `style_hud.gd`, `StyledPanel` kinds drawn by `StyleHudText` / `StyleDawn`).
+- Ground cues of person looks are hooks in `PersonLook` overridden by `PersonLookStyled`. `Gait` (`looks/gait.gd`) follows real movement for the walk and the player's jog; `StyleWalk` poses styled bodies; placeholder capsules only bob.
+- `HudSafeArea` is the one place that works out the rectangle edge pointers keep inside (window less HUD panels, minimap, spirit cue).
+- **Shader instance buffer:** every mesh using `style_toon.gdshader` reserves 16 vec4 of
+  `rendering/limits/global_shader_variables/buffer_size` (262144 in `project.godot`), hidden meshes included; a styled level
+  peaks near 4344 of 16384 meshes. `tests/shader_instances_test.gd` fails if twice the worst case exceeds capacity: check it
+  before adding many instance-uniform meshes. Keep the toon `tint` a packed float (a vec4 overflowed the buffer).
+- Tests run in the placeholder look; `tests/looks_test.gd` switches to styled on purpose and switches back. Headless uses a
+  dummy renderer, so shaders are not compiled by tests: the screenshot run is the shader check (grep its log for errors).
+- **Checkpoint renders:** `python tools/checkpoint_shots.py [--set round20|round24]` (needs a real window, 45-90 s, quits
+  itself; output in `design/renders/checkpoint_NN/`; look at the PNGs and write `NOTES.md` there). If it hangs, a script has a
+  parse error or the class cache is stale: run `python tools/run_tests.py --suites looks_checkpoint5_test` first, or run the scene with `--timeout 90` and read the output.
 
-## The recorder (round 18)
-`scripts/recorder.gd` writes one JSON object per line to `events.jsonl`; every line has `t` (play seconds), `night_phase`
-(`calm`, `rising`, `midnight`, `easing`), `night` (seconds since dusk) and `type`. Round 24 types: `wobble` (`id`, `pos`, `seconds`), `save` (`id`, `pos`), `first_light_start` (`rescued`, `dimmed`), `first_light_end` (`people_lifted`, `stages_lifted`, `rescued`); `analyse_recording.py` counts them in its WOBBLES and FIRST LIGHT lines. Round 19 types: `beacon_placed` (`pos`, `cost`, `spirit_after`), `zone_grow` (`tip`, `gain`, `angle`, `people`, `zone`), `zone_shrink` (`lost`, `people`, `zone`), `beacon_reached`, `landmark_claimed` / `landmark_lost` (`name`, `held`); reaching dawn is now a `win` (with `lights`, `people_share`, `ground_share`, `landmarks_held`), a fallen border a `loss`; there is no `dawn` type any more. Types: `session_start`, `sample`
-(every second), `sink` / `lift` (a stage change, with `from`, `to`, `id`, `pos`), `rescue`, `relapse`, `gap_open`,
-`gap_close` (`duration`), `grab`, `grab_avoided`, `umbrella_pop`, `guarded_glance`, `shelter_block`, `burst`,
-`target_change`, `player_dim`, `screenshot`, `win` / `loss` / `dawn`, `session_end`. Person ids are indexes into
-`TopDownMain.people`. **To add an event:** connect a signal in `Recorder.attach()` (or poll a field in `_poll_*`) and call
-`emit_event("name", {...})`; the shared fields are added for you. Keep it cheap: nothing per frame except one comparison.
-Add the event to `tools/analyse_recording.py` if it should count (`kind_of`, `THREAT_TYPES`). Tests: `recorder_test.gd`
-(session folders go to `user://rec_tests/...` through `Recorder.base_dir_override`) and `python tools/test_analyse_recording.py`.
-
-## Where tuning lives (`scripts/config.gd`, `scripts/config_base.gd`)
-
-Round 23: `Config` extends `ConfigBase`. Rounds 1-18 live in `config_base.gd`, rounds 19+ and all new blocks in `config.gd`. Section names below say "Round N"; search both files.
-**Round 19 (three blocks, all before `intro_override`):** "Round 19: beacon" (`BEACON_SPIRIT_COST` 30, `BEACON_PULL_SPEED` 0.8 x WORLD_SCALE, `BEACON_ARRIVE_RADIUS`, `BEACON_COLOUR`, the two refusal texts); "Round 19: landmarks" (`LANDMARK_NAMES` / `_POSITIONS` / `_SIZES` / `_COLOURS` / `_BOOST_TEXT`, `LANDMARK_START_REACH`, `LANDMARK_MUSIC_MULT`, `_NATURE_MULT`, `_BELL_LOSS_MULT`, `_BELL_RADIUS`; the claim hold is `BORDER_LANDMARK_HOLD`, now 3 s; `BORDER_LANDMARK_POS` and the dead-zone constants `BORDER_CENTRE_DEAD_*` are gone); "Round 19: dawn rating" (`DAWN_PEOPLE_LOW/HIGH`, `DAWN_GROUND_LOW`, `DAWN_LANDMARKS_LOW/HIGH`). Landmark positions are in the seeded-spawn exclusion (`_near_block`), so moving them changes where people spawn and their starting gloom: tests that rely on a particular person's gloom can shift.
-**Round 18 (border movement):** (`BORDER_CENTRE_DEAD_ZONE` / `_SPREAD` were removed in round 19: the centre is anchored, see `border_centre.gd`) `BORDER_RELAX_RATE` (bumps relax), `BORDER_ARRIVE_GAIN` (members ease into slots), `BORDER_POST_HOLD`, `BORDER_WALL_SLACK`, `BORDER_WRAP_TENT`, `BORDER_SLOT_HYSTERESIS` (no slot swaps on small changes), `BORDER_MIN_SEAL_RUN`. The "Round 18: border movement" block sits before the round 16 block. `Border` and `BorderSlots` read them.
-**Round 18 (umbrella readability):** `UMBRELLA_MIN_ALPHA` (0.85, placeholder; the styled floor is `STYLED_UMBRELLA_MIN_ALPHA`), `UMBRELLA_MIN_SCALE`, `PIP_*` (wear pips, one per shield hit), `SHELTER_TETHER_*` (thick umbrella-coloured tether), `SHELTER_CANOPY_*`, `SHELTER_POP_*` (pop burst), `REGROW_RING_*`. The "Round 18" block sits before the round 17 block. `FeedbackLayer` owns the pips (`pip_states()`, `umbrella_alpha()`), `pops` (fed by `Person.shield_popped`, once per pop) and `regrow_rings`. Tests: `shield_readability_test`.
-**Round 17 (guarded wedge, hover, arrivals):** `GUARDED_WEDGE_*` (radius, segments, colours: the wedge spans `GUARDED_ARC_DEG` either side of the facing, the same arc `is_open_to` uses), `GUARDED_TURN_SPEED` (0.45, moved here from round 12b), `HOVER_STICK_SECONDS` (0.2), `HOVER_DIRECT_RADIUS` (1.0), `DIM_ARRIVAL_MIN_GAP` (9 s, moved here from round 14). The "Round 17" block sits before the round 16 block. The wedge is built in the shared `PersonLook` base (like the glint: placeholder in both looks, registered with `Looks.note_placeholder` in the styled look): `guard_wedge`, `wedge_mat`, `wedge_open`, `_update_guard_wedge`.
-**Round 16 (edge):** `BORDER_MAP_LIMIT` (the loop is clamped to the map), `BORDER_SEAL_BAND`. The "Round 16" block sits before the round 15 block. `Border` seals the stretch along the map edge (`clamp_to_map`, `_sealed` weights, `is_sealed()`): it has no slots and is never a gap; slots are spaced along the OPEN length (`_open`, `_point_at_open`), the grid phase rides with the members (`_grid_phase`), and members keep their order round the loop (`_ordered_slots`). Tests: `border_edge_test`.
-**Round 15 (shield):** `SHELTER_LEAK` (0.25), `SHELTER_HITS` (4), `SHELTER_REGROW` (8.0 s), `SHELTER_POP_PUFF`, `SHELTER_WORN_ALPHA`. The "Round 15" block sits after the round 14 block.
-**Round 14 (balance):** `LEVEL_JOY_MULT` (dimmed 1.6), `DIM_ARRIVAL_MIN_GAP` (6 s), `DIM_RING_SECONDS`, `DIM_HELP_TEXT`,
-`TD_ZOOM_MIN` / `TD_ZOOM_MAX` / `TD_ZOOM_STEP` / `TD_ZOOM_EASE`. The camera reference size is `TD_CAMERA_ORTHO_SIZE`
-(19.5, the default zoom); `TD_CAMERA_LOOK_OFFSET` and `TD_UI_SCALE` are also at the default zoom and scale with it.
-Top: element enum, joy numbers, person look. `TD_*` block ("Territory game", ~line 69): plaza, people, gloom, drain, wander,
-camera, player, projectiles, blooms, ground, HUD, minimap. "Round 10: the floor" (~318): the floor-overlay priority
-inventory and cap. "Round 9: the living border" (~356): `BORDER_*`, landmark, night. "Round 10: easier growth" (~425):
-calm opening and friendlier numbers. The matchup table and helpers are at the bottom. Rule: no magic numbers in other scripts.
-**World scale (round 13a):** `Config.WORLD_SCALE` (100/70) scales TERRITORY constants (plaza, blocks, spawn, border spacing/gap/push/radii/bands, cover, erosion, paint and contagion radii, search reach); INTERACTION and BODY constants (sizes, projectile ranges and speeds, `TD_AUTO_RANGE`, `GRAB_*`, `SHELTER_RADIUS`, `SKITTISH_RADIUS`, hit radii, press and shove range) are not; per-metre rates are divided by it. New distances: decide which kind, and write `* WORLD_SCALE` in the const if territory. Test: `world_scale_test.gd`.
+## Tuning (`scripts/config.gd`, `scripts/config_base.gd`)
+- `Config extends ConfigBase`, so `Config.X` reaches everything. **New constants go in `config.gd` as a "Round N: <part>"
+  block just above the first helper function (`intro_on`).** A constant in `ConfigBase` cannot read one in `Config`.
+  Keep each file under the 1000-line lint cap. No magic numbers in other scripts.
+- Search both files for block names ("Territory game", "Round 9: the living border", "Round 19: beacon", "Checkpoint 6" ...).
+- **World scale:** `Config.WORLD_SCALE` (100/70) scales TERRITORY constants (plaza, blocks, spawn, border spacing/gap/radii,
+  cover, paint, search reach); INTERACTION and BODY constants (sizes, projectile ranges and speeds, `GRAB_*`, `SHELTER_RADIUS`,
+  hit radii) are not; per-metre rates are divided by it. New distances: decide which kind and write `* WORLD_SCALE` if territory. Test: `world_scale_test`.
+- Zoom: `TD_CAMERA_ORTHO_SIZE` is the default zoom; `TD_CAMERA_LOOK_OFFSET` and `TD_UI_SCALE` scale with it.
 
 ## Data flow per frame (`TopDownMain._process`)
-1. `_update_camera`, `_update_highlight`, `_update_readability` (minimap refresh about every 0.1 s, gap arrows) run even when ended.
+1. Camera, highlight, readability (minimap about every 0.1 s, arrows) run even when ended.
 2. If `running`: `night.update` -> HUD night bar and light.
-3. `border.update(people, delta, strength)`: members, gaps, push-back, building capture, loop polygon, ground region.
-4. `_update_people`: steer unrescued people (grabbers stand still; scared skittish people back away; dimmed people reach for a non-dim player; else pursue a rescued person (lowest protection, then the newest/outermost stretch, `Border.edge_pressure`; dimmed pursuers of a border member walk up to the line), edge-seek if dimmed, else wander). Then `Moods.update` (sheltering flags, guarded turn, skittish scare, glum look-ups).
-5. `_update_cover` (every `GROUND_UPDATE_INTERVAL`): `Person.cover` and `protection` from the border depth or the paint.
-6. `_update_dim` (border and ground `loss_mult`, dim recovery), `GloomSim.update` (drain x `border.loss_mult`): dim, spread, drain. `Grabs.update`. Then `Person.tick` for each person.
-7. `ground.update_paint` (paint spreads around rescued people, fades, erodes at the edge), `landmark.update`, HUD spirit and burst, `_check_end`.
-Player physics (`TopDownPlayer._physics_process`) and projectile physics run on the 60 Hz physics tick, separately.
+3. `border.update(...)`: members, gaps, patches, push-back, building capture, polygon, ground region.
+4. People steering (`CrowdMovement`), then `Moods.update`.
+5. `_update_cover` (every `GROUND_UPDATE_INTERVAL`), `_update_dim`, `GloomSim.update`, `Grabs.update`, `Person.tick`.
+6. `ground.update_paint`, landmarks, HUD spirit and burst, `_check_end`.
+Player and projectile physics run on the 60 Hz physics tick.
+
+## Recorder
+`scripts/recorder.gd` writes `events.jsonl` (one JSON object per line with `t`, `night_phase`, `night`, `type`) plus
+screenshots into `recordings/<stamp>/` (editor) or `user://recordings/<stamp>/`. Off unless the menu check box or `-- --record`
+asks. Person ids are indexes into `TopDownMain.people`. **To add an event:** connect a signal in `Recorder.attach()` (or poll
+in a `_poll_*`) and call `emit_event("name", {...})`; keep it cheap (nothing per frame but a comparison). Add it to
+`tools/analyse_recording.py` (`kind_of`, `THREAT_TYPES`) if it should count. Tests: `recorder_test` (folders in
+`user://rec_tests/` via `Recorder.base_dir_override`).
 
 ## Tests (`tests/*_test.gd`, gdUnit4 v6.2.2)
-- **Input-driven**: level tests use `TopDownTestUtil.level_runner(self)` (sets the 1280x720 window, loads `topdown.tscn`) and
-  drive real key and mouse events with `scene_runner` (`simulate_key_pressed`, `simulate_mouse_move`, `simulate_frames`).
-  Pure rules (border geometry, gloom, config) are called directly with no scene.
-- **The intro flag (round 13b):** `Config.intro_on()` is true in the game and false under automated tests (a test sets `Config.intro_override` to 1 or 0, and back to -1), so older scenario tests see no dormant moods, no held-back dimmed people and no prompts. `intro_test.gd` sets the override in `before_test` and clears it in `after_test` (set it BEFORE `level_runner`: the level reads it in `_ready`). With it off, `Intro.request()` never shows anything.
-- **Moods in tests:** every person gets a mood at spawn (`Moods.assign`); `place()` and `send_everyone_away()` reset it to none so older tests see plain people. Tests of moods set `p.mood` after placing.
+- **Input-driven:** level tests use `TopDownTestUtil.level_runner(self)` (1280x720, loads `topdown.tscn`) and real key and
+  mouse events via `scene_runner`. Pure rules are called directly with no scene.
+- **Intro flag:** `Config.intro_on()` is false under automated tests; a test sets `Config.intro_override` to 1 or 0 BEFORE
+  `level_runner` and back to -1 in `after_test`.
+- **Moods:** every person gets a mood at spawn; `place()` and `send_everyone_away()` reset it to none. Set `p.mood` after placing.
 - **Helpers** in `tests/topdown_test_util.gd`: `send_everyone_away`, `place`, `screen_of`, `projectiles`, `blooms`,
-  `select_mode` (real F2 presses), `clear_spot`, `leave_loaded_scene`. Suites must be independent: each builds its own scene
-  and never relies on another suite having run (they run in separate Godot processes).
-- **Determinism**: every run uses `--fixed-fps 60` and `Config.RNG_SEED`; there is no wall-clock in game logic. Never use
-  `simulate_frames(n, ms)` with a delay: it waits real timers.
-- **Test mode**: `POSITIVEFPS_TEST=1` or headless -> `Config.is_automated_test()` is true; the game never captures the real OS mouse.
-  The window title says it is a test. The level test util switches the minimap's automatic redraw off (8 ms per redraw);
-  `readability_test.gd` and the landmark test cover it.
-- **Speed**: `tools/run_tests.py` splits suites (and slow tests, listed in `tools/test_weights.json`) over parallel Godot
-  processes. Refresh the weights with `python tools/run_tests.py --update-weights` when tests change a lot.
+  `select_mode`, `clear_spot`, `open_dim_gate`, `leave_loaded_scene`. Suites must be independent (separate Godot processes).
+- **Determinism:** `--fixed-fps 60` and `Config.RNG_SEED`; no wall clock in game logic. Never `simulate_frames(n, ms)` with a delay.
+- **Test mode:** `POSITIVEFPS_TEST=1` or headless makes `Config.is_automated_test()` true; the real mouse is never captured.
+  The level test util turns the minimap's automatic redraw off (8 ms per redraw).
+- **Speed:** `tools/run_tests.py` splits suites and slow tests (`tools/test_weights.json`) over parallel Godot processes;
+  refresh with `--update-weights` when tests change a lot.
 
 ## Known gotchas
-- gdUnit delivers a key press **twice** to the root scene's `_unhandled_input`; handlers must tolerate it (`menu.gd` guards its Play action).
+- gdUnit delivers a key press **twice** to the root scene's `_unhandled_input`; handlers must tolerate it (`menu.gd` guards Play).
 - `Input.action_press()` does not reach `_unhandled_input`; tests send real `InputEvent`s through the scene runner.
 - `MultiMesh` colour readback is zero in headless mode: test `PaintedGround.paint_colour_at()` or weights, not pixels.
 - The nested `design/style_test` project has its own `project.godot`; Godot ignores it. `design/` is never committed by agents or gated.
 - Windows long paths: keep temp copies in short paths (coverage copies to `.coverage_build/`, excluding `design/`).
-- The console is cp1252: `tools/run_tests.py` and `gate.py` reconfigure stdout to UTF-8; keep non-ASCII out of `print` elsewhere.
+- The console is cp1252: `run_tests.py` and `gate.py` reconfigure stdout to UTF-8; keep non-ASCII out of `print` elsewhere.
 - The gdUnit CLI shrinks the window to 64x64; set `get_window().size` before loading a scene that lays out at `_ready`.
-- Hover targeting (round 17): a held target drops once the cursor has been off it (and not nearest to anyone) for 0.2 s. A
-  test that keeps a target over a wandering person must keep the pointer on them (re-hover every ~30 frames), or the target
-  clears or switches to whoever is nearest (possibly the dimmed person).
-- Wanderers move about a metre in a few seconds. Tests that need exact positions (a tie) call the rule directly with no frames.
-- The midnight gate (round 17: 9 s between sinks) also holds back a dimmed person a test places after an earlier sink: call `TopDownTestUtil.open_dim_gate(td)` first (shield and shelter tests do).
-- The midnight stagger (round 14) holds dimmed sinks to one per `DIM_ARRIVAL_MIN_GAP`. A test that places several dimmed people
-  at once calls `TopDownTestUtil.open_dim_gate(td)` between them; other people who would sink during a test are kept light.
-- A parse error in a test file makes gdUnit skip that suite quietly while its own summary still says all passed. `tools/run_tests.py` now catches this (`integrity_problems()`: it fails on `Parse Error` / `SCRIPT ERROR` / failed-to-load-script in any Godot output, and when a `tests/*_test.gd` suite reports no or fewer results than it declares); The final summary counts these as "broken or skipped" and lists each one last as `BROKEN <file>:<line>: <message>`. `tools/test_gate.py` and `tools/test_run_tests.py` prove it with broken scratch suites (the latter uses `tools/fixtures/warning_error_suite.gd`, which fails only under warnings-as-errors).
+- Hover: a held target drops once the cursor has been off it (and not nearest to anyone) for 0.2 s. A test that keeps a target over a wandering person must re-hover every ~30 frames.
+- Wanderers move about a metre in a few seconds; tests needing exact positions (a tie) call the rule directly with no frames.
+- The midnight stagger holds dimmed sinks to one per `DIM_ARRIVAL_MIN_GAP`. A test that places several dimmed people calls `TopDownTestUtil.open_dim_gate(td)` between them.
+- A parse error in a test file makes gdUnit skip that suite quietly while its summary says all passed. `run_tests.py` catches this (`integrity_problems()`; reported last as `BROKEN <file>:<line>: <message>`); proved by `test_gate.py` and `test_run_tests.py`.
 - Strict typing: warnings are errors (`project.godot`). Type every `for` variable; avoid iterating arrays that may hold freed nodes.
-- **Timing tests**: a test that asserts wall-clock time must be named `test_perf_*` and guard its time assert with
-  `if OS.get_environment("POSITIVEFPS_PERF_ENFORCE") == "1":`. `run_tests.py` then keeps it out of the parallel plain batch and runs
-  it alone, plain, afterwards (budget enforced); the instrumented coverage run still executes it (lines counted) but does not time it.
-  Set the budget to max of 5+ serial runs x 1.5 and record the runs next to the assert (example: `world_scale_test.gd`).
+- **Timing tests:** a test asserting wall-clock time must be named `test_perf_*` and guard its assert with
+  `if OS.get_environment("POSITIVEFPS_PERF_ENFORCE") == "1":`. `run_tests.py` runs it serially, plain, after the parallel batch.
+  Set the budget to max of 5+ serial runs x 1.5 and record the runs next to the assert (example: `world_scale_test.gd`). Never loosen a budget.
 - Coverage ignores lambda bodies passed as multi-line arguments; hoist them into a `var` to measure them.
+- Godot runs headless only; never open the editor GUI. Give every Godot run a hard timeout through `tools/godot_run.py`.
+- On a merge conflict in `SOURCE_MAP.md`, regenerate it rather than merge.
 
 ## Quality gate and tools
-- `python tools/gate.py` = lint + all tests (parallel, about 25 s). `--full` = lint + tests with line coverage + ratchet (about 35 s).
-  `--no-cache` ignores the result cache. The pre-commit hook runs `gate.py --hook`: the same, upgraded to `--full` when
-  `coverage_baseline.json` is staged. A passing result is cached by a sha256 of the working tree (`.git/positivefps-gate-cache.json`).
-- **Every round must end with `python tools/gate.py --full`, then `python tools/coverage.py --check-determinism`, then a baseline
-  commit** (`python tools/coverage.py --update-baseline`). The hook alone does not run the coverage ratchet.
-- Timing tests (`test_perf_*`, see Known gotchas) run serially and uninstrumented after the parallel batch: inside `run_tests.py`
-  for the default tier, and via `run_tests.py --perf-only` after the coverage run in `--full` (about 5 s; skips Godot `--import` when the
-  class cache is current). `gate.py`'s cache fingerprint already covers `tests/` and `tools/`, so it is unchanged.
-- **Parallel part opt-out:** with `POSITIVEFPS_PARALLEL_PART=1`, the plain tier (`run_tests.py`, the hook) skips the serial
-  timing pass and the `test_perf_*` tests, and prints "perf pass skipped (parallel part)". `gate.py --full` ignores the variable,
-  so the post-merge gate always enforces the budget. A cached pass made with the skip only answers requests that also skip it.
-- **Round 23 tools:** `python tools/round_end.py` is the one command for the round end (gate --full, determinism, baseline; stops at
-  the first failure; detached worker, state in `.scratch/round_end/`; re-run it while it says "still running", exit 124).
-  `python tools/coverage.py --check-files scripts/x.gd` is the quick per-file coverage check for part agents;
-  `run_tests.py --suites a_test b_test` runs chosen suites. `lint.py` warns from 950 lines per file.
-  `cleanup_worktrees.py` also removes orphan `.claude/worktrees/agent-*` folders (never a registered or locked worktree, or one a
-  process mentions). `analyse_recording.py` ends with a PRESSURE CURVE (15 s) and PATCH EFFECT section and skips recordings under
-  10 s unless `--include-restarts`. Self-checks: `test_round_end.py`, `test_determinism.py`, `test_coverage_files.py`,
-  `test_cleanup_worktrees.py`.
-- **`tools/source_map.py`**: writes `SOURCE_MAP.md` (sorted, no timestamps) from `scripts/**/*.gd` (public functions, signals, constant count, purpose line) plus a `tests/` section (suite, file, test count). `--check` exits 1 with "SOURCE_MAP.md is stale: run python tools/source_map.py" when it differs; the pre-commit hook runs it whenever a `.gd` file or the map is staged. Regenerate after any change to `.gd` files; on a merge conflict in the map, regenerate rather than merge. Self-check: `tools/test_source_map.py`.
-- Other tools: `lint.py [--fix]`, `coverage.py`, `cleanup_worktrees.py`, `install_hooks.py`. Timing history: `tools/BUILD_TIMINGS.md`.
-- **`tools/godot_run.py`** (round 22): the wrapper for any scripted run. `python tools/godot_run.py --timeout 120 [--log F] [--gui|--console] -- <cmd...>`
-  (or `from godot_run import run`). Hard timeout, output in a log (default `.scratch/godot_run/`); on a timeout it ends only the
-  process tree it started (`taskkill /T /F /PID` of its own child, never a search for Godot processes); it prints
-  `godot_run: exit=.. time=.. timed_out=.. log=..` (exit 124 = timed out). `checkpoint_shots.py` uses it. Agents give every Godot run a timeout this way.
-- **`tools/perf_compare.py A B [--rounds N]`**: alternates serial `run_tests.py --perf-only` runs of two commits (detached worktrees
-  under `.scratch/perf_compare/`, removed afterwards) or two folders; prints every reading, mean, min, max, spread and the difference per
-  timing test; warns about other Godot processes and CPU load (it reports them and never touches them). The readings are parsed from the
-  `--perf-only` output: `run_tests.py` echoes lines starting with `run_tests.PERF_READING_PREFIXES` (`WORLD_SCALE`, `MINIMAP`, `PERF`),
-  so a timing test that prints its reading as `PREFIX label: 1.234 ms` is picked up. `recorder_test`'s timing test prints nothing, so it only shows an exit code.
-- **Recording comparison**: `python tools/analyse_recording.py --compare A B [C ...]` puts recordings side by side (outcome, length, rescued, dawn lights,
-  quiet share, gaps by phase, relapses, spirit, beacons, landmarks); recordings under 10 s are restarts and are skipped (`--min-seconds`).
-- **Project skills** (`.claude/skills/<name>/SKILL.md`, committed; `.claude/worktrees/` is the only ignored part of `.claude/`): `launch-playtest`, `finish-round`, `brief-build-agent`.
-- Self-checks (not part of the gate; run by hand when you change the tool): `python tools/test_godot_run.py`, `test_perf_compare.py`,
-  `test_analyse_recording.py`, `test_run_tests.py`, `test_gate.py`.
-- Tool locations: `tools/godot_path.py` finds Godot (GODOT env, then PATH, then WinGet). Every tool uses it.
-
-## Agent workflow rules
-- Godot runs headless only; never open the editor GUI. Console exe path: `tools/godot_path.py` (`GODOT` env var overrides; used by every tool).
-- Commit with explicit paths (`git add <files>`), never `git add -A`; never stage `design/`; never `--no-verify` or amend; never push.
-- Never kill processes you did not start. Never lower `coverage_baseline.json`. Scratch work goes in `.scratch/` (gitignored); delete it.
-- Run long commands in the foreground (they take under a minute now). Finish a round with the full gate, not just the hook.
-
-## How to brief an agent (files to read first)
-- **Find code first:** search `SOURCE_MAP.md` (generated by `python tools/source_map.py`; every script's class, extends, signals, constant count and public functions with signature, line and comment), then Read only those lines. For project state read IDEAS.md's "Current state" section, not the whole file; history is in `IDEAS_RESOLVED.md`.
-- **Border / territory**: `scripts/border.gd`, `border_centre.gd`, `building.gd`, `landmark.gd`, `painted_ground.gd`; tests `border_*_test.gd`, `edge_pressure_test.gd`, `cover_test.gd`; config `BORDER_*`.
-- **Beacon / landmarks / dawn rating** (round 19): `border_centre.gd`, `beacon_marker.gd`, `landmark.gd`, `landmarks.gd`, `dawn_rating.gd`, `topdown_main.gd` (`try_place_beacon`, `_check_end`, `_detail_text`), `person.gd` (`joy_boost`, `loss_mult`), `recorder.gd` (`on_round_end`); tests `beacon_test`, `landmarks_test`, `dawn_rating_test`; config "Round 19".
-- **People / gloom / night**: `person.gd`, `gloom_sim.gd`, `night_cycle.gd`, `topdown_main.gd` (`_update_people`, `pursuit_assignments`); tests `person_test`, `gloom_sim_test`, `night_cycle_test`, `topdown_crowd_test`.
-- **Projectiles / blooms / floor effects**: `joy_projectile.gd`, `bloom.gd`, `floor_effects.gd`; tests `projectile_*_test.gd`, `floor_test`, `paint_bloom_camera_test`.
-- **Targeting / input**: `topdown_player.gd`, `controls.gd`; tests `targeting_test`, `topdown_mode_test`, `grace_cue_test`.
-- **Guarded wedge / hover switching / arrivals** (round 17): `person_look.gd` (`_build_guard_wedge`, `_update_guard_wedge`, `wedge_points`), `person.gd` (`shot_lands_now`, `shooter_pos`), `topdown_player.gd` (`_update_hover_target`, `_nearest_hover`), `moods.gd` (`_turn_away`); tests `guarded_wedge_test` (wedge rule, follow, highlight, turn), `hover_stick_test` (input-driven hover timing), `targeting_test`, `stagger_test`; config "Round 17".
-- **Moods / sheltering / local gaps / edge pressure / stage changes** (round 12b): `moods.gd`, `person.gd` (`receive_joy`, `_check_level`), `border.gd` (`_assign_members`, `_update_falter`, `edge_pressure`, `gap_flags`), `topdown_main.gd` (`_weakest_with_slot`, `_stop_distance`, `_may_loom`, `_on_stage_changed`), `looks/person_look.gd` (mood tells, `play_ripple`), `minimap.gd` (blips); tests `moods_test`, `local_gap_test`, `stage_change_test`; config "Round 12b".
-- **Spirit / dim / grabs** (round 12a): `topdown_player.gd`, `grabs.gd`, `topdown_main.gd` (`_update_dim`, `dim_recovery_rate`, `_reaches_for_player`), `border.gd` (`loss_mult`), `painted_ground.gd` (`loss_mult`); tests `spirit_test`, `grab_test`; config `SPIRIT_*`, `DIM_*`, `GRAB_*`.
-- **Looks / styled art**: `scripts/looks/*`, `shaders/*`, `topdown_main.gd` (`set_look`); tests `looks_test`; tool `checkpoint_shots.py`.
-- **Zoom / camera** (round 14): `topdown_main.gd` (`_update_camera`, `_view_centre`, `view_half_extents`, `_unhandled_input`
-  zoom branch); `controls.gd`; tests `zoom_test`, `world_scale_test`, `paint_bloom_camera_test` (ring fit at default).
-- **Sheltering / dimmed help / midnight stagger** (round 14): `moods.gd` (`_assign_wards`), `person.gd` (`shelter_ward`,
-  `joy_landed`, `dim_gate`, `_check_level`), `topdown_main.gd` (`_try_dim_sink`, `_on_joy_landed`), `feedback_layer.gd`
-  (`dim_rings`); tests `shelter_nearest_test`, `dimmed_help_test`, `stagger_test`.
-- **The shield** (round 15): `person.gd` (`receive_joy` sheltered branch = the hit hook, `wear_shield`, `shield_left_frac`),
-  `moods.gd` (`update` cooldown and undim reset, `_assign_wards`), `feedback_layer.gd` (`_update_icons` `wear`, `_draw_icon`);
-  tests `shield_test` (the rule and input-driven hover fire), `moods_test` / `feedback_test` / `intro_test` /
-  `shelter_nearest_test` (updated for the leak).
-- **Communication / introduction** (round 13b): `feedback_layer.gd`, `spirit_meter.gd`, `mood_icons.gd`, `intro.gd`, `prompt_bar.gd`, `topdown_main.gd` (`_build_feedback`, `_update_feedback`, `_unlock_moods`, `_hold_back_dimmed`, `_update_intro`), `border.gd` (`gap_urgencies`), `gap_arrows.gd`, `minimap.gd` (`gap_markers`), `person.gd` (`joy_blocked`, `mood_unlocked`); tests `feedback_test`, `intro_test`; config "Round 13b". The new overlays are screen-space UI (both looks); the style rounds need not restyle them unless asked.
-- **HUD / minimap / camera**: `hud.gd`, `minimap.gd`, `gap_arrows.gd`, `topdown_main.gd` (`_update_camera`, `view_half_extents`); tests `hud_test`, `readability_test`, `debug_overlay_test`, `menu_test`.
-- **Tooling**: `tools/gate.py`, `run_tests.py`, `godot_run.py`, `perf_compare.py`, `analyse_recording.py`, `coverage.py`, `lint.py`, `.githooks/pre-commit`, `tools/COVERAGE_TOOL_NOTES.md`.
-- **Tooling**: `tools/gate.py`, `run_tests.py`, `coverage.py`, `lint.py`, `.githooks/pre-commit`, `tools/COVERAGE_TOOL_NOTES.md`.
-- **Agent dashboard**: `python tools/agent_dashboard.py` (`--port`, `--session`) serves a read-only page on 127.0.0.1 showing subagents from the Claude transcripts (status, activity timeline, silent or stuck flags, worktree git state, Godot processes); self-check `tools/test_agent_dashboard.py`.
-- Always also read: this file, the config section you touch, and `tests/topdown_test_util.gd` before writing a level test.
+- `python tools/gate.py` = lint + all tests (parallel, about 25 s). `--full` = lint + tests with line coverage + ratchet
+  (about 35 s). `--no-cache` ignores the result cache (sha256 of the tree in `.git/positivefps-gate-cache.json`). The
+  pre-commit hook runs `gate.py --hook`: the same, upgraded to `--full` when `coverage_baseline.json` is staged.
+- **Every round ends with `python tools/gate.py --full`, then `python tools/coverage.py --check-determinism`, then the baseline
+  commit (`python tools/coverage.py --update-baseline`).** `python tools/round_end.py` runs all three (stops at the first
+  failure; detached worker, state in `.scratch/round_end/`; re-run while it says "still running", exit 124). The hook alone
+  does not run the ratchet. Never lower `coverage_baseline.json`.
+- `test_perf_*` tests run serially and uninstrumented after the parallel batch (in `run_tests.py`, and via `run_tests.py --perf-only` after the coverage run in `--full`).
+  With `POSITIVEFPS_PARALLEL_PART=1` the plain tier and the hook skip that pass; `gate.py --full` ignores the variable.
+- Part agents: `python tools/run_tests.py --suites a_test b_test` (chosen suites), `python tools/coverage.py --check-files scripts/x.gd` (per-file coverage), `python tools/lint.py [--fix]` (warns from 950 lines per file).
+- `python tools/source_map.py` writes `SOURCE_MAP.md` (`--check` exits 1 if stale; the hook runs it when a `.gd` file or the map is staged). Regenerate after any `.gd` change.
+- `python tools/godot_run.py --timeout 120 [--log F] [--gui|--console] -- <cmd...>`: wrapper for any scripted Godot run (hard timeout, log in `.scratch/godot_run/`, kills only its own child tree, exit 124 = timed out).
+- `python tools/perf_compare.py A B [--rounds N]`: alternating serial `--perf-only` runs of two commits or folders; prints per-test statistics.
+- `python tools/analyse_recording.py [--compare A B ...]`: analyse recordings (recordings under 10 s skipped unless `--include-restarts`).
+- `python tools/checkpoint_shots.py`: checkpoint renders (see Looks). `python tools/cleanup_worktrees.py`: removes stale worktrees and orphan `.claude/worktrees/agent-*` folders. `python tools/agent_dashboard.py [--port] [--session]`: read-only page of subagent status. `python tools/install_hooks.py`: installs the hook.
+- Details: each tool's `--help`, `tools/COVERAGE_TOOL_NOTES.md`, timing history `tools/BUILD_TIMINGS.md`. Godot is found by `tools/godot_path.py` (`GODOT` env, PATH, WinGet).
+- Self-checks (run by hand when you change a tool): `tools/test_godot_run.py`, `test_perf_compare.py`, `test_analyse_recording.py`, `test_run_tests.py`, `test_gate.py`, `test_round_end.py`, `test_determinism.py`, `test_coverage_files.py`, `test_cleanup_worktrees.py`, `test_source_map.py`, `test_agent_dashboard.py`.
+- Project skills (`.claude/skills/<name>/SKILL.md`, committed): `launch-playtest`, `finish-round`, `brief-build-agent`.
+- Finding code: search `SOURCE_MAP.md`; for project state read IDEAS.md "Current state" only.
