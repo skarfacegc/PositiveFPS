@@ -144,3 +144,48 @@ func test_people_keep_their_walk_and_run() -> void:
 		lean = maxf(lean, g.pitch)
 	assert_float(lean).is_less(0.12)
 	assert_float(g.run).is_greater(0.9)
+
+
+func test_a_styled_footfall_with_no_parent_raises_no_puff() -> void:
+	Looks.set_mode(Looks.Mode.STYLED)
+	var player: TopDownPlayer = auto_free(TopDownPlayer.new())
+	add_child(player)
+	var look := player.look as PlayerLookStyled
+	remove_child(player)
+	assert_object(player.get_parent()).is_null()
+	look._dust(0)
+	look._dust(1)
+	assert_int(look.puffs_started).is_equal(0)
+
+
+# --- The first-light motes -----------------------------------------------------------------------------------
+
+
+func _first_light(instance_count: int = -1) -> StyleFirstLight:
+	var holder: Node3D = auto_free(Node3D.new())
+	add_child(holder)
+	var fl := StyleFirstLight.new()
+	fl.build(holder)
+	if instance_count >= 0:
+		fl._multi.instance_count = instance_count
+	return fl
+
+
+func test_a_small_front_lays_motes_from_the_whole_circle() -> void:
+	var fl := _first_light()
+	# SPAN / 0.6 is well over PI, so every angle is used: motes appear on both sides of the focus.
+	fl.sync(0.6, Vector3(30.0, 0.0, 0.0), 0.0)
+	var pos := fl.mote_positions()
+	assert_int(pos.size()).is_greater(0)
+	var behind := false
+	for p: Vector3 in pos:
+		if p.x < 0.0:
+			behind = true
+	assert_bool(behind).is_true()
+
+
+func test_the_motes_stop_at_the_instance_count() -> void:
+	var fl := _first_light(3)
+	fl.sync(0.6, Vector3.ZERO, 0.0)
+	assert_int(fl.mote_count()).is_equal(3)
+	assert_int(fl.mote_positions().size()).is_equal(3)
