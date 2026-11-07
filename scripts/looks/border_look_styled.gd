@@ -1,41 +1,21 @@
 class_name BorderLookStyled
 extends BorderLook
 
-# The styled border: never a hard line. A faint amber haze band (dithered, see shaders/style_haze.gdshader) and golden
-# motes float between the members. In a gap the haze thins and turns coral, with coral motes and a soft coral glow on
-# the ground; all of those swell and glow with the gap pulse (the game's own pulse value, 1.2 s, eased). The geometry
-# is rebuilt every six frames; the pulse is applied every frame.
+# The styled border (round 25): one ribbon through the members, a solid core with a dithered halo (shaders/style_ribbon
+# .gdshader) and a few golden motes drifting over it. Gold when healthy, amber when strained, thin and coral near
+# breaking; a gap is a real break; a dimmed person pressing on the line bows it inward (see EdgeRibbon). The columns
+# and breach rings of checkpoint 5 are gone: EdgeMarkerFx marks the trouble spots. The geometry is rebuilt every
+# EDGE_RIBBON_REBUILD_FRAMES frames.
 
-const HAZE_SHADER := "res://shaders/style_haze.gdshader"
-const REBUILD_FRAMES := 6
-const HAZE_HALF_WIDTH := 0.9
-const HAZE_HEIGHT := 0.045
-const MOTE_STEP := 0.42
-const GAP_MOTE_STEP := 0.6
-const MAX_MOTES := 600
-const AMBER := Color("#e8963a")
-const CORAL := Color("#ff6a58")
-# Round 16: a stretch sealed by the map edge is a steadier, deeper honey band with a solid core line and only a few low
-# golden motes (see style_haze.gdshader); it is closed by the map, so it needs no people and never pulses.
-const HONEY := Color("#f0a93c")
-const SEAL_MOTE_STEP := 1.1
-const SEAL_MOTE_HEIGHT := 0.3
-const GAP_RING_RADIUS := 2.3
+const RIBBON_SHADER := "res://shaders/style_ribbon.gdshader"
+const RIBBON_Y := 0.06
+const MAX_MOTES := 400
+const MOTE_HEIGHT := 0.18
 
-var _haze: MeshInstance3D
-var _haze_mat: ShaderMaterial
+var _ribbon: MeshInstance3D
+var _ribbon_mat: ShaderMaterial
+var _mesh: ArrayMesh
 var _gold_motes: MultiMeshInstance3D
-var _gap_motes: MultiMeshInstance3D
-var _gap_mote_mat: ShaderMaterial
-var _gap_glow_mat: ShaderMaterial
-var _glows: Array[MeshInstance3D] = []
-# Checkpoint 5: the coral column and the breach ring over each open gap.
-var _gap_beams: Array[MeshInstance3D] = []
-var _gap_rings: Array[MeshInstance3D] = []
-var _gap_beam_mat: ShaderMaterial
-var _gap_points: PackedVector3Array = PackedVector3Array()
-# Per point of the loop: 1 where the stretch is sealed by the map edge (see _rebuild), else 0.
-var _seal_w: PackedFloat32Array = PackedFloat32Array()
 var _last_frame: int = -100000
 
 
@@ -44,199 +24,71 @@ func is_styled() -> bool:
 
 
 func refresh() -> void:
-	var pulse := subject.pulse()
-	_haze_mat.set_shader_parameter("gap_pulse", pulse)
-	_gap_mote_mat.set_shader_parameter("emit", 1.0 + 3.2 * pulse)
-	_gap_glow_mat.set_shader_parameter("strength", 0.12 + 0.6 * pulse)
-	var poly := subject.polygon
-	var live := subject.active and poly.size() >= 3
-	# Round 12a: a dim player makes the border flicker; the haze and motes drop out in the dark half of the flicker.
+	var live := subject.active and subject.polygon.size() >= 3
+	# Round 12a: a dim player makes the border flicker; the ribbon drops out in the dark half of the flicker.
 	var lit := subject.flicker() > 0.5 * (1.0 + Config.DIM_FLICKER_MIN)
-	_haze.visible = live and lit
+	_ribbon.visible = live and lit
 	_gold_motes.visible = live and lit
-	_gap_motes.visible = live
 	if not live:
-		for g: MeshInstance3D in _glows:
-			g.visible = false
-		for b: MeshInstance3D in _gap_beams:
-			b.visible = false
-		for r: MeshInstance3D in _gap_rings:
-			r.visible = false
+		strips = []
+		_last_frame = -100000
 		return
 	var now := Engine.get_process_frames()
-	if now - _last_frame >= REBUILD_FRAMES:
+	if now - _last_frame >= Config.EDGE_RIBBON_REBUILD_FRAMES:
 		_last_frame = now
-		_rebuild()
-	_swell(pulse)
+		_rebuild_strips()
+		_mesh.clear_surfaces()
+		var arrays := EdgeRibbon.mesh_arrays(strips, RIBBON_Y, 1.0, Config.EDGE_RIBBON_HALO)
+		if not arrays.is_empty():
+			_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		_place_motes()
 
 
 func _build() -> void:
-	_haze_mat = ShaderMaterial.new()
-	_haze_mat.shader = load(HAZE_SHADER)
-	_haze = MeshInstance3D.new()
-	_haze.material_override = _haze_mat
-	_haze.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(_haze)
-	_gap_beam_mat = StyleFight.beam_material(StyleFight.CORAL, StyleFight.CORAL_CORE, Config.CP5_GAP_BEAM_HEIGHT, 0.9)
-	_gap_mote_mat = StyleKit.unique_mat(StyleKit.hexc("#ff7a66"), 1.2)
-	_gap_glow_mat = StyleKit.glow_mat(Color(1.0, 0.42, 0.34), 0.12)
-	_gold_motes = _make_motes(StyleKit.mat(StyleKit.hexc("#ffe28a"), 0, 0.0, 1.2))
-	_gap_motes = _make_motes(_gap_mote_mat)
-
-
-func _make_motes(m: Material) -> MultiMeshInstance3D:
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.055
-	mesh.height = 0.11
-	mesh.radial_segments = 4
-	mesh.rings = 2
+	_ribbon_mat = ShaderMaterial.new()
+	_ribbon_mat.shader = load(RIBBON_SHADER)
+	_mesh = ArrayMesh.new()
+	_ribbon = MeshInstance3D.new()
+	_ribbon.mesh = _mesh
+	_ribbon.material_override = _ribbon_mat
+	_ribbon.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_ribbon)
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.055
+	sphere.height = 0.11
+	sphere.radial_segments = 4
+	sphere.rings = 2
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = mesh
+	mm.mesh = sphere
 	mm.instance_count = MAX_MOTES
 	mm.visible_instance_count = 0
-	var inst := MultiMeshInstance3D.new()
-	inst.multimesh = mm
-	inst.material_override = m
-	inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(inst)
-	return inst
+	_gold_motes = MultiMeshInstance3D.new()
+	_gold_motes.multimesh = mm
+	_gold_motes.material_override = StyleKit.mat(StyleKit.hexc("#ffe28a"), 0, 0.0, 1.2)
+	_gold_motes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_gold_motes)
 
 
-# Rebuilds the haze band, the motes and the ground glows from the loop and its gaps.
-func _rebuild() -> void:
-	var poly := subject.polygon
-	var n := poly.size()
-	# Per point: how much of a gap it is in (0 intact .. 1 gap), from the two segments that meet there.
-	var gap_w := PackedFloat32Array()
-	gap_w.resize(n)
-	for j: int in range(n):
-		var before := 1.0 if subject.segment_is_gap((j - 1 + n) % n) else 0.0
-		var after := 1.0 if subject.segment_is_gap(j) else 0.0
-		gap_w[j] = maxf(before, after)
-	# Round 16: per point, how much of it is sealed by the map edge (1 sealed), from the two segments that meet there.
-	var seal_w := PackedFloat32Array()
-	seal_w.resize(n)
-	for j: int in range(n):
-		var s_before := 1.0 if subject.is_sealed((j - 1 + n) % n) else 0.0
-		var s_after := 1.0 if subject.is_sealed(j) else 0.0
-		seal_w[j] = maxf(s_before, s_after)
-	_seal_w = seal_w
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var dist := 0.0
-	var left := PackedVector3Array()
-	var right := PackedVector3Array()
-	var dists := PackedFloat32Array()
-	for j: int in range(n):
-		var tangent := (poly[(j + 1) % n] - poly[(j - 1 + n) % n]).normalized()
-		var nrm := Vector2(-tangent.y, tangent.x) * HAZE_HALF_WIDTH
-		left.append(Vector3(poly[j].x - nrm.x, HAZE_HEIGHT, poly[j].y - nrm.y))
-		right.append(Vector3(poly[j].x + nrm.x, HAZE_HEIGHT, poly[j].y + nrm.y))
-		dists.append(dist)
-		dist += poly[j].distance_to(poly[(j + 1) % n])
-	for j: int in range(n):
-		var k := (j + 1) % n
-		var dk := dist if k == 0 else dists[k]
-		var tris: Array[Array] = [
-			[j, -1.0, dists[j]], [j, 1.0, dists[j]], [k, -1.0, dk], [k, -1.0, dk], [j, 1.0, dists[j]], [k, 1.0, dk]
-		]
-		for v: Array in tris:
-			var idx: int = v[0]
-			var side: float = v[1]
-			var d: float = v[2]
-			var w := gap_w[idx]
-			var sw := seal_w[idx]
-			var tint := AMBER.lerp(HONEY, sw).lerp(CORAL, w)
-			st.set_normal(Vector3.UP)
-			st.set_color(Color(tint.r, tint.g, tint.b, lerpf(1.0, 0.4, w)))
-			st.set_uv(Vector2(side, d))
-			st.set_uv2(Vector2(w, sw))
-			st.add_vertex(left[idx] if side < 0.0 else right[idx])
-	_haze.mesh = st.commit()
-	_rebuild_motes(poly, gap_w, dist)
-	_rebuild_glows()
-
-
-# Golden motes along the loop (denser), and coral motes over the gaps. Positions come from a hash of the mote number, so
-# they stay put between rebuilds.
-func _rebuild_motes(poly: PackedVector2Array, gap_w: PackedFloat32Array, total: float) -> void:
-	var gold := _gold_motes.multimesh
-	var coral := _gap_motes.multimesh
-	var n_gold := 0
-	var n_gap := 0
-	_gap_points = PackedVector3Array()
-	var cum := 0.0
-	var seg_i := 0
-	var s := 0.0
+# Golden motes over the healthy part of the ribbon (a hash of the point picks each one's offset, so they stay put
+# between rebuilds). Strained points get none: the ribbon's colour is the signal there.
+func _place_motes() -> void:
+	var mm := _gold_motes.multimesh
+	var count := 0
 	var k := 0
-	var n := poly.size()
-	while s < total and n_gold < MAX_MOTES and n_gap < MAX_MOTES:
-		while seg_i < n - 1 and cum + poly[seg_i].distance_to(poly[(seg_i + 1) % n]) < s:
-			cum += poly[seg_i].distance_to(poly[(seg_i + 1) % n])
-			seg_i += 1
-		var a := poly[seg_i]
-		var b := poly[(seg_i + 1) % n]
-		var f := clampf((s - cum) / maxf(a.distance_to(b), 0.0001), 0.0, 1.0)
-		var w := lerpf(gap_w[seg_i], gap_w[(seg_i + 1) % n], f)
-		var at := a.lerp(b, f)
-		var tangent := (b - a).normalized()
-		var nrm := Vector2(-tangent.y, tangent.x)
-		var h1 := _hash(k)
-		var h2 := _hash(k + 7919)
-		var pos2 := at + nrm * (h1 - 0.5) * 1.4
-		var pos := Vector3(pos2.x, 0.25 + h2 * 1.25, pos2.y)
-		if w > 0.55:
-			if _hash(k + 31) < 0.75:
-				_gap_points.append(pos)
-				n_gap += 1
-			s += GAP_MOTE_STEP
-		else:
-			var sealed := lerpf(_seal_w[seg_i], _seal_w[(seg_i + 1) % n], f) > 0.5
-			if sealed:
-				pos.y = SEAL_MOTE_HEIGHT * (0.5 + h2)
-			gold.set_instance_transform(n_gold, Transform3D(Basis(), pos))
-			n_gold += 1
-			s += SEAL_MOTE_STEP if sealed else MOTE_STEP
-		k += 1
-	gold.visible_instance_count = n_gold
-	coral.visible_instance_count = _gap_points.size()
-
-
-func _rebuild_glows() -> void:
-	var gaps := subject.gap_midpoints()
-	while _glows.size() < gaps.size():
-		_glows.append(StyleKit.glow_plane(self, _gap_glow_mat, 6.5, Vector3.ZERO))
-		# Checkpoint 5: a coral column and a dithered breach ring over each open gap, so it reads from across the plaza.
-		_gap_beams.append(StyleFight.beam_node(self, 0.7, Config.CP5_GAP_BEAM_HEIGHT, _gap_beam_mat))
-		var ring := StyleFight.ring_node(self, 0.6, CORAL, StyleFight.CORAL_CORE, 0.6)
-		ring.scale = Vector3(GAP_RING_RADIUS, 1.0, GAP_RING_RADIUS)
-		_gap_rings.append(ring)
-	for i: int in range(_glows.size()):
-		var on := i < gaps.size()
-		_glows[i].visible = on
-		_gap_beams[i].visible = on
-		_gap_rings[i].visible = on
-		if on:
-			_glows[i].position = Vector3(gaps[i].x, 0.055, gaps[i].z)
-			_gap_beams[i].position = Vector3(gaps[i].x, Config.CP5_GAP_BEAM_HEIGHT * 0.5, gaps[i].z)
-			_gap_rings[i].position = Vector3(gaps[i].x, 0.07, gaps[i].z)
-
-
-# The pulse: gap motes swell (0.8x to 2.1x), gap glows grow (0.8x to 1.25x).
-func _swell(pulse: float) -> void:
-	var coral := _gap_motes.multimesh
-	var scale_now := 0.8 + 1.3 * pulse
-	for i: int in range(_gap_points.size()):
-		coral.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * scale_now), _gap_points[i]))
-	var glow_scale := 0.8 + 0.45 * pulse
-	for g: MeshInstance3D in _glows:
-		g.scale = Vector3(glow_scale, 1.0, glow_scale)
-	_gap_beam_mat.set_shader_parameter("fade", 0.5 + 0.5 * pulse)
-	var ring_scale := GAP_RING_RADIUS * (0.85 + 0.3 * pulse)
-	for r: MeshInstance3D in _gap_rings:
-		r.scale = Vector3(ring_scale, 1.0, ring_scale)
-		StyleFight.set_ring(r, CORAL, 0.35 + 0.45 * pulse, 0.14)
+	for s: EdgeStrip in strips:
+		for i: int in range(s.size()):
+			k += 1
+			if count >= MAX_MOTES:
+				break
+			if s.strain[i] > 0.35 or _hash(k) < 0.45:
+				continue
+			var off := Vector2(_hash(k + 31) - 0.5, _hash(k + 57) - 0.5) * 0.9
+			var at := s.pts[i] + off
+			var lift := MOTE_HEIGHT + _hash(k + 7919) * 1.1
+			mm.set_instance_transform(count, Transform3D(Basis(), Vector3(at.x, lift, at.y)))
+			count += 1
+	mm.visible_instance_count = count
 
 
 static func _hash(k: int) -> float:

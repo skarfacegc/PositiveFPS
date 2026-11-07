@@ -148,13 +148,13 @@ extends RefCounted | 0 const | Round 22: the joy burst's job is to clear dimmed 
 - L41 `static run(people: Array[Person], at: Vector3, border: Border) -> Dictionary` - Uses the burst at `at`. Returns a report: {"cleared": Array of {"person", "from", "to"} (position before an...
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 291 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L513 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L521 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
-- L528 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L537 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L547 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L558 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 309 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L537 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L545 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
+- L552 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L561 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L571 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L582 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -175,6 +175,42 @@ extends RefCounted | 0 const | Round 19: the level is won by reaching dawn, and 
 - L37 `static lights_text(lights: int) -> String` - The lights drawn as text: "[*][*][ ]" for two.
 - L45 `static hint_for(lights: int) -> String` - What the next light needs, for the end screen ("" at three lights).
 - L61 `static detail_text(main: TopDownMain) -> String` - The lines on the end screen (moved from TopDownMain in round 21): the dawn lights (at dawn) with the reason...
+
+### scripts/edge_dim.gd (EdgeDim)
+extends RefCounted | 0 const | Round 25 (edge cleanup): dimmed people who are still outside the border are drawn at lower contrast, so the
+- L11 `static is_faded(border: Border, p: Person) -> bool` - True when `p` is a dimmed person outside an active border (the people who are faded).
+- L18 `static update(border: Border, people: Array[Person], delta: float) -> void` - Moves each person's fade toward its target over EDGE_OUT_FADE_SECONDS (`delta` is the time since the last u...
+- L29 `static faded(col: Color, fade: float) -> Color` - The body colour of a person at `fade`: `col` moved toward the ground tone by EDGE_OUT_FADE x fade.
+
+### scripts/edge_marker_fx.gd (EdgeMarkerFx)
+extends Node3D | 3 const | Round 25 (edge cleanup): draws the trouble markers (EdgeMarkers.pick) as ONE flat breathing ring per spot,...
+- L20 `sync(delta: float, markers: Array[EdgeMarkers.Marker]) -> void` - Shows `markers` (EdgeMarkers.pick, at most EDGE_MARKER_MAX) and advances the breathing by `delta`.
+- L37 `shown_count() -> int` - How many markers are showing.
+- L42 `is_styled_built() -> bool` - True when the pool holds the styled rings.
+- L47 `ring_at(i: int) -> MeshInstance3D` - The marker ring `i` (for tests and the checkpoint shots).
+
+### scripts/edge_markers.gd (EdgeMarkers)
+extends RefCounted | 0 const | Round 25 (edge cleanup): ONE marker per trouble spot on the border. The troubles are open gaps, wobbling pe...
+- L29 `static collect(border: Border, people: Array[Person], warnings: Array[Dictionary]) -> Array[Marker]` - The troubles right now: gaps (open at least EDGE_GAP_MIN_AGE), wobblers, strained members (the `warnings` of
+- L59 `static pick(troubles: Array[Marker]) -> Array[Marker]` - The markers to show from `troubles`: worst first (gap, wobble, strain, gift; then the more severe), a troub...
+- L79 `static choose(border: Border, people: Array[Person], warnings: Array[Dictionary]) -> Array[Marker]` - The markers for the level right now.
+- L84 `static radius_of(m: Marker) -> float` - How big a marker's ring is (m): by kind, a little more for every trouble merged into it.
+- L96 `static colour_of(m: Marker) -> Color`
+
+### scripts/edge_ribbon.gd (EdgeRibbon)
+extends RefCounted | 0 const | Round 25 (edge cleanup): the border drawn as ONE ribbon through its members, in the loop's order. The pure...
+- L29 `static strain_map(border: Border) -> Dictionary[Person, float]` - Strain per member (Person -> 0..1): the joy urgency, 1 while wobbling, raised by the warnings (a dimmed person
+- L53 `static pressers(border: Border, people: Array[Person]) -> PackedVector2Array` - The dimmed, unrescued people outside the loop close enough to press on it (their ground positions).
+- L69 `static build(border: Border, push: PackedVector2Array) -> Array[EdgeStrip]` - The ribbon's strips. `push` is the pressers() positions (may be empty).
+- L105 `static width_for(strain: float) -> float` - Width of a ribbon point: full when healthy, EDGE_RIBBON_THIN of it at full strain.
+- L111 `static colour_for(strain: float, seal: float = 0.0) -> Color` - Colour of a ribbon point: gold, amber from about half strain, coral at full; a sealed stretch tends to honey.
+- L123 `static mesh_arrays(strips: Array[EdgeStrip], y: float, alpha: float, halo: float = 1.0) -> Array` - Triangles for a set of strips as mesh arrays (Mesh.ARRAY_*), flat at height `y`, `alpha` on every colour. `...
+
+### scripts/edge_strip.gd (EdgeStrip)
+extends RefCounted | 0 const | Round 25: one unbroken run of the border ribbon (see EdgeRibbon). The arrays are parallel: one entry per po...
+- L17 `add(p: Vector2, strain_at: float, seal_at: float, fade_at: float) -> void`
+- L24 `size() -> int`
+- L29 `neighbours(i: int) -> Array[Vector2]` - The point before and after `i` (wrapping on a closed strip, clamped on an open one).
 
 ### scripts/embrace.gd (Embrace)
 extends Node | 0 const | Round 25 part S: embrace. A gloomy or dimmed person who is not yet rescued but stands INSIDE the border loo...
@@ -228,13 +264,13 @@ extends Control | 0 const | Off-screen gap arrows (round 10). For each gap whose
 ### scripts/gap_patch.gd (GapPatch)
 extends Node | 0 const | Round 22: the player's ways to fight back with spirit, wired in one place (TopDownMain only calls `attach`).
 signals: patched(pos: Vector3, cost: float, spirit_after: float), expired(pos: Vector3)
-- L35 `static attach(level: TopDownMain) -> GapPatch` - Builds the node under `level`, links the border and the player to it and returns it.
-- L103 `cue_text() -> String` - Round 23: the cue (round 24: on the HUD, just right of the spirit meter, glowing when ready), only when F o...
-- L163 `try_patch() -> bool` - F. Seals the gap or strained spot nearest the cursor. Returns true when a patch was made. Once per frame (t...
-- L188 `patch_at(at: Vector3, kind: String = "gap") -> void` - Seals the stretch round `at`, paying for it. (Public so a test can place one without a cursor.)
-- L215 `react_to_patch(at: Vector3) -> int` - Round 24: the border people at the patched spot react: they hop, turn toward it and glow, the nearest first...
-- L271 `is_patched(pos: Vector3) -> bool`
-- L282 `apply(b: Border) -> void` - Called by Border.update after the slots and gaps are worked out. Gap flags inside a patch are cleared (so t...
+- L38 `static attach(level: TopDownMain) -> GapPatch` - Builds the node under `level`, links the border and the player to it and returns it.
+- L119 `cue_text() -> String` - Round 23: the cue (round 24: on the HUD, just right of the spirit meter, glowing when ready), only when F o...
+- L179 `try_patch() -> bool` - F. Seals the gap or strained spot nearest the cursor. Returns true when a patch was made. Once per frame (t...
+- L204 `patch_at(at: Vector3, kind: String = "gap") -> void` - Seals the stretch round `at`, paying for it. (Public so a test can place one without a cursor.)
+- L231 `react_to_patch(at: Vector3) -> int` - Round 24: the border people at the patched spot react: they hop, turn toward it and glow, the nearest first...
+- L287 `is_patched(pos: Vector3) -> bool`
+- L298 `apply(b: Border) -> void` - Called by Border.update after the slots and gaps are worked out. Gap flags inside a patch are cleared (so t...
 
 ### scripts/gap_tracker.gd (GapTracker)
 extends RefCounted | 0 const | Round 13b: how long each open gap of the border has been open. The border hands over its gap flags and gap...
@@ -350,19 +386,19 @@ extends Node3D | 3 const | Round 19: the level's three landmarks and what they g
 - L82 `static near_any(pos: Vector3, radius: float) -> bool` - True when `pos` is within `radius` of any landmark.
 
 ### scripts/looks/border_look.gd (BorderLook)
-extends Node3D | 0 const | The look of the living border. The rules (border.gd) own the loop, the members and the gaps; this node reads
-- L11 `setup(border: Border) -> void`
-- L17 `is_styled() -> bool` - True for the styled look.
-- L22 `refresh() -> void` - Redraws from the border's current state. Called by the border every update.
+extends Node3D | 0 const | The look of the living border. The rules (border.gd) own the loop, the members and the gaps; this node read...
+- L15 `setup(border: Border) -> void`
+- L21 `is_styled() -> bool` - True for the styled look.
+- L26 `refresh() -> void` - Redraws from the border's current state. Called by the border every update.
 
 ### scripts/looks/border_look_placeholder.gd (BorderLookPlaceholder)
-extends BorderLook | 0 const | The placeholder border: intact stretches are gold lines. A gap is not drawn as a line: it glows, a coral ba...
-- L13 `refresh() -> void`
+extends BorderLook | 0 const | The placeholder border (round 25): one flat ribbon through the members. Gold when healthy, amber when strai...
+- L14 `refresh() -> void`
 
 ### scripts/looks/border_look_styled.gd (BorderLookStyled)
-extends BorderLook | 13 const | The styled border: never a hard line. A faint amber haze band (dithered, see shaders/style_haze.gdshader) a...
-- L42 `is_styled() -> bool`
-- L46 `refresh() -> void`
+extends BorderLook | 4 const | The styled border (round 25): one ribbon through the members, a solid core with a dithered halo (shaders/st...
+- L22 `is_styled() -> bool`
+- L26 `refresh() -> void`
 
 ### scripts/looks/building_look.gd (BuildingLook)
 extends Node3D | 0 const | The look of one block the border can beautify. The rules (building.gd) own the inside time, the tint, `beau...
@@ -520,16 +556,16 @@ extends Node3D | 3 const | The look of one Person. The rules (person.gd) own joy
 - L81 `setup(person: Person) -> void` - Builds the look for `person`.
 - L122 `is_styled() -> bool` - True for the styled look.
 - L127 `advance(delta: float) -> void` - Graphics checkpoint 4: follows the person's movement over `delta` seconds (called by Person.tick) and poses...
-- L224 `sync() -> void` - Reads the person's state and updates what is drawn. Called by the person every tick and on every change.
-- L275 `play_bounce() -> void` - A little bounce: up and down twice (a rescue).
-- L280 `play_slump(_scale_y: float, _duration: float) -> void` - Squashes the body vertically and springs it back. `duration` is the total time.
-- L285 `play_puff(color: Color, count: int) -> void` - A one-off burst of small coloured particles from the body centre.
-- L311 `show_number(value: float, mult: float) -> void` - Spawns a floating joy number above the person. Bigger, brighter and bouncier for better matches.
-- L380 `has_styled_aura() -> bool` - True when the look draws the dimmed-person aura itself (the styled look), so the placeholder haze stays hid...
-- L385 `has_aura() -> bool` - True when a dimmed person is showing a smoke or haze aura, in either look.
-- L504 `static wedge_points(radius: float, half_deg: float, segments: int) -> PackedVector3Array` - Round 17: the wedge's outline in the person's own frame (forward is -Z): the centre is the origin, then poi...
-- L513 `static wedge_mesh(radius: float, half_deg: float, segments: int) -> ArrayMesh` - Round 17: the flat fan mesh of the wedge (a triangle per arc step, from the centre).
-- L555 `play_ripple(color: Color) -> void` - Round 12b: a flat ring that spreads out from the feet and fades (the stage-change ripple). Placeholder in b...
+- L194 `sync() -> void` - Reads the person's state and updates what is drawn. Called by the person every tick and on every change.
+- L245 `play_bounce() -> void` - A little bounce: up and down twice (a rescue).
+- L250 `play_slump(_scale_y: float, _duration: float) -> void` - Squashes the body vertically and springs it back. `duration` is the total time.
+- L255 `play_puff(color: Color, count: int) -> void` - A one-off burst of small coloured particles from the body centre.
+- L281 `show_number(value: float, mult: float) -> void` - Spawns a floating joy number above the person. Bigger, brighter and bouncier for better matches.
+- L350 `has_styled_aura() -> bool` - True when the look draws the dimmed-person aura itself (the styled look), so the placeholder haze stays hid...
+- L355 `has_aura() -> bool` - True when a dimmed person is showing a smoke or haze aura, in either look.
+- L474 `static wedge_points(radius: float, half_deg: float, segments: int) -> PackedVector3Array` - Round 17: the wedge's outline in the person's own frame (forward is -Z): the centre is the origin, then poi...
+- L483 `static wedge_mesh(radius: float, half_deg: float, segments: int) -> ArrayMesh` - Round 17: the flat fan mesh of the wedge (a triangle per arc step, from the centre).
+- L525 `play_ripple(color: Color) -> void` - Round 12b: a flat ring that spreads out from the feet and fades (the stage-change ripple). Placeholder in b...
 
 ### scripts/looks/person_look_placeholder.gd (PersonLookPlaceholder)
 extends PersonLook | 0 const | The placeholder person: a capsule whose colour shows how grey they are, a coloured marker above the head fo...
@@ -538,12 +574,12 @@ extends PersonLook | 0 const | The placeholder person: a capsule whose colour sh
 
 ### scripts/looks/person_look_styled.gd (PersonLookStyled)
 extends PersonLook | 1 const | The styled person (see StylePeople): a stiff grey body, a relaxed joyful body or a hunched dimmed body, whi...
-- L31 `is_styled() -> bool`
-- L37 `shown_kind() -> int` - The body that is showing: the one for `kind`, or the grey one while a warning flickers to it. A wobble does
-- L43 `play_bounce() -> void`
-- L53 `play_slump(scale_y: float, duration: float) -> void`
-- L67 `has_styled_aura() -> bool` - The dimmed person's smoke pool and soot are part of the dimmed body (see StylePeople.build_dimmed).
-- L148 `play_ripple(color: Color) -> void` - The stage ripple: a thin dithered ring that spreads out from the feet and thins away.
+- L30 `is_styled() -> bool`
+- L36 `shown_kind() -> int` - The body that is showing: the one for `kind`, or the grey one while a warning flickers to it. A wobble does
+- L42 `play_bounce() -> void`
+- L52 `play_slump(scale_y: float, duration: float) -> void`
+- L66 `has_styled_aura() -> bool` - The dimmed person's smoke pool and soot are part of the dimmed body (see StylePeople.build_dimmed).
+- L147 `play_ripple(color: Color) -> void` - The stage ripple: a thin dithered ring that spreads out from the feet and thins away.
 
 ### scripts/looks/player_look.gd (PlayerLook)
 extends Node3D | 2 const | The look of the player. The rules (topdown_player.gd) own movement, aiming, targeting and firing; this node...
@@ -614,14 +650,11 @@ extends RefCounted | 0 const | Graphics checkpoint 2: the styled drawing of the 
 - L22 `static draw_over(layer: FeedbackLayer) -> void`
 
 ### scripts/looks/style_fight.gd (StyleFight)
-extends RefCounted | 9 const | Graphics checkpoint 5: the styled pieces that read the fight (PatchFx builds and drives them in the styled
-- L24 `static beam_material(col: Color, core: Color, height: float, density: float) -> ShaderMaterial` - A column material (see style_beam.gdshader). Its own copy: the caller changes `fade` as the effect dies away.
-- L37 `static beam_mesh(radius: float, height: float) -> CylinderMesh` - An open cylinder `radius` wide and `height` tall (no caps), centred on its middle.
-- L50 `static beam_node(parent: Node, radius: float, height: float, mat: ShaderMaterial) -> MeshInstance3D` - A column standing on the ground at the node's origin: the mesh is lifted so its foot is at y = 0.
-- L62 `static ring_node(parent: Node, inner: float, fill: Color, rim: Color, density: float) -> MeshInstance3D` - A flat ring (or disc, `inner` 0) of radius 1 on the ground; scale it to the real radius. Its own material.
-- L73 `static set_ring(m: MeshInstance3D, fill: Color, density: float, rim_width: float, fade: float = 1.0) -> void` - Sets a ring node's colours, density, rim thickness (as a share of its radius) and fade.
-- L83 `static tint(mesh: GeometryInstance3D, id: int, amount: float, glow: float = 0.0) -> void` - Tints a toon-shaded mesh toward `col` by `amount` (0 clears it), and lights it by `glow` (see style_toon.gd...
-- L90 `static meshes_under(root: Node, skip: Node = null) -> Array[MeshInstance3D]` - Every MeshInstance3D under `root` that is not under `skip` (a null skip skips nothing).
+extends RefCounted | 5 const | Graphics checkpoint 5: the styled pieces that read the fight (PatchFx and EdgeMarkerFx build and drive them...
+- L18 `static ring_node(parent: Node, inner: float, fill: Color, rim: Color, density: float) -> MeshInstance3D` - A flat ring (or disc, `inner` 0) of radius 1 on the ground; scale it to the real radius. Its own material.
+- L29 `static set_ring(m: MeshInstance3D, fill: Color, density: float, rim_width: float, fade: float = 1.0) -> void` - Sets a ring node's colours, density, rim thickness (as a share of its radius) and fade.
+- L39 `static tint(mesh: GeometryInstance3D, id: int, amount: float, glow: float = 0.0) -> void` - Tints a toon-shaded mesh toward `col` by `amount` (0 clears it), and lights it by `glow` (see style_toon.gd...
+- L46 `static meshes_under(root: Node, skip: Node = null) -> Array[MeshInstance3D]` - Every MeshInstance3D under `root` that is not under `skip` (a null skip skips nothing).
 
 ### scripts/looks/style_first_light.gd (StyleFirstLight)
 extends RefCounted | 3 const | Graphics checkpoint 5: first light in the locked style. FirstLight (the rules and the placeholder ring)
@@ -798,20 +831,17 @@ extends Node3D | 0 const | Painted ground: a square grid of flat tiles (1 m each
 - L145 `nearest_edge_point(from: Vector3) -> Vector3` - The edge tile centre nearest to `from` (ground distance). Returns `from` itself when there is no edge.
 
 ### scripts/patch_fx.gd (PatchFx)
-extends Node3D | 3 const | Round 22: the world marks for the spirit actions, drawn from GapPatch's state.
-- L42 `sync(delta: float, warnings: Array[Dictionary], patches: Array[Dictionary]) -> void` - Shows the warnings (Array of {"pos", "urgency"}) and patches (Array of {"pos", "left"}); advances the burst...
-- L53 `is_styled_built() -> bool` - True when the pools hold the styled pieces.
-- L58 `add_burst(cleared: Array) -> void` - A burst happened: remember each clearing so the streaks can fade out.
+extends Node3D | 1 const | Round 22: the world marks for the spirit actions, drawn from GapPatch's state.
+- L36 `sync(delta: float, patches: Array[Dictionary]) -> void` - Shows the patches (Array of {"pos", "left"}); advances the burst and result marks.
+- L46 `is_styled_built() -> bool` - True when the pools hold the styled pieces.
+- L52 `add_burst(cleared: Array) -> void` - A burst happened: remember each clearing so the streaks can fade out. Streaks of an earlier burst that ende...
 - L64 `add_patch_result(at: Vector3, held: int) -> void` - Round 23: a patch was made at `at`: a pulse opens over the sealed stretch and a small count rises ("Held: 3").
-- L80 `add_lift_result(cleared: Array) -> void` - Round 23: a halo on each person the burst lifted, and one small count where they now stand.
-- L101 `result_text_count() -> int`
-- L105 `halo_count() -> int`
-- L109 `pulse_count() -> int`
-- L113 `warning_ring_count() -> int`
-- L117 `warning_ping_count() -> int`
-- L121 `patch_disc_count() -> int`
-- L125 `patch_post_count() -> int`
-- L129 `streak_count() -> int`
+- L83 `add_lift_result(cleared: Array) -> void` - Round 23: a halo on each person the burst lifted, and one small count where they now stand. Round 25: earli...
+- L111 `result_text_count() -> int`
+- L115 `halo_count() -> int`
+- L119 `pulse_count() -> int`
+- L123 `patch_disc_count() -> int`
+- L127 `streak_count() -> int`
 
 ### scripts/person.gd (Person)
 extends StaticBody3D | 0 const | Round 24: a drained rescued person began to wobble (`seconds` to be saved first), and a joy hit saved one.
@@ -954,6 +984,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - defence_cues_test (tests/defence_cues_test.gd): 5 tests
 - dimmed_help_test (tests/dimmed_help_test.gd): 4 tests
 - dimmed_waves_test (tests/dimmed_waves_test.gd): 18 tests
+- edge_cleanup_test (tests/edge_cleanup_test.gd): 16 tests
 - edge_pressure_test (tests/edge_pressure_test.gd): 11 tests
 - embrace_test (tests/embrace_test.gd): 15 tests
 - feedback_test (tests/feedback_test.gd): 16 tests

@@ -2,24 +2,20 @@ class_name PatchFx
 extends Node3D
 
 # Round 22: the world marks for the spirit actions, drawn from GapPatch's state.
-#  - Warning rings at the feet of strained border members (amber, growing and reddening with urgency, pulsing faster).
-#  - Patches: a teal disc and ring over the sealed stretch; the ring blinks when the patch is about to run out.
-#  - Burst: a streak from where each dimmed person stood to where the burst put them, and a warm ring that opens.
-# Meshes are pooled and only touched when shown, so a calm border costs nothing per frame.
-# Graphics checkpoint 5: the styled look draws the same marks with flat dithered rings and open light columns
-# (StyleFight): a strain ring is a thick amber-to-red band that pings outward when it is urgent; a patch is a
-# dithered ward with a ring and a circle of light posts that flicker when it is about to run out; a lifted person
-# gets a gold ring and a column of light. The pools are rebuilt when the look changes (sync notices it).
+#  - Patches: a teal ward (a disc and a ring) over the sealed stretch; after EDGE_PATCH_SHOW_SECONDS only the thin
+#    ring stays, and it blinks when the patch is about to run out.
+#  - Burst: a streak from where each dimmed person stood to where the burst put them, a ring on each person lifted.
+# Round 25 (edge cleanup): the strain rings and pings, the patch posts and the lift columns are gone (EdgeRibbon
+# colours the border by strain and EdgeMarkerFx marks the trouble spots). Every result mark is short, and a new one
+# replaces an earlier one at the same spot (within EDGE_FX_MERGE) instead of stacking on it. Meshes are pooled and
+# only touched when shown.
+# Graphics checkpoint 5: the styled look draws the same marks with flat dithered rings (StyleFight). The pools are
+# rebuilt when the look changes (sync notices it).
 
-const WARN_OUTER := 0.9
-const WARN_Y := 0.09
 const GOLD_PLANE_Y := 0.12
 
-var _warn: Array[MeshInstance3D] = []
-var _warn_ping: Array[MeshInstance3D] = []
 var _patch_discs: Array[MeshInstance3D] = []
 var _patch_rings: Array[MeshInstance3D] = []
-var _patch_posts: Array[MeshInstance3D] = []
 var _streaks: Array[MeshInstance3D] = []
 var _bursts: Array[Dictionary] = []  # {"from", "to", "left"}
 var _time: float = 0.0
@@ -29,21 +25,18 @@ var _texts: Array[Dictionary] = []
 var _text_nodes: Array[Label3D] = []
 var _halos: Array[Dictionary] = []
 var _halo_nodes: Array[MeshInstance3D] = []
-var _halo_beams: Array[MeshInstance3D] = []
 var _pulses: Array[Dictionary] = []
 var _pulse_nodes: Array[MeshInstance3D] = []
 # Which look the pools were built for.
 var _built_styled: bool = false
-var _post_mat: ShaderMaterial
 var _streak_mat: ShaderMaterial
 
 
-# Shows the warnings (Array of {"pos", "urgency"}) and patches (Array of {"pos", "left"}); advances the burst marks.
-func sync(delta: float, warnings: Array[Dictionary], patches: Array[Dictionary]) -> void:
+# Shows the patches (Array of {"pos", "left"}); advances the burst and result marks.
+func sync(delta: float, patches: Array[Dictionary]) -> void:
 	_time += delta
 	if Looks.is_styled() != _built_styled:
 		_rebuild_pools()
-	_sync_warnings(warnings)
 	_sync_patches(patches)
 	_sync_bursts(delta)
 	_sync_results(delta)
@@ -54,14 +47,23 @@ func is_styled_built() -> bool:
 	return _built_styled
 
 
-# A burst happened: remember each clearing so the streaks can fade out.
+# A burst happened: remember each clearing so the streaks can fade out. Streaks of an earlier burst that ended where
+# these do are replaced.
 func add_burst(cleared: Array) -> void:
+	var spots: Array[Vector3] = []
+	for c: Dictionary in cleared:
+		var to: Vector3 = c["to"]
+		spots.append(to)
+	_replace_near(_bursts, spots, "to")
 	for c: Dictionary in cleared:
 		_bursts.append({"from": c["from"], "to": c["to"], "left": Config.BURST_FX_SECONDS})
 
 
 # Round 23: a patch was made at `at`: a pulse opens over the sealed stretch and a small count rises ("Held: 3").
+# Round 25: it replaces an earlier pulse and count at the same spot.
 func add_patch_result(at: Vector3, held: int) -> void:
+	_replace_near(_pulses, [at], "pos")
+	_replace_near(_texts, [at], "pos")
 	_pulses.append({"pos": at, "left": Config.FX_PATCH_PULSE_SECONDS})
 	(
 		_texts
@@ -76,20 +78,28 @@ func add_patch_result(at: Vector3, held: int) -> void:
 	)
 
 
-# Round 23: a halo on each person the burst lifted, and one small count where they now stand.
+# Round 23: a halo on each person the burst lifted, and one small count where they now stand. Round 25: earlier halos
+# and counts where these stand are replaced.
 func add_lift_result(cleared: Array) -> void:
 	if cleared.is_empty():
 		return
+	var spots: Array[Vector3] = []
 	var sum := Vector3.ZERO
 	for c: Dictionary in cleared:
 		var to: Vector3 = c["to"]
-		_halos.append({"pos": to, "left": Config.FX_HALO_SECONDS})
+		spots.append(to)
 		sum += to
+	var middle := sum / float(cleared.size())
+	spots.append(middle)
+	_replace_near(_halos, spots, "pos")
+	_replace_near(_texts, [middle], "pos")
+	for c: Dictionary in cleared:
+		_halos.append({"pos": c["to"], "left": Config.FX_HALO_SECONDS})
 	(
 		_texts
 		. append(
 			{
-				"pos": sum / float(cleared.size()),
+				"pos": middle,
 				"text": Config.FX_LIFT_TEXT % cleared.size(),
 				"left": Config.FX_TEXT_SECONDS,
 				"colour": Config.BURST_FX_COLOUR,
@@ -110,24 +120,22 @@ func pulse_count() -> int:
 	return _pulses.size()
 
 
-func warning_ring_count() -> int:
-	return _visible_count(_warn)
-
-
-func warning_ping_count() -> int:
-	return _visible_count(_warn_ping)
-
-
 func patch_disc_count() -> int:
 	return _visible_count(_patch_discs)
 
 
-func patch_post_count() -> int:
-	return _visible_count(_patch_posts)
-
-
 func streak_count() -> int:
 	return _visible_count(_streaks)
+
+
+# Drops every entry of `list` whose `key` position is within EDGE_FX_MERGE of any of `spots` (ground distance).
+func _replace_near(list: Array[Dictionary], spots: Array, key: String) -> void:
+	for i: int in range(list.size() - 1, -1, -1):
+		var at: Vector3 = list[i][key]
+		for spot: Vector3 in spots:
+			if Vector2(at.x - spot.x, at.z - spot.z).length() <= Config.EDGE_FX_MERGE:
+				list.remove_at(i)
+				break
 
 
 func _visible_count(list: Array[MeshInstance3D]) -> int:
@@ -141,76 +149,11 @@ func _visible_count(list: Array[MeshInstance3D]) -> int:
 # The look changed: free every pooled piece (the data lists stay) and build the next ones in the new look.
 func _rebuild_pools() -> void:
 	_built_styled = Looks.is_styled()
-	for list: Array in [
-		_warn,
-		_warn_ping,
-		_patch_discs,
-		_patch_rings,
-		_patch_posts,
-		_streaks,
-		_text_nodes,
-		_halo_nodes,
-		_halo_beams,
-		_pulse_nodes
-	]:
+	for list: Array in [_patch_discs, _patch_rings, _streaks, _text_nodes, _halo_nodes, _pulse_nodes]:
 		for n: Node in list:
 			n.queue_free()
 		list.clear()
-	_post_mat = null
 	_streak_mat = null
-
-
-func _sync_warnings(warnings: Array[Dictionary]) -> void:
-	while _warn.size() < warnings.size():
-		if _built_styled:
-			_warn.append(_styled_ring(Config.CP5_WARN_RING_INNER, WARN_Y))
-		else:
-			_warn.append(_make_ring(0.62, 0.8))
-	for i: int in range(_warn.size()):
-		var ring := _warn[i]
-		ring.visible = i < warnings.size()
-		if not ring.visible:
-			continue
-		var u: float = warnings[i]["urgency"]
-		var at: Vector3 = warnings[i]["pos"]
-		var pulse := 0.5 + 0.5 * sin(_time * (4.0 + 8.0 * u))
-		var s := 1.0 + 0.9 * u + 0.25 * pulse * (0.4 + u)
-		var col := BorderWarning.colour_for(u)
-		col.a = 0.55 + 0.4 * u
-		if _built_styled:
-			# A wobbling member already has the wobble's own closing ring (PersonLookStyled); two would be noise.
-			var who: Person = warnings[i].get("person")
-			if who != null and who.wobbling:
-				ring.visible = false
-				if i < _warn_ping.size():
-					_warn_ping[i].visible = false
-				continue
-			ring.position = Vector3(at.x, WARN_Y, at.z)
-			ring.scale = Vector3(WARN_OUTER * s, 1.0, WARN_OUTER * s)
-			StyleFight.set_ring(ring, col, 0.32 + 0.5 * u + 0.15 * pulse, 0.17)
-			_sync_ping(i, at, u, col)
-			continue
-		ring.position = Vector3(at.x, 0.08, at.z)
-		ring.scale = Vector3(s, 1.0, s)
-		_set_colour(ring, col)
-	if _built_styled:
-		for i: int in range(warnings.size(), _warn_ping.size()):
-			_warn_ping[i].visible = false
-
-
-# An urgent strain ring sends a thin ring outward and thinning, so it reads even when the band itself is small.
-func _sync_ping(i: int, at: Vector3, u: float, col: Color) -> void:
-	while _warn_ping.size() <= i:
-		_warn_ping.append(_styled_ring(0.86, WARN_Y - 0.01))
-	var ping := _warn_ping[i]
-	ping.visible = u >= Config.CP5_WARN_PING_URGENCY
-	if not ping.visible:
-		return
-	var phase := fposmod(_time * (0.7 + 1.1 * u) + float(i) * 0.37, 1.0)
-	var radius := WARN_OUTER * (1.5 + 1.7 * phase)
-	ping.position = Vector3(at.x, WARN_Y - 0.01, at.z)
-	ping.scale = Vector3(radius, 1.0, radius)
-	StyleFight.set_ring(ping, col, 0.8, 0.09, 1.0 - phase)
 
 
 func _sync_patches(patches: Array[Dictionary]) -> void:
@@ -221,8 +164,6 @@ func _sync_patches(patches: Array[Dictionary]) -> void:
 		else:
 			_patch_discs.append(_make_disc(Config.PATCH_RADIUS))
 			_patch_rings.append(_make_ring(Config.PATCH_RADIUS - 0.18, Config.PATCH_RADIUS))
-	if _built_styled:
-		_sync_posts(patches)
 	for i: int in range(_patch_discs.size()):
 		var show := i < patches.size()
 		_patch_discs[i].visible = show
@@ -234,6 +175,8 @@ func _sync_patches(patches: Array[Dictionary]) -> void:
 		var blink := 1.0
 		if left < 3.0:
 			blink = 0.4 + 0.6 * (0.5 + 0.5 * sin(_time * 14.0))
+		# Round 25: the disc is only for the first moments; the ring alone says "patched" afterwards.
+		_patch_discs[i].visible = Config.PATCH_SECONDS - left < Config.EDGE_PATCH_SHOW_SECONDS
 		var col := Config.PATCH_COLOUR
 		if _built_styled:
 			var r := Config.PATCH_RADIUS
@@ -248,28 +191,6 @@ func _sync_patches(patches: Array[Dictionary]) -> void:
 		_patch_rings[i].position = Vector3(at.x, 0.1, at.z)
 		_set_colour(_patch_discs[i], Color(col.r, col.g, col.b, 0.14 * blink))
 		_set_colour(_patch_rings[i], Color(col.r, col.g, col.b, 0.9 * blink))
-
-
-# The circle of light posts round each patch (styled look only). They turn slowly and flicker when the patch runs out.
-func _sync_posts(patches: Array[Dictionary]) -> void:
-	var per := Config.CP5_PATCH_POSTS
-	if _post_mat == null:
-		_post_mat = StyleFight.beam_material(StyleFight.WARD, StyleFight.WARD_CORE, Config.CP5_PATCH_POST_HEIGHT, 0.95)
-	while _patch_posts.size() < patches.size() * per:
-		_patch_posts.append(StyleFight.beam_node(self, 0.17, Config.CP5_PATCH_POST_HEIGHT, _post_mat))
-	for i: int in range(_patch_posts.size()):
-		var patch_i := i / per
-		var post := _patch_posts[i]
-		post.visible = patch_i < patches.size()
-		if not post.visible:
-			continue
-		var at: Vector3 = patches[patch_i]["pos"]
-		var left: float = patches[patch_i]["left"]
-		var ang := TAU * float(i % per) / float(per) + _time * 0.2
-		var r := Config.PATCH_RADIUS * 0.97
-		post.position = Vector3(at.x + cos(ang) * r, Config.CP5_PATCH_POST_HEIGHT * 0.5, at.z + sin(ang) * r)
-		if left < 3.0:
-			post.visible = int(_time * 7.0 + float(i)) % 2 == 0
 
 
 func _sync_bursts(delta: float) -> void:
@@ -347,20 +268,16 @@ func _sync_results(delta: float) -> void:
 		_set_colour(m2, Color(col3.r, col3.g, col3.b, 0.9 * frac3))
 
 
-# The halo on each person a burst lifted (a ring, and in the styled look a column of light that thins as it fades).
+# The halo on each person a burst lifted: a flat ring that opens and fades (round 25: no column of light any more).
 func _sync_halos() -> void:
 	while _halo_nodes.size() < _halos.size():
 		if _built_styled:
 			_halo_nodes.append(_styled_ring(0.6, GOLD_PLANE_Y))
-			var mat := StyleFight.beam_material(StyleFight.GOLD, StyleFight.GOLD_RIM, Config.CP5_LIFT_BEAM_HEIGHT, 0.95)
-			_halo_beams.append(StyleFight.beam_node(self, 0.5, Config.CP5_LIFT_BEAM_HEIGHT, mat))
 		else:
 			_halo_nodes.append(_make_ring(0.7, 0.85))
 	for i: int in range(_halo_nodes.size()):
 		var m := _halo_nodes[i]
 		m.visible = i < _halos.size()
-		if _built_styled:
-			_halo_beams[i].visible = m.visible
 		if not m.visible:
 			continue
 		var left2: float = _halos[i]["left"]
@@ -372,9 +289,6 @@ func _sync_halos() -> void:
 			var grow := 1.0 + 0.6 * (1.0 - frac2)
 			m.scale = Vector3(1.1 * grow, 1.0, 1.1 * grow)
 			StyleFight.set_ring(m, StyleFight.GOLD, 0.85, 0.12, minf(1.0, frac2 * 1.5))
-			var beam := _halo_beams[i]
-			beam.position = Vector3(at2.x, Config.CP5_LIFT_BEAM_HEIGHT * 0.5, at2.z)
-			(beam.material_override as ShaderMaterial).set_shader_parameter("fade", minf(1.0, frac2 * 1.4))
 			continue
 		_set_colour(m, Color(col2.r, col2.g, col2.b, 0.9 * minf(1.0, frac2 * 1.5)))
 

@@ -24,7 +24,6 @@ var _light_key: int = -1
 var _react_amount: float = 0.0
 var _react_colour := Color.WHITE
 var _react_ring: MeshInstance3D
-var _wobble_ring: MeshInstance3D
 var _last_warm: float = -1.0
 
 
@@ -88,8 +87,9 @@ func _sync_body() -> void:
 		_holders[Kind.JOYFUL].rotation.z = wave * 0.12 if warning else 0.0
 		_holders[Kind.JOYFUL].rotation.y = 0.0
 		if wobbling:
-			# Checkpoint 5: a hard shake that grows as the wobble runs out (the greying is in _apply_body_light).
-			var shake := 0.6 + 0.8 * wobble_prog
+			# Checkpoint 5: a shake that grows as the wobble runs out (the greying is in _apply_body_light). Round 25:
+			# gentler, now that the wobble has a marker on the ground instead of a closing ring.
+			var shake := 0.3 + 0.5 * wobble_prog
 			_holders[Kind.JOYFUL].rotation.z = wave * Config.WOBBLE_SWAY * 0.45 * shake
 			_holders[Kind.JOYFUL].rotation.y = sin(seconds * Config.WOBBLE_RATE * 1.7) * 0.2 * shake
 	else:
@@ -97,7 +97,6 @@ func _sync_body() -> void:
 		soot.rotation.y = seconds * 0.5
 		_warm_dimmed()
 	_apply_body_light()
-	_sync_wobble_ring()
 
 
 # Graphics checkpoint 4: the walk. The pose goes on the body that is showing; a body that was hidden while the person
@@ -225,10 +224,12 @@ func _apply_body_light() -> void:
 	var wobble_q := roundi(wobble_prog * 20.0) + 1 if wobbling else 0
 	var warm_q := roundi(frac * 20.0) if k != Kind.JOYFUL else 0
 	var which := 1 if _react_colour == Config.BURST_FX_COLOUR else 0
-	var key := k + 3 * (react_q + 21 * (glow_q + 11 * (wobble_q + 22 * (warm_q + 21 * which))))
+	# Round 25: a dimmed person outside the border is tinted toward the ground grey (0 to 5 steps).
+	var out_q := roundi(outside_fade * 5.0) if k == Kind.DIMMED else 0
+	var key := k + 3 * (react_q + 21 * (glow_q + 11 * (wobble_q + 22 * (warm_q + 21 * (which + 2 * out_q)))))
 	if key == _light_key:
 		return
-	if _light_key == -1 and react_q == 0 and glow_q == 0 and wobble_q == 0 and warm_q == 0:
+	if _light_key == -1 and react_q == 0 and glow_q == 0 and wobble_q == 0 and warm_q == 0 and out_q == 0:
 		_light_key = key
 		return
 	_light_key = key
@@ -247,6 +248,10 @@ func _apply_body_light() -> void:
 		tid = 4 + clampi(subject.affinity, 0, 2)
 		amount = Config.CP5_WARM_TINT * frac
 		emit_base = frac * 0.3
+		if out_q > 0:
+			# Round 25: the lower contrast outside the border: the coat is greyed toward the ground tone.
+			tid = 3
+			amount = Config.EDGE_OUT_FADE * float(out_q) / 5.0
 	if wobbling:
 		tid = 3
 		amount = lerpf(0.45, 1.0, wobble_prog) * 0.9
@@ -273,24 +278,6 @@ func _warm_dimmed() -> void:
 	haze.scale = Vector3(s, 1.0, s)
 	var soot: Node3D = parts["soot"]
 	soot.scale = Vector3.ONE * lerpf(1.0, 0.6, frac)
-
-
-# The wobble's closing ring: a flat ring at the feet that shrinks (and reddens) as the time to relapse runs out, so the
-# last seconds can be read from across the plaza.
-func _sync_wobble_ring() -> void:
-	if not wobbling:
-		if _wobble_ring != null:
-			_wobble_ring.visible = false
-		return
-	if _wobble_ring == null:
-		_wobble_ring = StyleFight.ring_node(self, 0.6, Config.CP5_WOBBLE_GREY, Color.WHITE, 0.5)
-		_wobble_ring.position.y = 0.07
-	var r := lerpf(Config.CP5_WOBBLE_RING_FROM, Config.CP5_WOBBLE_RING_TO, wobble_prog)
-	var blink := 0.5 + 0.5 * sin(clock * lerpf(6.0, 16.0, wobble_prog))
-	_wobble_ring.visible = true
-	_wobble_ring.scale = Vector3(r, 1.0, r)
-	var col := Config.CP5_WOBBLE_GREY.lerp(StyleFight.CORAL, wobble_prog)
-	StyleFight.set_ring(_wobble_ring, col, 0.35 + 0.4 * blink, 0.11)
 
 
 # The node holding the body for `k`, built on first use.

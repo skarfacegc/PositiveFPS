@@ -125,19 +125,25 @@ func test_the_styled_border_marks_the_sealed_map_edge() -> void:
 	await _rescue_ring(runner, td, 8)
 	td.running = false
 	var look := td.border.look as BorderLookStyled
-	assert_int(look._seal_w.size()).is_greater(0)
-	for w: float in look._seal_w:
-		assert_float(w).is_equal(0.0)
-	# Seal the whole loop by hand (the rule: Border.is_sealed) and rebuild: every point is sealed in the haze mesh.
+	for strip: EdgeStrip in look.strips:
+		for w: float in strip.seal:
+			assert_float(w).is_equal(0.0)
+	# Seal the whole loop by hand (the rule: Border.is_sealed, a sealed stretch is never a gap) and rebuild: the ribbon is
+	# one closed strip and marks the stretch sealed (honey).
 	var n := td.border.polygon.size()
 	td.border._sealed.clear()
 	for j: int in range(n):
 		td.border._sealed.append(1.0)
+		td.border._sample_gap[j] = false
 	look._last_frame = -100000
 	look.refresh()
-	for w: float in look._seal_w:
-		assert_float(w).is_equal(1.0)
-	assert_object(look._haze.mesh).is_not_null()
+	var sealed_points := 0
+	for strip: EdgeStrip in look.strips:
+		for w: float in strip.seal:
+			sealed_points += 1 if w > 0.99 else 0
+	assert_int(look.strips.size()).is_equal(1)
+	assert_int(sealed_points).is_greater(0)
+	assert_object(look._ribbon.mesh).is_not_null()
 	# The minimap draws sealed stretches in the look's seal colour: the same as an intact stretch in the placeholder.
 	td.minimap.refresh_from(td.ground, td.border, td.people, Vector3.ZERO, Vector3.ZERO, Vector2(10, 10))
 	assert_int(td.minimap.seal_flags.size()).is_equal(td.minimap.border_pts.size())
