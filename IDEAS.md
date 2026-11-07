@@ -36,13 +36,17 @@ burst, F2 targeting mode, mouse wheel zoom, F3 debug, F4 switch look, R restart,
 
 **Look modes.** Placeholder (default, plain shapes, what the tests run) and styled (pixel-diorama 3D: toon, outline, ground
 and post shaders, in a 640x360 SubViewport). F4 or the menu switches mid-game. Gameplay rounds touch the placeholder only;
-the styled look changes only in graphics checkpoints (latest: checkpoint 5, then a follow-up for the preview and HUD).
-Still placeholder in styled mode: the target highlight, the beacon marker and the HUD text labels.
+the styled look changes only in graphics checkpoints (latest: checkpoint 6: first light ring, styled HUD text and target
+ring, notices as slim banners under the night bar, half the dithering, a real jog). Still placeholder in styled mode: the
+Dusk to Dawn bar, the spirit label, and the REC and F3 labels; the styled HUD text uses the fallback font, not a pixel font.
 
-**Open items** (each checked against the code on 2026-11-05):
-- Confirm in the next styled playtest that the game log has no shader instance errors (the screenshot run had 0).
-- The first light square itself still looks like a hard square edge; only the explanation was added. Soften it or make
-  it a ring if the user still finds it odd.
+**Open items** (each checked against the code on 2026-11-07):
+- Checkpoint 6 needs a playtest look: the notice banner under the night bar and the styled target ring are covered by
+  geometry tests but have no full-frame screenshot.
+- First light lifts fewer people now the front is round (it reaches the plaza edge about 13 s in); watch the FIRST LIGHT
+  numbers (20 lifted in the last game).
+- Gap arrows (like the wobble pointers) now sit at the edge of the safe band, so a gap straight north shows its arrow part
+  way down the screen.
 - A wobble pointer can still overlap an ordinary prompt shown at the bottom middle (the PromptBar is not an avoid rect).
 - The second arm is much shorter than the first (7.3 m against 34.2 m at 24 people); a design call (a reserve for it would
   give back the reach gain). Earlier arm retreat, if pull-in feels late.
@@ -63,7 +67,9 @@ read the wall clock; fixed in `140c94e`, `KNOWN_REAL_TIME_UNITS` is empty); the 
 (`how_to_play_keys_test`); the HUD burst text overlapping the spirit label and the thick coral stripe preview (follow-up
 build: outline only, spirit label above its bar); styled look lagging for first light, reactions and the cue panel
 (checkpoint 5); shader instance errors in styled play, the wobble pointer over the HUD, the preview staying up after a
-focus loss, and first light having no explanation (snag round, 2026-11-05).
+focus loss, and first light having no explanation (snag round, 2026-11-05); the shader errors confirmed gone in play, the first
+light square (now a ring), the placeholder target highlight and HUD text in the styled look, notices over the play area,
+too much dithering, and the jog (checkpoint 6, 2026-11-07).
 
 **Push status.** `origin/main` is `4d8ea8d`; rounds 23 onward are unpushed (local main is ahead). Rounds are not pushed
 until the user asks.
@@ -328,3 +334,30 @@ notices ("Someone lost their joy!") cover the play area.
   ground and glow stipple), keeping some texture. Make the player's run clearly different from the walk (faster stride,
   more lean and bob) in both looks.
 - Afterwards the coordinator refreshes the checkpoint screenshots for the user.
+
+## Graphics checkpoint 6 build (2026-11-07)
+
+Three parts in parallel, merged in order O, P, Q (conflicts in `config.gd`, `style_ground.gdshader` and `SOURCE_MAP.md`,
+kept both sides; the map regenerated). Gate (739 tests, 99.8%), determinism and baseline passed through
+`tools/round_end.py`. The first gate refused `player_look_styled.gd` (98.2%) and `style_first_light.gd` (94.4%); a test
+agent covered the dust with no parent and the motes' full-circle and instance-cap cases (`afefd31`). The second gate
+failed one timing test, `world_scale_test` full border, at 7.00 ms against 6.7; `perf_compare` (5 rounds, CPU 42-44% on
+two rounds) gave 4.99 ms before checkpoint 6 and 4.81 ms after, so it was load; the rerun passed with the budget unchanged.
+
+- **Part O, first light ring (`ca8ecbc`):** the front is a circle from `FIRST_LIGHT_START_RADIUS` 71 m (the plaza corners)
+  to 0 at dawn; "passed" is the round distance, so lifting follows the ring. Placeholder: two flat ring meshes. Styled:
+  the ground shader's `dawn_front` uses `length(p)`; motes ride the circle at fixed angles. Minimap draws circles. Same
+  timing and rates; the ring reaches the plaza edge about 13 s in, so fewer people may be lifted.
+- **Part P, styled HUD (`804e91f`):** `HudSafeArea` is the shared safe rectangle; wobble pointers, gap arrows and landmark
+  pointers use it. Notices and the HUD alert are slim banners under the night bar (`CP6_BANNER_TOP` 62), the notice moving
+  below the alert when both show, in both looks. Styled HUD text lines (rescued, burst, target, targeting, keys) are
+  parchment panels with small pixel glyphs (`StyleHudText`, `StyledPanel` kinds); the styled target highlight is a
+  dithered ring with an element-tinted disc (`StyleTarget`). The beacon already had a styled marker; a stale placeholder
+  note was fixed. `NOTICE_FONT_SIZE` 16 to 15, `NOTICE_HEIGHT` 34 to 32.
+- **Part Q, dithering and jog (`93dbda8`):** shadow band dither 0.16 to 0.08, glow dot share and ground edge/ridge dot
+  share 1.0 to 0.5 (`STYLED_DITHER_*`, `dither_k` uniforms). The player's run adds cadence, leg swing, lean and bounce
+  (`Gait.jog`, `JOG_*`), both looks; the styled look raises a dust puff per footfall.
+- **Tests changed:** `first_light_test` (round front, positions moved off the square), `looks_checkpoint5_test` (ring
+  count, motes on the circle), `looks_test` (target highlight and HUD text no longer placeholder), `landmark_pointers_test`
+  (shared avoid list), `shaped_zone_test` (one test renamed: it asserted the old big centre notice), `hud_test` (styled
+  lines in the overlap test). New: `hud_checkpoint6_test`, `looks_checkpoint6_test`. **Loosened:** nothing.

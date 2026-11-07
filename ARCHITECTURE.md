@@ -112,10 +112,27 @@ mode moves the camera into a 640x360 SubViewport that shares the world, with nea
     meshes); a styled level peaks at about 4344 (people 1780, industrial blocks and their whimsical versions, beacons,
     landmarks). `tests/shader_instances_test.gd` fails if twice the worst case exceeds the capacity. Adding many
     instance-uniform meshes: check that test first.
-- **Snag round HUD notes:** `WobbleAlert` places tips where the ray from the screen centre leaves `safe_rect` (the screen
-  less the shown HUD panels, the minimap and the spirit cue), `WOBBLE_ALERT_REACH` inside it. First light's start line is
-  `Intro.notice(Prompt.FIRST_LIGHT)` (no HUD label). `TopDownMain._notification` (focus out) cancels a held E aim via
-  `BeaconPlacement.cancel`.
+- **Snag round HUD notes:** First light's start line is `Intro.notice(Prompt.FIRST_LIGHT)` (no HUD label).
+  `TopDownMain._notification` (focus out) cancels a held E aim via `BeaconPlacement.cancel`.
+- **Checkpoint 6** (constants in the three "Checkpoint 6" blocks of `config.gd`; tests `hud_checkpoint6_test`,
+  `looks_checkpoint6_test`):
+  - **First light ring:** `FirstLight.edge()` is a radius from `FIRST_LIGHT_START_RADIUS` (71 m, the plaza corners) to 0
+    over `FIRST_LIGHT_SECONDS`; passed means round distance from the origin at least `edge()`. Placeholder: two flat ring
+    meshes (`_set_ring`). Styled: `GroundLookStyled.set_dawn_front(radius)` (shader `length(p)`); `StyleFirstLight` motes
+    at fixed angles on the circle. `Minimap.first_light_edge` is a radius drawn with `_round_line`.
+  - **HudSafeArea** (`scripts/hud_safe_area.gd`) is the one place that works out the rectangle edge pointers keep inside:
+    the window less the shown HUD panels (`Hud.layout_controls`), the minimap and the spirit cue. `WobbleAlert` (thin
+    wrappers `safe_rect`/`avoid_rects`), `GapArrows` (optional `safe` argument) and `LandmarkPointers` use it, both looks.
+  - **Notices:** the PromptBar notice and the HUD alert are slim banners under the night bar at `CP6_BANNER_TOP`; a notice
+    moves below the alert while `Hud.alert_showing()`.
+  - **Styled HUD text:** `StyledPanel` kinds RESCUED, BURST, TARGET, TARGETING and KEYS, drawn by `StyleHudText`; `Hud`
+    feeds them the same text as its Labels and shows the Labels in the placeholder look only. `StyleTarget` is the styled
+    target ring (ring shader only, element-tinted disc child); `TopDownMain._apply_highlight_look` swaps it on F4.
+  - **Dithering:** `STYLED_DITHER_LIGHT` (0.08, shadow band, set by `StyleKit.mat` and the ground),
+    `STYLED_DITHER_GLOW` (0.5, `dither_k` in `style_glow.gdshader`, `StyleKit.glow_mat`), `STYLED_DITHER_GROUND` (0.5,
+    `dither_k` in `style_ground.gdshader`, `GroundLookStyled`). The post shader has no dither.
+  - **Jog:** `Gait.jog` (player only) adds `JOG_*` cadence, leg swing, lean and bounce in both looks; the styled look
+    raises a dust puff per footfall (`PlayerLookStyled._dust`).
 - Tests run in the placeholder look; `tests/looks_test.gd` switches to styled on purpose and always switches back.
   Headless uses a dummy renderer, so shaders are not compiled by the tests; the screenshot run is the shader check
   (grep its log for errors).
