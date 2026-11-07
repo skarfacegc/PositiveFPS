@@ -76,7 +76,7 @@ class RegionsTest(unittest.TestCase):
     def test_a_line_in_a_function_names_that_function(self):
         base = edit(SCRIPT, 6, "\tvar b := a + 2")
         funcs, whole = fast_tier.regions_of_change(SCRIPT, base, [(6, 1)])
-        self.assertEqual((funcs, whole), ({"warm": (5, 7)}, False))
+        self.assertEqual((funcs, whole), ({"warm": (5, 7, {6})}, False))
 
     def test_a_line_outside_any_function_means_the_whole_file(self):
         base = edit(SCRIPT, 3, "var warmth := 1")
@@ -87,7 +87,7 @@ class RegionsTest(unittest.TestCase):
         # Two lines were added to the top since the map was made; the change is now at base line 8 = map line 6.
         base = "# a\n# b\n" + edit(SCRIPT, 6, "\tvar b := a + 2")
         funcs, whole = fast_tier.regions_of_change(SCRIPT, base, [(8, 1)])
-        self.assertEqual((funcs, whole), ({"warm": (5, 7)}, False))
+        self.assertEqual((funcs, whole), ({"warm": (5, 7, {6})}, False))
 
     def test_a_region_that_changed_since_the_map_selects_all_the_map_said_about_it(self):
         base = edit(SCRIPT, 11, "\t\treturn 2")
@@ -137,6 +137,22 @@ class SelectTest(unittest.TestCase):
         self.assertIn("test_slow_new", chosen["s4_test"])  # a slow test the map has never seen runs
         self.assertNotIn("test_slow_decl", chosen["s3_test"])
         self.assertIn("scripts/a.gd: warm -> 1 slow test(s)", result["notes"][0])
+
+    def test_a_changed_line_that_tests_ran_selects_only_the_units_that_ran_it(self):
+        data = sample_map()
+        data["units"]["hits_03.json"] = {"scripts/a.gd:7": 1}  # a unit that ran only the return line of warm
+        data["plan"]["hits_03.json"] = {"name": "s5_test::test_slow_ret", "suite": "s5_test", "tests": ["test_slow_ret"]}
+        tests = dict(TESTS, s5_test=["test_slow_ret"])
+        weights = dict(WEIGHTS, **{"s5_test::test_slow_ret": 12.0})
+        base = edit(SCRIPT, 6, "\tvar b := a + 2")
+        change = {"scripts/a.gd": {"status": "M", "hunks": [(6, 1)]}}
+        line_level = fast_tier.select(tests, weights, 5.0, change, data, lambda path: base)
+        self.assertNotIn("s5_test", line_level["selected"])
+        # A changed line nobody ran (the func line itself) falls back to the whole function.
+        base_signature = edit(SCRIPT, 5, "func warm(a: int, c: int = 0) -> int:")
+        change = {"scripts/a.gd": {"status": "M", "hunks": [(5, 1)]}}
+        function_level = fast_tier.select(tests, weights, 5.0, change, data, lambda path: base_signature)
+        self.assertIn("test_slow_ret", function_level["selected"]["s5_test"])
 
     def test_a_change_outside_functions_runs_every_test_that_touched_the_file(self):
         base = edit(SCRIPT, 3, "var warmth := 1")

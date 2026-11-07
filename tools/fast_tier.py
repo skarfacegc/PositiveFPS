@@ -123,13 +123,14 @@ def to_map_lines(map_lines, base_lines, changed):
         if tag == "equal":
             out.update(i1 + (j - j1) for j in hit)
         else:
-            out.update(range(max(1, i1), min(len(map_lines), i2 + 1) + 1))
+            region = range(i1 + 1, i2 + 1) if i2 > i1 else (i1, i1 + 1)  # (the map has nothing there: its neighbours)
+            out.update(n for n in region if 1 <= n <= len(map_lines))
     return out
 
 
 def regions_of_change(map_text, base_text, hunks):
-    """(function names, whole_file) for a script: the map's functions touched by the change, and whether a changed line
-    lies outside every function (then the whole file counts)."""
+    """(functions, whole_file) for a script. functions is {name: (first, last, changed map lines)} for the map's functions
+    the change touches; whole_file is True when a changed line lies outside every function (then the whole file counts)."""
     map_lines = normalise(map_text).split("\n")
     base_lines = normalise(base_text).split("\n")
     changed = changed_base_lines(hunks, len(base_lines))
@@ -142,8 +143,21 @@ def regions_of_change(map_text, base_text, hunks):
         if owner is None:
             whole = True
         else:
-            funcs[owner[0]] = (owner[1], owner[2])
+            funcs.setdefault(owner[0], (owner[1], owner[2], set()))[2].add(n)
     return funcs, whole
+
+
+def units_hitting_lines(units, path, lines):
+    """{line: set of unit names whose hits include that line of `path`} for the lines asked about."""
+    prefix = path + ":"
+    found = {n: set() for n in lines}
+    for name, hits in units.items():
+        for key in hits:
+            if key.startswith(prefix):
+                line = int(key[len(prefix):])
+                if line in found:
+                    found[line].add(name)
+    return found
 
 
 def units_hitting(units, path, spans):
@@ -219,8 +233,23 @@ def select(tests, weights, threshold, changes, map_data, read_base):
             if base_text is None:
                 return everything("cannot read the base version of %s" % path)
             funcs, whole = regions_of_change(scripts[path], base_text, info["hunks"])
-            spans = None if whole else list(funcs.values())
-            hit_units = units_hitting(units, path, spans)
+            if whole:
+                hit_units = units_hitting(units, path, None)
+            else:
+                # Line level where it is safe: every changed line was executed by some unit, so only the units that ran
+                # those lines can behave differently. A changed line nobody ran (a signature, a comment, an else:, a
+                # continuation) falls back to the whole function.
+                by_line = units_hitting_lines(units, path, set().union(*(f[2] for f in funcs.values())))
+                spans = []
+                hit_units = set()
+                for first, last, lines in funcs.values():
+                    if all(by_line[n] for n in lines):
+                        for n in lines:
+                            hit_units |= by_line[n]
+                    else:
+                        spans.append((first, last))
+                if spans:
+                    hit_units |= units_hitting(units, path, spans)
             picked = set()
             for unit in hit_units:
                 entry = plan.get(unit)
