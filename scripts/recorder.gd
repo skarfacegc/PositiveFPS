@@ -114,6 +114,9 @@ func attach(main: TopDownMain) -> bool:
 	main.grabs.grab_avoided.connect(_on_grab_avoided)
 	main.beacon_placed.connect(_on_beacon_placed)
 	main.spirit_warmth.warmed.connect(_on_spirit_warm)
+	main.embrace.started.connect(_on_embrace_start)
+	main.embrace.lifted.connect(_on_embrace_lift)
+	main.embrace.rescued_by_embrace.connect(_on_embrace_rescue)
 	main.border.beacon_reached.connect(_on_beacon_reached)
 	main.border.stretch_started.connect(_on_stretch_started)
 	main.border.zone_grew.connect(_on_zone_grew)
@@ -474,6 +477,28 @@ func _on_spirit_warm(p: Person, joy: float, spirit: float) -> void:
 			"pool": snappedf(_main.spirit_warmth.pool, 0.01)
 		}
 	)
+
+
+# Round 25 (embrace): an unrescued person inside the border began to be lifted, was lifted a stage, and was rescued.
+func _on_embrace_start(p: Person) -> void:
+	var stage := STAGE_NAMES[clampi(Config.gloom_level(p.gloom), 0, 2)]
+	emit_event("embrace_start", {"id": _id(p), "stage": stage, "pos": _pos(p.global_position)})
+
+
+func _on_embrace_lift(p: Person, from_level: int, to_level: int) -> void:
+	emit_event(
+		"embrace_lift",
+		{
+			"id": _id(p),
+			"from": STAGE_NAMES[clampi(from_level, 0, 2)],
+			"to": STAGE_NAMES[clampi(to_level, 0, 2)],
+			"pos": _pos(p.global_position)
+		}
+	)
+
+
+func _on_embrace_rescue(p: Person, seconds: float) -> void:
+	emit_event("embrace_rescue", {"id": _id(p), "seconds": snappedf(seconds, 0.01), "pos": _pos(p.global_position)})
 
 
 func _on_saved(p: Person) -> void:

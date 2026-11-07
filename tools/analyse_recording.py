@@ -154,6 +154,7 @@ def analyse(events, quiet_window=5.0):
         "first_light_starts": [e for e in real if e["type"] == "first_light_start"],
         "first_light_ends": [e for e in real if e["type"] == "first_light_end"],
         "win": next((e for e in real if e["type"] == "win"), None),
+        "embrace_events": [e for e in real if e["type"].startswith("embrace_")],
     }
 
 
@@ -275,6 +276,8 @@ def report(res, folder):
     for e in lm_events:
         add("  t=%.0f s  %s %s (%s held)" % (e["t"], e.get("name"), e["type"].split("_")[1], e.get("held")))
     for block in patch_effect_lines(res) + pressure_curve_lines(res):
+        add(block)
+    for block in embrace_lines(res):
         add(block)
     win = res["win"]
     if win:
@@ -495,6 +498,19 @@ def compare_main(argv):
         return 2
     print(table)
     return 0
+
+
+# ---- Round 25 part S: the EMBRACE section (events embrace_start, embrace_lift, embrace_rescue) ---------------------
+def embrace_lines(res):
+    """One EMBRACE line: embraces begun, stage lifts, rescues and the mean seconds from the start to the rescue."""
+    events = res.get("embrace_events", [])
+    starts = [e for e in events if e["type"] == "embrace_start"]
+    lifts = [e for e in events if e["type"] == "embrace_lift"]
+    rescues = [e for e in events if e["type"] == "embrace_rescue"]
+    seconds = [e["seconds"] for e in rescues if "seconds" in e]
+    mean = "%.1f s" % statistics.fmean(seconds) if seconds else "n/a"
+    return ["EMBRACE (round 25): %d begun, %d stage lifts, %d rescues, mean time to rescue %s" % (
+        len(starts), len(lifts), len(rescues), mean)]
 
 
 def cli(argv=None):

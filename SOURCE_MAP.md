@@ -148,12 +148,12 @@ extends RefCounted | 0 const | Round 22: the joy burst's job is to clear dimmed 
 - L41 `static run(people: Array[Person], at: Vector3, border: Border) -> Dictionary` - Uses the burst at `at`. Returns a report: {"cleared": Array of {"person", "from", "to"} (position before an...
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 245 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L453 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L460 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L469 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L479 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L490 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 263 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L477 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L484 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L493 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L503 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L514 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -174,6 +174,16 @@ extends RefCounted | 0 const | Round 19: the level is won by reaching dawn, and 
 - L37 `static lights_text(lights: int) -> String` - The lights drawn as text: "[*][*][ ]" for two.
 - L45 `static hint_for(lights: int) -> String` - What the next light needs, for the end screen ("" at three lights).
 - L61 `static detail_text(main: TopDownMain) -> String` - The lines on the end screen (moved from TopDownMain in round 21): the dawn lights (at dawn) with the reason...
+
+### scripts/embrace.gd (Embrace)
+extends Node | 0 const | Round 25 part S: embrace. A gloomy or dimmed person who is not yet rescued but stands INSIDE the border loo...
+signals: started(person: Person), lifted(person: Person, from_level: int, to_level: int), rescued_by_embrace(person: Person, seconds: float)
+- L47 `static attach(level: TopDownMain) -> Embrace` - Builds the node under `level` and listens for relapses. One line in TopDownMain.
+- L62 `is_inside(p: Person) -> bool` - True when `p` stands inside the border loop and is not rescued.
+- L68 `embraced_count() -> int` - Number of people being embraced right now (inside the loop with an entry).
+- L77 `progress_of(p: Person) -> float` - Progress (0..1) toward the next stage for `p`, or 0 when they are not being embraced.
+- L85 `step(delta: float) -> void` - One frame: gathers or fades each person's step, lifts or rescues, strains the nearest members, moves the cues.
+- L176 `nearest_members(p: Person, count: int) -> Array[Person]` - Up to `count` rescued border members nearest to `p`, nearest first (ties keep the border's own order).
 
 ### scripts/feedback_layer.gd (FeedbackLayer)
 extends Control | 0 const | Round 13b: the communication layer. Everything here is drawn in screen space (a full-screen Control on the...
@@ -357,6 +367,12 @@ extends BuildingLook | 4 const | The styled block: an industrial building (steel
 - L24 `is_styled() -> bool`
 - L28 `sync(_delta: float = 0.0) -> void`
 - L44 `set_post(on: bool) -> void`
+
+### scripts/looks/embrace_cue.gd (EmbraceCue)
+extends Node3D | 0 const | Round 25 part S: the placeholder cue on a person being embraced (see Embrace): a warm glow disc on the grou...
+- L38 `show_progress(frac: float, inside: bool, clock: float) -> void` - `frac` (0..1) is how far through the step; `inside` false while they have left the loop (the glow is dim an...
+- L54 `segments() -> int` - The number of ring segments drawn now (for tests).
+- L59 `static ring_mesh(segs: int) -> ArrayMesh` - A flat ring of `segs` of EMBRACE_RING_SEGMENTS segments, from the front (-Z), clockwise seen from above.
 
 ### scripts/looks/gait.gd (Gait)
 extends RefCounted | 8 const | Graphics checkpoint 4: the walk. One Gait follows one walker (a person or the player) and turns how it actu...
@@ -827,11 +843,11 @@ extends Node | 3 const | Round 18: the gameplay recorder. While it is on, each g
 - L76 `static save_setting_to(path: String) -> void` - Writes the menu choice into the config file at `path`, keeping whatever else that file holds.
 - L84 `static phase_for(progress: float) -> String` - The night phase name for a night progress 0..1 (the calm opening, then thirds up to dawn).
 - L95 `attach(main: TopDownMain) -> bool` - Starts a session for `main` (call at the end of its _ready). Returns false when it could not open a file.
-- L192 `is_open() -> bool`
-- L235 `note_exit(reason: String) -> void` - Marks why the level is being left (the restart and menu keys call this just before changing scene).
-- L241 `end(reason: String) -> void` - Writes session_end (once) and closes the file. `reason` is "win", "loss", "dawn", "restart", "menu", "quit" or
-- L269 `on_round_end(title: String) -> void` - The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn...
-- L288 `emit_event(type: String, fields: Dictionary = {}) -> void` - Adds one line: t, night_phase and night are filled in; `fields` are the rest. Cheap: one JSON string into a...
+- L195 `is_open() -> bool`
+- L238 `note_exit(reason: String) -> void` - Marks why the level is being left (the restart and menu keys call this just before changing scene).
+- L244 `end(reason: String) -> void` - Writes session_end (once) and closes the file. `reason` is "win", "loss", "dawn", "restart", "menu", "quit" or
+- L272 `on_round_end(title: String) -> void` - The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn...
+- L291 `emit_event(type: String, fields: Dictionary = {}) -> void` - Adds one line: t, night_phase and night are filled in; `fields` are the rest. Cheap: one JSON string into a...
 
 ### scripts/relapse_wave.gd (RelapseWave)
 extends RefCounted | 0 const | Round 24: the gate a wobbling person asks before relapsing (Person.relapse_gate). Only one person may relap...
@@ -862,15 +878,15 @@ signals: warmed(person: Person, joy: float, spirit: float)
 ### scripts/topdown_main.gd (TopDownMain)
 extends Node3D | 5 const | The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a...
 signals: beacon_placed(pos: Vector3, cost: float, spirit_after: float)
-- L276 `try_place_beacon() -> bool` - Round 19: E. See BeaconPlacement.
-- L299 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
-- L304 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
-- L332 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
-- L336 `sun_light() -> DirectionalLight3D`
-- L340 `environment() -> Environment`
-- L397 `dim_recovery_rate() -> float` - Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
-- L544 `view_half_extents() -> Vector2` - The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the v...
-- L750 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
+- L278 `try_place_beacon() -> bool` - Round 19: E. See BeaconPlacement.
+- L301 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
+- L306 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
+- L334 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
+- L338 `sun_light() -> DirectionalLight3D`
+- L342 `environment() -> Environment`
+- L399 `dim_recovery_rate() -> float` - Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
+- L546 `view_half_extents() -> Vector2` - The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the v...
+- L752 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
 
 ### scripts/topdown_player.gd (TopDownPlayer)
 extends CharacterBody3D | 0 const | The player in top-down mode. WASD moves in world space and the mouse picks an aim point on the floor. The p...
@@ -920,6 +936,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - dimmed_help_test (tests/dimmed_help_test.gd): 4 tests
 - dimmed_waves_test (tests/dimmed_waves_test.gd): 18 tests
 - edge_pressure_test (tests/edge_pressure_test.gd): 11 tests
+- embrace_test (tests/embrace_test.gd): 15 tests
 - feedback_test (tests/feedback_test.gd): 16 tests
 - first_light_test (tests/first_light_test.gd): 16 tests
 - floor_test (tests/floor_test.gd): 3 tests
