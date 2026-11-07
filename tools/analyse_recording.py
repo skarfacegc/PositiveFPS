@@ -155,6 +155,7 @@ def analyse(events, quiet_window=5.0):
         "first_light_ends": [e for e in real if e["type"] == "first_light_end"],
         "win": next((e for e in real if e["type"] == "win"), None),
         "embrace_events": [e for e in real if e["type"].startswith("embrace_")],
+        "real": real,  # Round 25: the TIDES section reads the events between a tide's start and end.
     }
 
 
@@ -275,7 +276,7 @@ def report(res, folder):
     add("LANDMARKS: %d claimed, %d lost" % (claims, len(lm_events) - claims))
     for e in lm_events:
         add("  t=%.0f s  %s %s (%s held)" % (e["t"], e.get("name"), e["type"].split("_")[1], e.get("held")))
-    for block in patch_effect_lines(res) + pressure_curve_lines(res):
+    for block in patch_effect_lines(res) + pressure_curve_lines(res) + tide_lines(res):
         add(block)
     for block in embrace_lines(res):
         add(block)
@@ -293,6 +294,25 @@ def report(res, folder):
         add("  %6.0f %8.1f %7.1f %7.1f %8.1f %5.1f %9.1f" % (
             chunk[0]["t"], m("wistful"), m("gloomy"), m("dimmed"), m("rescued"), m("gaps"), m("pressers")))
     return "\n".join(lines)
+
+
+def tide_lines(res):
+    """Round 25: the gloom tides. Each tide's side, the rescued border members on that side when it started, and the
+    wobbles, relapses and gaps opened between its start and its end (or the end of the recording)."""
+    real = res["real"]
+    starts = [e for e in real if e["type"] == "tide_start"]
+    ends = [e for e in real if e["type"] == "tide_end"]
+    warns = sum(1 for e in real if e["type"] == "tide_warn")
+    lines = ["TIDES (round 25): %d tides started, %d warnings" % (len(starts), warns)]
+    for s in starts:
+        end_t = next((e["t"] for e in ends if e["t"] >= s["t"]), res["duration"])
+        during = [e for e in real if s["t"] <= e["t"] <= end_t]
+        lines.append("  tide at t=%.0f s from the %s, %s members on that side: %d wobbles, %d relapses, %d gaps opened" % (
+            s["t"], s.get("side", "?"), s.get("members", "?"),
+            sum(1 for e in during if e["type"] == "wobble"),
+            sum(1 for e in during if e["type"] == "relapse"),
+            sum(1 for e in during if e["type"] == "gap_open")))
+    return lines
 
 
 def write_csv(rows, path):

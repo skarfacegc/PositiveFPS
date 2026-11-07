@@ -148,12 +148,13 @@ extends RefCounted | 0 const | Round 22: the joy burst's job is to clear dimmed 
 - L41 `static run(people: Array[Person], at: Vector3, border: Border) -> Dictionary` - Uses the burst at `at`. Returns a report: {"cleared": Array of {"person", "from", "to"} (position before an...
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 263 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L477 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L484 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L493 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L503 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L514 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 291 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L513 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L521 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
+- L528 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L537 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L547 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L558 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -247,6 +248,19 @@ extends RefCounted | 0 const | Shared gloom rules for the top-down territory gam
 - L75 `static flat_dist(a: Vector3, b: Vector3) -> float` - Distance between two points, ignoring height.
 - L80 `static nearest_distance(pos: Vector3, points: Array) -> float` - Smallest flat distance from `pos` to any point in `points`.
 
+### scripts/gloom_tide.gd (GloomTide)
+extends Node | 0 const | Round 25: gloom tides. Two a night (Config TIDE_*): one in the rising phase, one at midnight. Each comes fr...
+signals: tide_warned(side: String, angle: float), tide_started(side: String, angle: float, members: int), tide_ended(side: String, angle: float, members: int)
+- L27 `static attach(level: TopDownMain) -> GloomTide` - Builds the schedule, the fog band and the edge pointer, and wires them to `level`. One line in TopDownMain.
+- L45 `update(delta: float) -> void` - Advances the tides by the night's clock and applies them: the warnings and the start and end of each tide (...
+- L55 `showing_index() -> int` - The index of the tide on show now (warned and not yet ended, the earliest first), or -1.
+- L64 `warning_index() -> int` - The index of the tide being warned about (warned, not yet started), or -1.
+- L73 `passing_index() -> int` - The index of the tide passing now (started, not yet ended), or -1.
+- L82 `count_facing(angle: float) -> int` - How many rescued border members face `angle` now (see faces).
+- L95 `refresh_pointer() -> void` - Works the edge pointer out now: its tip sits where the ray from the screen centre toward the side leaves th...
+- L116 `static faces(pos: Vector3, centre: Vector3, angle: float) -> bool` - True when `pos` (a point on the ground) lies within TIDE_HALF_WIDTH of `angle` as seen from `centre`.
+- L124 `static side_name(angle: float) -> String` - The compass name of a side (north is -z, as the camera sees it: north is up the screen).
+
 ### scripts/grabs.gd (Grabs)
 extends Node | 0 const | Round 12a, dance with the gloom: dimmed people within GRAB_RANGE of a player who is not dim start a grab. A...
 signals: grab_landed(person: Person), grab_avoided(person: Person)
@@ -286,16 +300,16 @@ extends RefCounted | 0 const | Checkpoint 6: the rectangle the edge pointers sta
 
 ### scripts/intro.gd (Intro)
 extends RefCounted | 0 const | Round 13b, the layered introduction through the night. It is driven by the night's progress (NightCycle), s...
-- L61 `dimmed_allowed() -> bool` - True once dimmed people may emerge (the calm opening is over). Always true when the intro is off.
-- L68 `mood_active(mood: int) -> bool` - True when `mood` (a Person.Mood) is switched on. Always true when the intro is off.
-- L77 `request(id: int, at: Vector3 = Vector3.INF) -> bool` - Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and alway...
-- L90 `notice(id: int, words: String = "") -> void` - Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the i...
-- L101 `current_text() -> String` - The words of the prompt on show (a notice may carry its own).
-- L107 `check_level(main: TopDownMain, delta: float) -> void` - Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
-- L138 `update(delta: float) -> void` - Counts the current prompt down and moves on to the next one in the queue.
-- L165 `static prompt_for_mood(mood: int) -> int` - The prompt for a mood (Person.Mood).
-- L175 `static text_for(id: int) -> String` - The short line of a prompt (the icon sits beside it).
-- L215 `static icon_for(id: int) -> int` - The icon (MoodIcons.Kind) that goes with a prompt.
+- L62 `dimmed_allowed() -> bool` - True once dimmed people may emerge (the calm opening is over). Always true when the intro is off.
+- L69 `mood_active(mood: int) -> bool` - True when `mood` (a Person.Mood) is switched on. Always true when the intro is off.
+- L78 `request(id: int, at: Vector3 = Vector3.INF) -> bool` - Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and alway...
+- L91 `notice(id: int, words: String = "") -> void` - Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the i...
+- L102 `current_text() -> String` - The words of the prompt on show (a notice may carry its own).
+- L108 `check_level(main: TopDownMain, delta: float) -> void` - Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
+- L139 `update(delta: float) -> void` - Counts the current prompt down and moves on to the next one in the queue.
+- L166 `static prompt_for_mood(mood: int) -> int` - The prompt for a mood (Person.Mood).
+- L176 `static text_for(id: int) -> String` - The short line of a prompt (the icon sits beside it).
+- L218 `static icon_for(id: int) -> int` - The icon (MoodIcons.Kind) that goes with a prompt.
 
 ### scripts/joy_projectile.gd (JoyProjectile)
 extends Node3D | 6 const | A joy projectile for top-down mode. It has no physics body: each physics frame it steers, moves, and checks
@@ -732,15 +746,15 @@ extends Control | 5 const | The start menu: a title, one Play button, the Look t
 
 ### scripts/minimap.gd (Minimap)
 extends Control | 2 const | The round minimap (round 10), top-left, about TD_MINIMAP_WIDTH_FRACTION of the screen width. It shows the w...
-- L88 `rebuild_look() -> void` - Swaps the look in place (F4): the data model is kept, the picture is redrawn with the new palette.
-- L95 `is_circular() -> bool` - The minimap is a circle: the picture is clipped to it, and the frame is drawn round it.
-- L100 `radius() -> float` - The circle's radius on screen, in pixels.
-- L106 `tick(delta: float) -> bool` - Advances the refresh timer by `delta`. Returns true when the picture should be rebuilt now (about 10 times a
-- L126 `clouds_due() -> bool` - Round 20: true when the people clouds are due a recount (at the next refresh_from).
-- L132 `refresh_from(ground: PaintedGround, border: Border, people: Array[Person], player_at: Vector3, view_centre: Vector3, view_half: Vector2) -> void` - Reads the level into the data model and redraws the picture. `view_half` is the half size of the camera's v...
-- L203 `refresh_clouds(people: Array[Person]) -> void` - Round 20: bins the unrescued people into the coarse grid and sets one blob per busy cell, at the mean of it...
-- L288 `cloud_alpha_at(px: int, py: int) -> float` - Round 20: the alpha of the people clouds at picture pixel (px, py), 0 to 1. Zero outside every blob.
-- L345 `add_blip(world: Vector2) -> void` - Round 12b: a blip at a world point (x, z) for MINIMAP_BLIP_SECONDS, drawn as a ring (someone became dimmed).
+- L90 `rebuild_look() -> void` - Swaps the look in place (F4): the data model is kept, the picture is redrawn with the new palette.
+- L97 `is_circular() -> bool` - The minimap is a circle: the picture is clipped to it, and the frame is drawn round it.
+- L102 `radius() -> float` - The circle's radius on screen, in pixels.
+- L108 `tick(delta: float) -> bool` - Advances the refresh timer by `delta`. Returns true when the picture should be rebuilt now (about 10 times a
+- L128 `clouds_due() -> bool` - Round 20: true when the people clouds are due a recount (at the next refresh_from).
+- L134 `refresh_from(ground: PaintedGround, border: Border, people: Array[Person], player_at: Vector3, view_centre: Vector3, view_half: Vector2) -> void` - Reads the level into the data model and redraws the picture. `view_half` is the half size of the camera's v...
+- L205 `refresh_clouds(people: Array[Person]) -> void` - Round 20: bins the unrescued people into the coarse grid and sets one blob per busy cell, at the mean of it...
+- L290 `cloud_alpha_at(px: int, py: int) -> float` - Round 20: the alpha of the people clouds at picture pixel (px, py), 0 to 1. Zero outside every blob.
+- L347 `add_blip(world: Vector2) -> void` - Round 12b: a blip at a world point (x, z) for MINIMAP_BLIP_SECONDS, drawn as a ring (someone became dimmed).
 
 ### scripts/mood_icons.gd (MoodIcons)
 extends RefCounted | 1 const | Round 13b: the small icons of the game's communication (screen-space UI, drawn with _draw on any CanvasItem...
@@ -802,27 +816,27 @@ extends Node3D | 3 const | Round 22: the world marks for the spirit actions, dra
 ### scripts/person.gd (Person)
 extends StaticBody3D | 0 const | Round 24: a drained rescued person began to wobble (`seconds` to be saved first), and a joy hit saved one.
 signals: rescued, relapsed, wobbled(seconds: float), saved, stage_changed(from_level: int, to_level: int), joy_blocked(reason: int), joy_landed, shield_popped(at: Vector3)
-- L133 `rebuild_look() -> void` - Swaps the look in place (F4): the rules state is untouched, the visuals are rebuilt from it.
-- L144 `set_ui_scale(value: float) -> void` - Round 14: the label scale (the zoom, see TopDownMain._update_camera). Redraws the label only when the value...
-- L153 `joy_needed() -> float` - The joy this person needs to be rescued. Dimmer levels need more.
-- L158 `is_warning() -> bool` - True when a rescued person is losing joy and close to relapsing (they flicker and show "!").
-- L164 `is_faltering() -> bool` - Round 12b: a rescued person drained below MEMBER_FALTER_FRACTION of their joy needed. A border member who f...
-- L169 `chest_position() -> Vector3` - Where a joy projectile should land: a little above the feet, at chest height.
-- L174 `active_mood() -> int` - The mood that counts right now: none for rescued and dimmed people.
-- L180 `static mood_name(m: int) -> String`
-- L185 `facing_dir() -> Vector3` - The flat direction this person faces (their local forward, -Z).
-- L193 `shot_lands_now() -> bool` - Round 17: true when a shot from the player would land on this person right now (the guarded open arc, the s...
-- L199 `is_open_to(from: Vector3) -> bool` - True when joy coming from `from` (a world point) would arrive at this person's front or side: the angle bet...
-- L215 `receive_joy(element: int, amount: float, distance: float, from: Vector3 = Vector3.INF, wears_shield: bool = true) -> void` - Called when a joy projectile (or a burst) hits this person. Works on rescued people too (top-up). `from` is...
-- L253 `shield_left_frac() -> float` - Round 15: the share of this dimmed person's shield left: 1 when fresh, 0.25 after three hits, and so on.
-- L260 `wear_shield() -> bool` - Round 15: one joy landing on the person this dimmed person shelters wears the shield. On the SHELTER_HITS-t...
-- L284 `tick(delta: float) -> void` - Called every frame by topdown_main.gd: handles joy fading, level changes and visuals.
-- L317 `react(kind: int, seconds: float, toward: Vector3 = Vector3.INF, delay: float = 0.0) -> void` - Round 24: start a reaction of `kind` lasting `seconds`, after `delay` seconds. `toward` is the world point...
-- L326 `react_progress() -> float` - Round 24: how far through the reaction (0 to 1), or -1 when none is running (or it has not started yet).
-- L343 `drain_joy(amount: float) -> void` - Removes joy from a rescued person (used by nearby gloom). Relapses them if they drop too low.
-- L357 `next_wobble_seconds() -> float` - Round 24: how long the next wobble lasts: WOBBLE_SECONDS varied by +/- WOBBLE_JITTER, from the person's see...
-- L363 `wobble_progress() -> float` - 0 at the start of the wobble, 1 when it has run out (0 when not wobbling). The look greys by it.
-- L486 `set_debug_visible(on: bool) -> void` - Shows or hides the cover and protection labels above this person (the F3 debug overlay).
+- L135 `rebuild_look() -> void` - Swaps the look in place (F4): the rules state is untouched, the visuals are rebuilt from it.
+- L146 `set_ui_scale(value: float) -> void` - Round 14: the label scale (the zoom, see TopDownMain._update_camera). Redraws the label only when the value...
+- L155 `joy_needed() -> float` - The joy this person needs to be rescued. Dimmer levels need more.
+- L160 `is_warning() -> bool` - True when a rescued person is losing joy and close to relapsing (they flicker and show "!").
+- L166 `is_faltering() -> bool` - Round 12b: a rescued person drained below MEMBER_FALTER_FRACTION of their joy needed. A border member who f...
+- L171 `chest_position() -> Vector3` - Where a joy projectile should land: a little above the feet, at chest height.
+- L176 `active_mood() -> int` - The mood that counts right now: none for rescued and dimmed people.
+- L182 `static mood_name(m: int) -> String`
+- L187 `facing_dir() -> Vector3` - The flat direction this person faces (their local forward, -Z).
+- L195 `shot_lands_now() -> bool` - Round 17: true when a shot from the player would land on this person right now (the guarded open arc, the s...
+- L201 `is_open_to(from: Vector3) -> bool` - True when joy coming from `from` (a world point) would arrive at this person's front or side: the angle bet...
+- L217 `receive_joy(element: int, amount: float, distance: float, from: Vector3 = Vector3.INF, wears_shield: bool = true) -> void` - Called when a joy projectile (or a burst) hits this person. Works on rescued people too (top-up). `from` is...
+- L255 `shield_left_frac() -> float` - Round 15: the share of this dimmed person's shield left: 1 when fresh, 0.25 after three hits, and so on.
+- L262 `wear_shield() -> bool` - Round 15: one joy landing on the person this dimmed person shelters wears the shield. On the SHELTER_HITS-t...
+- L286 `tick(delta: float) -> void` - Called every frame by topdown_main.gd: handles joy fading, level changes and visuals.
+- L319 `react(kind: int, seconds: float, toward: Vector3 = Vector3.INF, delay: float = 0.0) -> void` - Round 24: start a reaction of `kind` lasting `seconds`, after `delay` seconds. `toward` is the world point...
+- L328 `react_progress() -> float` - Round 24: how far through the reaction (0 to 1), or -1 when none is running (or it has not started yet).
+- L345 `drain_joy(amount: float) -> void` - Removes joy from a rescued person (used by nearby gloom). Relapses them if they drop too low.
+- L359 `next_wobble_seconds() -> float` - Round 24: how long the next wobble lasts: WOBBLE_SECONDS varied by +/- WOBBLE_JITTER, from the person's see...
+- L365 `wobble_progress() -> float` - 0 at the start of the wobble, 1 when it has run out (0 when not wobbling). The look greys by it.
+- L488 `set_debug_visible(on: bool) -> void` - Shows or hides the cover and protection labels above this person (the F3 debug overlay).
 
 ### scripts/prompt_bar.gd (PromptBar)
 extends Control | 3 const | Round 13b: the one-time prompt of the layered introduction (see intro.gd). A small rounded bar with an icon...
@@ -843,11 +857,11 @@ extends Node | 3 const | Round 18: the gameplay recorder. While it is on, each g
 - L76 `static save_setting_to(path: String) -> void` - Writes the menu choice into the config file at `path`, keeping whatever else that file holds.
 - L84 `static phase_for(progress: float) -> String` - The night phase name for a night progress 0..1 (the calm opening, then thirds up to dawn).
 - L95 `attach(main: TopDownMain) -> bool` - Starts a session for `main` (call at the end of its _ready). Returns false when it could not open a file.
-- L195 `is_open() -> bool`
-- L238 `note_exit(reason: String) -> void` - Marks why the level is being left (the restart and menu keys call this just before changing scene).
-- L244 `end(reason: String) -> void` - Writes session_end (once) and closes the file. `reason` is "win", "loss", "dawn", "restart", "menu", "quit" or
-- L272 `on_round_end(title: String) -> void` - The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn...
-- L291 `emit_event(type: String, fields: Dictionary = {}) -> void` - Adds one line: t, night_phase and night are filled in; `fields` are the rest. Cheap: one JSON string into a...
+- L212 `is_open() -> bool`
+- L255 `note_exit(reason: String) -> void` - Marks why the level is being left (the restart and menu keys call this just before changing scene).
+- L261 `end(reason: String) -> void` - Writes session_end (once) and closes the file. `reason` is "win", "loss", "dawn", "restart", "menu", "quit" or
+- L289 `on_round_end(title: String) -> void` - The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn...
+- L308 `emit_event(type: String, fields: Dictionary = {}) -> void` - Adds one line: t, night_phase and night are filled in; `fields` are the rest. Cheap: one JSON string into a...
 
 ### scripts/relapse_wave.gd (RelapseWave)
 extends RefCounted | 0 const | Round 24: the gate a wobbling person asks before relapsing (Person.relapse_gate). Only one person may relap...
@@ -875,18 +889,23 @@ signals: warmed(person: Person, joy: float, spirit: float)
 - L65 `static warm(p: Person, amount: float) -> float` - Tops up a rescued person's joy by up to `amount` (never past what they need) and they glow softly. Returns...
 - L79 `pour() -> float` - One gift: SPARE_WARM_RATE x SPARE_WARM_INTERVAL joy (or what the pool and the person can take) to the most...
 
+### scripts/tide_pointer.gd (TidePointer)
+extends Control | 0 const | Round 25: the gloom tide's edge pointer. A grey ring and arrow at the screen edge, pointing toward the side...
+- L19 `show_at(at: Vector2, direction: Vector2) -> void` - Shows the pointer with its tip at `at` (window pixels) and its outward direction `direction` (a unit vector).
+- L26 `hide_pointer() -> void`
+
 ### scripts/topdown_main.gd (TopDownMain)
 extends Node3D | 5 const | The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a...
 signals: beacon_placed(pos: Vector3, cost: float, spirit_after: float)
-- L278 `try_place_beacon() -> bool` - Round 19: E. See BeaconPlacement.
-- L301 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
-- L306 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
-- L334 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
-- L338 `sun_light() -> DirectionalLight3D`
-- L342 `environment() -> Environment`
-- L399 `dim_recovery_rate() -> float` - Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
-- L546 `view_half_extents() -> Vector2` - The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the v...
-- L752 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
+- L280 `try_place_beacon() -> bool` - Round 19: E. See BeaconPlacement.
+- L303 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
+- L308 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
+- L336 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
+- L340 `sun_light() -> DirectionalLight3D`
+- L344 `environment() -> Environment`
+- L401 `dim_recovery_rate() -> float` - Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
+- L548 `view_half_extents() -> Vector2` - The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the v...
+- L754 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
 
 ### scripts/topdown_player.gd (TopDownPlayer)
 extends CharacterBody3D | 0 const | The player in top-down mode. WASD moves in world space and the mouse picks an aim point on the floor. The p...
@@ -942,6 +961,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - floor_test (tests/floor_test.gd): 3 tests
 - gap_patch_test (tests/gap_patch_test.gd): 10 tests
 - gloom_sim_test (tests/gloom_sim_test.gd): 8 tests
+- gloom_tide_test (tests/gloom_tide_test.gd): 10 tests
 - grab_test (tests/grab_test.gd): 9 tests
 - grace_cue_test (tests/grace_cue_test.gd): 3 tests
 - guarded_wedge_test (tests/guarded_wedge_test.gd): 6 tests

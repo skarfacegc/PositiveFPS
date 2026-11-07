@@ -46,6 +46,7 @@ var first_light: FirstLight  # Round 24: the dawn front of the last 45 s.
 var wobble_alert: WobbleAlert  # Checkpoint 5: the edge pointers toward off-screen wobblers.
 var spirit_warmth: SpiritWarmth  # Checkpoint 5: spare spirit warms the border.
 var embrace: Embrace  # Round 25: unrescued people inside the border are lifted by those around them.
+var gloom_tide: GloomTide  # Round 25: two gloom tides a night (warning, fog edge, drain on the facing members).
 var beacon_marker: BeaconMarker  # Round 19: the beacon in the world (both looks).
 var reach_guide: ReachGuide  # Round 20: the placeholder look's reach ring, preview and tip travel.
 var landmarks: Landmarks  # Round 19: the three landmarks and their boosts.
@@ -185,6 +186,7 @@ func _ready() -> void:
 	wobble_alert = WobbleAlert.attach(self)
 	spirit_warmth = SpiritWarmth.attach(self)
 	embrace = Embrace.attach(self)
+	gloom_tide = GloomTide.attach(self)
 	hud.set_hint(HINT)
 	hud.set_targeting(player.targeting_mode)
 	player.target_changed.connect(hud.set_target)

@@ -29,7 +29,8 @@ enum Prompt {
 	PATCH_NONE,
 	PATCH_ALREADY,
 	PATCH_MAX,
-	FIRST_LIGHT  # Snag round: the notice when first light starts (first_light.gd).
+	FIRST_LIGHT,  # Snag round: the notice when first light starts (first_light.gd).
+	TIDE  # Round 25: the notice when a gloom tide is coming (gloom_tide.gd; the words name the side).
 }
 
 var enabled: bool = true
@@ -208,6 +209,8 @@ static func text_for(id: int) -> String:
 			return Config.PATCH_MAX_TEXT
 		Prompt.FIRST_LIGHT:
 			return Config.FIRST_LIGHT_TEXT
+		Prompt.TIDE:
+			return Config.TIDE_PLAIN_TEXT
 	return "You're dim — rest inside your border"
 
 
@@ -224,6 +227,8 @@ static func icon_for(id: int) -> int:
 			return MoodIcons.Kind.CLOUD
 		Prompt.SHELTERED:
 			return MoodIcons.Kind.UMBRELLA
+		Prompt.TIDE:
+			return MoodIcons.Kind.CLOUD
 		Prompt.BEACON_SPIRIT, Prompt.BEACON_BORDER, Prompt.BEACON_BLOCKED, Prompt.BEACON_FELL_BACK, Prompt.ZONE_PULLED_IN:
 			return MoodIcons.Kind.BANG
 	return MoodIcons.Kind.NONE

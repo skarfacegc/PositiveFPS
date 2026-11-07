@@ -89,6 +89,8 @@ var shooter_pos := Vector3.INF
 var joy_boost: Array[float] = [1.0, 1.0, 1.0]
 # Round 22: set by GapPatch each frame: 1 normally, Config.PATCH_DRAIN_MULT while a gap patch covers this member.
 var patch_mult: float = 1.0
+# Round 25: set by GloomTide each frame: Config.TIDE_DRAIN_MULT for a border member facing a passing tide, else 1.
+var tide_mult: float = 1.0
 # Round 22: seconds left of the calm a burst gives a cleared person: GloomSim adds no gloom to them meanwhile.
 var calm_left: float = 0.0
 var loss_mult: float = 1.0
@@ -343,7 +345,7 @@ func _tick_react(delta: float) -> void:
 func drain_joy(amount: float) -> void:
 	if not is_rescued or grace_left > 0.0 or dawn_lit:
 		return
-	joy -= amount * loss_mult * patch_mult
+	joy -= amount * loss_mult * patch_mult * tide_mult
 	if joy < joy_needed() * Config.RELAPSE_FRACTION:
 		# Round 24: not at once. A wobble comes first, long enough for a joy hit to save them.
 		joy = maxf(joy, 0.0)
