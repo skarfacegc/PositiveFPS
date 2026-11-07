@@ -20,8 +20,12 @@ mode was retired.)
   clears dimmed people off the border.
 - **Wobble, burst and first light (round 24):** a border person who is drained too far **wobbles** (greys and sways) for
   about five seconds before they relapse, and a joy hit in that time saves them. A joy burst lifts every dimmed person
-  near you, and joy wins a dimmed person back faster. In the last 45 seconds **first light** creeps in from the map edge:
-  people it has passed lift out of the gloom and stop draining, so the end of the night is a rally.
+  near you, and joy wins a dimmed person back faster. In the last 45 seconds **first light** closes in as a ring from
+  beyond the map's corners to the centre ("First light: dawn is coming in from the edges"): people it has passed lift
+  out of the gloom and stop draining, so the end of the night is a rally.
+- **Checkpoint 6 look:** notices are slim banners under the Dusk to Dawn bar, edge arrows and pointers stay clear of the
+  HUD, the styled look has its own HUD text lines and target ring, the stipple is lighter, and running is a real jog
+  (wider stride, more lean and bounce, dust at each step in the styled look).
 - **Wobble alert (checkpoint 5):** a wobbling person out of view gets a pulsing amber pointer at the screen edge (one per
   nearby cluster; it pulses faster as the wobble runs out), and each wobbler is a pulsing blip on the minimap.
 - **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered (its pips count the four hits left) · ! = faltering. The night
