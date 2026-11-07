@@ -187,10 +187,16 @@ func test_styled_first_light_lights_the_ground_the_motes_and_the_sky() -> void:
 	var sky := td.environment().background_color
 	assert_bool(sky.is_equal_approx(ViewPipeline.STYLED_BACKGROUND)).is_false()
 	assert_bool(sky.is_equal_approx(StyleFirstLight.sky_at(0.5))).is_true()
-	# The placeholder look shows its strips again and the motes go.
+	# The motes ride the round front: each one is at the front's radius or a little outside it.
+	var e := td.first_light.edge()
+	var motes: PackedVector3Array = td.first_light._styled.mote_positions()
+	assert_int(motes.size()).is_equal(td.first_light._styled.mote_count())
+	for o: Vector3 in motes:
+		assert_float(Vector2(o.x, o.z).length()).is_between(e - 0.01, e + 2.5)
+	# The placeholder look shows its ring again and the motes go.
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	td.first_light.step(0.0)
-	assert_int(td.first_light.tint_visible_count()).is_equal(4)
+	assert_int(td.first_light.tint_visible_count()).is_equal(1)
 	assert_int(td.first_light._styled.mote_count()).is_equal(0)
 	await runner.simulate_frames(2)
 	await TopDownTestUtil.leave_loaded_scene(td)

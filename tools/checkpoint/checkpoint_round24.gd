@@ -296,9 +296,9 @@ func _r24_dawn(label: String) -> void:
 	]
 	for i: int in range(spots.size()):
 		_make_dimmed(people[ring_count + 30 + i], spots[i])
-	# Early: the front is near the edge of the map, east of the player.
+	# Early: the front is a circle a little beyond the east people (the round front starts past the map's corners).
 	await _r24_move_player(Vector3(32.0, 0.0, 8.0))
-	_r24_front(0.22)
+	_r24_front(0.4)
 	await _r24_shot("dawn_early", label, {}, 20)
 	# The "First light" line (snag round: an intro notice in both looks).
 	main.intro.notice(Intro.Prompt.FIRST_LIGHT)

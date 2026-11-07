@@ -1,12 +1,13 @@
 class_name StyleFirstLight
 extends RefCounted
 
-# Graphics checkpoint 5: first light in the locked style. FirstLight (the rules and the placeholder strips)
+# Graphics checkpoint 5: first light in the locked style. FirstLight (the rules and the placeholder ring)
 # hands the front's position to this each frame in the styled look. The front is drawn by the ground itself
 # (shaders/style_ground.gdshader: `dawn_front` warms the cobbles behind the front, lays a pale line on it and
-# twinkles a few glints just behind), so it follows the true square front exactly. On top of that sit light
-# motes that rise from the lit side of the front (a MultiMesh, only the stretch near the player), and the
-# view's sky warms toward the peach of dawn as the front moves in. Pure visuals: the rules never read it.
+# twinkles a few glints just behind), so it follows the true round front exactly (checkpoint 6: a circle).
+# On top of that sit light motes that rise from the lit side of the front (a MultiMesh, only the stretch near
+# the player), and the view's sky warms toward the peach of dawn as the front moves in. Pure visuals: the rules
+# never read it.
 
 const STEP := 1.35  # Metres between two motes along the front.
 const SPAN := 24.0  # How far each side of the player the motes are laid.
@@ -15,6 +16,7 @@ const MOTE := Color("#ffe9a0")
 var root: Node3D
 var _motes: MultiMeshInstance3D
 var _multi: MultiMesh
+var _placed := PackedVector3Array()  # Where each shown mote was put this frame (the tests read it).
 
 
 # Builds the motes under `parent`.
@@ -30,8 +32,8 @@ func build(parent: Node3D) -> void:
 	_multi = MultiMesh.new()
 	_multi.transform_format = MultiMesh.TRANSFORM_3D
 	_multi.mesh = mesh
-	# Room for the longest stretch of front that can be near the player on each of the four sides.
-	_multi.instance_count = 4 * (ceili(2.0 * SPAN / STEP) + 2)
+	# Room for every mote of the whole circle (one per STEP metres of the starting circle, the most it ever lays).
+	_multi.instance_count = ceili(TAU * Config.FIRST_LIGHT_START_RADIUS / STEP) + 4
 	_multi.visible_instance_count = 0
 	_motes = MultiMeshInstance3D.new()
 	_motes.multimesh = _multi
@@ -43,6 +45,12 @@ func build(parent: Node3D) -> void:
 
 func hide() -> void:
 	_multi.visible_instance_count = 0
+	_placed.clear()
+
+
+# The mote positions laid by the last sync (for the tests).
+func mote_positions() -> PackedVector3Array:
+	return _placed
 
 
 # The number of motes showing (the tests read it).
@@ -50,30 +58,39 @@ func mote_count() -> int:
 	return _multi.visible_instance_count
 
 
-# One frame: `edge` is the front's half size (metres), `progress` 0..1 through first light, `focus` where the player is
+# One frame: `edge` is the front's radius (metres), `progress` 0..1 through first light, `focus` where the player is
 # and `seconds` a clock. Lays the motes along the front near the focus.
 func sync(edge: float, focus: Vector3, seconds: float) -> void:
 	var n := 0
-	for side: int in range(4):
-		var horizontal := side < 2
-		var sgn := -1.0 if side % 2 == 0 else 1.0
-		var along_focus := focus.x if horizontal else focus.z
-		var lo := maxf(-edge, along_focus - SPAN)
-		var hi := minf(edge, along_focus + SPAN)
-		var k0 := ceili(lo / STEP)
-		var k1 := floori(hi / STEP)
+	_placed.clear()
+	if edge > 0.5:
+		# The motes sit at fixed angles (one per STEP metres of the starting circle) so they do not slide as the front
+		# closes; each has a threshold and drops out as the circle shrinks, which keeps the spacing near STEP.
+		var dtheta := STEP / Config.FIRST_LIGHT_START_RADIUS
+		var total := ceili(TAU / dtheta)
+		var around := atan2(focus.z, focus.x)
+		var span := minf(PI, SPAN / edge)
+		var k0 := floori((around - span) / dtheta)
+		var k1 := ceili((around + span) / dtheta)
+		if span >= PI:
+			k0 = 0
+			k1 = total - 1
 		for k: int in range(k0, k1 + 1):
-			var h1 := _hash(k + side * 977)
-			var h2 := _hash(k * 7 + side * 131 + 5)
-			var along := float(k) * STEP + (h1 - 0.5) * STEP
-			var out_by := h2 * 2.4
-			var fixed := sgn * (edge + out_by)
+			var h1 := _hash(k)
+			var h2 := _hash(k * 7 + 5)
+			if _hash(k * 3 + 1) > edge / Config.FIRST_LIGHT_START_RADIUS + 0.15:
+				continue
+			var a := (float(k) + h1 - 0.5) * dtheta
+			var r := edge + h2 * 2.4
 			var rise := fposmod(seconds * (0.22 + 0.25 * h1) + h2, 1.0)
 			var y := 0.25 + rise * 2.4
 			var size := 1.0 - rise * 0.75
-			var pos := Vector3(along, y, fixed) if horizontal else Vector3(fixed, y, along)
+			var pos := Vector3(cos(a) * r, y, sin(a) * r)
 			_multi.set_instance_transform(n, Transform3D(Basis.from_scale(Vector3.ONE * size), pos))
+			_placed.append(pos)
 			n += 1
+			if n >= _multi.instance_count:
+				break
 	_multi.visible_instance_count = n
 
 

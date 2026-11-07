@@ -370,7 +370,7 @@ func _render() -> void:
 			if _in_circle(Vector2(px + 0.5, py + 0.5)):
 				var w := _to_world(Vector2(px + 0.5, py + 0.5))
 				var col := _ground_colour(w, px, py)
-				if first_light_edge >= 0.0 and maxf(absf(w.x), absf(w.y)) >= first_light_edge:
+				if first_light_edge >= 0.0 and w.length() >= first_light_edge:
 					col = look.first_light("ground", col, px, py)
 				# Round 20: the people clouds sit on the ground, under the buildings and every marker.
 				if clouds_on and _cloud_alpha[py * RESOLUTION + px] > 0.0:
@@ -442,23 +442,24 @@ func _render() -> void:
 	_texture.update(_image)
 
 
-# Round 24: the dawn front, a warm square outline two pixels thick.
+# Round 24: the dawn front, a warm round outline two pixels thick (a circle since checkpoint 6).
 func _first_light_line() -> void:
 	var e := first_light_edge
 	var px_metres := float(Config.TD_PLAZA_SIZE) / float(RESOLUTION)
 	var ink := look.first_light("ink", Color.WHITE, 0, 0)
 	if ink.a > 0.0:  # Graphics checkpoint 5: a dark line just ahead of the front (the styled look).
-		var ahead := maxf(0.0, e - px_metres * 2.0)
-		var ring := PackedVector2Array(
-			[Vector2(-ahead, -ahead), Vector2(ahead, -ahead), Vector2(ahead, ahead), Vector2(-ahead, ahead)]
-		)
-		for j: int in range(4):
-			_line(ring[j], ring[(j + 1) % 4], ink)
+		_round_line(maxf(0.0, e - px_metres * 2.0), ink)
 	for k: int in range(2):
-		var h := maxf(0.0, e - px_metres * float(k))
-		var corners := PackedVector2Array([Vector2(-h, -h), Vector2(h, -h), Vector2(h, h), Vector2(-h, h)])
-		for j: int in range(4):
-			_line(corners[j], corners[(j + 1) % 4], look.first_light("line", Color.WHITE, 0, 0))
+		_round_line(maxf(0.0, e - px_metres * float(k)), look.first_light("line", Color.WHITE, 0, 0))
+
+
+# A circle of `radius` metres about the centre, drawn as short straight pieces.
+func _round_line(radius: float, col: Color) -> void:
+	var segs := Config.FIRST_LIGHT_RING_SEGMENTS
+	for j: int in range(segs):
+		var a0 := TAU * float(j) / float(segs)
+		var a1 := TAU * float(j + 1) / float(segs)
+		_line(Vector2(cos(a0), sin(a0)) * radius, Vector2(cos(a1), sin(a1)) * radius, col)
 
 
 # A stretch of the loop sealed by the map edge (round 16): the look's seal colour, `seal_width()` pixels thick (the

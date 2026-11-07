@@ -398,6 +398,12 @@ const WOBBLE_ALERT_SAFE_INSET := 8.0  # Pixels between the safe rectangle and th
 const WOBBLE_ALERT_PANEL_GAP := 6.0  # Pixels a pointer keeps from a HUD panel.
 const WOBBLE_ALERT_REACH := 34.0  # Pixels from a tip to the furthest part of its pointer (ring, arrow and count).
 
+# ---- Checkpoint 6: first light ring (scripts/first_light.gd, looks/style_first_light.gd, minimap.gd). ----
+# The dawn front is a circle closing on the plaza centre. It starts at the radius of the plaza's corners (so it covers
+# the whole play area) and reaches 0 at dawn; a person is passed once the front's radius is at or inside their distance.
+const FIRST_LIGHT_START_RADIUS := 71.0  # Metres: just over half the plaza's diagonal (50 x 1.414 = 70.7).
+const FIRST_LIGHT_RING_SEGMENTS := 72  # Straight pieces in the placeholder ring and in the minimap outline.
+
 static var intro_override: int = -1
 
 # The matchups form a soft cycle:
