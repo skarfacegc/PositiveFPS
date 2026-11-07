@@ -45,7 +45,10 @@ dimmed.
 Tools: view file lines with the Read tool (offset/limit), never shell loops, sed, head/tail or pipes; create and edit
 files only with Read/Edit/Write, never shell scripts or heredocs; run shell commands as plain single commands from your
 own worktree, and read their logs with the Read tool at the printed path. (The worktree guard refuses compound commands
-it can't check, and every agent in checkpoint 5 tripped it this way.)
+it can't check, and every agent in checkpoint 5 tripped it this way.) Run test suites and commits in the foreground (give
+them a long timeout); never start background "wait", "sleep" or echo-marker commands to poll for something. (Round 25
+agents launched dozens of these, and they filled the user's task panel with killed and failed entries.) Send exactly one
+hand-back, when finished.
 
 EVERY GODOT RUN MUST END ITSELF. Give every scripted Godot run a timeout and a log, with
 `python tools/godot_run.py --timeout <seconds> -- <command>` (it ends only the process tree it started and prints the
