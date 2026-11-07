@@ -148,12 +148,12 @@ extends RefCounted | 0 const | Round 22: the joy burst's job is to clear dimmed 
 - L41 `static run(people: Array[Person], at: Vector3, border: Border) -> Dictionary` - Uses the burst at `at`. Returns a report: {"cleared": Array of {"person", "from", "to"} (position before an...
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 217 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L410 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L417 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L426 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L436 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L447 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 219 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L416 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L423 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L432 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L442 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L453 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -191,13 +191,13 @@ extends Control | 0 const | Round 13b: the communication layer. Everything here 
 - L508 `static canopy_shown() -> bool` - Round 18: a small canopy over each sheltered person's head (placeholder look; the umbrella icon sits under...
 
 ### scripts/first_light.gd (FirstLight)
-extends Node3D | 0 const | Round 24: first light. Over the last Config.FIRST_LIGHT_SECONDS of the night a front of dawn starts at the...
+extends Node3D | 0 const | Round 24: first light. Over the last Config.FIRST_LIGHT_SECONDS of the night a front of dawn starts where i...
 - L29 `static attach(level: TopDownMain) -> FirstLight` - Builds the node under `level` and returns it. (The only wiring TopDownMain needs.)
-- L49 `edge() -> float` - Half size (metres) of the square the front has reached: the plaza edge at the start, 0 at dawn.
-- L54 `has_passed(pos: Vector3) -> bool` - True when the front has passed `pos` (its square distance from the centre is at least the front's).
+- L49 `edge() -> float` - Radius (metres) of the circle the front has reached: FIRST_LIGHT_START_RADIUS at the start, 0 at dawn.
+- L54 `has_passed(pos: Vector3) -> bool` - True when the front has passed `pos` (its round distance from the centre is at least the front's radius).
 - L59 `step(delta: float) -> void` - One frame. Nothing happens before the last FIRST_LIGHT_SECONDS of the night.
 - L100 `finish() -> void` - The front has reached the centre: writes how many people it lifted (once).
-- L186 `tint_visible_count() -> int` - For tests and the recorder: how many strips of the tint are showing.
+- L187 `tint_visible_count() -> int` - For tests and the recorder: how many rings of the tint are showing (0 or 1).
 
 ### scripts/floor_effects.gd (FloorEffects)
 extends RefCounted | 4 const | The floor overlay registry (round 10). Every transient floor effect (sound rings, paint splats, splash ring...
@@ -586,12 +586,13 @@ extends RefCounted | 9 const | Graphics checkpoint 5: the styled pieces that rea
 - L90 `static meshes_under(root: Node, skip: Node = null) -> Array[MeshInstance3D]` - Every MeshInstance3D under `root` that is not under `skip` (a null skip skips nothing).
 
 ### scripts/looks/style_first_light.gd (StyleFirstLight)
-extends RefCounted | 3 const | Graphics checkpoint 5: first light in the locked style. FirstLight (the rules and the placeholder strips)
-- L21 `build(parent: Node3D) -> void` - Builds the motes under `parent`.
-- L44 `hide() -> void`
-- L49 `mote_count() -> int` - The number of motes showing (the tests read it).
-- L55 `sync(edge: float, focus: Vector3, seconds: float) -> void` - One frame: `edge` is the front's half size (metres), `progress` 0..1 through first light, `focus` where the...
-- L81 `static sky_at(progress: float) -> Color` - The sky the styled view shows when first light is `progress` of the way in (STYLED_BACKGROUND at the start).
+extends RefCounted | 3 const | Graphics checkpoint 5: first light in the locked style. FirstLight (the rules and the placeholder ring)
+- L23 `build(parent: Node3D) -> void` - Builds the motes under `parent`.
+- L46 `hide() -> void`
+- L52 `mote_positions() -> PackedVector3Array` - The mote positions laid by the last sync (for the tests).
+- L57 `mote_count() -> int` - The number of motes showing (the tests read it).
+- L63 `sync(edge: float, focus: Vector3, seconds: float) -> void` - One frame: `edge` is the front's radius (metres), `progress` 0..1 through first light, `focus` where the pl...
+- L98 `static sky_at(progress: float) -> Color` - The sky the styled view shows when first light is `progress` of the way in (STYLED_BACKGROUND at the start).
 
 ### scripts/looks/style_glyphs.gd (StyleGlyphs)
 extends RefCounted | 9 const | Graphics checkpoint 3: the pixel bitmaps of the round 19 screens (the dawn lights, the three landmarks, the...
@@ -899,7 +900,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - dimmed_waves_test (tests/dimmed_waves_test.gd): 18 tests
 - edge_pressure_test (tests/edge_pressure_test.gd): 11 tests
 - feedback_test (tests/feedback_test.gd): 16 tests
-- first_light_test (tests/first_light_test.gd): 15 tests
+- first_light_test (tests/first_light_test.gd): 16 tests
 - floor_test (tests/floor_test.gd): 3 tests
 - gap_patch_test (tests/gap_patch_test.gd): 10 tests
 - gloom_sim_test (tests/gloom_sim_test.gd): 8 tests

@@ -1,9 +1,9 @@
 class_name FirstLight
 extends Node3D
 
-# Round 24: first light. Over the last Config.FIRST_LIGHT_SECONDS of the night a front of dawn starts at the map edge
-# and moves inward (a square, like the plaza), reaching the centre at dawn. A person is "passed" once the front is at or
-# inside their square distance from the centre. For everyone passed:
+# Round 24: first light. Over the last Config.FIRST_LIGHT_SECONDS of the night a front of dawn starts where it covers
+# the whole play area and moves inward as a circle (checkpoint 6; it was a square), reaching the centre at dawn. A
+# person is "passed" once the front's radius is at or inside their distance from the centre. For everyone passed:
 #  - unrescued people lose Config.FIRST_LIGHT_LIFT_RATE gloom a second (dimmed to gloomy to wistful) and are calm, so
 #    nobody sinks behind the front;
 #  - rescued people no longer drain joy (Person.dawn_lit, honoured by Person.drain_joy).
@@ -20,8 +20,8 @@ var finished: bool = false
 var people_lifted: int = 0
 var stages_lifted: int = 0
 var _lifted: Dictionary = {}
-var _tint: Array[MeshInstance3D] = []
-var _band: Array[MeshInstance3D] = []
+var _tint: MeshInstance3D  # Placeholder look: the lit ground outside the front (a flat ring).
+var _band: MeshInstance3D  # Placeholder look: a warm band just inside the front.
 var _styled: StyleFirstLight  # Graphics checkpoint 5: built the first time the styled look is on.
 
 
@@ -36,8 +36,8 @@ static func attach(level: TopDownMain) -> FirstLight:
 
 
 func _build() -> void:
-	_tint = _make_strips(Config.FIRST_LIGHT_TINT)
-	_band = _make_strips(Config.FIRST_LIGHT_BAND_COLOUR)
+	_tint = _make_ring(Config.FIRST_LIGHT_TINT)
+	_band = _make_ring(Config.FIRST_LIGHT_BAND_COLOUR)
 
 
 func _process(delta: float) -> void:
@@ -45,14 +45,14 @@ func _process(delta: float) -> void:
 		step(delta)
 
 
-# Half size (metres) of the square the front has reached: the plaza edge at the start, 0 at dawn.
+# Radius (metres) of the circle the front has reached: FIRST_LIGHT_START_RADIUS at the start, 0 at dawn.
 func edge() -> float:
-	return Config.TD_PLAZA_SIZE * 0.5 * (1.0 - main.night.first_light_progress())
+	return Config.FIRST_LIGHT_START_RADIUS * (1.0 - main.night.first_light_progress())
 
 
-# True when the front has passed `pos` (its square distance from the centre is at least the front's).
+# True when the front has passed `pos` (its round distance from the centre is at least the front's radius).
 func has_passed(pos: Vector3) -> bool:
-	return started and maxf(absf(pos.x), absf(pos.z)) >= edge()
+	return started and Vector2(pos.x, pos.z).length() >= edge()
 
 
 # One frame. Nothing happens before the last FIRST_LIGHT_SECONDS of the night.
@@ -115,19 +115,18 @@ func _emit(type: String, fields: Dictionary) -> void:
 # The tint and band follow the front (the start notice is Intro's, not this).
 func _sync_look() -> void:
 	var styled := Looks.is_styled()
-	var half := Config.TD_PLAZA_SIZE * 0.5
 	var e := edge()
 	if styled:
 		# Graphics checkpoint 5: the ground carries the front (warm wash, a line and glints), light motes ride it and the
-		# sky warms; the placeholder strips are hidden.
-		_set_frame(_tint, 0.0, 0.0)
-		_set_frame(_band, 0.0, 0.0)
+		# sky warms; the placeholder rings are hidden.
+		_set_ring(_tint, 0.0, 0.0)
+		_set_ring(_band, 0.0, 0.0)
 		_sync_styled(e)
 		return
 	if _styled != null:
 		_styled.hide()
-	_set_frame(_tint, e, half)
-	_set_frame(_band, maxf(0.0, e - Config.FIRST_LIGHT_BAND_WIDTH), e)
+	_set_ring(_tint, e, Config.FIRST_LIGHT_START_RADIUS)
+	_set_ring(_band, maxf(0.0, e - Config.FIRST_LIGHT_BAND_WIDTH), e)
 
 
 # The styled front: the ground shader's front, the motes near the player, and the sky.
@@ -142,50 +141,48 @@ func _sync_styled(e: float) -> void:
 	main.environment().background_color = StyleFirstLight.sky_at(main.night.first_light_progress())
 
 
-# Four ground strips make a square frame from half size `inner` out to `outer`.
-func _set_frame(strips: Array[MeshInstance3D], inner: float, outer: float) -> void:
-	var width := outer - inner
-	var show := width > 0.01
-	for s: MeshInstance3D in strips:
-		s.visible = show
+# A flat ring of ground from radius `inner` out to `outer` (shown only when it is wide enough to see).
+func _set_ring(ring: MeshInstance3D, inner: float, outer: float) -> void:
+	var show := outer - inner > 0.01
+	ring.visible = show
 	if not show:
 		return
-	var mid := (inner + outer) * 0.5
-	_place(strips[0], Vector3(0.0, 0.0, -mid), Vector2(outer * 2.0, width))
-	_place(strips[1], Vector3(0.0, 0.0, mid), Vector2(outer * 2.0, width))
-	_place(strips[2], Vector3(-mid, 0.0, 0.0), Vector2(width, inner * 2.0))
-	_place(strips[3], Vector3(mid, 0.0, 0.0), Vector2(width, inner * 2.0))
+	var segs := Config.FIRST_LIGHT_RING_SEGMENTS
+	var verts := PackedVector3Array()
+	var idx := PackedInt32Array()
+	for i: int in range(segs):
+		var a := TAU * float(i) / float(segs)
+		var dir := Vector3(cos(a), 0.0, sin(a))
+		verts.append(dir * inner)
+		verts.append(dir * outer)
+		var j := (i + 1) % segs
+		idx.append_array([2 * i, 2 * i + 1, 2 * j, 2 * i + 1, 2 * j + 1, 2 * j])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_INDEX] = idx
+	var mesh := ring.mesh as ArrayMesh
+	mesh.clear_surfaces()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
 
-func _place(s: MeshInstance3D, at: Vector3, size_xz: Vector2) -> void:
-	s.position = Vector3(at.x, Config.FIRST_LIGHT_Y, at.z)
-	s.scale = Vector3(maxf(size_xz.x, 0.001), 1.0, maxf(size_xz.y, 0.001))
-
-
-func _make_strips(col: Color) -> Array[MeshInstance3D]:
-	var out: Array[MeshInstance3D] = []
+func _make_ring(col: Color) -> MeshInstance3D:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.albedo_color = col
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var quad := PlaneMesh.new()
-	quad.size = Vector2.ONE
-	for i: int in range(4):
-		var m := MeshInstance3D.new()
-		m.mesh = quad
-		m.material_override = mat
-		m.visible = false
-		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(m)
-		out.append(m)
-	return out
+	var m := MeshInstance3D.new()
+	m.mesh = ArrayMesh.new()
+	m.material_override = mat
+	m.position = Vector3(0.0, Config.FIRST_LIGHT_Y, 0.0)
+	m.visible = false
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	m.extra_cull_margin = 200.0
+	add_child(m)
+	return m
 
 
-# For tests and the recorder: how many strips of the tint are showing.
+# For tests and the recorder: how many rings of the tint are showing (0 or 1).
 func tint_visible_count() -> int:
-	var n := 0
-	for s: MeshInstance3D in _tint:
-		if s.visible:
-			n += 1
-	return n
+	return 1 if _tint.visible else 0

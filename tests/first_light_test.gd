@@ -1,8 +1,8 @@
 extends GdUnitTestSuite
 
-# Round 24: first light. Over the last FIRST_LIGHT_SECONDS of the night a front of dawn moves in from the map edge and
-# lifts gloom behind it: pure rules (NightCycle, the front), the lift, the calm, the joy drain, the look, the minimap
-# and the recorder events.
+# Round 24: first light. Over the last FIRST_LIGHT_SECONDS of the night a front of dawn (a circle since checkpoint 6)
+# moves in from beyond the map edge and lifts gloom behind it: pure rules (NightCycle, the front), the lift, the calm,
+# the joy drain, the look, the minimap and the recorder events.
 
 var _base: String = ""
 
@@ -96,28 +96,44 @@ func test_first_light_progress_is_zero_until_the_last_45_seconds_then_rises_to_o
 # --- The front ---------------------------------------------------------------------------------------------------
 
 
-func test_the_front_starts_at_the_map_edge_and_reaches_the_centre_at_dawn() -> void:
+func test_the_front_starts_covering_the_whole_play_area_and_reaches_the_centre_at_dawn() -> void:
 	var s: Dictionary = await _level(_start_of_light())
 	var td: TopDownMain = s["td"]
-	var half := Config.TD_PLAZA_SIZE * 0.5
-	assert_float(td.first_light.edge()).is_equal_approx(half, 0.01)
+	var start := Config.FIRST_LIGHT_START_RADIUS
+	assert_float(td.first_light.edge()).is_equal_approx(start, 0.01)
+	# The plaza's corner is the furthest point of the play area, and the start radius reaches it.
+	var corner := Config.TD_PLAZA_SIZE * 0.5 * sqrt(2.0)
+	assert_float(start).is_greater_equal(corner)
 	td.night.elapsed = _start_of_light() + Config.FIRST_LIGHT_SECONDS * 0.5
-	assert_float(td.first_light.edge()).is_equal_approx(half * 0.5, 0.01)
+	assert_float(td.first_light.edge()).is_equal_approx(start * 0.5, 0.01)
 	td.night.elapsed = Config.NIGHT_LENGTH
 	assert_float(td.first_light.edge()).is_equal_approx(0.0, 0.01)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_a_person_is_passed_once_the_front_is_at_or_inside_their_square_distance() -> void:
+func test_a_person_is_passed_once_the_front_is_at_or_inside_their_round_distance() -> void:
 	var s: Dictionary = await _level(_start_of_light() + Config.FIRST_LIGHT_SECONDS * 0.5)
 	var td: TopDownMain = s["td"]
 	td.first_light.started = true
 	var e := td.first_light.edge()
 	assert_bool(td.first_light.has_passed(Vector3(e + 1.0, 0.0, 0.0))).is_true()
 	assert_bool(td.first_light.has_passed(Vector3(0.0, 0.0, -(e + 1.0)))).is_true()
-	# The square distance counts: a point whose larger coordinate is inside the front is not passed.
-	assert_bool(td.first_light.has_passed(Vector3(e - 1.0, 0.0, e - 1.0))).is_false()
 	assert_bool(td.first_light.has_passed(Vector3.ZERO)).is_false()
+	# The round distance counts, whatever the direction: just inside is not passed and just outside is, on the axes and
+	# on the diagonals alike (the old square front passed the diagonal point much sooner).
+	for deg: float in [0.0, 30.0, 45.0, 90.0, 135.0, 200.0, 315.0]:
+		var dir := Vector3(cos(deg_to_rad(deg)), 0.0, sin(deg_to_rad(deg)))
+		assert_bool(td.first_light.has_passed(dir * (e - 0.5))).is_false()
+		assert_bool(td.first_light.has_passed(dir * (e + 0.5))).is_true()
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_front_reaches_the_centre_at_dawn_so_everyone_is_passed() -> void:
+	var s: Dictionary = await _level(Config.NIGHT_LENGTH)
+	var td: TopDownMain = s["td"]
+	td.first_light.started = true
+	assert_bool(td.first_light.has_passed(Vector3(0.0, 0.0, 0.0))).is_true()
+	assert_bool(td.first_light.has_passed(Vector3(0.1, 0.0, -0.1))).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -160,7 +176,7 @@ func test_dimmed_lifts_to_gloomy_and_then_to_wistful() -> void:
 	var s: Dictionary = await _level(_start_of_light() + 10.0)
 	var td: TopDownMain = s["td"]
 	var p: Person = td.people[0]
-	TopDownTestUtil.place(p, Vector3(48.0, 0.0, 0.0), p.affinity, 0.69)
+	TopDownTestUtil.place(p, Vector3(40.0, 0.0, 40.0), p.affinity, 0.69)
 	assert_int(Config.gloom_level(p.gloom)).is_equal(2)
 	for i: int in range(20):
 		td.first_light.step(0.5)
@@ -219,7 +235,7 @@ func test_the_front_does_not_touch_rescued_gloom_or_unrescued_joy() -> void:
 	var p: Person = td.people[0]
 	p.is_rescued = true
 	p.gloom = 0.0
-	p.global_position = Vector3(48.0, 0.0, 0.0)
+	p.global_position = Vector3(40.0, 0.0, 40.0)
 	td.first_light.step(1.0)
 	assert_float(p.gloom).is_equal(0.0)
 	assert_int(td.first_light.people_lifted).is_equal(0)
@@ -234,7 +250,7 @@ func test_in_the_level_a_dimmed_person_at_the_edge_is_lifted_over_real_frames() 
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	var p: Person = td.people[0]
-	TopDownTestUtil.place(p, Vector3(47.0, 0.0, 0.0), p.affinity, 0.9)
+	TopDownTestUtil.place(p, Vector3(40.0, 0.0, 40.0), p.affinity, 0.9)
 	await runner.simulate_frames(120)
 	assert_bool(td.first_light.started).is_true()
 	assert_float(p.gloom).is_less(0.9)
@@ -262,18 +278,18 @@ func test_a_first_light_notice_shows_when_it_begins_and_goes_away() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_ground_tint_shrinks_inward_and_is_gone_at_dawn() -> void:
+func test_the_ground_ring_closes_inward_and_covers_everything_at_dawn() -> void:
 	var s: Dictionary = await _level(_start_of_light() + 10.0)
 	var td: TopDownMain = s["td"]
 	td.first_light.step(0.1)
-	assert_int(td.first_light.tint_visible_count()).is_equal(4)
+	assert_int(td.first_light.tint_visible_count()).is_equal(1)
 	td.night.elapsed = Config.NIGHT_LENGTH
 	td.first_light.step(0.1)
-	# At dawn the front is at the centre: the whole ground is lit, a frame of half size 0 to the plaza edge.
-	assert_int(td.first_light.tint_visible_count()).is_equal(4)
+	# At dawn the front is at the centre: the whole ground is lit, a ring from radius 0 out to the start radius.
+	assert_int(td.first_light.tint_visible_count()).is_equal(1)
 	td.night.elapsed = _start_of_light() + 0.0
 	td.first_light.step(0.1)
-	# At the very start the front is at the plaza edge, so there is no lit ground yet.
+	# At the very start the front covers the whole play area, so there is no lit ground yet.
 	assert_int(td.first_light.tint_visible_count()).is_equal(0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -311,7 +327,7 @@ func test_the_recorder_gets_a_start_event_and_an_end_event_with_the_lifted_count
 	var s: Dictionary = await _level(_start_of_light() - 1.0, true)
 	var td: TopDownMain = s["td"]
 	var p: Person = td.people[0]
-	TopDownTestUtil.place(p, Vector3(48.0, 0.0, 0.0), p.affinity, 0.69)
+	TopDownTestUtil.place(p, Vector3(40.0, 0.0, 40.0), p.affinity, 0.69)
 	td.night.elapsed = _start_of_light()
 	td.first_light.step(0.1)
 	assert_int(_of_type(_events(td), "first_light_start").size()).is_equal(1)
