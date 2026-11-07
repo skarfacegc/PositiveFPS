@@ -96,25 +96,14 @@ func _spread(b: Border) -> float:
 # (a) After a heavy one-sided push the centre does not follow the bump: over the 20 s after the last push it stays
 # within
 # DRIFT_BOUND of where it was. (Before round 18 it crept 0.5 m/s toward the pushed side, 10 m in 20 s.)
-func test_the_loop_does_not_creep_toward_the_pushed_side() -> void:
-	var s: Dictionary = await _pushed(SHOVES, 0.0)
-	var runner: GdUnitSceneRunner = s["runner"]
-	var td: TopDownMain = s["td"]
-	await runner.simulate_frames(60 * 6)
-	var c0 := td.border.centre
-	var worst := 0.0
-	for f: int in range(20):
-		await runner.simulate_frames(60)
-		worst = maxf(worst, GloomSim.flat_dist(td.border.centre, c0))
-	print("PROBE drift20=%.2f" % worst)
-	assert_float(worst).is_less(DRIFT_BOUND)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
+#
 # (b) After a heavy push the members stop walking within SETTLE_SECONDS, and they ease in: nobody reverses direction
 # more
 # than MAX_REVERSALS times over two seconds (an overshoot of a moving slot would show up here).
-func test_the_loop_settles_quickly_after_a_push_and_members_ease_in() -> void:
+#
+# Merged round 25 (one push, one run): covers (a) and (b). (b) watches frame by frame over the first 12 s after the
+# last push; (a) takes the centre at 6 s and then every second to 26 s, the same samples as when it ran on its own.
+func test_the_loop_does_not_creep_toward_the_pushed_side_and_settles_quickly_with_members_easing_in() -> void:
 	var s: Dictionary = await _pushed(SHOVES, 0.0)
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -122,6 +111,8 @@ func test_the_loop_settles_quickly_after_a_push_and_members_ease_in() -> void:
 	var quiet := 0
 	var settled := -1.0
 	var closest := INF
+	var c0 := Vector3.ZERO
+	var worst := 0.0
 	for f: int in range(60 * 12):
 		await runner.simulate_frames(1)
 		if f % 4 == 0:
@@ -136,7 +127,17 @@ func test_the_loop_settles_quickly_after_a_push_and_members_ease_in() -> void:
 			quiet = 0
 		if quiet == 60 and settled < 0.0:
 			settled = float(f - 60) / 60.0
+		# (a): the centre as it stood 6 s after the last push, then its drift at each whole second after that.
+		if f == 60 * 6 - 1:
+			c0 = td.border.centre
+		elif f > 60 * 6 and (f + 1) % 60 == 0:
+			worst = maxf(worst, GloomSim.flat_dist(td.border.centre, c0))
+	for k: int in range(14):
+		await runner.simulate_frames(60)
+		worst = maxf(worst, GloomSim.flat_dist(td.border.centre, c0))
+	print("PROBE drift20=%.2f" % worst)
 	print("PROBE settled=%.1f closest=%.2f spacing=%.1f" % [settled, closest, td.border.spacing])
+	assert_float(worst).is_less(DRIFT_BOUND)
 	assert_float(settled).is_greater_equal(0.0)
 	assert_float(settled).is_less_equal(SETTLE_SECONDS)
 	assert_float(closest).is_greater_equal(APART_FRACTION * Config.BORDER_TARGET_SPACING)
