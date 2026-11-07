@@ -217,5 +217,12 @@ Replaces Parts U and V above. Both looks get the mechanics; visuals in the place
 - **Difficulty:** the push model should make the game harder than now (the user finds it too easy); midnight and tides
   are where the line should really bend and sometimes break.
 - Embrace unchanged; watch whether it gets noticed.
+- **Requirement: faster crowd movement.** Profiling (2026-11-07, test-speed work) found `CrowdMovement.update_people`
+  the largest per-frame cost when people wander (3.6 ms of 6.5 ms per headless frame): `_separation` checks every
+  person against every other and calls `people.find(p)` each time. While the push model rewrites this area, replace
+  that with a spatial grid (or similar) and a cached index. Results must stay the same for the same inputs (the
+  determinism check depends on it): add a test comparing old and new separation on a fixed crowd, and report the
+  per-frame time before and after. Also profile `Border.update` (2 to 3 ms per frame with 20 to 30 members) once
+  the push model is in, and report what dominates (fix it only if it is simple and keeps results the same).
 - Open questions for the build agent to report, not decide alone: how a break is mended (rescue the spillers, joy the
   broken ends, or both) and whether the recorder/analyser keep "gap" event names or move to "break".
