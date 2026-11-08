@@ -66,7 +66,7 @@ placeholder, `tide_pointer` still is.
 - Open question: should the recorder rename `gap_open` / `gap_close` to `break_*`? (#23)
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
-- 0.3.2 Prop styling (Ready, plan below): lamp styling (#49), bench styling (#50), bunting wires lower than the player
+- 0.3.2 Prop styling (In progress since 2026-11-08, plan below): lamp styling (#49), bench styling (#50), bunting wires lower than the player
   (#42). The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
 
 **Watch in the next playtest** (no issue: questions for the interview, not work):
@@ -81,7 +81,7 @@ placeholder, `tide_pointer` still is.
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** 0.3.2 Prop styling (#42, #49, #50; plan below, look direction agreed). Then 0.4 Tug of war
+**Next:** 0.3.2 Prop styling (#42, #49, #50; plan below, look direction agreed), being built. Then 0.4 Tug of war
 (plan below, and on the board).
 0.3 Living town is done (2026-11-07) and 0.3.1 Living town fixes is done (2026-11-08, playtest 4 below), both internal
 only: no release.
