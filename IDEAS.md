@@ -7,7 +7,7 @@ at its top, plus the map from old round numbers to versions). This file keeps th
 the current targets' plans. To find code use `SOURCE_MAP.md`
 (`python tools/source_map.py`); for where things live and how to brief an agent use `ARCHITECTURE.md`.
 
-## Current state (as of 2026-11-07, after round 26 and graphics checkpoint 7)
+## Current state (as of 2026-11-08, after round 26, graphics checkpoint 7 and 0.3.1 Living town fixes)
 
 **What the game is.** A gentle top-down territory game in Godot 4.7 (GDScript, strict typing). Dimmed people slowly take
 over a plaza; the player rescues them with joy, and the rescued form a living border that holds the gloom back and paints
@@ -51,7 +51,9 @@ the styled look changes only in graphics checkpoints (latest: checkpoint 7: livi
 gloom mist, styled push and HUD, no direction line, dithering removed from the styled look, and the look chosen by context:
 `--look=styled|placeholder`, exported builds start styled). Still placeholder in styled mode: the REC and F3 labels, and
 (per the checkpoint 7 shots) the push fog's `tide_fog` and `tide_pointer` pieces; the styled HUD text uses the fallback
-font, not a pixel font (#26).
+font, not a pixel font (#26). 0.3.1 (built, awaiting its playtest) changed the push fog to a storm cloud band, raised the
+mist and the ground life, props and ambient life for play zoom, and strung bunting from posts; `tide_fog` is no longer a
+placeholder, `tide_pointer` still is.
 
 **Open items** (each checked against the code on 2026-11-07):
 - Gap arrows now sit at the edge of the safe band, so a gap straight north shows its arrow part way down the screen. (#24)
@@ -64,8 +66,9 @@ font, not a pixel font (#26).
 - Open question: should the recorder rename `gap_open` / `gap_close` to `break_*`? (#23)
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
-- Living town leftovers: planned as 0.3.1 Living town fixes (#37, #39 to #42, plan below). The gold inner ring (#38)
-  was not raised again in the checkpoint 7 playtest; it stays in Backlog to confirm at the 0.3.1 playtest.
+- Living town leftovers: built as 0.3.1 Living town fixes (#37, #39 to #43, "built" section below), In review until the
+  playtest. Lamps and benches are still small next to the stalls. The gold inner ring (#38) was not raised again in the
+  checkpoint 7 playtest; it stays in Backlog to confirm at the 0.3.1 playtest.
 
 **Watch in the next playtest** (no issue: questions for the interview, not work):
 - Checkpoint 6's notice banner under the night bar and the styled target ring have no full-frame screenshot yet.
@@ -79,7 +82,7 @@ font, not a pixel font (#26).
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** 0.3.1 Living town fixes (#37, #39 to #42, plan below), then 0.4 Tug of war (plan below, and on the board).
+**Next:** playtest 0.3.1 Living town fixes (built 2026-11-08, #37, #39 to #43), then 0.4 Tug of war (plan below, and on the board).
 0.3 Living town is done (2026-11-07), internal only: no release.
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
@@ -88,7 +91,8 @@ font, not a pixel font (#26).
 frame, identical results. `Border.update` is 1.5 ms at 28 members (slot assignment 0.8, polygon 0.36, buildings 0.15,
 push 0.07); not changed, since the cheap fixes would not keep the results identical.
 
-**Push status.** `origin/main` is `fc2a37c` (0.3 Living town and the board docs, pushed 2026-11-07). The last release is
+**Push status.** `origin/main` is `fc2a37c` (0.3 Living town and the board docs, pushed 2026-11-07); local `main` is
+ahead by the 0.3.1 commits (not pushed). The last release is
 `pre-alpha-2` (`da0dfb2`, round 26); 0.3 is internal, not released. Nothing is pushed until the user asks.
 
 **Pointers.** `README.md` (player docs), `ARCHITECTURE.md` (script map, tools, gotchas, areas and files per system),
@@ -241,7 +245,7 @@ Open items:
   and the push closeup shows dark round blobs that may be those placeholder pieces. Tune strength, colour and placement
   from these shots.
 
-## 0.3.1 Living town fixes (2026-11-07) (#37, #39, #40, #41, #42)
+## 0.3.1 Living town fixes (2026-11-07) (#37, #39, #40, #41, #42, #43)
 
 **Playtest (copy `9fa1b4e`, styled, recording 20261107-233106).** Win, 180 s, seed 42, 48 of 60 rescued, 2 of 3 dawn
 lights (people 80%, ground 23%, 1 landmark: Garden at 50 s). 13 gaps (median open 4.9 s), 7 relapses from 10 wobbles,
@@ -274,6 +278,8 @@ lifted 13.
    `test_perf_*` budgets are not loosened.
 4. Wires (#42): no bare lines in gloom; inside the zone, bunting is strung at roof height from visible posts
    (`style_props.gd` `layout_lines`, `_draw_line`).
+5. Splash screen (#43): `boot_splash/show_image=false` in `project.godot` (made in the working tree, not yet played or
+   committed). Optionally set `boot_splash/bg_color` to match the menu.
 
 **Constraints.** Look only: nothing reads or writes the rules. Placeholder look untouched. New constants go in a
 "0.3.1 Living town fixes" config block. Shots: add a play-zoom view to the checkpoint 7 set (calm opening, mid-night inside,
@@ -289,6 +295,32 @@ mid-night outside, push) and save the final set in `design/renders/v0.3.1/`. No 
   tests/ changes), the docs, board items to In review, a styled playtest copy.
 - Why not parallel: both parts touch `config.gd`, the style scripts and tests; worktrees start without the import cache
   (#6); a merge costs the coordinator. Running in a row costs only wall-clock.
+
+## 0.3.1 Living town fixes built (2026-11-08) (#37, #39, #40, #41, #42, #43)
+
+Three commits on `main`, in a row, no worktrees. All look-only: nothing reads or writes the rules.
+- **Tidy (`5b0c493`, Haiku; #37, #39).** Spirit meter fill head is smooth (no chequer). `bayer4()`, the `dither_amt` set
+  and `CP7_GROUND_LIGHT_DITHER` are gone, and the two tests now assert the parameter is gone. The unused
+  `BEACON_GUIDE_PATH_COLOUR` and `BEACON_GUIDE_CAPPED_COLOUR` are removed. Comments and test names no longer say
+  "dithered". The round 24 shot set loads again (patch shots dropped).
+- **Look (`4a96cd8`, Sonnet; #40, #41, #42).** `StylePush.build_fog` is a low churning storm cloud band (new
+  `shaders/style_cloud.gdshader`, darker cores, soft alpha edge) sized to the stretch being pushed, figures half hidden
+  inside; `gloom_tide.gd` no longer notes `tide_fog` as a placeholder. Mist raised (`CP7_MIST_*`). Ground life, props
+  and ambient life scaled up and given more contrast for zoom 19.5. Bunting is strung at roof height from visible posts
+  and bare lines are gone in gloom. New play-zoom views in the checkpoint 7 set.
+- **Fix pass (`db0ab21`, Sonnet; #40, #41, #42).** Mist seams removed (integer-hash value noise, `CP7_MIST_STRENGTH`
+  0.4), bolder storm cloud, a `play_props_bunting` view, props scaled x1.8.
+- **Splash (#43).** `boot_splash/show_image=false` is in the working tree's `project.godot` (another session's edit,
+  uncommitted). The item is already In review on the board.
+- **Gate (2026-11-08).** `gate.py --full`: 839 tests, line coverage 99.9%, baseline OK. Determinism: both runs hit the
+  same lines. Baseline updated. Nothing loosened.
+
+**Open notes for the playtest.**
+- Lamps and benches are still small next to the stalls.
+- The tuning sheet of round 2 was checked by eye, but the final full-set renders in `design/renders/v0.3.1/` were not
+  viewed one by one by the agent: look at them in the playtest.
+- `tide_pointer` is still a placeholder piece in the styled look; 0.4 (#14) replaces the tides.
+- #38 (start rings) stays in Backlog until this playtest says otherwise.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
