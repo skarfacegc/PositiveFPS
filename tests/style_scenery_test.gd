@@ -249,3 +249,54 @@ func test_idle_sinks_are_put_back_and_the_unrescued_never_idle() -> void:
 	_paint_all(td, 0.0)
 	sa.step(0.1)
 	assert_bool(sa.idlers.has(p.get_instance_id())).is_false()
+
+
+func _tiny_layers(boxes: int, balls: int) -> StyleProps.Layers:
+	var ls := StyleProps.Layers.new()
+	ls.boxes = MultiMesh.new()
+	ls.boxes.transform_format = MultiMesh.TRANSFORM_3D
+	ls.boxes.use_colors = true
+	ls.boxes.instance_count = boxes
+	ls.balls = MultiMesh.new()
+	ls.balls.transform_format = MultiMesh.TRANSFORM_3D
+	ls.balls.use_colors = true
+	ls.balls.instance_count = balls
+	return ls
+
+
+func test_layers_stop_drawing_when_full_and_skip_degenerate_pieces() -> void:
+	var ls := _tiny_layers(1, 1)
+	ls.begin()
+	ls.box(Vector3.ZERO, Vector3.ONE, Color.WHITE)
+	ls.box(Vector3.ZERO, Vector3.ONE, Color.WHITE)  # Full: ignored.
+	assert_int(ls.box_count()).is_equal(1)
+	ls.seg(Vector3.ZERO, Vector3.UP, 0.1, Color.WHITE)  # Full: ignored.
+	assert_int(ls.box_count()).is_equal(1)
+	ls.begin()
+	ls.seg(Vector3.ZERO, Vector3.ZERO, 0.1, Color.WHITE)  # Zero length: ignored.
+	assert_int(ls.box_count()).is_equal(0)
+	ls.seg(Vector3.ZERO, Vector3.UP, 0.1, Color.WHITE)
+	assert_int(ls.box_count()).is_equal(1)
+	ls.ball(Vector3.ZERO, 0.0, Color.WHITE)  # Too small: ignored.
+	assert_int(ls.ball_count()).is_equal(0)
+
+
+func test_props_and_ambient_without_a_game_fall_back_to_quiet_defaults() -> void:
+	var sp := StyleProps.new()
+	assert_float(sp._night_amount()).is_equal(0.5)
+	sp.free()
+	var sa := StyleAmbient.new()
+	assert_float(sa._weight(Vector3.ZERO)).is_equal(0.0)
+	assert_vector(sa._pick_anchor()).is_equal(Vector3.INF)
+	assert_bool(sa._building_beautified(0)).is_false()
+	sa._step_idlers(0.1)
+	assert_int(sa.idlers.size()).is_equal(0)
+	sa._sink(null, 1.0)  # No idler: nothing to sink.
+	sa.free()
+
+
+func test_a_block_with_no_building_is_not_beautified() -> void:
+	var s: Dictionary = await _level()
+	var td: TopDownMain = s["td"]
+	td.border.buildings.clear()
+	assert_bool(td.style_ambient._building_beautified(0)).is_false()
