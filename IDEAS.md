@@ -82,7 +82,8 @@ placeholder, `tide_pointer` still is.
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** playtest 0.3.1 Living town fixes (built 2026-11-08, #37, #39 to #43), then 0.4 Tug of war (plan below, and on the board).
+**Next:** 0.3.1 Living town fixes, playtest 2 fixes (#44, #45, plan below; #37, #39 to #43 built and played, In
+review), then 0.4 Tug of war (plan below, and on the board).
 0.3 Living town is done (2026-11-07), internal only: no release.
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
@@ -310,8 +311,7 @@ Three commits on `main`, in a row, no worktrees. All look-only: nothing reads or
   and bare lines are gone in gloom. New play-zoom views in the checkpoint 7 set.
 - **Fix pass (`db0ab21`, Sonnet; #40, #41, #42).** Mist seams removed (integer-hash value noise, `CP7_MIST_STRENGTH`
   0.4), bolder storm cloud, a `play_props_bunting` view, props scaled x1.8.
-- **Splash (#43).** `boot_splash/show_image=false` is in the working tree's `project.godot` (another session's edit,
-  uncommitted). The item is already In review on the board.
+- **Splash (`5da1fd0`; #43).** `boot_splash/show_image=false` in `project.godot`.
 - **Gate (2026-11-08).** `gate.py --full`: 839 tests, line coverage 99.9%, baseline OK. Determinism: both runs hit the
   same lines. Baseline updated. Nothing loosened.
 
@@ -321,6 +321,30 @@ Three commits on `main`, in a row, no worktrees. All look-only: nothing reads or
   viewed one by one by the agent: look at them in the playtest.
 - `tide_pointer` is still a placeholder piece in the styled look; 0.4 (#14) replaces the tides.
 - #38 (start rings) stays in Backlog until this playtest says otherwise.
+
+## 0.3.1 Living town fixes, playtest 2 (2026-11-08) (#44, #45)
+
+**Playtest (copy `ed510f4`, styled, recording 20261108-062326).** Win, 180 s, 46 of 60 rescued, 2 of 3 dawn lights,
+2 tides (72 s south, 97 s north), 0 relapses, 0 bursts. #37, #39 to #43 stay In review until the user accepts them.
+- Butterflies hurt performance; the user wants fewer but larger ones.
+- The ground looked strange: `shot_0004` and `shot_0002` show hard straight vertical edges in the painted ground, with
+  puddles and grass cut into rectangles (at about x=265 and x=390 in `shot_0004`). Likely chunk or tile seams in
+  `style_ground.gdshader` or `ground_look_styled.gd`, possibly from `db0ab21`'s noise rework. Not confirmed.
+- Neither tide was seen: the player was on the far side both times, and the placeholder `tide_pointer` was the only cue.
+  No 0.3.1 work: noted on 0.4's surge (#14), which must be seen wherever the player is.
+- North is up the screen (-z).
+
+**Changes.**
+1. Butterflies (#44): `C7_BUTTERFLIES` 28 down to about 8 to 10, each larger (`L31_AMBIENT_SCALE` or a butterfly-only
+   scale), and less per-frame work in `StyleAmbient.step` (each flyer redraws two wing boxes and calls
+   `paint_weight_at` every frame: cache or throttle that). Measure ambient on and off with `perf_compare` before and
+   after. `test_perf_*` budgets are not loosened.
+2. Ground seams (#45): reproduce in a play-zoom shot inside the zone, find the cause, fix it so paint, puddles and
+   grass flow across without straight edges. No dithering.
+
+**Build.** One Sonnet agent on `main` (look and perf, same area), screenshot budget as before (styled play-zoom shots,
+one contact sheet per round, at most three rounds), re-render `design/renders/v0.3.1/`. Then a fresh Sonnet session
+runs `finish-target`.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
@@ -436,6 +460,8 @@ so the beacon is replaced. Buildings and landmarks should be denser.
    - **Surge** (default about 50 s): a long, heavy push from the side shown, using round 26's wave and pushers.
    - **Aftermath:** the fog thins and arrivals ease, leaving time to repair and reach for the next landmark.
    - Tune with bot nights so a compact zone with a defence holds and an over-stretched one bends or breaks.
+   - The warning must reach the player wherever they are: in the 0.3.1 playtest neither tide was seen, because both
+     came from the far side and the off-screen cue was only the placeholder `tide_pointer`.
 
 **Constraints.** Placeholder look only. Tests for the removed beacon may be removed or rewritten for the pull; list them
 in the report. Never loosen a threshold or a `test_perf_*` budget. Rules change, so run the determinism check at the end.
