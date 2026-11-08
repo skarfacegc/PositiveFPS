@@ -65,6 +65,8 @@ var intro: Intro
 # scripts/looks). F4 flips the look in place with toggle_look().
 var plaza_look: PlazaLook
 var pipeline: ViewPipeline
+var style_props: StyleProps
+var style_ambient: StyleAmbient
 # The ring under the target's feet (see _update_highlight). Public so tests can check it.
 var highlight: MeshInstance3D
 var people: Array[Person] = []
@@ -186,6 +188,8 @@ func _ready() -> void:
 	spirit_warmth = SpiritWarmth.attach(self)
 	embrace = Embrace.attach(self)
 	gloom_tide = GloomTide.attach(self)
+	style_props = StyleProps.attach(self)  # Checkpoint 7: street props (styled look only).
+	style_ambient = StyleAmbient.attach(self)  # Checkpoint 7: butterflies, birds, idling people (styled look only).
 	hud.set_hint(HINT)
 	hud.set_targeting(player.targeting_mode)
 	player.target_changed.connect(hud.set_target)

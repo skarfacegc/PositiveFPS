@@ -406,6 +406,33 @@ const JOG_DUST_SECONDS := 0.4  # How long a dust puff lasts.
 const JOG_DUST_RADIUS := 0.7  # How far a dust puff spreads (metres).
 const JOG_DUST_SIDE := 0.22  # How far a puff starts to the side of the player's centre (metres, at each foot).
 
+# ---- Checkpoint 7: props and ambient life (scripts/looks/style_props.gd, style_ambient.gd; styled look only). ----
+# Scenery and ambient life only read the game (paint weight, a block's tint, the night's light); they own their random
+# numbers and change nothing in the rules.
+const C7_SEED := 7007  # The scenery's own random numbers (never the simulation's).
+const C7_PROPS_INTERVAL := 0.1  # Seconds between two redraws of the street props.
+const C7_BLOOM_SECONDS := 4.0  # Seconds a prop takes to go from bare to full bloom (and back).
+const C7_LINE_MAX_DIST := 22.0  # Blocks closer than this (metres) get a bunting or washing line between them.
+const C7_LINE_SAG_GLOOM := 1.5  # How far a limp line hangs in gloom (metres).
+const C7_LINE_SAG_BLOOM := 0.5  # How far a taut line hangs in bloom (metres).
+const C7_LAMP_LEAN := 0.3  # Radians a broken lamp post leans in gloom.
+const C7_DAY_ENERGY_LOW := 0.5  # Sun energy at or below this is night (ambient life); above LOW + RANGE, day.
+const C7_DAY_ENERGY_RANGE := 0.35
+const C7_AMBIENT_MIN_WEIGHT := 0.35  # Paint weight a spot needs for butterflies and fireflies to drift there.
+const C7_BUTTERFLIES := 14
+const C7_FIREFLIES := 22
+const C7_DRIFT_RADIUS := 2.2  # How far a butterfly or firefly wanders from its anchor (metres).
+const C7_ANCHOR_REACH := 7.0  # How far from a beautified block an anchor may be picked (metres).
+const C7_ANCHOR_INTERVAL := 0.5  # Seconds between two tries to give an idle butterfly or firefly an anchor.
+const C7_FADE_SECONDS := 1.5  # Seconds an ambient piece takes to fade in or out.
+const C7_BIRD_SECONDS := 3.0  # Seconds a bird takes to fly in and land on a beautified roof.
+const C7_BIRD_START := Vector3(5.0, 5.0, 3.0)  # Where a bird comes from, relative to its roof (turned per block).
+const C7_IDLE_AFTER := 2.0  # Seconds a rescued person stands still before they start an idle action.
+const C7_IDLE_STILL := 0.03  # The most a standing person may move between two checks (metres).
+const C7_IDLE_MIN_WEIGHT := 0.4  # Paint weight needed under a person for an idle action.
+const C7_IDLE_EASE := 0.8  # Seconds an idle action takes to start or stop.
+const C7_SIT_DROP := 0.22  # How far the sitting person's drawing sinks (their rule position never moves).
+
 # ---- Round 25: embrace (scripts/embrace.gd, scripts/looks/embrace_cue.gd). ----
 # An unrescued person inside the border loop is lifted a stage every EMBRACE_STEP_SECONDS (dimmed 24 s, gloomy 16 s,
 # wistful 8 s to a rescue). Outside, the seconds gathered toward the step fade at EMBRACE_DECAY_RATE a second.
