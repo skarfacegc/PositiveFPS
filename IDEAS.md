@@ -79,7 +79,7 @@ font, not a pixel font (#26).
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** 0.4 Tug of war (plan below, and on the board); 0.3 Living town is built and waits for its playtest.
+**Next:** 0.4 Tug of war (plan below, and on the board). 0.3 Living town is done (2026-11-07), internal only: no release.
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -87,8 +87,8 @@ font, not a pixel font (#26).
 frame, identical results. `Border.update` is 1.5 ms at 28 members (slot assignment 0.8, polygon 0.36, buildings 0.15,
 push 0.07); not changed, since the cheap fixes would not keep the results identical.
 
-**Push status.** `origin/main` is `da0dfb2` (round 26, pushed 2026-11-07, released as `pre-alpha-2`). Checkpoint 7 and
-everything after it on local `main` are not pushed; nothing is pushed until the user asks.
+**Push status.** `origin/main` is `fc2a37c` (0.3 Living town and the board docs, pushed 2026-11-07). The last release is
+`pre-alpha-2` (`da0dfb2`, round 26); 0.3 is internal, not released. Nothing is pushed until the user asks.
 
 **Pointers.** `README.md` (player docs), `ARCHITECTURE.md` (script map, tools, gotchas, areas and files per system),
 `SOURCE_MAP.md` (every script's public functions with line numbers, generated), `IDEAS_RESOLVED.md` (history),
