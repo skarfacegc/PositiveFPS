@@ -15,7 +15,6 @@ extends Node3D
 
 const SEGMENTS := 72
 const LINE_WIDTH := 0.28
-const PATH_WIDTH := 0.5
 
 # True while E is held (set by BeaconPlacement.press / release / cancel). The zone preview shows only then.
 var held := false
@@ -67,9 +66,7 @@ func sync(border: Border, player: TopDownPlayer) -> void:
 	var info := border.stretch_info()
 	var c := Vector2(border.centre.x, border.centre.z)
 	if info["on"]:
-		_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
-		_travel(c, border, info)
-		_mesh.surface_end()
+		_travel(info)
 	elif held and player.has_aim():
 		_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 		_zone_preview(c, border.plan_stretch(player.aim_point()))
@@ -108,15 +105,10 @@ func _zone_preview(c: Vector2, plan: Dictionary) -> void:
 	_set_label("", end)
 
 
-func _travel(c: Vector2, border: Border, info: Dictionary) -> void:
+# Checkpoint 7: no centre-to-tip line, tip disc or dashes any more; only the word follows the tip.
+func _travel(info: Dictionary) -> void:
 	var tip_pos: Vector3 = info["tip"]
-	var tip := Vector2(tip_pos.x, tip_pos.z)
-	_line(c, tip, PATH_WIDTH, Config.BEACON_GUIDE_PATH_COLOUR)
-	_disc(tip, 1.3, Config.BEACON_GUIDE_TIP_COLOUR)
-	var beacon := border.beacon_pos()
-	if beacon != Vector3.INF and Vector2(beacon.x, beacon.z).distance_to(tip) > 1.0:
-		_dashes(tip, Vector2(beacon.x, beacon.z), Config.BEACON_GUIDE_CAPPED_COLOUR)
-	_set_label("Stretching", tip)
+	_set_label("Stretching", Vector2(tip_pos.x, tip_pos.z))
 
 
 func _on_zone_grew(gain: float, tip: Vector3, angle: float) -> void:
@@ -226,15 +218,6 @@ func _ring(at: Vector2, r: float, col: Color) -> void:
 		var a0 := TAU * float(i) / float(SEGMENTS) - PI * 0.5
 		var a1 := TAU * float(i + 1) / float(SEGMENTS) - PI * 0.5
 		_line(at + Vector2(cos(a0), sin(a0)) * r, at + Vector2(cos(a1), sin(a1)) * r, LINE_WIDTH, col)
-
-
-func _dashes(from: Vector2, to: Vector2, col: Color) -> void:
-	var len_total := from.distance_to(to)
-	var dir := (to - from) / maxf(len_total, 0.001)
-	var d := 0.0
-	while d < len_total:
-		_line(from + dir * d, from + dir * minf(d + 1.2, len_total), LINE_WIDTH, col)
-		d += 2.4
 
 
 func _line(a: Vector2, b: Vector2, width: float, col: Color) -> void:

@@ -103,6 +103,7 @@ var _relapse_wave := RelapseWave.new()  # Round 24: lets one wobbling person rel
 
 
 func _ready() -> void:
+	Looks.apply_start_mode()
 	Controls.setup()
 	night = NightCycle.new()
 	intro = Intro.new(night, Config.intro_on())

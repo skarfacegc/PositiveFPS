@@ -393,7 +393,6 @@ const CP6_TARGET_RADIUS_SCALE := 1.2  # The styled ring's radius against TD_HIGH
 # The styled stipple was too strong: each one is cut to about half (the old value is in the comment). The shadow dither
 # is set on every toon material (StyleKit.mat) and on the ground; the glow and ground dot shares on their shaders.
 const STYLED_DITHER_LIGHT := 0.08  # The shadow band dither amount (was 0.16).
-const STYLED_DITHER_GLOW := 0.5  # The share of a glow halo's dots kept (was all of them): ground glows and the smoke.
 const STYLED_DITHER_GROUND := 0.5  # The share of the ground's dithered edge and sand-ridge dots kept (was all of them).
 # The player's run (Shift) on top of the walk, applied through Gait.jog (the player only; people keep their gait).
 const JOG_CADENCE := 1.15  # Step cycles per second at a full run are multiplied by this.
@@ -535,6 +534,11 @@ const PUSH_BRACE_SMOOTH := 6.0  # How fast the drawn brace follows (per second).
 const PUSH_PROMPT_FRACTION := 0.4  # The line bent this share of the way to breaking: the first prompt.
 const PUSH_NOTICE_TEXT := "It bends where they push: joy them"
 const PUSH_BREAK_TEXT := "Broken! Joy the ends, lift who got in"
+
+# ---- Checkpoint 7: cleanup and look (shaders/style_common, style_toon, style_glow, style_ring, style_wedge,
+# style_outline, scripts/looks/looks.gd). Dithering is gone from the toon light, glows, rings, wedge and reach outlines.
+const CP7_TOON_SOFT := 0.05  # Half the width (in light level) of the soft step between the toon shadow bands.
+const CP7_LOOK_ARG := "--look="  # The user argument that picks the starting look (--look=styled or placeholder).
 
 static var intro_override: int = -1
 static var tides_override: int = -1  # Round 25: as intro_override, for the gloom tides (see tides_on).

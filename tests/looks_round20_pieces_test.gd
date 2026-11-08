@@ -63,15 +63,14 @@ func test_the_styled_reach_guide_shows_the_zone_preview_and_the_travel() -> void
 	assert_bool(guide.showing_limited).is_false()
 	assert_bool(guide._line.visible).is_true()
 	assert_bool(guide._cross.visible).is_false()
-	# A beacon beyond the reach: the path, the tip, the dashes on to the beacon, then, once it arrives, nothing (round
-	# 22: no hold).
+	# A beacon beyond the reach: the travel (only the word), then, once it arrives, nothing (round 22: no hold).
 	td.border.place_beacon(td.border.centre + Vector3(reach * 3.0, 0.0, 0.0))
 	# Round 23: the tip walks at the new pull speed, so it has not arrived after 20 frames (a third of a second) here.
 	await runner.simulate_frames(20)
 	td.reach_guide.sync(td.border, td.player)
 	assert_bool(guide.showing_travel).is_true()
-	assert_bool(guide._tip_disc.visible).is_true()
-	assert_bool(guide._dashes.visible).is_true()
+	# Checkpoint 7: no centre-to-tip line, no tip disc and no dashes during the travel.
+	assert_int(_visible_count(guide)).is_equal(0)
 	# Round 22: there is no hold any more: once the tip has arrived the travel is gone.
 	await runner.simulate_frames(1500)
 	td.reach_guide.sync(td.border, td.player)

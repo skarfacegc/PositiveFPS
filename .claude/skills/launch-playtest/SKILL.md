@@ -47,8 +47,12 @@ Check `exit=0` in the one-line summary (the log path is in it). Then start the w
 no timeout (the user plays as long as they like). Get the executable from `python tools/godot_path.py --gui`:
 
 ```powershell
-& "<gui exe>" --path "<copy>" -- --record
+& "<gui exe>" --path "<copy>" -- --record --look=placeholder
 ```
+
+The `--look=` argument picks the starting look (F4 still switches). Gameplay rounds use `--look=placeholder`; graphics
+checkpoints use `--look=styled`. Without the argument a copy run from the project starts placeholder (only exported
+builds start styled). `tools/checkpoint_shots.py` needs no flag: it sets the look itself and flips both ways.
 
 Use `run_in_background` for that command, so the session keeps working and is told when the game exits.
 

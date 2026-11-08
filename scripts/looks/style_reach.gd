@@ -7,8 +7,8 @@ extends RefCounted
 #   - while E is held (Checkpoint 5 follow-up: hold to aim), the zone a release of E at the cursor would make
 #     (Border.plan_stretch): a thin marching teal outline and a small tip disc with a ring. No fill. When something
 #     holds the tip back the outline turns a single thin coral (no stripes) and a small cross marks the tip;
-#   - during a stretch (whether or not E is held), a bright path from the centre to the tip, a disc at the tip,
-#     coral dashes on to the beacon when the reach falls short, and a parchment tag that says "Stretching";
+#   - during a stretch (whether or not E is held), a parchment tag that says "Stretching" (checkpoint 7: no line,
+#     tip disc or dashes);
 #   - when a stretch finishes, a wave of light runs along the new arm and a ring opens at the tip (pulse()).
 # Pure visuals: it reads Border.plan_stretch() / stretch_info() and the player's aim, and changes nothing.
 
@@ -23,7 +23,6 @@ const GOLD := Color("#ffe27a")
 const Y := 0.14
 const OUTLINE_WIDTH := 0.3
 const LIMITED_WIDTH := 0.3
-const PATH_WIDTH := 0.7
 const CROSS_SIZE := 1.0
 const CROSS_STROKE := 0.2  # Half the stroke width of the cross.
 const WORDS := "Stretching"
@@ -34,15 +33,11 @@ var showing_preview: bool = false
 var showing_limited: bool = false
 var showing_travel: bool = false
 var _line: MeshInstance3D  # the outline (or the stretch path)
-var _dashes: MeshInstance3D
 var _wave: MeshInstance3D
 var _line_mesh := ImmediateMesh.new()
-var _dash_mesh := ImmediateMesh.new()
 var _wave_mesh := ImmediateMesh.new()
 var _mat_ok: ShaderMaterial
 var _mat_limited: ShaderMaterial
-var _mat_path: ShaderMaterial
-var _mat_dash: ShaderMaterial
 var _mat_wave: ShaderMaterial
 var _tip_disc: MeshInstance3D
 var _tip_ring: MeshInstance3D
@@ -64,17 +59,14 @@ func build(parent: Node3D) -> void:
 	_mat_ok = _outline_mat(TEAL, TEAL_LIGHT, 1.6, 0.8, false)
 	# One colour, no marching: the limited outline is a plain thin coral line, with no stripes.
 	_mat_limited = _outline_mat(CORAL, CORAL, 1.2, 0.0, false)
-	_mat_path = _outline_mat(TEAL_LIGHT, TIP, 1.2, 2.0, false)
-	_mat_dash = _outline_mat(CORAL, CORAL_LIGHT, 2.4, 0.0, true)
 	_mat_wave = _outline_mat(TIP, TIP_RIM, 1.0, 2.5, false)
 	_line = _mesh_node(_line_mesh, _mat_ok)
-	_dashes = _mesh_node(_dash_mesh, _mat_dash)
 	_wave = _mesh_node(_wave_mesh, _mat_wave)
 	_cross = _mesh_node(_cross_mesh, _mat_limited)
 	_tip_disc = _disc(0.0, TIP, TIP_RIM, 0.95)
 	_tip_ring = _disc(0.8, TEAL, TEAL_LIGHT, 0.7)
 	_pulse_ring = _disc(0.82, TIP, TIP_RIM, 0.8)
-	_all = [_line, _dashes, _cross, _tip_disc, _tip_ring]
+	_all = [_line, _cross, _tip_disc, _tip_ring]
 	_main = parent.get_parent() as TopDownMain
 	if _main != null and _main.hud != null:
 		_tag = StyleReachTag.new()
@@ -86,7 +78,7 @@ func build(parent: Node3D) -> void:
 func hide() -> void:
 	for node: MeshInstance3D in _all:
 		node.visible = false
-	for mesh: ImmediateMesh in [_line_mesh, _dash_mesh, _cross_mesh]:
+	for mesh: ImmediateMesh in [_line_mesh, _cross_mesh]:
 		mesh.clear_surfaces()
 	if _tag != null:
 		_tag.hide_tag()
@@ -110,7 +102,7 @@ func sync(border: Border, player: TopDownPlayer, aiming: bool = false) -> void:
 	var info := border.stretch_info()
 	var c := Vector2(border.centre.x, border.centre.z)
 	if info["on"]:
-		_travel(c, border, info)
+		_travel(info)
 	elif aiming and player.has_aim():
 		_preview(c, border.plan_stretch(player.aim_point()))
 
@@ -138,18 +130,11 @@ func _preview(c: Vector2, plan: Dictionary) -> void:
 
 
 # During a stretch: the path to the tip, the disc and the dashes on to the beacon.
-func _travel(c: Vector2, border: Border, info: Dictionary) -> void:
+func _travel(info: Dictionary) -> void:
 	var tip_pos: Vector3 = info["tip"]
 	var tip := Vector2(tip_pos.x, tip_pos.z)
 	showing_travel = true
-	_line.material_override = _mat_path
-	_line.visible = true
-	_ribbon(_line_mesh, PackedVector2Array([c, tip]), false, PATH_WIDTH, Y)
-	_set_disc(_tip_disc, tip, 1.5, TIP, TIP_RIM, 0.95)
-	var beacon := border.beacon_pos()
-	if beacon != Vector3.INF and Vector2(beacon.x, beacon.z).distance_to(tip) > 1.0:
-		_dashes.visible = true
-		_ribbon(_dash_mesh, PackedVector2Array([tip, Vector2(beacon.x, beacon.z)]), false, 0.5, Y)
+	# Checkpoint 7: no centre-to-tip line, tip disc or dashes on to the beacon; only the word follows the tip.
 	if _tag != null and _main != null:
 		_tag.show_at(WORDS, _main.world_to_screen(Vector3(tip.x, 0.0, tip.y)))
 

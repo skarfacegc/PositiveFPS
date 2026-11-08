@@ -25,20 +25,19 @@ func _level() -> Dictionary:
 
 func test_the_stipple_is_cut_to_about_half() -> void:
 	assert_float(Config.STYLED_DITHER_LIGHT).is_equal_approx(0.08, 0.0001)
-	assert_float(Config.STYLED_DITHER_GLOW).is_equal_approx(0.5, 0.0001)
 	assert_float(Config.STYLED_DITHER_GROUND).is_equal_approx(0.5, 0.0001)
 
 
-func test_the_toon_materials_receive_the_shadow_dither() -> void:
+# Checkpoint 7: the toon light and the glows no longer dither; the toon materials get the soft band width instead.
+func test_the_toon_materials_receive_the_soft_band_width() -> void:
 	var toon := StyleKit.mat(Color(0.5, 0.5, 0.5))
-	assert_float(toon.get_shader_parameter("dither_amt")).is_equal(Config.STYLED_DITHER_LIGHT)
+	assert_float(toon.get_shader_parameter("band_soft")).is_equal(Config.CP7_TOON_SOFT)
 	var own := StyleKit.unique_mat(Color(0.5, 0.5, 0.5), 0.2)
-	assert_float(own.get_shader_parameter("dither_amt")).is_equal(Config.STYLED_DITHER_LIGHT)
+	assert_float(own.get_shader_parameter("band_soft")).is_equal(Config.CP7_TOON_SOFT)
 
 
-func test_the_glow_halos_receive_their_dot_share() -> void:
+func test_the_glow_halos_keep_their_strength() -> void:
 	var glow := StyleKit.glow_mat(Color(1.0, 0.8, 0.4), 0.62)
-	assert_float(glow.get_shader_parameter("dither_k")).is_equal(Config.STYLED_DITHER_GLOW)
 	assert_float(glow.get_shader_parameter("strength")).is_equal(0.62)
 
 
