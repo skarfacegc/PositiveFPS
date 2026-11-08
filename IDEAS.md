@@ -81,8 +81,8 @@ the fallback font, not a pixel font.
 frame, identical results. `Border.update` is 1.5 ms at 28 members (slot assignment 0.8, polygon 0.36, buildings 0.15,
 push 0.07); not changed, since the cheap fixes would not keep the results identical.
 
-**Push status.** `origin/main` is `4120320`; the rounds after it, round 26 included, are unpushed (local main is ahead).
-Rounds are not pushed until the user asks.
+**Push status.** `origin/main` is `da0dfb2` (round 26, pushed 2026-11-07, released as `pre-alpha-2`). Rounds are not pushed
+until the user asks.
 
 **Pointers.** `README.md` (player docs), `ARCHITECTURE.md` (script map, tools, gotchas, areas and files per system),
 `SOURCE_MAP.md` (every script's public functions with line numbers, generated), `IDEAS_RESOLVED.md` (history),
@@ -139,3 +139,55 @@ Open-question defaults (for the playtest to settle):
 - Recorder: keeps `gap_open` and `gap_close`; `gap_patched` no longer fires. Renaming to `break_*` is still open.
 
 Coverage: commit `68e0cbf` restores `style_dawn` coverage (the idle styled cue panel draws as a quiet tag). Nothing loosened.
+
+## Graphics checkpoint 7 plan (2026-11-07)
+
+**Playtest (release build `da0dfb2`, styled look).** The environment needs more going on to drive home the beautification;
+the buildings' industrial-to-whimsical swap alone is not enough. Three dislikes: the straight red-and-white line from the
+zone centre showing the growth direction (the zone border shown while E is held is enough), the rings round people at the
+start of the game (not needed), and the dithering (still too much after checkpoint 6 halved it).
+
+**Decisions (interview).** All four environment ideas go in, plus the styled catch-up. Dithering is removed entirely.
+The look depends on the work: placeholder for gameplay rounds, styled for graphics checkpoints, and releases always styled.
+
+**Changes.**
+1. Cleanup (both looks where the piece is shared):
+   - Remove the stretch direction line from the centre to the tip (`reach_guide.gd`, `style_reach.gd`), with its tip disc
+     and dashed line. Keep the zone preview while E is held and the finish pulse.
+   - Remove the rings round people at the start. Identify them from a checkpoint shot of the calm opening first; if they
+     carry any meaning later in the game, report instead of removing.
+   - Remove all dithering from the styled look: shadow bands, glow halos, ground edges, sand ridges, the ribbon's halo and
+     the reach pieces. Use smooth toon bands and soft alpha falloff instead. Keep the low resolution and the outlines.
+2. Living ground (`style_ground.gdshader`, `ground_look_styled.gd`): inside the painted ground, grass tufts, wildflowers
+   and moss in the cobble cracks, and puddles that catch warm light. Outside, cracked grey slabs, litter and dead leaves.
+   The change follows the paint weight, so it sweeps outward as the zone grows and recedes if ground is lost.
+3. Street props: lamp posts, benches, planters, market stalls, bunting and washing lines between buildings. In gloom they
+   are dark, broken or bare; inside the zone the lamps glow warm, bunting unfurls and planters bloom (driven by the same
+   paint weight or the nearest building's `beautified`). Props are scenery only: no collision, no effect on spawns or
+   the rules.
+4. Ambient life: butterflies by day and fireflies by night drifting inside the zone, birds landing on beautified rooftops,
+   and rescued people idling there with small actions (sitting on benches, waving, tending flower boxes) when the rules
+   leave them standing. Visual only: idling must not move a person's rule position.
+5. Gloom atmosphere: low drifting mist and a cold, desaturated tint over the ground outside the zone, clearing inside it.
+   The sky warms as night turns to dawn, and distant rooftops on the skyline light up as each landmark is restored.
+6. Styled catch-up: the round 26 push (pushers' lean, the fog at a pushed stretch, the figures) in the styled look, and the
+   styled Dusk to Dawn bar and spirit label.
+7. Look by context:
+   - A `--look=styled|placeholder` user argument picks the starting look. Exported builds (`OS.has_feature("template")`)
+     start styled; F4 still switches. Tests keep running in the placeholder look.
+   - `launch-playtest` passes `--look=placeholder` for gameplay rounds and `--look=styled` for graphics checkpoints.
+   - The release build recipe (dist-builds memory) needs no flag, since exports start styled.
+
+**Constraints.** Rules untouched: no scenery or ambient piece reads or writes the simulation, so determinism holds.
+Performance: props and ambient life use MultiMesh or GPU particles; the `test_perf_*` budgets are not loosened, so
+report if they don't fit. New checkpoint shots (`tools/checkpoint_shots.py`) for the calm opening, mid-night inside and
+outside the zone, a push, and dawn, saved in `design/renders/checkpoint_07/`. README updated at the end (this is a
+checkpoint), including the removed F patch.
+
+**Build split** (parallel worktree agents, each with its own config block "Checkpoint 7: <part>"):
+- Part A (Sonnet): changes 1 and 7, cleanup, dithering removal and look by context. It touches shaders shared with the
+  others, so it lands first, or the others avoid `style_glow` and the reach pieces.
+- Part B (Sonnet): changes 2 and 5, ground and atmosphere (`style_ground.gdshader`, `ground_look_styled.gd`, sky and
+  view pipeline).
+- Part C (Sonnet): changes 3 and 4, props and ambient life (new `scripts/looks/style_props.gd`, `style_ambient.gd`).
+- Part D (Haiku or Sonnet): change 6, styled catch-up (`border_look_styled.gd`, `style_hud*.gd`).
