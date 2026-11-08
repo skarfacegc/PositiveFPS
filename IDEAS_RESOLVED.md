@@ -1,6 +1,16 @@
 # PositiveFPS — Resolved history
 
-Finished round history and resolved issues moved out of IDEAS.md (text unchanged, in the original order). Current state and the latest rounds are in IDEAS.md.
+Finished round history and resolved issues moved out of IDEAS.md (text unchanged, in the original order). Current state and the latest targets are in IDEAS.md.
+
+**From rounds to versions** (2026-11-07). Work used to be numbered as rounds and graphics checkpoints; it is now
+grouped into named, versioned targets (CLAUDE.md, "Targets and versions"). History below keeps its old names.
+
+| Version | Old names | Ends at |
+|---|---|---|
+| 0.1 | POC rounds 1 to 8, rounds 9 to 13b, graphics checkpoint 1 | tag `pre-alpha` (708e46d, 2026-10-26) |
+| 0.2 | Rounds 14 to 26, graphics checkpoints 2 to 6, the snag round | release `pre-alpha-2` (da0dfb2, round 26, 2026-11-07) |
+| 0.3 Living town | Graphics checkpoint 7 | in review |
+| 0.4 Tug of war | The round 27 and round 28 plans | planned |
 
 Index: First proof of concept; POC round 2; POC round 3; POC round 4; POC round 5; POC round 6; POC round 7; POC round 8; Direction change: the living border; Round 9 build: the living border; Round 10 plan; Round 10 build; Round 10 playtest and draft round 11 plan; Style pass approach: switchable looks; Round 11 build; Round 11 playtest and round 12 plan; Graphics checkpoint 1; Gloom terminology; Round 12a build; Round 12b build; Round 12 playtest and round 13 plan; Round 13a build; Round 13b build; Round 13 playtest and round 14 plan; Round 14 build; Round 14 playtest and round 15 plan; Round 15 build; Round 15 playtest and round 16 plan; Round 16 build; Round 16 playtest and round 17 plan; Round 17 build; Round 17 playtest and round 18 plan; Graphics checkpoint 2; Round 18 build; Round 18 playtest and round 19 design; Round 19 plan; Graphics checkpoint 3; Round 19 build; Round 19 playtest and round 20 plan; Round 20 build; Graphics checkpoint 4; Round 20 playtest and round 21 plan; Round 21 build; Round 21 playtest and round 22 plan; Round 22 build; Round 22 playtest and round 23 plan; Round 23 build; Round 23 playtest and round 24 plan; Round 24 build; Round 24 playtest and graphics checkpoint 5 plan; Graphics checkpoint 5 build; Graphics checkpoint 5 playtest and follow-up plan; Graphics checkpoint 5 follow-up build; Checkpoint 5 follow-up playtest and snag round plan; Snag round build; Snag round playtest and graphics checkpoint 6 plan; Graphics checkpoint 6 build; Round 25 plan: border control; Round 25 build; Round 25 playtest and round 26 plan; Round 25 replay and revised round 26 plan; Round 26 build: physical push.
 

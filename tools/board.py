@@ -231,7 +231,18 @@ def doc_lines_without_id(name, text):
         found = _marker_lists(lines, VISION_LIST_MARKER, NUMBERED_RE)
     else:
         found = []
-    return [(lineno, line) for lineno, line in sorted(set(found)) if not ANY_ID_RE.search(line)]
+    return [(lineno, line) for lineno, line in sorted(set(found))
+            if not ANY_ID_RE.search(_with_continuation(lines, lineno))]
+
+
+def _with_continuation(lines, lineno):
+    """The list item starting at 1-based lineno plus its indented continuation lines, so an id on a wrapped line counts."""
+    parts = [lines[lineno - 1]]
+    for line in lines[lineno:]:
+        if not line.strip() or not line[:1].isspace():
+            break
+        parts.append(line)
+    return " ".join(parts)
 
 
 def stale_ids(doc_texts, issues_by_number):

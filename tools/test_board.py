@@ -141,13 +141,19 @@ class ScanRules(unittest.TestCase):
             "## Next", "- outside the section",
         ])
         found = bd.doc_lines_without_id("IDEAS.md", text)
-        self.assertEqual(found, [(6, "- second has none"), (8, "- third has none"), (16, "- idea without")])
+        # "- second" carries its id on its wrapped line, which counts.
+        self.assertEqual(found, [(8, "- third has none"), (16, "- idea without")])
 
     def test_vision_numbered_list_after_the_build_marker(self):
         text = "\n".join(["**Build in layers**", "1. Layer one #3", "2. Layer two", "   note", "3. Layer three",
                            "", "Free text", "4. not in the list"])
         found = bd.doc_lines_without_id("VISION.md", text)
         self.assertEqual(found, [(3, "2. Layer two"), (5, "3. Layer three")])
+
+    def test_an_id_on_a_wrapped_line_counts(self):
+        text = "\n".join(["**Open items**", "- wrapped item", "  ends here (#12)", "- bare item", "  still bare",
+                           "- last #3"])
+        self.assertEqual(bd.doc_lines_without_id("IDEAS.md", text), [(4, "- bare item")])
 
     def test_other_docs_have_no_list_rules(self):
         self.assertEqual(bd.doc_lines_without_id("README.md", "**Open items**\n- x\n"), [])

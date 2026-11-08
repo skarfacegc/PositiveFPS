@@ -1,6 +1,7 @@
 # PositiveFPS — Vision (unscheduled ideas)
 
-These are long-term ideas, not scheduled; moved out of IDEAS.md on 2026-11-07.
+These are long-term ideas, not scheduled; moved out of IDEAS.md on 2026-11-07. Scheduling lives on the GitHub board
+(see IDEAS.md's top); a `#N` is the item's issue there.
 
 ## Vision: the wider world (discussion, 2026-10-24)
 Long-term direction, not scheduled. The round 11 draft above is unaffected.
@@ -26,11 +27,11 @@ at a time.
   Inspiration is technique-level only: a walkable world between levels.
 
 **Build in layers, each playable on its own**
-1. **Node map:** choose the next town from 2 or 3. Troupe and unlocks carry over. Towns are today's level with
-   different layouts. Tests whether the "why" works. About one round of work, no style pass needed.
-2. **Progression tree:** special people placed in particular towns, four branches.
-3. **Walkable overland:** replaces the node map; roads and encounters.
-4. **Story and the final town.**
+1. **Node map** (#31): choose the next town from 2 or 3. Troupe and unlocks carry over. Towns are today's level with
+   different layouts. Tests whether the "why" works. About one target of work, no style pass needed.
+2. **Progression tree** (#32, then #34): special people placed in particular towns, four branches.
+3. **Walkable overland** (#35): replaces the node map; roads and encounters.
+4. **Story and the final town** (#36).
 
 ## Level goals and progression (discussion, 2026-10-24)
 Side goals inside a level grant abilities or things to place. The "why" is that the people you rescue give something
@@ -54,9 +55,9 @@ back: every unlock has a face and a small story.
 **Why chase a side goal mid-level:** an immediate edge (a lantern holds a stretch you otherwise couldn't), a choice of
 which branch grows, and a real overextension trade-off.
 
-**Suggested first test:** the Busker and Lamplighter branches only (one weapon, one placeable), before building all four.
+**Suggested first test** (#32): the Busker and Lamplighter branches only (one weapon, one placeable), before building all four.
 
-**Key risk: balance with one starting element (user priority).** All tuning so far assumed every element is available.
+**Key risk: balance with one starting element (user priority)** (#33). All tuning so far assumed every element is available.
 When implementation starts, give this focused attention as its own step, not a side effect:
 - Check that a one-element start can capture the first town at a fair difficulty, with no unlocks at all.
 - Check each element is viable alone, if the player may pick the starting element.

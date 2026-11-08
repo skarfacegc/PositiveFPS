@@ -1,7 +1,10 @@
 # PositiveFPS — Game Ideas
 
-Finished round history and resolved issues live in `IDEAS_RESOLVED.md` (one line per round at its top). This file keeps
-the current state, the standing ideas and backlog, and the latest rounds. To find code use `SOURCE_MAP.md`
+**What to build next is on the GitHub board** "Positive game dev" (https://github.com/users/skarfacegc/projects/3):
+headlines, targets (milestones such as "0.4 Tug of war"), status and size. This file holds the detail; a `#N` on a
+headline is its issue. Finished history and resolved issues live in `IDEAS_RESOLVED.md` (one line per round or target
+at its top, plus the map from old round numbers to versions). This file keeps the current state, the standing ideas and
+the current targets' plans. To find code use `SOURCE_MAP.md`
 (`python tools/source_map.py`); for where things live and how to brief an agent use `ARCHITECTURE.md`.
 
 ## Current state (as of 2026-11-07, after round 26 and graphics checkpoint 7)
@@ -48,36 +51,35 @@ the styled look changes only in graphics checkpoints (latest: checkpoint 7: livi
 gloom mist, styled push and HUD, no direction line, dithering removed from the styled look, and the look chosen by context:
 `--look=styled|placeholder`, exported builds start styled). Still placeholder in styled mode: the REC and F3 labels, and
 (per the checkpoint 7 shots) the push fog's `tide_fog` and `tide_pointer` pieces; the styled HUD text uses the fallback
-font, not a pixel font.
+font, not a pixel font (#26).
 
 **Open items** (each checked against the code on 2026-11-07):
-- Checkpoint 6 needs a playtest look: the notice banner under the night bar and the styled target ring are covered by
-  geometry tests but have no full-frame screenshot.
+- Gap arrows now sit at the edge of the safe band, so a gap straight north shows its arrow part way down the screen. (#24)
+- The minimap redraw spike (8 ms per redraw; tests turn the automatic redraw off). (#21)
+- The player's jog barely differs from the walk in the styled look. (#27)
+- Sound cues: not designed yet. (#25)
+- The agent dashboard may show a finished agent as running (not rechecked). (#20)
+- Unused: `Person.React.PATCH` is never set by gameplay (only tests set it); `config_base.gd` `GAP_HEAL_DELAY` and
+  `MEMBER_FALTER_STEP_BACK` are read nowhere. Remove them or give them a use. (#19)
+- Open question: should the recorder rename `gap_open` / `gap_close` to `break_*`? (#23)
+- Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
+  step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
+- Living town leftovers (open items a to d under "0.3 Living town built"): dithering no-ops (#37), the gold inner ring
+  (#38), the broken round 24 shot set (#39), the mist and the placeholder tide fog pieces (#40).
+
+**Watch in the next playtest** (no issue: questions for the interview, not work):
+- Checkpoint 6's notice banner under the night bar and the styled target ring have no full-frame screenshot yet.
 - First light lifts fewer people now the front is round (it reaches the plaza edge about 13 s in); watch the FIRST LIGHT
   numbers (20 lifted in the last game).
-- Gap arrows now sit at the edge of the safe band, so a gap straight north shows its arrow part way down the screen.
-- The second arm is much shorter than the first (7.3 m against 34.2 m at 24 people); a design call (a reserve for it would
-  give back the reach gain). Earlier arm retreat, if pull-in feels late.
 - Whether one burst per 8 s keeps pace with arrivals every 9 s (bursts were barely used in the last recordings).
-- The minimap redraw spike (8 ms per redraw; tests turn the automatic redraw off).
-- The player's jog barely differs from the walk in the styled look.
-- Sound cues: not designed yet.
-- The limited preview checkpoint shot uses "inside the zone already", not a dimmed block (minor).
-- The agent dashboard may show a finished agent as running (not rechecked).
 - Dawn lights are easy (60% rescued plus one landmark was enough in earlier rounds; now 75% and 2); watch in the next
   recording whether the third light is earned.
-- Unused: `Person.React.PATCH` is never set by gameplay (only tests set it); `config_base.gd` `GAP_HEAL_DELAY` and
-  `MEMBER_FALTER_STEP_BACK` are read nowhere. Remove them or give them a use.
-- Difficulty is tuned only by bot nights (knobs `TIDE_PUSH` 2.0, `PUSH_PER_PERSON`, `PUSH_BREAK_DEPTH`), so it needs a
-  playtest.
-- The styled look has no lean, fog or figures yet (placeholder only).
-- Open question: should the recorder rename `gap_open` / `gap_close` to `break_*`?
+- Difficulty is tuned only by bot nights (knobs `TIDE_PUSH` 2.0, `PUSH_PER_PERSON`, `PUSH_BREAK_DEPTH`).
 - Whether Embrace gets noticed (it did not in the round 25 playtests).
-- Wider-world and progression ideas (`VISION.md`) are not scheduled.
-- Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
-  step before a break. Investigate after round 28's push and pull.
-- Round 27 (code reorganisation and build quick wins) and round 28 (push and pull) are planned below; graphics
-  checkpoint 7 is done, so they can start.
+- Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
+  the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
+
+**Next:** 0.4 Tug of war (plan below, and on the board); 0.3 Living town is built and waits for its playtest.
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -86,11 +88,11 @@ frame, identical results. `Border.update` is 1.5 ms at 28 members (slot assignme
 push 0.07); not changed, since the cheap fixes would not keep the results identical.
 
 **Push status.** `origin/main` is `da0dfb2` (round 26, pushed 2026-11-07, released as `pre-alpha-2`). Checkpoint 7 and
-everything after it on local `main` are not pushed; rounds are not pushed until the user asks.
+everything after it on local `main` are not pushed; nothing is pushed until the user asks.
 
 **Pointers.** `README.md` (player docs), `ARCHITECTURE.md` (script map, tools, gotchas, areas and files per system),
 `SOURCE_MAP.md` (every script's public functions with line numbers, generated), `IDEAS_RESOLVED.md` (history),
-`tools/COVERAGE_TOOL_NOTES.md`, `.claude/skills/` (brief-build-agent, finish-round, launch-playtest). Latest recordings
+`tools/COVERAGE_TOOL_NOTES.md`, `.claude/skills/` (brief-build-agent, finish-target, launch-playtest), `tools/board.py` (the board). Latest recordings
 with logs: `recordings/playtests/`.
 
 ## Core concept
@@ -124,11 +126,12 @@ Guides a Godot style test (round 6 or later). Mockups: design/style_mockups*.htm
 - **Motion and feel** (timing, easing, sound) get refined in Godot, not in mockups.
 
 ## Open ideas (unscheduled)
-- Extra elements: food/cooking and play/sport (five elements also make a clean cycle); new elements could unlock via rebuilt buildings (bakery, playground) with new people of that affinity.
-- Building to unlock mapping (music shop: guitar upgrades, garden centre: flower variants, cafe: healing item).
-- Enemy tiers and bosses: light routine people as the bulk, grey normal, dark spreaders rarer and tougher; bosses such as a heavily gloomed figure with a big aura, in a dedicated later round.
-- Visual progression: the town goes from desaturated to full colour as it is rebuilt; the placeholder look is plain, a richer style comes in graphics checkpoints.
-- Wider world and level progression ideas: see `VISION.md`.
+- Extra elements: food/cooking and play/sport (five elements also make a clean cycle); new elements could unlock via rebuilt buildings (bakery, playground) with new people of that affinity. (#28)
+- Building to unlock mapping (music shop: guitar upgrades, garden centre: flower variants, cafe: healing item). (#29)
+- Enemy tiers and bosses: light routine people as the bulk, grey normal, dark spreaders rarer and tougher; bosses such as a heavily gloomed figure with a big aura, in a dedicated later target. (#30)
+- Visual progression: the town goes from desaturated to full colour as it is rebuilt; the placeholder look is plain, a richer style comes in look-focused targets. (#2, largely built in 0.3 Living town)
+
+Wider world and level progression ideas: see `VISION.md`.
 
 ## Round 26 build (2026-11-07)
 
@@ -144,7 +147,7 @@ Open-question defaults (for the playtest to settle):
 
 Coverage: commit `68e0cbf` restores `style_dawn` coverage (the idle styled cue panel draws as a quiet tag). Nothing loosened.
 
-## Graphics checkpoint 7 plan (2026-11-07)
+## 0.3 Living town plan (graphics checkpoint 7, 2026-11-07) (#2)
 
 **Playtest (release build `da0dfb2`, styled look).** The environment needs more going on to drive home the beautification;
 the buildings' industrial-to-whimsical swap alone is not enough. Three dislikes: the straight red-and-white line from the
@@ -201,7 +204,7 @@ dithering in the files it owns, so none waits on another):
 - Merge order D, A, C, B; then one `round_end.py` with the determinism check; then one Haiku pass for the checkpoint
   shots, README, ARCHITECTURE's Looks section and a styled playtest copy.
 
-## Graphics checkpoint 7 built (2026-11-07)
+## 0.3 Living town built (graphics checkpoint 7, 2026-11-07) (#2)
 
 Merged on `main` (cef18a1 part A, 4aebfe0 part C, ebf6c84 part B, and part D). Gate, determinism and baseline passed.
 - **Part A (cleanup and look by context):** the stretch direction line and its tip are gone (the zone preview while E is
@@ -237,13 +240,16 @@ Open items:
   and the push closeup shows dark round blobs that may be those placeholder pieces. Tune strength, colour and placement
   from these shots.
 
-## Round 27 plan: code reorganisation and build quick wins (2026-11-07)
+## 0.4 Tug of war plan (2026-11-07)
 
-**Order.** Build after graphics checkpoint 7 is fully built and merged, before round 28 (push and pull). Two parts
-at once in their own worktrees: **Reorg** (Sonnet) and **Quick wins** (Haiku, tools and skills only, so no overlap).
-No gameplay change, so no playtest: the gate, the determinism check and the timings are the proof.
+Planned as rounds 27 and 28 before the switch to targets; the content is unchanged. **Order:** first pass **Reorg**
+and **Quick wins** together (no gameplay change, so no playtest: the gate, the determinism check and the timings are
+the proof), then **Line** and **Defences** on the reorganised layout, then **Rule stepping** if there is room.
 
-### Round 27 Reorg: code reorganisation
+### Tug of war: Reorg, code reorganisation (#3, #4)
+
+Two parts at once in their own worktrees: **Reorg** (Sonnet) and **Quick wins** (Haiku, tools and skills only, so no
+overlap).
 
 **Why.** Of the last 150 commits, `config.gd` changed in 63 and `topdown_main.gd` in 54: almost every change, and most
 merge conflicts between parallel parts, go through these two files. The tuning values are filed by round
@@ -251,22 +257,22 @@ merge conflicts between parallel parts, go through these two files. The tuning v
 so an agent tuning one system searches both.
 
 **Changes** (one Sonnet worktree agent, no behaviour change):
-1. **Config by system, not by round.** Split `Config`/`ConfigBase` into one small config script per system (for example
+1. **Config by system, not by round** (#3). Split `Config`/`ConfigBase` into one small config script per system (for example
    border, push, tide and night, people, projectiles, spirit, landmarks, HUD and cues, recorder), and update every
-   reference. The round history stays in git and IDEAS_RESOLVED.md. Round 28's parts then add their values to
+   reference. The round history stays in git and IDEAS_RESOLVED.md. Line and Defences then add their values to
    their own systems' files.
-2. **`topdown_main.gd` coordinates only.** Move each system's set-up and per-frame work into that system's script, so
+2. **`topdown_main.gd` coordinates only** (#4). Move each system's set-up and per-frame work into that system's script, so
    `TopDownMain` builds the systems and calls them in order. New features should no longer need an edit there.
 3. **Proof of no change:** the full gate and the determinism check give the same tests and lines hit as before;
    `coverage_baseline.json` gets the new file paths (never a lower total). Regenerate SOURCE_MAP.md and update
    ARCHITECTURE.md (script map, areas, tuning).
 
-**Not in round 27:** sub-folders for `scripts/` (border/, gloom/, people/, hud/, fx/). Coverage, the baseline and the
+**Not in Reorg:** sub-folders for `scripts/` (border/, gloom/, people/, hud/, fx/). Coverage, the baseline and the
 fast tier's map are keyed by file path, so it needs a remap tool first; low value for the risk.
 
-### Round 27 Quick wins: build speed and upkeep
+### Tug of war: Quick wins, build speed and upkeep (#5 to #9)
 
-1. **Stop Godot importing tool output.** `.godot/` is 1.4 GB: Godot imports every gdUnit4 report under `reports/` (267
+1. **Stop Godot importing tool output** (#5). `.godot/` is 1.4 GB: Godot imports every gdUnit4 report under `reports/` (267
    folders, one logo per report page; 15,395 paths in `reports/determinism-2` alone). `run_tests.py`'s freshness check
    already skips these folders (`IMPORT_IGNORED_DIRS`), but Godot itself does not. Have the tools put a `.gdignore` in
    each `IMPORT_IGNORED_DIRS` folder that holds no game assets (at least `reports/` and `coverage/`; check `design/`,
@@ -274,22 +280,21 @@ fast tier's map are keyed by file path, so it needs a remap tool first; low valu
    clear `.godot/imported` once and reimport. Expect a much smaller cache, a faster `--import` (about 38 s today), and
    faster coverage and determinism copies, which start from the repo's import cache. Record before and after in
    `tools/BUILD_TIMINGS.md`.
-2. **Worktree agents start with the import cache** (only once 1 has shrunk it): list the needed parts of `.godot/`
+2. **Worktree agents start with the import cache** (#6) (only once 1 has shrunk it): list the needed parts of `.godot/`
    in a `.worktreeinclude`, so a new agent worktree skips its first full import. Measure the copy against the import.
-3. **SOURCE_MAP.md never blocks a commit.** Have `lint.py --fix` regenerate it (the hook still checks it), and say so
+3. **SOURCE_MAP.md never blocks a commit** (#7). Have `lint.py --fix` regenerate it (the hook still checks it), and say so
    in the `brief-build-agent` skill, so agents stop losing a commit attempt to a stale map.
-4. **IDEAS.md stays short.** The `finish-round` skill moves the finished build and plan sections to IDEAS_RESOLVED.md
+4. **IDEAS.md stays short** (#8). The `finish-target` skill moves the finished build and plan sections to IDEAS_RESOLVED.md
    (the round 26 build section is still here).
-5. **Coordinator, by hand:** after checkpoint 7 merges, run `python tools/cleanup_worktrees.py` (three old scratchpad
+5. **Coordinator, by hand** (#9): now that checkpoint 7 has merged, run `python tools/cleanup_worktrees.py` (three old scratchpad
    copies and `agent-afd5…` are stale), and suggest `/fewer-permission-prompts` to the user to allowlist the common
    tool commands.
 
-## Round 28 plan: push and pull (2026-11-07)
+### Tug of war: push and pull (Line #10 to #14, Defences #15 to #17)
 
-**Order.** Build after round 27 (code reorganisation and quick wins) is merged, which itself follows graphics
-checkpoint 7. Checkpoint 7 part A removes the beacon's reach guide and part D brings the round 26 push into the
-styled look; round 28 keeps the styled push working where it can, and its new visuals are placeholder only, as usual.
-Parts: **Line** and **Defences** on the reorganised layout, then **Rule stepping** if the round has room.
+**Order.** Build after Reorg and Quick wins are merged. Checkpoint 7 part A removed the beacon's reach guide and
+part D brought the round 26 push into the styled look; this keeps the styled push working where it can, and its new
+visuals are placeholder only, as usual.
 
 **Discussion (no new playtest; design talk after the checkpoint 7 playtest).** The core loop is *build your zone,
 reinforce and protect it, reach for goals with it*. Shooting is the means to that end. The border should be a visible tug
@@ -307,15 +312,15 @@ so the beacon is replaced. Buildings and landmarks should be denser.
 - Parked for later: people popping out of a deep dent and dimming again (see the open items).
 
 **Changes** (values marked "default" are the coordinator's calls; the playtest can overrule them).
-1. **Grab and pull (E), replacing the beacon.** Hold E: the stretch of border nearest the cursor is grabbed. Drag
+1. **Grab and pull (E), replacing the beacon** (#10). Hold E: the stretch of border nearest the cursor is grabbed. Drag
    outward and a preview shows the new shape (a smooth bulge, wider the further you pull). Release to set it, paying
    `PULL_SPIRIT_COST` (default 25); right-click cancels; not enough spirit shows the slim banner. The pulled shape
    becomes the line's rest shape: members walk out to fill it, and it holds there until pressed in. Reach is capped by
-   headcount (see 3). Default: outward only this round.
-2. **Rescues pull the line.** A person rescued outside the zone joins the border at the point nearest where they stood
+   headcount (see 3). Default: outward only for now.
+2. **Rescues pull the line** (#11). A person rescued outside the zone joins the border at the point nearest where they stood
    and pulls that stretch's rest shape out toward them by `RESCUE_PULL_SHARE` of the distance (default 0.5, capped by
    headcount). Where you rescue is where you grow. Rescues inside the zone add headcount as now.
-3. **The line is a balance of forces; tight or stretched.**
+3. **The line is a balance of forces; tight or stretched** (#12; land follows the line #13).
    - Each angle sample has a rest position (from pulls and rescues) and a pressure (pushers and the surge, as round 26).
      The line sits between them and springs back to its rest shape, not further, when relieved. Default: no automatic
      outward drift.
@@ -324,7 +329,7 @@ so the beacon is replaced. Buildings and landmarks should be denser.
      thinness must read in the placeholder look (wider member spacing, a thinner ribbon), not as a meter or alarm.
    - **Land follows the line:** ground under a dent fades toward grey while the dent holds and recolours when the line
      springs back. Ground left outside after a deep press is lost to the gloom as it is today outside the border.
-4. **Defences (F).** Hold F to aim on painted ground inside the zone near the edge, release to plant; right-click
+4. **Defences (F)** (#15). Hold F to aim on painted ground inside the zone near the edge, release to plant; right-click
    cancels. With more than one type unlocked, the mouse wheel cycles the type while F is held (it zooms otherwise).
    The nearest free border member walks over and staffs it (they leave the line, so the line thins). A defence
    strengthens the stretch of border nearest it. One type per landmark:
@@ -335,7 +340,7 @@ so the beacon is replaced. Buildings and landmarks should be denser.
      a cooldown).
    A defence left outside the line goes quiet (no effect) and its staff drains like any member until the line takes it
    back. Defaults: `DEFENCE_MAX` 4 in total; any rescued person can staff any type (no element matching).
-5. **Landmarks unlock defences; denser layout.**
+5. **Landmarks unlock defences (#16); denser layout (#17).**
    - Capturing a landmark (held 3 s, as now) unlocks its defence type for the rest of the night; nothing is unlocked
      at the start. The unlock shows in the slim banner and the cue panel.
    - Add a fourth landmark, the **Gallery** (art), and move the Bandstand and Bell tower closer: today they are about
@@ -343,7 +348,7 @@ so the beacon is replaced. Buildings and landmarks should be denser.
      different sides, so reaching one takes a pull or two, not a trek.
    - More ordinary buildings, closer together (default about 1.5x as many), keeping paths for people and the player.
    - The third dawn light still needs 75% rescued and 2 landmarks (of four now); watch it in the playtest.
-6. **One long telegraphed surge**, replacing the rising and midnight tides:
+6. **One long telegraphed surge** (#14), replacing the rising and midnight tides:
    - **Warning** (default about 40 s before the peak): a fog bank gathers on one or two sides, visible on screen and
      on the minimap, and the light cools. That is the window to pull, plant and staff.
    - **Surge** (default about 50 s): a long, heavy push from the side shown, using round 26's wave and pushers.
@@ -354,7 +359,7 @@ so the beacon is replaced. Buildings and landmarks should be denser.
 in the report. Never loosen a threshold or a `test_perf_*` budget. Rules change, so run the determinism check at the end.
 Player-facing text uses the gloom terms. README.md is updated, since the controls change (E pull, F defence).
 
-**Build split** (two Sonnet worktree agents, each adding its values to the per-system config files round 27 creates;
+**Build split** (two Sonnet worktree agents, each adding its values to the per-system config files Reorg creates;
 a new system gets its own file):
 - **Line:** changes 1, 2, 3 and 6, the line and the surge (`border.gd`, `border_push.gd`, the beacon scripts, the night
   cycle). It adds one hook for defences: a per-angle strength multiplier and a "no break here" flag that
@@ -367,7 +372,7 @@ a new system gets its own file):
 thin line read as thin without a meter? Are defences planted during the warning, and is one surge enough tension for the
 night? Are four closer landmarks the right density?
 
-### Round 28 Rule stepping: advance the game rules without the scene (after Line and Defences merge, or round 29)
+### Tug of war: Rule stepping, advance the game rules without the scene (#18; after Line and Defences merge, or the next target)
 
 Tests are frame-bound: the 2400-frame border test sets the suite's floor. Let people, gloom and border advance on a
 fixed time step without the scene running, so the long scenario tests stop waiting on real frames. Rules and visuals are already split for the looks; this does the same for the simulation.

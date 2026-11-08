@@ -17,16 +17,16 @@ the BASE CHECK block with local main's hash. Worktree agents start from `origin/
 
 ```
 PositiveFPS (Godot 4.7.2 GDScript with Python tools). Read CLAUDE.md, then only ARCHITECTURE.md's "Known gotchas", "Quality gate and tools" and your area's line under "Areas" (not the whole file); your task is
-"<round and item names>" in IDEAS.md. <One or two sentences on what to build and the numbers to use.>
+"<target>: <part>" in IDEAS.md (board issues <#N, #M>). <One or two sentences on what to build and the numbers to use.>
 To find code, search SOURCE_MAP.md first (every script's public functions with line numbers), then Read only the
 lines you need. Do not read whole scripts, and do not read all of IDEAS.md: its "Current state" section and your
-round's section are enough (history is in IDEAS_RESOLVED.md).
+target's section are enough (history is in IDEAS_RESOLVED.md).
 
 FIRST, before any edit: run `git merge --ff-only <local main hash>` in your worktree. If `git log --oneline -1`
 doesn't then show that hash, stop and report.                                   <- BASE CHECK, worktree agents only
 
 Scope: <files you may change>. Stay out of <files other parallel agents own>. Put new constants in their own block
-("Round N: <part name>") in scripts/config.gd. <Other parts running in parallel and what they touch.>
+("<Target>: <part name>") in scripts/config.gd. <Other parts running in parallel and what they touch.>
 
 Tests: add tests for new behaviour in tests/<name>_test.gd. Run only your own suites
 (`python tools/run_tests.py --suites <name>_test [<other>_test ...]`, `python tools/lint.py`), not the full gate,
@@ -36,10 +36,12 @@ check on every script you changed or added: `python tools/coverage.py --check-fi
 coverage against `coverage_baseline.json` and the lines not hit; add tests until no script says BELOW. Its numbers are a
 floor (only those suites ran). Do not run the baseline update.               <- parallel parts
 Run `python tools/gate.py` and wait for it in the foreground before you report.  <- single agent
+A tools-only or docs-only change (no scripts/, tests/, scenes or test tooling): do not run gate.py, which runs every
+Godot suite. The commit hook is the gate there: lint plus the changed tool's tools/test_*.py.  <- tools/docs only
 
 Rules (CLAUDE.md has the full list): temp files only in .scratch/; never kill a process you did not start (a playtest
 window may be open); if a safety check denies a command, stop and report; never loosen a test threshold or a test_perf_*
-budget (stop and report); gameplay rounds change only the placeholder look; player-facing words are wistful / gloomy /
+budget (stop and report); gameplay work changes only the placeholder look; never edit the GitHub board or issues; player-facing words are wistful / gloomy /
 dimmed.
 
 Tools: view file lines with the Read tool (offset/limit), never shell loops, sed, head/tail or pipes; create and edit
@@ -59,7 +61,8 @@ SOURCE_MAP.md: the commit hook refuses a commit with .gd files when the map is s
 `python tools/source_map.py` and add SOURCE_MAP.md to your commit. (Parallel parts: the coordinator regenerates it
 after the merge, so a conflict there is resolved by regenerating, never by hand.)
 
-Commits: explicit paths only (include new .gd.uid files), never `git add -A`, never push, never amend. Set
+Commits: explicit paths only (include new .gd.uid files), never `git add -A`, never push, never amend. Mention the
+issues as `Refs #N` (never `Closes`). Set
 POSITIVEFPS_PARALLEL_PART=1 for your commits.                                    <- parallel parts only
 End every commit message with:
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
@@ -81,5 +84,5 @@ one that reads ok will not fail it on that file.
 
 ## After the agent reports
 
-Check the branch with `git log --oneline` and `git diff --stat main..<branch>`, merge it (the `finish-round` skill has
+Check the branch with `git log --oneline` and `git diff --stat main..<branch>`, merge it (the `finish-target` skill has
 the order), and look for files the agent touched outside its scope.

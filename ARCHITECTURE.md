@@ -62,8 +62,8 @@ functions with line numbers) and Read only those lines.
   as landmarks are held), `style_push.gd` (the styled gloom tide: pixel fog banks and the figures in them).
 - **Styled shading:** smooth toon bands and soft alpha falloff instead of dither patterns, with the low resolution and
   the outlines kept.
-- **Gameplay rounds add a placeholder look only** (extend the base look class and the placeholder). Styled work happens
-  only in graphics checkpoints.
+- **Gameplay work adds a placeholder look only** (extend the base look class and the placeholder). Styled work happens
+  only in look-focused targets (formerly graphics checkpoints).
 - `ViewPipeline` owns camera and post-process: styled mode renders in a 640x360 SubViewport with nearest upscale and outlines.
   Window mouse coordinates are divided by `pipeline.view_scale()` before `camera.project_ray_*`; use
   `TopDownMain.world_to_screen()` (not `camera.unproject_position`) for window positions. HUD, minimap and edge pointers
@@ -81,7 +81,7 @@ functions with line numbers) and Read only those lines.
   parse error or the class cache is stale: run `python tools/run_tests.py --suites looks_checkpoint5_test` first, or run the scene with `--timeout 90` and read the output.
 
 ## Tuning (`scripts/config.gd`, `scripts/config_base.gd`)
-- `Config extends ConfigBase`, so `Config.X` reaches everything. **New constants go in `config.gd` as a "Round N: <part>"
+- `Config extends ConfigBase`, so `Config.X` reaches everything. **New constants go in `config.gd` as a "<Target>: <part>"
   block just above the first helper function (`intro_on`).** A constant in `ConfigBase` cannot read one in `Config`.
   Keep each file under the 1000-line lint cap. No magic numbers in other scripts.
 - Search both files for block names ("Territory game", "Round 9: the living border", "Round 19: beacon", "Checkpoint 6" ...).
@@ -156,7 +156,7 @@ in a `_poll_*`) and call `emit_event("name", {...})`; keep it cheap (nothing per
   when `import_is_current()` (nothing newer than the last import; coverage copies always import). `coverage.py
   --update-baseline` / `--check-baseline` reuse the saved clean run of the same code fingerprint (`--fresh` runs again);
   the saved map is written by every instrumented run (`save_clean_run`).
-- **Every round ends with `python tools/gate.py --full`, then `python tools/coverage.py --check-determinism`, then the baseline
+- **Every target pass ends with `python tools/gate.py --full`, then `python tools/coverage.py --check-determinism`, then the baseline
   commit (`python tools/coverage.py --update-baseline`).** `python tools/round_end.py` runs all three (stops at the first
   failure; detached worker, state in `.scratch/round_end/`; re-run while it says "still running", exit 124). The hook alone
   does not run the ratchet. Never lower `coverage_baseline.json`.
@@ -169,6 +169,9 @@ in a `_poll_*`) and call `emit_event("name", {...})`; keep it cheap (nothing per
 - `python tools/analyse_recording.py [--compare A B ...]`: analyse recordings (recordings under 10 s skipped unless `--include-restarts`).
 - `python tools/checkpoint_shots.py`: checkpoint renders (see Looks). `python tools/cleanup_worktrees.py`: removes stale worktrees and orphan `.claude/worktrees/agent-*` folders. `python tools/agent_dashboard.py [--port] [--session]`: read-only page of subagent status. `python tools/install_hooks.py`: installs the hook.
 - Details: each tool's `--help`, `tools/COVERAGE_TOOL_NOTES.md`, timing history `tools/BUILD_TIMINGS.md`. Godot is found by `tools/godot_path.py` (`GODOT` env, PATH, WinGet).
-- Self-checks (run by hand when you change a tool): `tools/test_godot_run.py`, `test_perf_compare.py`, `test_analyse_recording.py`, `test_run_tests.py`, `test_gate.py`, `test_round_end.py`, `test_determinism.py`, `test_fast_tier.py`, `test_coverage_files.py`, `test_cleanup_worktrees.py`, `test_source_map.py`, `test_agent_dashboard.py`.
-- Project skills (`.claude/skills/<name>/SKILL.md`, committed): `launch-playtest`, `finish-round`, `brief-build-agent`.
+- Self-checks (run by hand when you change a tool): `tools/test_godot_run.py`, `test_perf_compare.py`, `test_analyse_recording.py`, `test_run_tests.py`, `test_gate.py`, `test_round_end.py`, `test_determinism.py`, `test_fast_tier.py`, `test_coverage_files.py`, `test_cleanup_worktrees.py`, `test_source_map.py`, `test_agent_dashboard.py`, `test_board.py`.
+- Project skills (`.claude/skills/<name>/SKILL.md`, committed): `launch-playtest`, `finish-target`, `brief-build-agent`.
+- `python tools/board.py list | add | set | archive | drop | scan`: the GitHub project board ("Positive game dev", items are
+  repo issues; milestone = target version, labels = area, Size = token cost). Coordinator only; build agents never touch
+  the board. Write commands take `--dry-run`. gh is found by `GH`, PATH, then `C:\Program Files\GitHub CLI\gh.exe`.
 - Finding code: search `SOURCE_MAP.md`; for project state read IDEAS.md "Current state" only.

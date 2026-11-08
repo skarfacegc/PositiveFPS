@@ -1,11 +1,11 @@
 ---
 name: launch-playtest
-description: Launch a PositiveFPS playtest from a clean detached copy of the committed round with recording on, confirm it started, and analyse the new recordings afterwards. Use at step 1 of the round loop or when the user asks to play the latest round.
+description: Launch a PositiveFPS playtest from a clean detached copy of the committed target pass with recording on, confirm it started, analyse the new recordings afterwards and update the board after the interview. Use at step 1 of the target loop or when the user asks to play the latest build.
 ---
 
 # Launch a playtest
 
-The round loop (CLAUDE.md) says: launch the committed round from a clean detached worktree in the scratchpad, never
+The target loop (CLAUDE.md) says: launch the committed pass from a clean detached worktree in the scratchpad, never
 from the live repo. Do this from the main session or one agent; it needs no build agent.
 
 ## 1. Check for a game already open (first, always)
@@ -23,7 +23,7 @@ Get-Process | Where-Object { $_.ProcessName -like 'Godot*' } | Select-Object Id,
 
 ## 2. Refresh the detached copy
 
-The committed round is `git rev-parse --short main` in the live repo. Use a fresh folder per commit in the scratchpad
+The committed pass is `git rev-parse --short main` in the live repo. Use a fresh folder per commit in the scratchpad
 (the scratchpad path is in the session's environment notes), for example `<scratchpad>/playtest-<shortsha>`:
 
 ```powershell
@@ -50,8 +50,8 @@ no timeout (the user plays as long as they like). Get the executable from `pytho
 & "<gui exe>" --path "<copy>" -- --record --look=placeholder
 ```
 
-The `--look=` argument picks the starting look (F4 still switches). Gameplay rounds use `--look=placeholder`; graphics
-checkpoints use `--look=styled`. Without the argument a copy run from the project starts placeholder (only exported
+The `--look=` argument picks the starting look (F4 still switches). Gameplay passes use `--look=placeholder`; look-focused
+targets use `--look=styled`. Without the argument a copy run from the project starts placeholder (only exported
 builds start styled). `tools/checkpoint_shots.py` needs no flag: it sets the look itself and flips both ways.
 
 Use `run_in_background` for that command, so the session keeps working and is told when the game exits.
@@ -79,10 +79,24 @@ The single report ends with two round 23 sections: **PRESSURE CURVE** (15 s step
 relapses, threats and rescued at the end of each step) and **PATCH EFFECT** (for each patch: kind `gap` or `strain`,
 gaps open at the patch, gaps 10 s and 20 s later, and whether they fell). Quote them for pressure and patch questions.
 
-Compare against the previous round's recording when the user wants round-over-round numbers (older ones are in the
+Compare against the previous pass's recording when the user wants pass-over-pass numbers (older ones are in the
 earlier playtest copies' `recordings/`). Summarise outcome, length, rescued, quiet share, gaps by phase, relapses, spirit,
 beacons and landmarks, and quote real numbers, not impressions. Then go on to the interview and record the playtest in
-IDEAS.md (round loop steps 2 and 3).
+IDEAS.md (target loop steps 2 and 3), then update the board (section 6).
+
+## 6. Update the board after the interview
+
+Read the board first (`python tools/board.py list`) so the interview covers what this pass built (items In review).
+After the interview, in the same turn:
+
+- Items the user played and accepts: `python tools/board.py set <N> --status Done` (this closes the issue).
+- Items that need more work stay In review, or go back to Ready with a note in IDEAS.md.
+- New ideas and snags from the interview: `python tools/board.py add "<headline>" --label <area> --size <XS..XL>
+  --pointer "IDEAS.md → <section>"`, Status Backlog unless the user targets them, and put the new `#N` on the
+  matching IDEAS.md line.
+- Anything the user targets ("do X next", "put Y in Tug of war"): set its milestone and Status Ready.
+
+Say what changed on the board in one or two lines.
 
 ## Rules
 
