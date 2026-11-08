@@ -394,7 +394,6 @@ const CP6_TARGET_RADIUS_SCALE := 1.2  # The styled ring's radius against TD_HIGH
 # is set on every toon material (StyleKit.mat) and on the ground; the glow and ground dot shares on their shaders.
 const STYLED_DITHER_LIGHT := 0.08  # The shadow band dither amount (was 0.16).
 const STYLED_DITHER_GLOW := 0.5  # The share of a glow halo's dots kept (was all of them): ground glows and the smoke.
-const STYLED_DITHER_GROUND := 0.5  # The share of the ground's dithered edge and sand-ridge dots kept (was all of them).
 # The player's run (Shift) on top of the walk, applied through Gait.jog (the player only; people keep their gait).
 const JOG_CADENCE := 1.15  # Step cycles per second at a full run are multiplied by this.
 const JOG_CYCLE_CAP := 4.2  # The most step cycles per second the player's run may take (the walk's cap is 3.4).
@@ -535,6 +534,25 @@ const PUSH_BRACE_SMOOTH := 6.0  # How fast the drawn brace follows (per second).
 const PUSH_PROMPT_FRACTION := 0.4  # The line bent this share of the way to breaking: the first prompt.
 const PUSH_NOTICE_TEXT := "It bends where they push: joy them"
 const PUSH_BREAK_TEXT := "Broken! Joy the ends, lift who got in"
+
+# ---- Checkpoint 7: living ground and atmosphere (shaders/style_ground, style_mist; looks/style_atmosphere.gd). ----
+# Styled look only, scenery only: reads the night clock, the held landmarks and the paint weights, writes nothing.
+const CP7_GROUND_GLOOM := 0.55  # How far the cold desaturated tint reaches over unpainted ground (0..1).
+const CP7_GROUND_LIFE := 1.0  # Scale of the living pieces: tufts, flowers, moss, puddles; cracks, litter, dead leaves.
+const CP7_GROUND_LIGHT_DITHER := 0.0  # The ground's shadow-band dither (none: the bands are smooth).
+const CP7_MIST_STRENGTH := 0.42  # Peak alpha of the low mist over unpainted ground.
+const CP7_MIST_SCALE := 0.07  # Noise scale of the mist (per metre; smaller = bigger banks).
+const CP7_MIST_HEIGHT := 0.5  # Metres above the ground of the low layer (the high layer sits 2.4 times higher).
+const CP7_MIST_COLOUR := Color(0.62, 0.68, 0.78)
+const CP7_NIGHT_SKY := Color(0.30, 0.34, 0.48)  # The sky at midnight, before first light warms it.
+const CP7_SKY_NIGHT_MIX := 0.8  # How far toward it the sky goes at midnight.
+const CP7_SKYLINE_RADIUS := 66.0  # Metres from the centre: the rooftops round the plaza.
+const CP7_SKYLINE_ROOFS := 10  # Houses in the sector behind each landmark.
+const CP7_SKYLINE_ARC := 1.5  # Radians a sector spans.
+const CP7_SKYLINE_EASE := 2.0  # Seconds a sector takes to light up or go grey.
+const CP7_BODY_GREY := Color(0.36, 0.38, 0.46)
+const CP7_ROOF_GREY := Color(0.30, 0.32, 0.40)
+const CP7_ROOF_WARM := Color(1.0, 0.78, 0.42)
 
 static var intro_override: int = -1
 static var tides_override: int = -1  # Round 25: as intro_override, for the gloom tides (see tides_on).

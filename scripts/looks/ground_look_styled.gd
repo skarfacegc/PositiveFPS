@@ -2,8 +2,9 @@ class_name GroundLookStyled
 extends GroundLook
 
 # The styled ground: one big plane with the cobble shader (see shaders/style_ground.gdshader). The paint weight of
-# every tile goes to the shader as a small greyscale texture; the shader dithers the edge between the grey and the warm
-# cobbles. The paint colour is not used (the painted ground is always the warm cobble).
+# every tile goes to the shader as a small greyscale texture; the shader blends the edge between the grey and the warm
+# cobbles smoothly (checkpoint 7: no dithering) and grows the living ground (tufts, flowers, moss, puddles) inside the
+# paint and cracks, litter and dead leaves outside it. The paint colour is not used (painted ground is always warm).
 
 const SHADER := "res://shaders/style_ground.gdshader"
 const PLANE_SIZE := 160.0
@@ -39,6 +40,11 @@ func set_dawn_front(metres: float) -> void:
 	_mat.set_shader_parameter("dawn_front", metres)
 
 
+# Checkpoint 7: the paint-weight picture the shader reads (null before the first refresh). The mist reads the same one.
+func weights_texture() -> Texture2D:
+	return _texture
+
+
 func dawn_front() -> float:
 	return _mat.get_shader_parameter("dawn_front")
 
@@ -48,8 +54,9 @@ func _build() -> void:
 	_mat.shader = load(SHADER)
 	_mat.set_shader_parameter("plaza", float(grid_size))
 	_mat.set_shader_parameter("dawn_front", 1000.0)
-	_mat.set_shader_parameter("dither_amt", Config.STYLED_DITHER_LIGHT)
-	_mat.set_shader_parameter("dither_k", Config.STYLED_DITHER_GROUND)
+	_mat.set_shader_parameter("dither_amt", Config.CP7_GROUND_LIGHT_DITHER)
+	_mat.set_shader_parameter("gloom_amt", Config.CP7_GROUND_GLOOM)
+	_mat.set_shader_parameter("life_amt", Config.CP7_GROUND_LIFE)
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(PLANE_SIZE, PLANE_SIZE)
 	var inst := MeshInstance3D.new()

@@ -170,13 +170,13 @@ extends Node3D | 1 const | Round 22: the world marks for the burst (G/Q), drawn 
 - L88 `streak_count() -> int`
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 312 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L549 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L557 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
-- L564 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L573 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L583 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L594 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 327 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L567 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L575 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
+- L582 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L591 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L601 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L612 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -444,10 +444,11 @@ extends GroundLook | 0 const | The placeholder ground: a square grid of flat 1 m
 
 ### scripts/looks/ground_look_styled.gd (GroundLookStyled)
 extends GroundLook | 2 const | The styled ground: one big plane with the cobble shader (see shaders/style_ground.gdshader). The paint weig...
-- L17 `is_styled() -> bool`
-- L21 `refresh(_colours: Array[Color], weights: Array[float]) -> void`
-- L38 `set_dawn_front(metres: float) -> void` - Graphics checkpoint 5: first light. The ground behind the dawn front (square distance from the centre at
-- L42 `dawn_front() -> float`
+- L18 `is_styled() -> bool`
+- L22 `refresh(_colours: Array[Color], weights: Array[float]) -> void`
+- L39 `set_dawn_front(metres: float) -> void` - Graphics checkpoint 5: first light. The ground behind the dawn front (square distance from the centre at
+- L44 `weights_texture() -> Texture2D` - Checkpoint 7: the paint-weight picture the shader reads (null before the first refresh). The mist reads the...
+- L48 `dawn_front() -> float`
 
 ### scripts/looks/landmark_look.gd (LandmarkLook)
 extends Node3D | 2 const | The look of the landmark: the beacon, the hold ring with its growing disc, and the label. The rules (landma...
@@ -610,6 +611,16 @@ extends PlazaLook | 2 const | The placeholder plaza: a grey floor slab (top surf
 extends PlazaLook | 0 const | The styled plaza: low weathered stone walls round the cobbles. (The cobbles themselves are the GroundLookSt...
 - L8 `is_styled() -> bool`
 
+### scripts/looks/style_atmosphere.gd (StyleAtmosphere)
+extends Node3D | 2 const | Checkpoint 7 (change 5): the styled gloom atmosphere. Scenery only: it reads the night clock, held landmark...
+- L26 `build(main: TopDownMain) -> void` - Builds the mist and the skyline into this node (call once, after adding the node to the level).
+- L50 `mist_layer_count() -> int`
+- L54 `mist_material(i: int) -> ShaderMaterial`
+- L59 `skyline_lit(i: int) -> float` - How lit skyline sector `i` is (0 grey, 1 warm).
+- L63 `skyline_roof_count(i: int) -> int`
+- L69 `static sky_for(night_progress: float) -> Color` - The sky colour for the night's progress (0 at dusk, 1 at dawn). Cooler toward midnight; the share of the ni...
+- L76 `sync(delta: float) -> void` - One frame: the sky, the skyline sectors and the paint-weight picture the mist reads.
+
 ### scripts/looks/style_beacon.gd (StyleBeacon)
 extends RefCounted | 7 const | Graphics checkpoint 3: the spirit beacon in the locked style. A small stone-and-timber lantern post (warm l...
 - L20 `static build(root: Node3D) -> Dictionary` - Builds the beacon's parts into `root` and returns them for animate().
@@ -766,11 +777,11 @@ extends Control | 0 const | Graphics checkpoint 3: a HUD panel that has a styled
 
 ### scripts/looks/view_pipeline.gd (ViewPipeline)
 extends Node | 5 const | The camera and post-process pipeline, the one switch behind the look (see Looks.mode).
-- L33 `apply(main: TopDownMain) -> void` - Switches the pipeline to the current look (Looks.mode). Called by TopDownMain at the start and on every F4.
-- L45 `window_to_view(window_pos: Vector2) -> Vector2` - A window position as the camera sees it (its own view size).
-- L50 `view_to_window(view_pos: Vector2) -> Vector2` - A camera view position as a window position (the opposite of window_to_view).
-- L55 `view_scale() -> Vector2` - Window pixels per view pixel (x, y). One when the camera draws at window size.
-- L62 `view_size() -> Vector2i` - The size of the pixel view in view pixels (the window size when the camera draws straight into it).
+- L35 `apply(main: TopDownMain) -> void` - Switches the pipeline to the current look (Looks.mode). Called by TopDownMain at the start and on every F4.
+- L47 `window_to_view(window_pos: Vector2) -> Vector2` - A window position as the camera sees it (its own view size).
+- L52 `view_to_window(view_pos: Vector2) -> Vector2` - A camera view position as a window position (the opposite of window_to_view).
+- L57 `view_scale() -> Vector2` - Window pixels per view pixel (x, y). One when the camera draws at window size.
+- L64 `view_size() -> Vector2i` - The size of the pixel view in view pixels (the window size when the camera draws straight into it).
 
 ### scripts/menu.gd
 extends Control | 5 const | The start menu: a title, one Play button, the Look toggle and a "How to play" panel. Play is the button,
@@ -1001,6 +1012,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - looks_base_test (tests/looks_base_test.gd): 6 tests
 - looks_checkpoint5_test (tests/looks_checkpoint5_test.gd): 18 tests
 - looks_checkpoint6_test (tests/looks_checkpoint6_test.gd): 11 tests
+- looks_checkpoint7_ground_test (tests/looks_checkpoint7_ground_test.gd): 9 tests
 - looks_cues_test (tests/looks_cues_test.gd): 8 tests
 - looks_round19_test (tests/looks_round19_test.gd): 10 tests
 - looks_round20_extra_test (tests/looks_round20_extra_test.gd): 3 tests
