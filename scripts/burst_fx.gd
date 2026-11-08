@@ -5,7 +5,7 @@ extends Node3D
 #  - Burst: a streak from where each dimmed person stood to where the burst put them, a ring on each person lifted.
 # Round 25 (edge cleanup): every result mark is short, and a new one replaces an earlier one at the same spot (within
 # EDGE_FX_MERGE) instead of stacking on it. Meshes are pooled and only touched when shown.
-# Graphics checkpoint 5: the styled look draws the same marks with flat dithered rings (StyleFight). The pools are
+# Graphics checkpoint 5: the styled look draws the same marks with flat rings (StyleFight). The pools are
 # rebuilt when the look changes (sync notices it).
 
 const GOLD_PLANE_Y := 0.12
@@ -223,7 +223,7 @@ func _make_text() -> Label3D:
 	return l
 
 
-# A placeholder ring (a torus). The styled look builds its flat dithered rings with _styled_ring.
+# A placeholder ring (a torus). The styled look builds its flat rings with _styled_ring.
 func _make_ring(inner: float, outer: float) -> MeshInstance3D:
 	var m := MeshInstance3D.new()
 	var torus := TorusMesh.new()

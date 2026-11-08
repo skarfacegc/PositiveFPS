@@ -2,9 +2,9 @@ class_name StyleFight
 extends RefCounted
 
 # Graphics checkpoint 5: the styled pieces that read the fight (PatchFx and EdgeMarkerFx build and drive them in the
-# styled look): the patch's ward (a dithered disc and a rim ring), the burst's streaks, the halos over the people it
+# styled look): the patch's ward (a disc and a rim ring), the burst's streaks, the halos over the people it
 # lifted and the trouble markers. Round 25: the light columns and posts are gone (no tall light at the edge). All of
-# them are flat dithered shapes with an ink pixel and no alpha, so they stay crisp in the 640x360 pass. Pure visuals:
+# them are flat shapes with an ink pixel and no alpha, so they stay crisp in the 640x360 pass. Pure visuals:
 # the rules never read them.
 
 const GOLD := Color("#ffd866")

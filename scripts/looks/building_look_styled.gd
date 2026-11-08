@@ -2,7 +2,7 @@ class_name BuildingLookStyled
 extends BuildingLook
 
 # The styled block: an industrial building (steel, pipes, vents) and, built the first time it is needed, the whimsical
-# version of the same block (plaster, timber, shutters, flower boxes, bunting). They are swapped with a short dithered
+# version of the same block (plaster, timber, shutters, flower boxes, bunting). They are swapped with a short
 # dissolve that follows the rules' tint (0 industrial to 1 whimsical). The block's size is the collision box; the
 # drawn building is a little taller than it. A block that is a border post gets a glowing lantern and a gold ring.
 

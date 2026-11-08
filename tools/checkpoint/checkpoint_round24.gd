@@ -1,8 +1,8 @@
 extends "res://tools/checkpoint/checkpoint_round20.gd"
 
 # Graphics checkpoint 5 (`--set round24`, run by tools/checkpoint_shots.py): everything added since round 20, in both looks.
-# Focus 1, reading the fight: the border ribbon (strain colours, dents, breaks at gaps) and its trouble markers, the gap
-# patch (ward, pulse, "Held: N"), the burst and the people it lifts, the wobble (greying, shaking, its marker), the
+# Focus 1, reading the fight: the border ribbon (strain colours, dents, breaks at gaps) and its trouble markers, the
+# burst and the people it lifts, the wobble (greying, shaking, its marker), the
 # reactions (hops, turns, glows), the cue panel and a notice.
 # Focus 2, dawn: the first-light front at three moments, the ground it lifts, people lifted behind it, the minimap edge.
 # Then the shape preview (in range, limited, stretching, finish pulse), dimmed people warming as joy builds and the dimmed
@@ -124,20 +124,6 @@ func _r24_fight(label: String) -> void:
 	await _r24_shot("fight_cue_ready", label, {"rect": Rect2i(560, 560, 600, 130), "scale": 2}, 3)
 	main.running = false
 	main.player._has_aim = false
-	# The patch: F at the gap. Frames pass so the people hop, turn and glow; then the ward as it is mid-way.
-	main.player.spirit = 90.0
-	main.gap_patch.patch_at(r24_gap, "gap")
-	_r24_run(20)
-	await _r24_shot("fight_patch", label, {}, 4)
-	await _r24_shot(
-		"fight_patch_closeup", label, {"world": r24_gap, "size": Vector2i(426, 240), "scale": 3}, 2
-	)
-	_r24_run(18)
-	await _r24_shot("fight_reactions_closeup", label, {"world": r24_gap, "size": Vector2i(426, 240), "scale": 3}, 2)
-	# Nearly out: the ward flickers.
-	main.gap_patch.patches[0]["left"] = 2.0
-	_r24_run(6)
-	await _r24_shot("fight_patch_ending", label, {"world": r24_gap, "size": Vector2i(640, 360), "scale": 2}, 2)
 	await _r24_burst(label)
 	await _r24_notice(label)
 
@@ -167,7 +153,6 @@ func _r24_burst(label: String) -> void:
 		p.level = Config.gloom_level(p.gloom)
 		p.joy = 0.0
 		p.calm_left = Config.BURST_CALM_SECONDS
-	main.gap_patch._on_burst_cleared({"cleared": cleared, "lifted": cleared.size(), "joy_hits": 0})
 	main.player.look.play_burst(Config.BURST_CLEAR_RADIUS, Config.TD_BURST_TIME)
 	_r24_run(14)
 	await _r24_shot("fight_burst", label, {}, 3)
@@ -370,11 +355,7 @@ func _write_sheets_round24() -> void:
 		var img: Image = by_look["styled"]
 		walk.blit_rect(img, Rect2i(0, 0, img.get_width(), img.get_height()), Vector2i(0, i * strip_h))
 	walk.save_png(ProjectSettings.globalize_path("%s/walk_sheet.png" % out_dir))
-	var both := Image.create(2560, 720, false, Image.FORMAT_RGBA8)
-	var over: Dictionary = shots["fight_patch"]
-	both.blit_rect(over["placeholder"] as Image, Rect2i(0, 0, 1280, 720), Vector2i(0, 0))
-	both.blit_rect(over["styled"] as Image, Rect2i(0, 0, 1280, 720), Vector2i(1280, 0))
-	both.save_png(ProjectSettings.globalize_path("%s/compare.png" % out_dir))
+	var over: Dictionary = shots["fight_strain"]
 	(over["styled"] as Image).save_png(ProjectSettings.globalize_path("%s/overview.png" % out_dir))
 
 

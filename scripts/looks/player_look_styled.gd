@@ -2,7 +2,7 @@ class_name PlayerLookStyled
 extends PlayerLook
 
 # The styled player (see StylePeople.build_player): wide-brim felt hat with a teal band and a glowing feather, saffron
-# coat, teal scarf, satchel with three glowing tubes, a gold double ring and a dithered glow on the ground. The outer
+# coat, teal scarf, satchel with three glowing tubes, a gold double ring and a soft glow on the ground. The outer
 # ring takes the colour of the target's element (cream with no target), as the placeholder ring does.
 
 # Checkpoint 6: a dust puff at each footfall of a run (colours and ring look of the dust puffs).
@@ -34,7 +34,7 @@ func sync() -> void:
 	_ring.material_override = StyleKit.mat(col, 0, 0.0, 0.8)
 
 
-# Graphics checkpoint 5: the joy burst is two dithered gold rings that open from the feet (the second a beat behind) and
+# Graphics checkpoint 5: the joy burst is two gold rings that open from the feet (the second a beat behind) and
 # thin away, with an ink pixel and a pale rim, instead of the placeholder's flat translucent disc.
 func play_burst(radius: float, duration: float) -> void:
 	var parent := subject.get_parent()
@@ -78,7 +78,7 @@ func _pose_gait() -> void:
 		_dust(step)
 
 
-# A flat dithered puff on the ground under the foot that just came down (the left or the right, by the half cycle).
+# A flat puff on the ground under the foot that just came down (the left or the right, by the half cycle).
 func _dust(step: int) -> void:
 	var parent := subject.get_parent()
 	if parent == null:

@@ -10,7 +10,7 @@ extends Node3D
 # reach falls short, and the word "Stretching"), whether or not E is held.
 # Round 22: when the tip arrives a pulse runs along the new arm and "+N sq m of ground" rises from it.
 # Graphics checkpoint 5: the styled look draws this same zone preview, stretch path and finish pulse with
-# dithered ground pieces (StyleReach, built lazily and swapped in by sync).
+# flat ground pieces (StyleReach, built lazily and swapped in by sync).
 # Checkpoint 5 follow-up: hold E to aim. Nothing but the stretch's travel shows while E is up.
 
 const SEGMENTS := 72
@@ -131,7 +131,7 @@ func _pulse(border: Border) -> void:
 	_pulse_left = maxf(_pulse_left - get_process_delta_time(), 0.0)
 	var p := 1.0 - _pulse_left / Config.BEACON_PULSE_SECONDS
 	if Looks.is_styled() and _styled != null:
-		# Graphics checkpoint 5: the wave and the ring are dithered pieces; only the count is shared with the placeholder.
+		# Graphics checkpoint 5: the wave and the ring are flat pieces; only the count is shared with the placeholder.
 		_styled.pulse(border, p, _pulse_ang, _pulse_tip)
 		_show_gain(p)
 		return

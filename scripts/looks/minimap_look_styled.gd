@@ -82,7 +82,7 @@ func cloud_colour() -> Color:
 	return Color("#54479a")
 
 
-# Graphics checkpoint 5: first light. The lit ground behind the front takes a warm gold wash, dithered like the world's
+# Graphics checkpoint 5: first light. The lit ground behind the front takes a warm gold wash, matching the world's
 # front (every other pixel stronger), the front itself is a pale line and a dark ink line runs just ahead of it.
 func first_light(part: String, col: Color, px: int, py: int) -> Color:
 	if part == "ground":

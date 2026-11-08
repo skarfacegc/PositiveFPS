@@ -31,8 +31,6 @@ const BEACON_BODY_MIN := 0.4  # Round 23 (was 0.6): the arm may take more of the
 const BEACON_GUIDE_Y := 0.18
 const BEACON_GUIDE_RING_COLOUR := Color(0.55, 0.85, 1.0, 0.35)
 const BEACON_GUIDE_PREVIEW_COLOUR := Color(0.55, 0.85, 1.0, 0.45)
-const BEACON_GUIDE_CAPPED_COLOUR := Color(1.0, 0.6, 0.45, 0.8)
-const BEACON_GUIDE_PATH_COLOUR := Color(0.75, 0.95, 1.0, 0.9)
 const BEACON_GUIDE_TIP_COLOUR := Color(1.0, 1.0, 0.85, 0.95)
 
 # ---- Round 21: stretch safety (scripts/border_centre.gd, reach_guide.gd). ----
@@ -511,7 +509,7 @@ const EDGE_RIBBON_GOLD := Color(1.0, 0.82, 0.4)
 const EDGE_RIBBON_AMBER := Color(1.0, 0.5, 0.1)
 const EDGE_RIBBON_CORAL := Color(1.0, 0.3, 0.28)
 const EDGE_RIBBON_HONEY := Color(0.94, 0.66, 0.24)  # A stretch sealed by the map edge.
-const EDGE_RIBBON_HALO := 2.4  # Styled look: the dithered halo is this many times the ribbon's width.
+const EDGE_RIBBON_HALO := 2.4  # Styled look: the halo is this many times the ribbon's width.
 const EDGE_RIBBON_REBUILD_FRAMES := 2
 const EDGE_FX_MERGE := 3.0  # A new burst mark within this distance (m) replaces the earlier one.
 const EDGE_OUT_FADE := 0.55  # How far a dimmed person outside the border is faded toward the ground (0 none, 1 gone).
@@ -585,7 +583,6 @@ const CP7_LOOK_ARG := "--look="  # The user argument that picks the starting loo
 # Styled look only, scenery only: reads the night clock, the held landmarks and the paint weights, writes nothing.
 const CP7_GROUND_GLOOM := 0.55  # How far the cold desaturated tint reaches over unpainted ground (0..1).
 const CP7_GROUND_LIFE := 1.0  # Scale of the living pieces: tufts, flowers, moss, puddles; cracks, litter, dead leaves.
-const CP7_GROUND_LIGHT_DITHER := 0.0  # The ground's shadow-band dither (none: the bands are smooth).
 const CP7_MIST_STRENGTH := 0.42  # Peak alpha of the low mist over unpainted ground.
 const CP7_MIST_SCALE := 0.07  # Noise scale of the mist (per metre; smaller = bigger banks).
 const CP7_MIST_HEIGHT := 0.5  # Metres above the ground of the low layer (the high layer sits 2.4 times higher).

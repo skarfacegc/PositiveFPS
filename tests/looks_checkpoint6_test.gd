@@ -40,15 +40,15 @@ func test_the_glow_halos_keep_their_strength() -> void:
 	assert_float(glow.get_shader_parameter("strength")).is_equal(0.62)
 
 
-func test_the_styled_ground_receives_its_shadow_and_stipple_strengths() -> void:
+func test_the_styled_ground_carries_no_stipple_parameter() -> void:
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	td.set_look(Looks.Mode.STYLED)
 	var ground := td.ground.look as GroundLookStyled
 	var mat := ground._mat
-	# Checkpoint 7: the ground has no dithering at all.
-	assert_float(mat.get_shader_parameter("dither_amt")).is_equal(0.0)
+	# Checkpoint 7: the ground has no dithering at all, so no dither parameter is set.
+	assert_object(mat.get_shader_parameter("dither_amt")).is_null()
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	await runner.simulate_frames(2)
 	await TopDownTestUtil.leave_loaded_scene(td)

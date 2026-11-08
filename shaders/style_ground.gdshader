@@ -4,7 +4,7 @@ render_mode cull_back, specular_disabled;
 
 // The styled ground (ported from design/style_test/ground.gdshader): irregular Voronoi cobbles, cool grey with grime
 // where the ground is unpainted, warm and sandy where it is painted. The game feeds the paint weight of every 1 m
-// tile in `weights` (R, 0 = unpainted, 1 = painted); the edge between the two worlds is dithered.
+// tile in `weights` (R, 0 = unpainted, 1 = painted); the edge between the two worlds is a smooth blend.
 
 uniform sampler2D weights : filter_linear, repeat_disable;
 uniform float plaza = 70.0;

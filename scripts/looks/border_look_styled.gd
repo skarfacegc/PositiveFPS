@@ -1,7 +1,7 @@
 class_name BorderLookStyled
 extends BorderLook
 
-# The styled border (round 25): one ribbon through the members, a solid core with a dithered halo (shaders/style_ribbon
+# The styled border (round 25): one ribbon through the members, a solid core with a soft halo (shaders/style_ribbon
 # .gdshader) and a few golden motes drifting over it. Gold when healthy, amber when strained, thin and coral near
 # breaking; a gap is a real break; a dimmed person pressing on the line bows it inward (see EdgeRibbon). The columns
 # and breach rings of checkpoint 5 are gone: EdgeMarkerFx marks the trouble spots. The geometry is rebuilt every

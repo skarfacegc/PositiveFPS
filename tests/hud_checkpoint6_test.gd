@@ -246,7 +246,7 @@ func test_no_two_styled_hud_panels_overlap_and_all_stay_in_the_window() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_target_highlight_is_a_dithered_ring_in_the_styled_look_and_the_warm_disc_in_the_placeholder() -> void:
+func test_the_target_highlight_is_a_flat_ring_in_the_styled_look_and_the_warm_disc_in_the_placeholder() -> void:
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
 	assert_bool(td.highlight.mesh is CylinderMesh).is_true()

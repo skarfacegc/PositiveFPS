@@ -81,7 +81,7 @@ static func colour_for(strain: float, seal: float = 0.0) -> Color:
 
 
 # Triangles for a set of strips as mesh arrays (Mesh.ARRAY_*), flat at height `y`, `alpha` on every colour. `halo`
-# widens the quad beyond the ribbon (the styled look dithers it): UV.x runs -1 to 1 across and UV2.x is the share
+# widens the quad beyond the ribbon (the styled look's halo widens it): UV.x runs -1 to 1 across and UV2.x is the share
 # of that which is solid ribbon. Returns [] when there is nothing to draw.
 static func mesh_arrays(strips: Array[EdgeStrip], y: float, alpha: float, halo: float = 1.0) -> Array:
 	var verts := PackedVector3Array()

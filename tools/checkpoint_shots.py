@@ -9,7 +9,6 @@ Usage:
                                                      # (default DIR: design/renders/checkpoint_04)
     python tools/checkpoint_shots.py --set round24   # graphics checkpoint 5: the fight, first light, shape preview
                                                      # (default DIR: design/renders/checkpoint_05)
-                                                     # (known broken: references a removed gap patch)
     python tools/checkpoint_shots.py --set checkpoint7   # graphics checkpoint 7: calm opening, mid-night inside and
                                                          # outside the zone, a push, dawn (default DIR: design/renders/checkpoint_07)
 
@@ -63,8 +62,7 @@ EXPECTED_R20 = (["overview.png", "compare.png", "contact_sheet.png", "contact_sh
 
 # Graphics checkpoint 5 (--set round24): reading the fight (gaps, strain rings, patch, burst, wobble, reactions, cue,
 # notice), first light, the shape preview, dimmed warming and the walks.
-VIEWS_R24 = ["fight_strain", "fight_gap_closeup", "fight_strain_closeup", "fight_cue_ready", "fight_patch",
-             "fight_patch_closeup", "fight_reactions_closeup", "fight_patch_ending", "fight_burst_before",
+VIEWS_R24 = ["fight_strain", "fight_gap_closeup", "fight_strain_closeup", "fight_cue_ready", "fight_burst_before",
              "fight_burst", "fight_burst_closeup", "fight_notice", "wobble_overview", "wobble_closeup",
              "dimmed_warming", "reach_preview", "reach_limited", "reach_stretching", "reach_pulse",
              "dawn_early", "dawn_banner", "dawn_minimap_early", "dawn_mid", "dawn_lifted_closeup",
@@ -75,7 +73,7 @@ VIEWS_C7 = ["calm_opening", "midnight_inside_zone", "midnight_outside_zone", "pu
 EXPECTED_C7 = (["contact_sheet.png", "contact_sheet_compare.png"]
                + ["%s_%s.png" % (v, look) for v in VIEWS_C7 for look in ("placeholder", "styled")])
 
-EXPECTED_R24 = (["overview.png", "compare.png", "contact_sheet.png", "contact_sheet_compare.png", "walk_sheet.png",
+EXPECTED_R24 = (["overview.png", "contact_sheet.png", "contact_sheet_compare.png", "walk_sheet.png",
                  "fight_sheet.png", "dawn_sheet.png"]
                 + ["%s_%s.png" % (v, look) for v in VIEWS_R24 for look in ("placeholder", "styled")])
 

@@ -2,7 +2,7 @@ class_name StyleBeacon
 extends RefCounted
 
 # Graphics checkpoint 3: the spirit beacon in the locked style. A small stone-and-timber lantern post (warm light on
-# grey) with a teal-white flame, a slender beam, a dithered pulse ring and glow on the ground, and a few motes orbiting
+# grey) with a teal-white flame, a slender beam, a pulse ring and glow on the ground, and a few motes orbiting
 # the lantern. The centre's pull is drawn as a line of small bright dashes that march from the border's centre toward
 # the beacon, thinning out at both ends. The teal sets it apart from the gold of the landmarks and the coral of the
 # gaps. Pure visuals: BeaconMarker owns the node and calls build() and animate().

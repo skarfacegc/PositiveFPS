@@ -207,7 +207,7 @@ static func build_dimmed(root: Node3D, parts: Dictionary) -> void:
 	_rig_parts(parts, legs, free_arms, free_sides)
 
 
-# The dark smoke haze under a dimmed person (one dithered dark glow, shared).
+# The dark smoke haze under a dimmed person (one dark glow, shared).
 static func smoke_material() -> ShaderMaterial:
 	if _smoke == null:
 		_smoke = StyleKit.glow_mat(Color(0.05, 0.05, 0.08), 0.85)
@@ -272,7 +272,7 @@ static func build_player(root: Node3D, parts: Dictionary) -> void:
 		StyleKit.cyl(
 			body, 0.05, 0.5, Vector3(tx, 1.62, -0.38), tube, Vector3(0.0, 0.0, (k - 1) * -0.18), -1.0, 5, false
 		)
-	# the ground marker: dithered glow, ring, outer ring (the outer ring shows the target's element)
+	# the ground marker: glow, ring, outer ring (the outer ring shows the target's element)
 	var glow_plane := StyleKit.glow_plane(
 		root, StyleKit.glow_mat(Color(1.0, 0.82, 0.38), 0.62), 5.0, Vector3(0, 0.06, 0)
 	)

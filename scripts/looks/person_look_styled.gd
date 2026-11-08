@@ -141,7 +141,7 @@ func _pose_gait() -> void:
 # hooks below swap them for the pixel-style ones.
 
 
-# The grab warning ring: a coral dithered disc with an ink pixel and a bright rim (denser as the wind-up completes).
+# The grab warning ring: a coral disc with an ink pixel and a bright rim (denser as the wind-up completes).
 func _style_grab_ring() -> void:
 	grab_ring.mesh = StyleCues.ring_mesh()
 	_grab_style = StyleCues.ring_material(StyleCues.GRAB_FILL, StyleCues.GRAB_RIM, 0.5, 0.0)
@@ -162,7 +162,7 @@ func _style_glint() -> void:
 	StyleKit.sph(glint, 0.16, Vector3.ZERO, gold, Vector3(1.7, 0.55, 1.7), 4, false)
 
 
-# The guarded wedge: a dithered honey fan with a solid ink edge and a cream rim; denser and whiter while a shot lands.
+# The guarded wedge: a honey fan with a solid ink edge and a cream rim; denser and whiter while a shot lands.
 func _style_guard_wedge() -> void:
 	_wedge_style = StyleCues.wedge_material(Config.GUARDED_WEDGE_RADIUS, Config.GUARDED_ARC_DEG)
 	guard_wedge.material_override = _wedge_style
@@ -172,7 +172,7 @@ func _show_wedge(open: bool) -> void:
 	StyleCues.set_wedge_open(_wedge_style, open)
 
 
-# The stage ripple: a thin dithered ring that spreads out from the feet and thins away.
+# The stage ripple: a thin ring that spreads out from the feet and thins away.
 func play_ripple(color: Color) -> void:
 	var ring := MeshInstance3D.new()
 	ring.mesh = StyleCues.ring_mesh()

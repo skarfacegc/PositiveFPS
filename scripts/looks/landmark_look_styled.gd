@@ -2,7 +2,7 @@ class_name LandmarkLookStyled
 extends LandmarkLook
 
 # The styled landmark (graphics checkpoint 3): its own building in the locked style (see StyleLandmarks) instead of the
-# generic kiosk. Unheld it is a grey, weathered, still ruin; the claim hold dithers it into the warm version as the
+# generic kiosk. Unheld it is a grey, weathered, still ruin; the claim hold blends it into the warm version as the
 # hold grows, and once held it is lit and alive: a gold beam, a lit ring and a small cue of its boost (drifting notes
 # over the bandstand, petals over the garden, a swinging bell and a soft calming ring round the bell tower). The label
 # carries the real name.
@@ -65,7 +65,7 @@ func sync() -> void:
 		_animate(float(Engine.get_process_frames()) / 60.0)
 
 
-# Graphics checkpoint 4: a claim sends a gold dithered ring out from the landmark (and the beam flares); a loss sends a
+# Graphics checkpoint 4: a claim sends a gold ring out from the landmark (and the beam flares); a loss sends a
 # grey-violet ring with a coral rim in toward it. The ring is a short-lived node in the "landmark_pulse" group.
 func play_change(held: bool) -> void:
 	var fill := Color("#ffe08a") if held else Color("#9c97ad")
@@ -191,7 +191,7 @@ func _animate(t: float) -> void:
 		_pulse_mat.set_shader_parameter("fade", 1.0 - u)
 
 
-# Sets the dither dissolve (0 ruin .. 1 alive) on every mesh of a version.
+# Sets the dissolve (0 ruin .. 1 alive) on every mesh of a version.
 func _set_dissolve(root: Node3D, amount: float) -> void:
 	for node: Node in root.find_children("*", "MeshInstance3D", true, false):
 		(node as MeshInstance3D).set_instance_shader_parameter("dissolve", amount)

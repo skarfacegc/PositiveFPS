@@ -4,7 +4,7 @@ extends RefCounted
 # Graphics checkpoint 2: the styled drawing of the spirit meter, the prompt bar and the off-screen gap arrows (see
 # StyleUi
 # for the cell style). The same data, positions and numbers as the placeholder drawing: a stepped parchment-and-ink
-# frame, an amber fill with a light top edge, a dark bottom edge and a dithered head, pixel glyphs for the ticks, and
+# frame, an amber fill with a light top edge and a dark bottom edge, pixel glyphs for the ticks, and
 # arrows with an ink edge. HUD text (Labels) stays the placeholder text.
 
 const DIM_LIGHT := Color("#cfcbdd")
@@ -40,7 +40,7 @@ static func draw_spirit(m: SpiritMeter) -> void:
 	m.draw_set_transform(Vector2.ZERO)
 
 
-# The spirit fill: a light top row, a dark bottom pair of rows, and a head dithered over its last two cells.
+# The spirit fill: a light top row, a dark bottom pair of rows, and a solid head (no chequer) at its tip.
 static func _fill(m: SpiritMeter, c: float, h: float) -> void:
 	var cells_wide := floori(m.size.x * clampf(m.spirit / Config.SPIRIT_MAX, 0.0, 1.0) / c)
 	if cells_wide < 1:
@@ -59,10 +59,7 @@ static func _fill(m: SpiritMeter, c: float, h: float) -> void:
 			col = light
 		elif r >= rows - 2:
 			col = dark
-		StyleUi.run(m, Vector2i(0, r), maxi(cells_wide - 2, 0), false, c, col)
-		for k: int in range(maxi(cells_wide - 2, 0), cells_wide):
-			if (k + r) % 2 == 0:
-				StyleUi.put(m, Vector2i(k, r), c, col)
+		StyleUi.run(m, Vector2i(0, r), cells_wide, false, c, col)
 
 
 # The burst-cost tick with a pixel sunburst above it and the dim-exit tick with a pixel moon below it.

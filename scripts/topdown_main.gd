@@ -584,7 +584,7 @@ func _build_highlight() -> void:
 	_apply_highlight_look()
 
 
-# Checkpoint 6: the highlight's pieces for the current look: the warm disc (placeholder) or the dithered ring with an
+# Checkpoint 6: the highlight's pieces for the current look: the warm disc (placeholder) or the flat ring with an
 # element-tinted disc (styled, see StyleTarget). Called at the start and when the look changes.
 func _apply_highlight_look() -> void:
 	for child: Node in highlight.get_children():

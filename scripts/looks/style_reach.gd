@@ -3,7 +3,7 @@ extends RefCounted
 
 # Graphics checkpoint 5 (was the round 20 ring-and-line guide): the shape preview in the locked style.
 # ReachGuide hides its flat placeholder drawing and calls this in the styled look. The same facts as the
-# placeholder guide, as dithered pieces flat on the ground with an ink edge and no alpha:
+# placeholder guide, as flat pieces on the ground with an ink edge and no alpha:
 #   - while E is held (Checkpoint 5 follow-up: hold to aim), the zone a release of E at the cursor would make
 #     (Border.plan_stretch): a thin marching teal outline and a small tip disc with a ring. No fill. When something
 #     holds the tip back the outline turns a single thin coral (no stripes) and a small cross marks the tip;

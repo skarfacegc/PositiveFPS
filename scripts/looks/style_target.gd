@@ -2,7 +2,7 @@ class_name StyleTarget
 extends RefCounted
 
 # Checkpoint 6: the target highlight in the locked style. The placeholder is a flat warm disc under the target; this
-# is a flat dithered ring (an ink outer pixel, a bright rim and a stippled gold fill, see style_ring.gdshader) with a
+# is a flat ring (an ink outer pixel, a bright rim and a gold fill, see style_ring.gdshader) with a
 # faint disc inside it tinted by the target's element, so the ring says "this one" and the tint says which joy fits.
 # It uses the ring shader only (no instance uniforms, so it costs nothing from the toon shader's instance buffer).
 

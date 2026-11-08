@@ -34,7 +34,7 @@ func _ring_level(count: int, r: float) -> Dictionary:
 	return s
 
 
-func test_the_styled_fight_marks_are_dithered_pieces_and_follow_the_look() -> void:
+func test_the_styled_fight_marks_are_flat_pieces_and_follow_the_look() -> void:
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
@@ -187,7 +187,7 @@ func test_the_styled_cue_is_a_panel_that_lights_when_ready() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_styled_minimap_warms_and_dithers_the_lit_ground() -> void:
+func test_the_styled_minimap_warms_the_lit_ground() -> void:
 	var plain := MinimapLookPlaceholder.new()
 	var styled := MinimapLookStyled.new()
 	var base := Color(0.5, 0.5, 0.5)
@@ -277,7 +277,7 @@ func test_the_styled_notice_and_the_burst_ring_are_built_without_the_placeholder
 	await runner.simulate_frames(10)
 	assert_bool(td.prompts.big).is_true()
 	assert_float(td.prompts.alpha).is_greater(0.0)
-	# The styled burst is two dithered rings in the level (the placeholder disc registers a "burst ring" fallback).
+	# The styled burst is two flat rings in the level (the placeholder disc registers a "burst ring" fallback).
 	var before := Looks.placeholder_fallback_count()
 	td.player.look.play_burst(Config.BURST_CLEAR_RADIUS, Config.TD_BURST_TIME)
 	assert_int(Looks.placeholder_fallback_count()).is_equal(before)

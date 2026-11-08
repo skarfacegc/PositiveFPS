@@ -39,7 +39,7 @@ func test_the_effects_are_short_and_no_light_column_is_left() -> void:
 	assert_float(Config.FX_HALO_SECONDS).is_less_equal(1.0)
 	assert_float(Config.FX_TEXT_SECONDS).is_less_equal(1.1)
 	assert_float(Config.SPARE_GLOW_SECONDS).is_less_equal(1.5)
-	# Styled marks are flat dithered rings: no node of the fight marks stands taller than a person.
+	# Styled marks are flat rings: no node of the fight marks stands taller than a person.
 	Looks.set_mode(Looks.Mode.STYLED)
 	var fx := BurstFx.new()
 	add_child(fx)

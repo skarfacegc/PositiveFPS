@@ -3,7 +3,7 @@ extends RefCounted
 
 # Graphics checkpoint 3: the three landmarks in the locked style. Each is built twice on the same footprint: a grey
 # "ruin" (industrial materials, weathered, a piece missing, nothing moving) and a warm "alive" version (plaster, timber,
-# bunting, flowers, a lit lamp) which dither into each other with the claim hold, like the buildings do. Distinct
+# bunting, flowers, a lit lamp) which blend into each other with the claim hold, like the buildings do. Distinct
 # silhouettes: the bandstand is a wide low dome on posts, the garden a round tree with a flowered arch over a bed, the
 # bell tower a tall narrow spire. The origin is the middle of the base on the ground; every shape fits the 4 x 4
 # footprint. `build` returns the parts the look animates ("bell", "lamp"). Original designs, made of the shared

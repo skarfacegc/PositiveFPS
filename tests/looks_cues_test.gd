@@ -67,7 +67,7 @@ func test_the_styled_guarded_wedge_follows_the_rule_and_hides() -> void:
 	assert_bool(look.guard_wedge.visible).is_true()
 	assert_bool(look.wedge_open).is_true()
 	var open_density: float = mat.get_shader_parameter("density")
-	# Turned away: the wedge stays but dims (less dither).
+	# Turned away: the wedge stays but dims (fainter).
 	p.rotation.y = 0.0
 	p._update_visuals()
 	assert_bool(look.wedge_open).is_false()
@@ -109,7 +109,7 @@ func test_styled_grab_ring_glint_and_ripple() -> void:
 	# The glum glint is a sparkle of two diamonds, shown only while they look up.
 	assert_object(look.glint.mesh).is_null()
 	assert_int(look.glint.get_child_count()).is_equal(2)
-	# The stage ripple is a dithered ring that spreads and frees itself.
+	# The stage ripple is a flat ring that spreads and frees itself.
 	look.play_ripple(Config.STAGE_SINK_COLOUR)
 	var ripples := get_tree().get_nodes_in_group("stage_ripple")
 	assert_int(ripples.size()).is_greater(0)

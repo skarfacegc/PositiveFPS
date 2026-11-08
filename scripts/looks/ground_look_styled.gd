@@ -54,7 +54,6 @@ func _build() -> void:
 	_mat.shader = load(SHADER)
 	_mat.set_shader_parameter("plaza", float(grid_size))
 	_mat.set_shader_parameter("dawn_front", 1000.0)
-	_mat.set_shader_parameter("dither_amt", Config.CP7_GROUND_LIGHT_DITHER)
 	_mat.set_shader_parameter("gloom_amt", Config.CP7_GROUND_GLOOM)
 	_mat.set_shader_parameter("life_amt", Config.CP7_GROUND_LIFE)
 	var plane := PlaneMesh.new()

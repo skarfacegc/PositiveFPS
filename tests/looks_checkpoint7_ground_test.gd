@@ -54,7 +54,7 @@ func test_the_ground_material_is_dither_free_and_carries_the_living_ground_setti
 	var td: TopDownMain = s["td"]
 	var look := td.ground.look as GroundLookStyled
 	var mat: ShaderMaterial = look._mat
-	assert_float(mat.get_shader_parameter("dither_amt")).is_equal(0.0)
+	assert_object(mat.get_shader_parameter("dither_amt")).is_null()
 	assert_float(mat.get_shader_parameter("gloom_amt")).is_equal(Config.CP7_GROUND_GLOOM)
 	assert_float(mat.get_shader_parameter("life_amt")).is_equal(Config.CP7_GROUND_LIFE)
 	assert_object(look.weights_texture()).is_not_null()

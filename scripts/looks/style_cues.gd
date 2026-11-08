@@ -3,14 +3,14 @@ extends RefCounted
 
 # Graphics checkpoint 2: the styled cues drawn on the ground round a person (the guarded wedge, the grab warning
 # ring and
-# the stage ripple). All are flat dithered shapes with a solid ink pixel and a bright rim (no alpha blending, so
+# the stage ripple). All are flat shapes with a solid ink pixel and a bright rim (no alpha blending, so
 # they stay
 # crisp in the 640x360 pixel pass). Pure visuals: the rules never read them.
 
 const WEDGE_SHADER := "res://shaders/style_wedge.gdshader"
 const RING_SHADER := "res://shaders/style_ring.gdshader"
 const INK := Color("#3a2a20")
-# The guarded wedge: honey dither with a cream rim; while a shot would land the dither is denser and the rim whiter.
+# The guarded wedge: honey fan with a cream rim; while a shot would land the fan is denser and the rim whiter.
 const WEDGE_FILL := Color("#ffc94d")
 const WEDGE_RIM := Color("#ffe9a8")
 const WEDGE_OPEN_FILL := Color("#ffe27a")
