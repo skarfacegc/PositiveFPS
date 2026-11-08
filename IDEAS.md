@@ -66,8 +66,8 @@ placeholder, `tide_pointer` still is.
 - Open question: should the recorder rename `gap_open` / `gap_close` to `break_*`? (#23)
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
-- 0.3.2 Prop styling (In progress since 2026-11-08, plan below): lamp styling (#49), bench styling (#50), bunting wires lower than the player
-  (#42). The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
+- 0.3.2 Prop styling (built 2026-11-08, In review, awaiting the playtest; plan and built notes below): lamp styling
+  (#49), bench styling (#50), bunting wires above the player (#42). The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
 
 **Watch in the next playtest** (no issue: questions for the interview, not work):
 - Checkpoint 6's notice banner under the night bar and the styled target ring have no full-frame screenshot yet.
@@ -81,7 +81,7 @@ placeholder, `tide_pointer` still is.
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** 0.3.2 Prop styling (#42, #49, #50; plan below, look direction agreed), being built. Then 0.4 Tug of war
+**Next:** 0.3.2 Prop styling (#42, #49, #50) is built (2026-11-08) and In review: playtest it next. Then 0.4 Tug of war
 (plan below, and on the board).
 0.3 Living town is done (2026-11-07) and 0.3.1 Living town fixes is done (2026-11-08, playtest 4 below), both internal
 only: no release.
@@ -454,6 +454,30 @@ props transform, not just colour), keeping the existing `bloom` (0 grey, 1 warm)
 
 Build: one Sonnet agent on `main` (about 400k tokens for all three; the cone of light may need a new soft-shape layer),
 then the finish step in a fresh Sonnet session.
+
+## 0.3.2 Prop styling built (2026-11-08) (#42, #49, #50)
+
+One commit on `main` (`7216aa4`, Sonnet, Refs #42, #49, #50), after the docs commit `75e5c9d`. Look only; nothing reads
+or writes the rules. New constants are in the "0.3.2 Prop styling" block of `config.gd`; new suite
+`tests/style_props_032_test.gd`; final play-zoom shots in `design/renders/v0.3.2/`.
+- **Lamps (#49).** A stiff iron gas lamp with a caged glass globe. Vines, leaves and a few flowers grow up the post with
+  bloom. The big pale disc is gone: a soft cone (new MultiMesh layer, `shaders/style_lamp_cone.gdshader`) runs down to a
+  pool on the ground (`shaders/style_lamp_light.gdshader`), plus a small glow at the head. The light is cool blue-white
+  in gloom and warm amber in bloom, strong at night and faint by day; all alphas stay below 0.35.
+- **Benches (#50).** Riveted grey metal in gloom (slats packed solid). In bloom: wooden slats, iron arms and curls, and
+  a cushion and blanket in dusty blue, terracotta or sage. No bright bench colour in the calm opening.
+- **Wires (#42).** The styled player measures about 3.1 m (in a test). Posts are now 5.3 m, sag 1.0 / 0.4, and reach
+  full height at unfurl 0.4; the lowest drawn point is 3.46 m, above player height plus 0.3 m.
+- **Gate (2026-11-08).** `round_end.py`: `gate.py --full` 860 tests, line coverage 99.9%, baseline OK (427 s);
+  determinism: both runs hit exactly the same lines (290 s); baseline updated. Nothing loosened.
+
+**Open notes for the playtest.**
+- The vines on the lamp posts are small and dark at play zoom; the build agent brightened them but didn't re-check.
+- The bright orange plank near the start in the calm opening is a stall or planter, not a bench. Restyling it is out of
+  scope for 0.3.2: ask the user.
+- The benches don't match the buildings' shading and outline beyond the toon boxes.
+- Check the cool lamp light in the gloom, the warm light inside the zone, and the bunting above the player.
+- #42, #49 and #50 are In review until the user accepts them.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
