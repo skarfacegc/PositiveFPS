@@ -67,7 +67,7 @@ placeholder, `tide_pointer` still is.
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
 - 0.3.1 Living town fixes: #37, #39 and #42 are In review until the user accepts them (the rest are Done, see
-  "playtest 3" below). Props still don't read at play zoom: targeted in 0.3.1 (#48, Ready, plan in "playtest 3"). The
+  "playtest 3" below). Props still don't read at play zoom: targeted in 0.3.1 (#48, being built, plan in "playtest 3"). The
   gold inner ring (#38) was not raised in any 0.3.1
   playtest; it stays in Backlog.
 
@@ -84,7 +84,7 @@ placeholder, `tide_pointer` still is.
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
 **Next:** 0.3.1 Living town fixes played three times (playtest 3 below): #40, #41, #43, #44, #45 accepted; #37, #39,
-#42 In review until the user accepts them; props (#48) targeted, Ready. Then 0.4 Tug of war (plan below, and on the
+#42 In review until the user accepts them; props (#48) being built. Then 0.4 Tug of war (plan below, and on the
 board).
 0.3 Living town is done (2026-11-07), internal only: no release.
 
