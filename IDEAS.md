@@ -67,7 +67,7 @@ placeholder, `tide_pointer` still is.
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
 - 0.3.1 Living town fixes: #37, #39 and #42 are In review until the user accepts them (the rest are Done, see
-  "playtest 3" below). Props still don't read at play zoom: targeted in 0.3.1 (#48, being built, plan in "playtest 3"). The
+  "playtest 3" below). Props did not read at play zoom: built in 0.3.1 (#48, In review, "playtest 3 built" below). The
   gold inner ring (#38) was not raised in any 0.3.1
   playtest; it stays in Backlog.
 
@@ -84,7 +84,7 @@ placeholder, `tide_pointer` still is.
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
 **Next:** 0.3.1 Living town fixes played three times (playtest 3 below): #40, #41, #43, #44, #45 accepted; #37, #39,
-#42 In review until the user accepts them; props (#48) being built. Then 0.4 Tug of war (plan below, and on the
+#42 and props (#48, built 2026-11-08) In review until the user accepts them. Then 0.4 Tug of war (plan below, and on the
 board).
 0.3 Living town is done (2026-11-07), internal only: no release.
 
@@ -396,6 +396,28 @@ edge, away from where the player spends the night; lamps and benches are also sm
 3. Check in play-zoom shots at calm opening and mid-night inside the zone (styled only, at most three rounds), then
    re-render `design/renders/v0.3.1/`. `test_perf_*` budgets are not loosened.
 Build: one Sonnet agent on `main`, then the finish step in the existing finish session.
+
+## 0.3.1 Living town fixes, playtest 3 built (2026-11-08) (#48)
+
+One commit on `main` (`ff76b8e`, Sonnet, Refs #48), after the docs commit `46ee7bd`. Look only; nothing reads or writes
+the rules. Props are scenery only.
+- **Cause.** Before the change there were 0 props in the play-zoom frame in a normal night: every prop stood at a
+  block 25 m or more out. The cause was placement, not size or contrast.
+- **Placement.** New `StyleProps.layout_plaza` puts about 50 lamps, benches and planters on a deterministic 12 m
+  lattice in the open plaza.
+- **Size.** Lamps are 1.35x bigger and benches 1.4x bigger (new constants in `config.gd`).
+- **Bug fixed.** Soft balls (lamp glow, planter flowers, stall goods, fireflies) were painted over by the post-process
+  quad. They now draw at `L31_SOFT_PRIORITY`. Fireflies therefore also show as soft glows now: a visible change.
+- New suite `tests/style_props_plaza_test.gd`. `design/renders/v0.3.1/` re-rendered. The ambient perf test held at
+  0.36 ms.
+- **Gate (2026-11-08).** `gate.py --full`: 849 tests, line coverage 99.9%, baseline OK. Determinism: both runs hit the
+  same lines. Baseline updated. Nothing loosened.
+
+**Open notes for the playtest.**
+- The lamp halos are large pale discs: check they don't look like holes or blobs.
+- Fireflies now show as soft glows (they were invisible before): check that they read well at night.
+- The calm opening has a bright orange bench near the start: check it isn't distracting.
+- #37, #39 and #42 are still In review until the user accepts them.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
