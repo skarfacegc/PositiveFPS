@@ -75,8 +75,9 @@ the fallback font, not a pixel font.
 - Whether Embrace gets noticed (it did not in the round 25 playtests).
 - Wider-world and progression ideas (`VISION.md`) are not scheduled.
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
-  step before a break. Investigate after round 27's push and pull.
-- Round 27 (push and pull) is planned below and waits for graphics checkpoint 7 to finish.
+  step before a break. Investigate after round 28's push and pull.
+- Round 27 (code reorganisation and build quick wins) and round 28 (push and pull) are planned below; both wait
+  for graphics checkpoint 7 to finish.
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -200,13 +201,59 @@ dithering in the files it owns, so none waits on another):
 - Merge order D, A, C, B; then one `round_end.py` with the determinism check; then one Haiku pass for the checkpoint
   shots, README, ARCHITECTURE's Looks section and a styled playtest copy.
 
-## Round 27 plan: push and pull (2026-11-07)
+## Round 27 plan: code reorganisation and build quick wins (2026-11-07)
 
-**Order.** Build after graphics checkpoint 7 is fully built and merged. Checkpoint 7 part A removes the beacon's reach
-guide and part D brings the round 26 push into the styled look; round 27 keeps the styled push working where it can,
-and its new visuals are placeholder only, as usual. Within the round, parts are named by what they do: **Reorg** and
-**Quick wins** first (see the end of this section), then **Line** and **Defences** on the new layout, then **Rule
-stepping** if the round has room.
+**Order.** Build after graphics checkpoint 7 is fully built and merged, before round 28 (push and pull). Two parts
+at once in their own worktrees: **Reorg** (Sonnet) and **Quick wins** (Haiku, tools and skills only, so no overlap).
+No gameplay change, so no playtest: the gate, the determinism check and the timings are the proof.
+
+### Round 27 Reorg: code reorganisation
+
+**Why.** Of the last 150 commits, `config.gd` changed in 63 and `topdown_main.gd` in 54: almost every change, and most
+merge conflicts between parallel parts, go through these two files. The tuning values are filed by round
+("Round 25:", "Round 26:") across `config.gd` (599 lines) and `config_base.gd` (744 lines, about 680 constants in all),
+so an agent tuning one system searches both.
+
+**Changes** (one Sonnet worktree agent, no behaviour change):
+1. **Config by system, not by round.** Split `Config`/`ConfigBase` into one small config script per system (for example
+   border, push, tide and night, people, projectiles, spirit, landmarks, HUD and cues, recorder), and update every
+   reference. The round history stays in git and IDEAS_RESOLVED.md. Round 28's parts then add their values to
+   their own systems' files.
+2. **`topdown_main.gd` coordinates only.** Move each system's set-up and per-frame work into that system's script, so
+   `TopDownMain` builds the systems and calls them in order. New features should no longer need an edit there.
+3. **Proof of no change:** the full gate and the determinism check give the same tests and lines hit as before;
+   `coverage_baseline.json` gets the new file paths (never a lower total). Regenerate SOURCE_MAP.md and update
+   ARCHITECTURE.md (script map, areas, tuning).
+
+**Not in round 27:** sub-folders for `scripts/` (border/, gloom/, people/, hud/, fx/). Coverage, the baseline and the
+fast tier's map are keyed by file path, so it needs a remap tool first; low value for the risk.
+
+### Round 27 Quick wins: build speed and upkeep
+
+1. **Stop Godot importing tool output.** `.godot/` is 1.4 GB: Godot imports every gdUnit4 report under `reports/` (267
+   folders, one logo per report page; 15,395 paths in `reports/determinism-2` alone). `run_tests.py`'s freshness check
+   already skips these folders (`IMPORT_IGNORED_DIRS`), but Godot itself does not. Have the tools put a `.gdignore` in
+   each `IMPORT_IGNORED_DIRS` folder that holds no game assets (at least `reports/` and `coverage/`; check `design/`,
+   `recordings/` and `dist-builds/` are never loaded by the game first), keep only the last few report folders, then
+   clear `.godot/imported` once and reimport. Expect a much smaller cache, a faster `--import` (about 38 s today), and
+   faster coverage and determinism copies, which start from the repo's import cache. Record before and after in
+   `tools/BUILD_TIMINGS.md`.
+2. **Worktree agents start with the import cache** (only once 1 has shrunk it): list the needed parts of `.godot/`
+   in a `.worktreeinclude`, so a new agent worktree skips its first full import. Measure the copy against the import.
+3. **SOURCE_MAP.md never blocks a commit.** Have `lint.py --fix` regenerate it (the hook still checks it), and say so
+   in the `brief-build-agent` skill, so agents stop losing a commit attempt to a stale map.
+4. **IDEAS.md stays short.** The `finish-round` skill moves the finished build and plan sections to IDEAS_RESOLVED.md
+   (the round 26 build section is still here).
+5. **Coordinator, by hand:** after checkpoint 7 merges, run `python tools/cleanup_worktrees.py` (three old scratchpad
+   copies and `agent-afd5…` are stale), and suggest `/fewer-permission-prompts` to the user to allowlist the common
+   tool commands.
+
+## Round 28 plan: push and pull (2026-11-07)
+
+**Order.** Build after round 27 (code reorganisation and quick wins) is merged, which itself follows graphics
+checkpoint 7. Checkpoint 7 part A removes the beacon's reach guide and part D brings the round 26 push into the
+styled look; round 28 keeps the styled push working where it can, and its new visuals are placeholder only, as usual.
+Parts: **Line** and **Defences** on the reorganised layout, then **Rule stepping** if the round has room.
 
 **Discussion (no new playtest; design talk after the checkpoint 7 playtest).** The core loop is *build your zone,
 reinforce and protect it, reach for goals with it*. Shooting is the means to that end. The border should be a visible tug
@@ -271,61 +318,20 @@ so the beacon is replaced. Buildings and landmarks should be denser.
 in the report. Never loosen a threshold or a `test_perf_*` budget. Rules change, so run the determinism check at the end.
 Player-facing text uses the gloom terms. README.md is updated, since the controls change (E pull, F defence).
 
-**Build split** (two Sonnet worktree agents, each adding its values to the per-system config files Reorg creates;
+**Build split** (two Sonnet worktree agents, each adding its values to the per-system config files round 27 creates;
 a new system gets its own file):
 - **Line:** changes 1, 2, 3 and 6, the line and the surge (`border.gd`, `border_push.gd`, the beacon scripts, the night
   cycle). It adds one hook for defences: a per-angle strength multiplier and a "no break here" flag that
   `border_push.gd` reads through a small interface.
 - **Defences:** changes 4 and 5, defences, unlocks and layout (new `scripts/defences.gd` and its placeholder look, landmarks,
   the level layout, cue panel text). It provides that interface and tests against a stub until Line merges.
-- The coordinator merges Line first, then Defences, and resolves `config.gd`, README.md and the controls text.
+- The coordinator merges Line first, then Defences, and resolves the shared config files, README.md and the controls text.
 
 **Playtest questions.** Does pulling feel like pulling against something? Is 25 spirit per pull a real decision? Does a
 thin line read as thin without a meter? Are defences planted during the warning, and is one surge enough tension for the
 night? Are four closer landmarks the right density?
 
-### Round 27 Reorg: code reorganisation (before Line and Defences)
+### Round 28 Rule stepping: advance the game rules without the scene (after Line and Defences merge, or round 29)
 
-**Why.** Of the last 150 commits, `config.gd` changed in 63 and `topdown_main.gd` in 54: almost every change, and most
-merge conflicts between parallel parts, go through these two files. The tuning values are filed by round
-("Round 25:", "Round 26:") across `config.gd` (599 lines) and `config_base.gd` (744 lines, about 680 constants in all),
-so an agent tuning one system searches both. Tests are frame-bound: the 2400-frame border test sets the suite's floor.
-
-**Changes** (one Sonnet worktree agent, no behaviour change):
-1. **Config by system, not by round.** Split `Config`/`ConfigBase` into one small config script per system (for example
-   border, push, tide and night, people, projectiles, spirit, landmarks, HUD and cues, recorder), and update every
-   reference. The round history stays in git and IDEAS_RESOLVED.md. Line and Defences then add their values to their own
-   systems' files.
-2. **`topdown_main.gd` coordinates only.** Move each system's set-up and per-frame work into that system's script, so
-   `TopDownMain` builds the systems and calls them in order. New features should no longer need an edit there.
-3. **Proof of no change:** the full gate and the determinism check give the same tests and lines hit as before;
-   `coverage_baseline.json` gets the new file paths (never a lower total). Regenerate SOURCE_MAP.md and update
-   ARCHITECTURE.md (script map, areas, tuning).
-
-**Rule stepping (after Line and Defences merge, or round 28 if the round is full): advance the game rules without the
-scene.**
-Let people, gloom and border advance on a fixed time step without the scene running, so the long scenario tests stop
-waiting on real frames. Rules and visuals are already split for the looks; this does the same for the simulation.
-
-**Not this round:** sub-folders for `scripts/` (border/, gloom/, people/, hud/, fx/). Coverage, the baseline and the
-fast tier's map are keyed by file path, so it needs a remap tool first; low value for the risk.
-
-### Round 27 Quick wins: build speed and upkeep (Haiku, alongside Reorg; tools and skills only)
-
-1. **Stop Godot importing tool output.** `.godot/` is 1.4 GB: Godot imports every gdUnit4 report under `reports/` (267
-   folders, one logo per report page; 15,395 paths in `reports/determinism-2` alone). `run_tests.py`'s freshness check
-   already skips these folders (`IMPORT_IGNORED_DIRS`), but Godot itself does not. Have the tools put a `.gdignore` in
-   each `IMPORT_IGNORED_DIRS` folder that holds no game assets (at least `reports/` and `coverage/`; check `design/`,
-   `recordings/` and `dist-builds/` are never loaded by the game first), keep only the last few report folders, then
-   clear `.godot/imported` once and reimport. Expect a much smaller cache, a faster `--import` (about 38 s today), and
-   faster coverage and determinism copies, which start from the repo's import cache. Record before and after in
-   `tools/BUILD_TIMINGS.md`.
-2. **Worktree agents start with the import cache** (only once 1 has shrunk it): list the needed parts of `.godot/`
-   in a `.worktreeinclude`, so a new agent worktree skips its first full import. Measure the copy against the import.
-3. **SOURCE_MAP.md never blocks a commit.** Have `lint.py --fix` regenerate it (the hook still checks it), and say so
-   in the `brief-build-agent` skill, so agents stop losing a commit attempt to a stale map.
-4. **IDEAS.md stays short.** The `finish-round` skill moves the finished build and plan sections to IDEAS_RESOLVED.md
-   (the round 26 build section is still here).
-5. **Coordinator, by hand:** after checkpoint 7 merges, run `python tools/cleanup_worktrees.py` (three old scratchpad
-   copies and `agent-afd5…` are stale), and suggest `/fewer-permission-prompts` to the user to allowlist the common
-   tool commands.
+Tests are frame-bound: the 2400-frame border test sets the suite's floor. Let people, gloom and border advance on a
+fixed time step without the scene running, so the long scenario tests stop waiting on real frames. Rules and visuals are already split for the looks; this does the same for the simulation.
