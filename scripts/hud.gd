@@ -33,7 +33,14 @@ var burst_panel: StyledPanel
 var target_panel: StyledPanel
 var targeting_panel: StyledPanel
 var key_panel: StyledPanel
+# Checkpoint 7: the styled Dusk to Dawn panel and spirit tag (drawn by StyleHud; the Labels and bars show in the
+# placeholder look).
+var night_view: Control
+var spirit_view: Control
 var _alert_tween: Tween
+var _night_progress: float = 0.0
+var _spirit_shown: bool = false
+var _spirit_dim: bool = false
 var _burst_on: bool = false
 var _targeting_on: bool = false
 # Round 12b: the target's element and mood, kept so either can change the label alone.
@@ -63,6 +70,15 @@ func _ready() -> void:
 	night_bar.offset_top = 36
 	night_bar.offset_bottom = 56
 	add_child(night_bar)
+	night_view = Control.new()
+	night_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	night_view.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	night_view.offset_left = -Config.CP7_NIGHT_WIDTH * 0.5
+	night_view.offset_right = Config.CP7_NIGHT_WIDTH * 0.5
+	night_view.offset_top = 4
+	night_view.offset_bottom = 4 + Config.CP7_NIGHT_HEIGHT
+	night_view.draw.connect(_draw_night_view)
+	add_child(night_view)
 
 	# Target's element (or "No target"), bottom left.
 	element_label = Label.new()
@@ -102,6 +118,16 @@ func _ready() -> void:
 	spirit_bar.offset_bottom = -110.0 + Config.SPIRIT_METER_HEIGHT
 	spirit_bar.visible = false
 	add_child(spirit_bar)
+	spirit_view = Control.new()
+	spirit_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spirit_view.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	spirit_view.offset_left = -half
+	spirit_view.offset_right = half
+	spirit_view.offset_top = Config.SPIRIT_LABEL_TOP
+	spirit_view.offset_bottom = Config.SPIRIT_LABEL_TOP + Config.SPIRIT_LABEL_HEIGHT
+	spirit_view.visible = false
+	spirit_view.draw.connect(_draw_spirit_view)
+	add_child(spirit_view)
 
 	# Controls hint under the element label (set by the level, see set_hint).
 	hint_label = Label.new()
@@ -267,6 +293,10 @@ func rebuild_look() -> void:
 	_show_line(targeting_label, targeting_panel, _targeting_on)
 	for p: StyledPanel in [rescued_panel, burst_panel, target_panel, targeting_panel, key_panel]:
 		p.rebuild_look()
+	night_label.visible = not styled
+	night_bar.visible = not styled
+	night_view.visible = styled
+	_apply_spirit_look()
 	landmark_label.visible = not styled
 	end_label.visible = not styled
 	alert_label.visible = not styled
@@ -281,6 +311,24 @@ func rebuild_look() -> void:
 # Shows how far the night has gone: 0 at dusk, 1 at dawn.
 func set_night_progress(p: float) -> void:
 	night_bar.value = clampf(p, 0.0, 1.0) * 100.0
+	_night_progress = clampf(p, 0.0, 1.0)
+	night_view.queue_redraw()
+
+
+# Checkpoint 7: the styled Dusk to Dawn panel and the styled spirit tag, each shown only in the styled look.
+func _draw_night_view() -> void:
+	StyleHud.draw_night(night_view, _night_progress, night_label.text)
+
+
+func _draw_spirit_view() -> void:
+	StyleHud.draw_tag(spirit_view, spirit_label.text, _spirit_dim)
+
+
+# The spirit label (placeholder) or its styled tag: both show once spirit has been set, one at a time by the look.
+func _apply_spirit_look() -> void:
+	var styled := Looks.is_styled()
+	spirit_label.visible = _spirit_shown and not styled
+	spirit_view.visible = _spirit_shown and styled
 
 
 # Top-down: shows the target's element in its colour, or "No target" in cream. Pass -1 for no target.
@@ -388,7 +436,10 @@ func set_recording(on: bool) -> void:
 
 # Shows the player's spirit and whether they are dim (the bar and the label go grey).
 func set_spirit(spirit: float, is_dim: bool) -> void:
-	spirit_label.visible = true
+	_spirit_shown = true
+	_spirit_dim = is_dim
+	_apply_spirit_look()
+	spirit_view.queue_redraw()
 	spirit_bar.visible = true
 	spirit_bar.value = spirit
 	if is_dim:
@@ -460,6 +511,9 @@ func layout_controls() -> Array[Control]:
 		target_panel,
 		targeting_panel,
 		key_panel,
+		# Checkpoint 7: the styled Dusk to Dawn panel and spirit tag (hidden in the placeholder look).
+		night_view,
+		spirit_view,
 	]
 	if rec_label != null:
 		out.append(rec_label)

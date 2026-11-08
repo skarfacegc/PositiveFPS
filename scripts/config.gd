@@ -536,6 +536,21 @@ const PUSH_PROMPT_FRACTION := 0.4  # The line bent this share of the way to brea
 const PUSH_NOTICE_TEXT := "It bends where they push: joy them"
 const PUSH_BREAK_TEXT := "Broken! Joy the ends, lift who got in"
 
+# ---- Checkpoint 7: styled push and HUD (looks/style_push.gd, looks/style_hud.gd, hud.gd, gloom_tide.gd). ----
+const CP7_FOG_COLOUR := "#b9b4c9"  # The styled tide fog: pale violet grey (a toon colour, no transparency).
+const CP7_FOG_BANKS := 9  # Fog banks along the tide's front (pixel-style blocks, each a different height).
+const CP7_FOG_BANK_HEIGHT := 2.2  # Metres: the tallest bank (the others are 60% to 100% of it).
+const CP7_FIGURE_COLOUR := "#4a4560"  # The styled tide figures: dark violet, a little lighter than the ink.
+const CP7_FIGURE_HEIGHT := 1.6  # Metres to a styled figure's head (placeholder: TIDE_FIGURE_HEIGHT).
+const CP7_NIGHT_WIDTH := 400.0  # The styled Dusk to Dawn panel: its width (centred at the top; the bar fills its base).
+const CP7_NIGHT_HEIGHT := 52.0
+const CP7_NIGHT_BAR_INSET := 14.0  # The bar's side margins and its height, within the panel.
+const CP7_NIGHT_BAR_HEIGHT := 12.0
+const CP7_NIGHT_FONT := 16
+const CP7_NIGHT_TEXT_Y := 18.0  # The panel's label baseline (from its top).
+const CP7_TAG_FONT := 16  # The styled spirit label (a parchment tag over the spirit meter).
+const CP7_TAG_TEXT_Y := 19.0
+
 static var intro_override: int = -1
 static var tides_override: int = -1  # Round 25: as intro_override, for the gloom tides (see tides_on).
 

@@ -110,6 +110,59 @@ static func _popups(m: SpiritMeter, c: float) -> void:
 		m.draw_string(font, at, shown_text, HORIZONTAL_ALIGNMENT_LEFT, -1, SpiritMeter.POPUP_FONT_SIZE, col)
 
 
+# Checkpoint 7: how many of a bar's `cells_wide` cells are gold at `progress` (0 at dusk, 1 at dawn).
+static func night_fill_cells(progress: float, cells_wide: int) -> int:
+	return floori(float(cells_wide) * clampf(progress, 0.0, 1.0))
+
+
+# Checkpoint 7: the styled Dusk to Dawn panel: a parchment panel with the placeholder's label on top and, under it, a
+# stepped bar that fills gold as the night goes on (a light top row and a dark bottom pair, like the spirit meter).
+static func draw_night(ci: Control, progress: float, text: String) -> void:
+	var c := StyleUi.cell(ci)
+	align(ci, c)
+	var size := ci.size
+	StyleUi.panel(ci, Rect2(Vector2.ZERO, size), c, StyleUi.PARCHMENT)
+	var font := ThemeDB.fallback_font
+	var fs := Config.CP7_NIGHT_FONT
+	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var at := Vector2((size.x - width) * 0.5, Config.CP7_NIGHT_TEXT_Y)
+	ci.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, StyleUi.INK)
+	var inset := Config.CP7_NIGHT_BAR_INSET
+	var bar_h := Config.CP7_NIGHT_BAR_HEIGHT
+	var bar := Rect2(inset, size.y - inset - bar_h, size.x - 2.0 * inset, bar_h)
+	StyleUi.rect(ci, bar.grow(c), c, StyleUi.INK)
+	StyleUi.rect(ci, bar, c, StyleUi.NIGHT)
+	var x0 := floori(bar.position.x / c)
+	var y0 := floori(bar.position.y / c)
+	var rows := floori(bar.size.y / c)
+	var cells := night_fill_cells(progress, floori(bar.size.x / c))
+	for r: int in range(rows):
+		var col := StyleUi.GOLD
+		if r == 0:
+			col = StyleUi.GOLD_LIGHT
+		elif r >= rows - 2:
+			col = StyleUi.GOLD_DARK
+		StyleUi.run(ci, Vector2i(x0, y0 + r), cells, false, c, col)
+
+
+# Checkpoint 7: the styled spirit label: a small parchment tag with an ink frame and a pixel badge (grey when the player
+# is dim, gold otherwise). The text is the placeholder label's.
+static func draw_tag(ci: Control, text: String, dim: bool) -> void:
+	var c := StyleUi.cell(ci)
+	align(ci, c)
+	var size := ci.size
+	StyleUi.panel(ci, Rect2(Vector2.ZERO, size), c, StyleUi.PARCHMENT)
+	var mid := size.y * 0.5
+	var badge := DIM_MAIN if dim else StyleUi.GOLD
+	StyleUi.sparkle(ci, Vector2(14.0, mid), 2, c, StyleUi.INK)
+	StyleUi.sparkle(ci, Vector2(14.0, mid), 1, c, badge)
+	var font := ThemeDB.fallback_font
+	var fs := Config.CP7_TAG_FONT
+	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var at := Vector2((size.x - width) * 0.5 + 8.0, Config.CP7_TAG_TEXT_Y)
+	ci.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, StyleUi.INK)
+
+
 # The prompt bar: a parchment panel with an ink frame and stepped corners, the icon at its left and ink text. The bar
 # fades with its self_modulate (the panel is opaque).
 static func draw_prompt(bar: PromptBar, rect: Rect2, text: String, icon: int, big: bool = false) -> void:
