@@ -26,6 +26,8 @@ var _viewport: SubViewport
 var _layer: CanvasLayer
 var _rect: TextureRect
 var _post: MeshInstance3D
+# Checkpoint 7: the mist, the cooler night sky and the skyline (styled only).
+var _atmosphere: StyleAtmosphere
 var _saved: Dictionary = {}
 
 
@@ -66,10 +68,13 @@ func view_size() -> Vector2i:
 
 
 func _process(_delta: float) -> void:
+	# Process after the level has settled its night clock; the sky and skyline are scenery only.
 	if styled and _viewport != null:
 		var want := _wanted_size()
 		if want != _viewport.size:
 			_viewport.size = want
+		if _atmosphere != null:
+			_atmosphere.sync(_delta)
 
 
 func _enter_styled() -> void:
@@ -107,6 +112,9 @@ func _enter_styled() -> void:
 	_main.get_viewport().disable_3d = true
 	_main.player.mouse_mapper = window_to_view
 	_style_light()
+	_atmosphere = StyleAtmosphere.new()
+	_main.add_child(_atmosphere)
+	_atmosphere.build(_main)
 
 
 func _leave_styled() -> void:
@@ -114,6 +122,10 @@ func _leave_styled() -> void:
 		return
 	styled = false
 	_main.player.mouse_mapper = Callable()
+	if _atmosphere != null:
+		_main.remove_child(_atmosphere)
+		_atmosphere.queue_free()
+		_atmosphere = null
 	_main.get_viewport().disable_3d = false
 	var cam := _main.camera
 	cam.remove_child(_post)

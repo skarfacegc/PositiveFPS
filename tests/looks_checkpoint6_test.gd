@@ -25,7 +25,6 @@ func _level() -> Dictionary:
 
 func test_the_stipple_is_cut_to_about_half() -> void:
 	assert_float(Config.STYLED_DITHER_LIGHT).is_equal_approx(0.08, 0.0001)
-	assert_float(Config.STYLED_DITHER_GROUND).is_equal_approx(0.5, 0.0001)
 
 
 # Checkpoint 7: the toon light and the glows no longer dither; the toon materials get the soft band width instead.
@@ -48,8 +47,8 @@ func test_the_styled_ground_receives_its_shadow_and_stipple_strengths() -> void:
 	td.set_look(Looks.Mode.STYLED)
 	var ground := td.ground.look as GroundLookStyled
 	var mat := ground._mat
-	assert_float(mat.get_shader_parameter("dither_amt")).is_equal(Config.STYLED_DITHER_LIGHT)
-	assert_float(mat.get_shader_parameter("dither_k")).is_equal(Config.STYLED_DITHER_GROUND)
+	# Checkpoint 7: the ground has no dithering at all.
+	assert_float(mat.get_shader_parameter("dither_amt")).is_equal(0.0)
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	await runner.simulate_frames(2)
 	await TopDownTestUtil.leave_loaded_scene(td)
