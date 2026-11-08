@@ -14,15 +14,24 @@ mode was retired.)
   skittish people flee if you run at them, and glum people take extra joy when they look up.
 - **The gloom:** Dimmed people press on your border and reach for you. Where they push, border folk falter and gaps
   open. Re-joy a faltering person to close the gap.
-- **Spirit:** Helping people fills it; a joy burst and a gap patch cost some. At zero you go dim. Recover inside your border.
-- **Fighting back (round 22):** rings on border folk show where the border is about to break (amber, then red as it
-  gets urgent). **F** spends 25 spirit to patch the gap or strained spot nearest the cursor for 12 s; **G** or **Q**
-  clears dimmed people off the border.
+- **Spirit:** Helping people fills it; a joy burst costs some. At zero you go dim. Recover inside your border.
+- **Fighting back:** rings on border folk show where the border is about to break (amber, then red as it gets
+  urgent). **G** or **Q** clears dimmed people off the border with a joy burst.
 - **Wobble, burst and first light (round 24):** a border person who is drained too far **wobbles** (greys and sways) for
   about five seconds before they relapse, and a joy hit in that time saves them. A joy burst lifts every dimmed person
   near you, and joy wins a dimmed person back faster. In the last 45 seconds **first light** closes in as a ring from
   beyond the map's corners to the centre ("First light: dawn is coming in from the edges"): people it has passed lift
   out of the gloom and stop draining, so the end of the night is a rally.
+- **Checkpoint 7 look:** the ground is alive. Inside the zone it has grass tufts, wildflowers, moss in the cobble cracks
+  and puddles that catch the warm light; outside it is cracked grey slabs with litter and dead leaves. Street props
+  stand between the buildings (lamp posts, benches, planters, market stalls, bunting and washing lines): dark, broken or
+  bare in the gloom, lit, unfurled and in bloom inside the zone. Butterflies drift by day and fireflies by night inside
+  the zone, birds land on beautified rooftops, and rescued people idle there (sitting, waving, tending flower boxes).
+  Low mist drifts over the grey ground outside the zone and clears inside it, the sky warms toward dawn, and distant
+  rooftops light up as each landmark is restored. The styled look uses smooth bands and soft edges instead of dithering,
+  with the low resolution and the outlines kept. Scenery is visual only and does not change the rules.
+  The look depends on the work: the game starts styled when exported and placeholder otherwise. Pass
+  `--look=styled` or `--look=placeholder` to pick the start look (F4 still switches).
 - **Checkpoint 6 look:** notices are slim banners under the Dusk to Dawn bar, edge arrows and pointers stay clear of the
   HUD, the styled look has its own HUD text lines and target ring, the stipple is lighter, and running is a real jog
   (wider stride, more lean and bounce, dust at each step in the styled look).
@@ -31,7 +40,7 @@ mode was retired.)
 - **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered (its pips count the four hits left) · ! = faltering. The night
   introduces them one at a time, with a short one-time prompt each.
 - **Keys:** WASD move · Shift run · hold E to aim a spirit beacon, release E to place it (right-click cancels) · G or Q
-  joy burst · F patch gap · Mouse point at people (F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look ·
+  joy burst · Mouse point at people (F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look ·
   R restart · M menu
 
 ## How to run
@@ -45,8 +54,8 @@ mode was retired.)
 The game opens a menu with one **Play** button. Press **Enter**, **1** or click Play to start the level. The border
 variants were retired in round 10; the organic push is the border.
 
-In the level: WASD to move, the mouse to point at people, **hold E** to aim the zone and **release E** to place a beacon, **F** to patch a gap, **G** or **Q**
-for a joy burst. A small cue beside the spirit meter glows when F or G can be used right now. Press **M** at any time to go back
+In the level: WASD to move, the mouse to point at people, **hold E** to aim the zone and **release E** to place a beacon, **G** or **Q**
+for a joy burst. A small cue beside the spirit meter glows when G can be used right now. Press **M** at any time to go back
 to the menu. **R** restarts the level.
 
 ## The living border
@@ -138,9 +147,6 @@ element, and F3 labels it above the person.
 - **G** or **Q** joy burst (8 s cooldown, costs 30 spirit): dimmed people pressing the border within 8 m are pushed back
   4 m and lifted to gloomy (streaks show it; the HUD says how many are in reach), border folk in range get a joy top-up,
   and used within 4 m of the border it also shoves the line outward toward you.
-- **F** patch gap (costs 25 spirit, lasts 12 s, up to 4 at once): point the cursor near an open gap or a red-ringed member.
-  A teal disc shows the sealed stretch: gloom does not pass it and members inside lose joy at 15% of the rate. It buys
-  time; it does not heal anyone. Refused (with a notice) when you are out of spirit or no gap is within 9 m of the cursor.
 - **F3** toggles the debug overlay: cover (`c`) and protection (`p`) above each person, a label per border segment (its
   spacing, and GAP where it is one), and the member, inner, post and night numbers at the top left, and the live floor-effect counts (for example
   `floor fx 12/40: ring 2, splat 3`, against the cap of 40). Off by default. If F3 does

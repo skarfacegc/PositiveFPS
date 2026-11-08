@@ -71,6 +71,10 @@ func _ready() -> void:
 		await call("_run_round24")  # defined by checkpoint_round24.gd, which extends checkpoint_round20.gd
 		_quit()
 		return
+	if scenario_set == "checkpoint7":
+		await call("_run_checkpoint7")  # defined by checkpoint_checkpoint7.gd, which extends checkpoint_round20.gd
+		_quit()
+		return
 	_build_scenario()
 	if stats_only:
 		_print_stats()

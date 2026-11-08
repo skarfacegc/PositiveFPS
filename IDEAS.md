@@ -4,7 +4,7 @@ Finished round history and resolved issues live in `IDEAS_RESOLVED.md` (one line
 the current state, the standing ideas and backlog, and the latest rounds. To find code use `SOURCE_MAP.md`
 (`python tools/source_map.py`); for where things live and how to brief an agent use `ARCHITECTURE.md`.
 
-## Current state (as of 2026-11-07, after round 26: physical push)
+## Current state (as of 2026-11-07, after round 26 and graphics checkpoint 7)
 
 **What the game is.** A gentle top-down territory game in Godot 4.7 (GDScript, strict typing). Dimmed people slowly take
 over a plaza; the player rescues them with joy, and the rescued form a living border that holds the gloom back and paints
@@ -44,10 +44,11 @@ burst, F2 targeting mode, mouse wheel zoom, F3 debug, F4 switch look, R restart,
 
 **Look modes.** Placeholder (default, plain shapes, what the tests run) and styled (pixel-diorama 3D: toon, outline, ground
 and post shaders, in a 640x360 SubViewport). F4 or the menu switches mid-game. Gameplay rounds touch the placeholder only;
-the styled look changes only in graphics checkpoints (latest: checkpoint 6: first light ring, styled HUD text and target
-ring, notices as slim banners under the night bar, half the dithering, a real jog). Still placeholder in styled mode: the
-Dusk to Dawn bar, the spirit label, the REC and F3 labels, and the push's lean, fog and figures; the styled HUD text uses
-the fallback font, not a pixel font.
+the styled look changes only in graphics checkpoints (latest: checkpoint 7: living ground, street props, ambient life,
+gloom mist, styled push and HUD, no direction line, dithering removed from the styled look, and the look chosen by context:
+`--look=styled|placeholder`, exported builds start styled). Still placeholder in styled mode: the REC and F3 labels, and
+(per the checkpoint 7 shots) the push fog's `tide_fog` and `tide_pointer` pieces; the styled HUD text uses the fallback
+font, not a pixel font.
 
 **Open items** (each checked against the code on 2026-11-07):
 - Checkpoint 6 needs a playtest look: the notice banner under the night bar and the styled target ring are covered by
@@ -65,7 +66,6 @@ the fallback font, not a pixel font.
 - The agent dashboard may show a finished agent as running (not rechecked).
 - Dawn lights are easy (60% rescued plus one landmark was enough in earlier rounds; now 75% and 2); watch in the next
   recording whether the third light is earned.
-- README.md still describes the F patch (update at the next graphics checkpoint or on request).
 - Unused: `Person.React.PATCH` is never set by gameplay (only tests set it); `config_base.gd` `GAP_HEAL_DELAY` and
   `MEMBER_FALTER_STEP_BACK` are read nowhere. Remove them or give them a use.
 - Difficulty is tuned only by bot nights (knobs `TIDE_PUSH` 2.0, `PUSH_PER_PERSON`, `PUSH_BREAK_DEPTH`), so it needs a
@@ -76,8 +76,8 @@ the fallback font, not a pixel font.
 - Wider-world and progression ideas (`VISION.md`) are not scheduled.
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after round 28's push and pull.
-- Round 27 (code reorganisation and build quick wins) and round 28 (push and pull) are planned below; both wait
-  for graphics checkpoint 7 to finish.
+- Round 27 (code reorganisation and build quick wins) and round 28 (push and pull) are planned below; graphics
+  checkpoint 7 is done, so they can start.
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -85,8 +85,8 @@ the fallback font, not a pixel font.
 frame, identical results. `Border.update` is 1.5 ms at 28 members (slot assignment 0.8, polygon 0.36, buildings 0.15,
 push 0.07); not changed, since the cheap fixes would not keep the results identical.
 
-**Push status.** `origin/main` is `da0dfb2` (round 26, pushed 2026-11-07, released as `pre-alpha-2`). Rounds are not pushed
-until the user asks.
+**Push status.** `origin/main` is `da0dfb2` (round 26, pushed 2026-11-07, released as `pre-alpha-2`). Checkpoint 7 and
+everything after it on local `main` are not pushed; rounds are not pushed until the user asks.
 
 **Pointers.** `README.md` (player docs), `ARCHITECTURE.md` (script map, tools, gotchas, areas and files per system),
 `SOURCE_MAP.md` (every script's public functions with line numbers, generated), `IDEAS_RESOLVED.md` (history),
@@ -200,6 +200,42 @@ dithering in the files it owns, so none waits on another):
   `style_hud*.gd`.
 - Merge order D, A, C, B; then one `round_end.py` with the determinism check; then one Haiku pass for the checkpoint
   shots, README, ARCHITECTURE's Looks section and a styled playtest copy.
+
+## Graphics checkpoint 7 built (2026-11-07)
+
+Merged on `main` (cef18a1 part A, 4aebfe0 part C, ebf6c84 part B, and part D). Gate, determinism and baseline passed.
+- **Part A (cleanup and look by context):** the stretch direction line and its tip are gone (the zone preview while E is
+  held and the finish pulse stay); dithering removed from the reach pieces, glow halos and shadow bands;
+  `--look=styled|placeholder` and the exported-build default. The rings round people at the start were not removed
+  (see open item b).
+- **Part B (living ground and atmosphere):** `style_ground.gdshader` and `ground_look_styled.gd` (grass, flowers, moss,
+  puddles inside the paint, cracked slabs, litter outside; follows the paint weight), `style_atmosphere.gd` with
+  `shaders/style_mist.gdshader` (mist, cold tint outside the zone, warming sky, skyline lights per landmark).
+- **Part C (props and ambient life):** `style_props.gd` (lamps, benches, planters, stalls, bunting, washing lines) and
+  `style_ambient.gd` (butterflies, fireflies, birds on beautified roofs, idling rescued people). Visual only.
+- **Part D (styled catch-up):** the styled push (`style_push.gd`: pixel fog banks, figures), the styled Dusk to Dawn bar and
+  spirit label, the ribbon's dithering and the HUD dithering.
+
+Shots: `design/renders/checkpoint_07/` (`python tools/checkpoint_shots.py --set checkpoint7`): calm_opening,
+midnight_inside_zone, midnight_outside_zone, push_in_progress, push_closeup and dawn, each in both looks, plus
+contact_sheet.png and contact_sheet_compare.png.
+
+Open items:
+- (a) Dithering leftovers: the shared `bayer4()` helper and the `dither_amt` set in `ground_look_styled.gd` are no-ops or
+  unused; the spirit meter fill head in `style_hud.gd` `_fill` still dithers; about 20 comments and test names still say
+  "dithered"; `BEACON_GUIDE_PATH_COLOUR` and `BEACON_GUIDE_CAPPED_COLOUR` in the config are unused.
+- (b) The "rings round people at the start": Part A found the only rings in the styled opening are the player's ground
+  marker (a gold inner ring, plus an outer ring whose colour shows the target's element, `style_people.gd` about lines
+  276-303). The outer ring means something later in the game, so nothing was removed. Needs the user to confirm whether
+  the decorative inner gold ring is what they meant.
+- (c) `tools/checkpoint/checkpoint_round24.gd` is broken: it references `main.gap_patch`, which the removed F patch took
+  with it, so `--set round24` does not load. The checkpoint 7 set does not extend it.
+- (d) The mist, skyline, props and ambient life were never viewed in a screenshot by the part agents. From the new
+  shots: props are visible (a planter and a bench at the calm opening, lit stalls and bunting in the zone). Ambient life
+  shows as fireflies inside the zone at mid-night. The mist is hard to pick out at mid-night outside the zone and needs a
+  stronger or differently placed look. The styled look reports `tide_fog` and `tide_pointer` falling back to placeholder,
+  and the push closeup shows dark round blobs that may be those placeholder pieces. Tune strength, colour and placement
+  from these shots.
 
 ## Round 27 plan: code reorganisation and build quick wins (2026-11-07)
 

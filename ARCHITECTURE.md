@@ -52,6 +52,16 @@ functions with line numbers) and Read only those lines.
 - `Looks` (`looks.gd`) holds the mode (static, `PLACEHOLDER` default or `STYLED`), the factories and the fallback registry:
   a kind with no styled look returns its placeholder and calls `Looks.note_placeholder(obj, kind)`; F3 lists these.
   F4 (`toggle_look`) calls `TopDownMain.set_look()`, every object calls `rebuild_look()`, game state is untouched.
+- **Start look:** `Looks.start_mode(args, exported)` (`looks.gd`). A `--look=styled|placeholder` user argument
+  (`Config.CP7_LOOK_ARG`) wins; otherwise exported builds (`OS.has_feature("template")`) start styled, and the editor,
+  tests and headless runs start placeholder.
+- **Styled scenery and atmosphere** (visual only: they read the paint weight, the night clock and the landmarks, and never
+  write them): `style_props.gd` (street props: lamp posts, benches, planters, market stalls, bunting and washing lines,
+  MultiMesh), `style_ambient.gd` (butterflies, fireflies, birds on beautified roofs, idling rescued people),
+  `style_atmosphere.gd` (the gloom mist plane, `shaders/style_mist.gdshader`; the sky warming toward dawn; skyline lights
+  as landmarks are held), `style_push.gd` (the styled gloom tide: pixel fog banks and the figures in them).
+- **Styled shading:** smooth toon bands and soft alpha falloff instead of dither patterns, with the low resolution and
+  the outlines kept.
 - **Gameplay rounds add a placeholder look only** (extend the base look class and the placeholder). Styled work happens
   only in graphics checkpoints.
 - `ViewPipeline` owns camera and post-process: styled mode renders in a 640x360 SubViewport with nearest upscale and outlines.
@@ -66,7 +76,7 @@ functions with line numbers) and Read only those lines.
   before adding many instance-uniform meshes. Keep the toon `tint` a packed float (a vec4 overflowed the buffer).
 - Tests run in the placeholder look; `tests/looks_test.gd` switches to styled on purpose and switches back. Headless uses a
   dummy renderer, so shaders are not compiled by tests: the screenshot run is the shader check (grep its log for errors).
-- **Checkpoint renders:** `python tools/checkpoint_shots.py [--set round20|round24]` (needs a real window, 45-90 s, quits
+- **Checkpoint renders:** `python tools/checkpoint_shots.py [--set round19|round20|round24|checkpoint7]` (needs a real window, 45-90 s, quits
   itself; output in `design/renders/checkpoint_NN/`; look at the PNGs and write `NOTES.md` there). If it hangs, a script has a
   parse error or the class cache is stale: run `python tools/run_tests.py --suites looks_checkpoint5_test` first, or run the scene with `--timeout 90` and read the output.
 
