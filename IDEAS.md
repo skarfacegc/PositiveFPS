@@ -64,8 +64,8 @@ font, not a pixel font (#26).
 - Open question: should the recorder rename `gap_open` / `gap_close` to `break_*`? (#23)
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
-- Living town leftovers (open items a to d under "0.3 Living town built"): dithering no-ops (#37), the gold inner ring
-  (#38), the broken round 24 shot set (#39), the mist and the placeholder tide fog pieces (#40).
+- Living town leftovers: planned as 0.3.1 Living town fixes (#37, #39 to #42, plan below). The gold inner ring (#38)
+  was not raised again in the checkpoint 7 playtest; it stays in Backlog to confirm at the 0.3.1 playtest.
 
 **Watch in the next playtest** (no issue: questions for the interview, not work):
 - Checkpoint 6's notice banner under the night bar and the styled target ring have no full-frame screenshot yet.
@@ -79,7 +79,8 @@ font, not a pixel font (#26).
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** 0.4 Tug of war (plan below, and on the board). 0.3 Living town is done (2026-11-07), internal only: no release.
+**Next:** 0.3.1 Living town fixes (#37, #39 to #42, plan below), then 0.4 Tug of war (plan below, and on the board).
+0.3 Living town is done (2026-11-07), internal only: no release.
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -239,6 +240,55 @@ Open items:
   stronger or differently placed look. The styled look reports `tide_fog` and `tide_pointer` falling back to placeholder,
   and the push closeup shows dark round blobs that may be those placeholder pieces. Tune strength, colour and placement
   from these shots.
+
+## 0.3.1 Living town fixes (2026-11-07) (#37, #39, #40, #41, #42)
+
+**Playtest (copy `9fa1b4e`, styled, recording 20261107-233106).** Win, 180 s, seed 42, 48 of 60 rescued, 2 of 3 dawn
+lights (people 80%, ground 23%, 1 landmark: Garden at 50 s). 13 gaps (median open 4.9 s), 7 relapses from 10 wobbles,
+2 tides (72 s south, 97 s north). 5 bursts lifted 1 dimmed in total. Embrace now used: 15 begun, 7 rescues. First light
+lifted 13.
+- Push fog reads as a grey block: `StylePush.build_fog` builds 9 opaque pale boxes (2.2 m tall) across 90% of the side.
+- In the captured zone only the puddles read at play zoom (19.5); grass, flowers, moss, props and ambient life went
+  unnoticed (too small, sparse or low in contrast).
+- Bare bunting and washing lines between grey buildings read as lines on the ground the player walks over.
+- Dithering is fine now, except the spirit meter's chequered tip. The start rings were not raised again: #38 is treated
+  as settled unless the 0.3.1 playtest raises it (it stays in Backlog until then).
+
+**Changes.**
+1. Tidy (#37, #39):
+   - Spirit meter fill head (`style_hud.gd` `_fill`): smooth or solid, no chequer.
+   - Remove `bayer4()` from `shaders/style_common.gdshaderinc` (leave `design/style_test/` alone), the `dither_amt` set
+     in `ground_look_styled.gd` (line 57) and `CP7_GROUND_LIGHT_DITHER`; the tests that assert `dither_amt == 0.0`
+     (`looks_checkpoint6_test.gd:51`, `looks_checkpoint7_ground_test.gd:57`) assert the parameter is gone instead.
+   - Remove the unused `BEACON_GUIDE_PATH_COLOUR` and `BEACON_GUIDE_CAPPED_COLOUR` (`config.gd` 34 to 35).
+   - Reword comments and test names that still say "dithered" (scripts/, shaders/, tests/ only).
+   - `tools/checkpoint/checkpoint_round24.gd`: drop the patch shots (the `main.gap_patch` calls near lines 129 to 170)
+     so `--set round24` loads again. Check it loads; don't regenerate or commit old renders.
+2. Storm cloud push fog and mist (#40): `StylePush.build_fog` becomes a low, churning storm cloud band with darker cores
+   and a soft alpha edge (no dither), only as long as the stretch being pushed; figures half-hidden inside. Raise the
+   mist (`CP7_MIST_*`) until it reads outside the zone at mid-night. Find why the styled look still notes `tide_fog` as a
+   placeholder (`gloom_tide.gd:330`) and fix it if the storm cloud covers it. `tide_pointer` stays as it is: 0.4 (#14)
+   replaces the two tides.
+3. Reads at play zoom (#41): scale, density and contrast of the ground life (`CP7_GROUND_LIFE`, `style_ground.gdshader`),
+   the props (`style_props.gd`) and ambient life (`style_ambient.gd`), judged from full-frame shots at zoom 19.5.
+   `test_perf_*` budgets are not loosened.
+4. Wires (#42): no bare lines in gloom; inside the zone, bunting is strung at roof height from visible posts
+   (`style_props.gd` `layout_lines`, `_draw_line`).
+
+**Constraints.** Look only: nothing reads or writes the rules. Placeholder look untouched. New constants go in a
+"0.3.1 Living town fixes" config block. Shots: add a play-zoom view to the checkpoint 7 set (calm opening, mid-night inside,
+mid-night outside, push) and save the final set in `design/renders/v0.3.1/`. No README change.
+
+**Build (token-lean: two agents in a row on `main`, no worktrees, one full gate).**
+- **Tidy (Haiku, XS+XS):** change 1. Targeted suites and lint only, then commits. Goes first: it touches comments in
+  files the look agent edits, so running in a row avoids a merge.
+- **Look (Sonnet, S+M+XS):** changes 2 to 4, after Tidy commits. Screenshot budget: styled look only while tuning, the
+  four play-zoom shots per round (read the contact sheet, not each frame), at most three rounds; the full both-looks set
+  once at the end. Targeted suites and lint, then commits.
+- **Coordinator (fresh Sonnet session, `finish-target`):** one `python tools/round_end.py` (with determinism, since
+  tests/ changes), the docs, board items to In review, a styled playtest copy.
+- Why not parallel: both parts touch `config.gd`, the style scripts and tests; worktrees start without the import cache
+  (#6); a merge costs the coordinator. Running in a row costs only wall-clock.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
