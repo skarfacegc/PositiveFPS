@@ -96,7 +96,36 @@ func _sync_body() -> void:
 		var soot: Node3D = _parts[Kind.DIMMED]["soot"]
 		soot.rotation.y = seconds * 0.5
 		_warm_dimmed()
+	_pose_brace(shown)
 	_apply_body_light()
+
+
+# Checkpoint 7 (round 26 push, styled): a pusher leans into the line and plants their feet, as the placeholder does (see
+# PersonLookPlaceholder._pose_brace). The lean goes on the body that is showing; the other bodies stand straight.
+func _pose_brace(shown: int) -> void:
+	for k: int in range(3):
+		if _holders[k] != null and k != shown:
+			_holders[k].rotation.x = 0.0
+			_holders[k].rotation.z = 0.0
+	var holder := _holder(shown)  # Built already: _sync_body builds the body that shows before it poses.
+	var lean := brace_lean(subject.brace_dir, subject.brace, visual.global_transform.basis)
+	var shake := 0.0
+	if subject.brace > 0.5:
+		shake = sin(clock * 40.0) * Config.PUSH_BRACE_SHAKE * (subject.brace - 0.5) * 2.0
+	# The joyful body sets its own sway (rotation.z) each frame before this runs, so the lean adds to it.
+	var base_z := holder.rotation.z if shown == Kind.JOYFUL else 0.0
+	holder.rotation.x = lean.x
+	holder.rotation.z = base_z + lean.y + shake
+
+
+# The lean of a pusher's body as (x, z) radians, forward positive: `dir` is the push's flat direction in the world,
+# `amount` 0 to 1 (Person.brace), and `frame` the basis the body is drawn in. Static so the tests can check its sign.
+static func brace_lean(dir: Vector3, amount: float, frame: Basis) -> Vector2:
+	if amount <= 0.01 or dir == Vector3.ZERO:
+		return Vector2.ZERO
+	var local := frame.inverse() * dir
+	var lean := amount * Config.PUSH_BRACE_LEAN
+	return Vector2(local.z * lean, -local.x * lean)
 
 
 # Graphics checkpoint 4: the walk. The pose goes on the body that is showing; a body that was hidden while the person

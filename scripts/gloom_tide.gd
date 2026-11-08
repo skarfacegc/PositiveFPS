@@ -20,6 +20,8 @@ var tides: Array[Dictionary] = []
 var pointer: TidePointer  # The edge pointer (placeholder look), shown during a warning.
 var fog: MeshInstance3D  # The fog band (placeholder look), shown while a tide passes.
 var figures: Array[MeshInstance3D] = []  # Round 26: dark figures walking in the fog (children of `fog`).
+var styled_fog: Node3D  # Checkpoint 7: the styled fog banks and figures (shown in the styled look, see StylePush).
+var styled_figures: Array[Node3D] = []  # The styled figures, children of `styled_fog`.
 var wave_force: float = 0.0  # The force the wave puts on the line now (0 until its front reaches it).
 var _rng := RandomNumberGenerator.new()
 var _pointer_since: float = 0.0
@@ -222,18 +224,18 @@ func _apply_push() -> void:
 func _show(delta: float) -> void:
 	if not main.running:
 		main.minimap.tide_fog = Vector2.INF
-		fog.visible = false
+		_set_fog_shown(false)
 		pointer.hide_pointer()
 		return
 	var idx := showing_index()
 	if idx < 0:
 		main.minimap.tide_fog = Vector2.INF
-		fog.visible = false
+		_set_fog_shown(false)
 	else:
 		var angle: float = tides[idx]["angle"]
 		var started: bool = tides[idx]["started"]
 		main.minimap.tide_fog = Vector2.from_angle(angle)
-		fog.visible = started
+		_set_fog_shown(started)
 		if started:
 			_place_fog(idx)
 	_pointer_since += delta
@@ -261,6 +263,17 @@ func _place_fog(idx: int) -> void:
 	var mat := fog.material_override as StandardMaterial3D
 	var c := Config.TIDE_FOG_COLOUR
 	mat.albedo_color = Color(c.r, c.g, c.b, Config.TIDE_FOG_ALPHA * fade)
+	# Checkpoint 7: the styled fog follows the same place and rises and sinks with the same fade.
+	styled_fog.position = fog.position
+	styled_fog.rotation = fog.rotation
+	styled_fog.scale.y = maxf(fade, 0.02)
+
+
+# Shows the fog in the look that is on: the placeholder plane or the styled banks (the figures go with it).
+func _set_fog_shown(on: bool) -> void:
+	var styled := Looks.is_styled()
+	fog.visible = on and not styled
+	styled_fog.visible = on and styled
 
 
 # Round 26: the figures walk on the spot (a small step-bob and sideways drift) so the wave looks alive.
@@ -269,6 +282,12 @@ func _sway_figures(f: float) -> void:
 		var fig := figures[i]
 		var phase := float(i) * 1.7 + f * Config.TIDE_SECONDS * 3.0
 		fig.position.y = Config.TIDE_FIGURE_HEIGHT * 0.5 - Config.TIDE_FOG_Y + absf(sin(phase)) * 0.18
+		fig.position.x = _figure_x(i) + sin(phase * 0.5) * 0.4
+	# Checkpoint 7: the styled figures stand on the ground (their origin is the base) and walk the same way.
+	for i: int in range(styled_figures.size()):
+		var fig := styled_figures[i]
+		var phase := float(i) * 1.7 + f * Config.TIDE_SECONDS * 3.0
+		fig.position.y = -Config.TIDE_FOG_Y + absf(sin(phase)) * 0.18
 		fig.position.x = _figure_x(i) + sin(phase * 0.5) * 0.4
 
 
@@ -309,3 +328,11 @@ func _build_fog() -> void:
 	_build_figures()
 	main.add_child(fog)
 	Looks.note_placeholder(fog, "tide_fog")
+	# Checkpoint 7: the styled fog (banks and figures) under the same position; shown only in the styled look.
+	styled_fog = StylePush.build_fog(main, Config.TIDE_FOG_WIDTH, Config.TIDE_FOG_DEPTH)
+	styled_fog.visible = false
+	for i: int in range(Config.TIDE_FIGURES):
+		var fig := StylePush.build_figure(styled_fog)
+		var row := -0.3 if i % 2 == 0 else 0.3
+		fig.position = Vector3(_figure_x(i), 0.0, row * Config.TIDE_FOG_DEPTH)
+		styled_figures.append(fig)
