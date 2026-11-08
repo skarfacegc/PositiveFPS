@@ -51,7 +51,7 @@ the styled look changes only in graphics checkpoints (latest: checkpoint 7: livi
 gloom mist, styled push and HUD, no direction line, dithering removed from the styled look, and the look chosen by context:
 `--look=styled|placeholder`, exported builds start styled). Still placeholder in styled mode: the REC and F3 labels, and
 (per the checkpoint 7 shots) the push fog's `tide_fog` and `tide_pointer` pieces; the styled HUD text uses the fallback
-font, not a pixel font (#26). 0.3.1 (built, awaiting its playtest) changed the push fog to a storm cloud band, raised the
+font, not a pixel font (#26). 0.3.1 (done 2026-11-08) changed the push fog to a storm cloud band, raised the
 mist and the ground life, props and ambient life for play zoom, and strung bunting from posts; `tide_fog` is no longer a
 placeholder, `tide_pointer` still is.
 
@@ -66,10 +66,8 @@ placeholder, `tide_pointer` still is.
 - Open question: should the recorder rename `gap_open` / `gap_close` to `break_*`? (#23)
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
-- 0.3.1 Living town fixes: #37, #39 and #42 are In review until the user accepts them (the rest are Done, see
-  "playtest 3" below). Props did not read at play zoom: built in 0.3.1 (#48, In review, "playtest 3 built" below). The
-  gold inner ring (#38) was not raised in any 0.3.1
-  playtest; it stays in Backlog.
+- 0.3.2 Prop styling (Ready, plan below): lamp styling (#49), bench styling (#50), bunting wires lower than the player
+  (#42). The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
 
 **Watch in the next playtest** (no issue: questions for the interview, not work):
 - Checkpoint 6's notice banner under the night bar and the styled target ring have no full-frame screenshot yet.
@@ -83,10 +81,10 @@ placeholder, `tide_pointer` still is.
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** 0.3.1 Living town fixes played three times (playtest 3 below): #40, #41, #43, #44, #45 accepted; #37, #39,
-#42 and props (#48, built 2026-11-08) In review until the user accepts them. Then 0.4 Tug of war (plan below, and on the
-board).
-0.3 Living town is done (2026-11-07), internal only: no release.
+**Next:** 0.3.2 Prop styling (#42, #49, #50; plan below, look direction to interview first). Then 0.4 Tug of war
+(plan below, and on the board).
+0.3 Living town is done (2026-11-07) and 0.3.1 Living town fixes is done (2026-11-08, playtest 4 below), both internal
+only: no release.
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -418,6 +416,33 @@ the rules. Props are scenery only.
 - Fireflies now show as soft glows (they were invisible before): check that they read well at night.
 - The calm opening has a bright orange bench near the start: check it isn't distracting.
 - #37, #39 and #42 are still In review until the user accepts them.
+
+## 0.3.1 Living town fixes, playtest 4 (2026-11-08) (#37, #39, #42, #48; #49, #50 new)
+
+Played `0846a4c` in the styled look (recording `20261108-120438` in the playtest copy): a win in 3:00, 41 of 60
+rescued, 2 of 3 dawn lights (people 68%, ground 16%, 1 landmark), 16 gaps (none in the easing phase), 11 relapses,
+4 bursts, 2 beacons.
+- Props (#48 accepted, Done): lamps and benches are visible at play zoom now. Their styling doesn't fit well: lamps
+  (#49) and benches (#50), both in 0.3.2.
+- Fireflies as soft glows: awesome, keep them.
+- #37 and #39 accepted (Done).
+- Wires (#42) not accepted: the player is still taller than the wires. Moved to 0.3.2.
+- 0.3.1 Living town fixes is done (2026-11-08), internal only: milestone closed, no tag.
+
+## 0.3.2 Prop styling plan (2026-11-08) (#42, #49, #50)
+
+A look-focused target: styled look only, nothing reads or writes the rules. The look direction for lamps and benches
+gets a short interview before the build (what "fits" means to the user); the outline below is the starting point.
+- **Lamps (#49).** Lamps and their halos fit the style pillars: a whimsical warm counterpart of an industrial street
+  lamp, the same pixel-diorama shading as the buildings, and a halo that reads as light on the ground, not a pale disc.
+- **Benches (#50).** Benches fit the style pillars: earthy joy palette, the same shading and outline as the buildings,
+  no single bright colour that stands out in the calm opening.
+- **Wires (#42).** Bunting wires and their posts sit above the player's head height everywhere, so the player never
+  looks taller than them at play zoom.
+- Shots: styled play-zoom shots only (`checkpoint_shots.py --set checkpoint7 --play-only`), one contact sheet per
+  round, at most three rounds; save the final set in `design/renders/v0.3.2/`. `test_perf_*` budgets are not loosened.
+
+Build: one Sonnet agent on `main` (about 250k tokens for all three), then the finish step in a fresh Sonnet session.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
