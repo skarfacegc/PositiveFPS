@@ -40,7 +40,11 @@ func _preview_shown(td: TopDownMain) -> bool:
 func _travel_shown(td: TopDownMain) -> bool:
 	if Looks.is_styled():
 		return td.reach_guide._styled.showing_travel
-	return td.reach_guide._mesh.get_surface_count() == 1
+	# Checkpoint 7: the placeholder travel is only the word "Stretching" (no line, disc or dashes, so no mesh surface).
+	var label: Label3D = td.reach_guide._label
+	return (
+		label != null and label.visible and label.text == "Stretching" and td.reach_guide._mesh.get_surface_count() == 0
+	)
 
 
 func test_no_preview_shows_unless_e_is_held() -> void:

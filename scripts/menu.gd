@@ -40,6 +40,7 @@ var _starting: bool = false
 
 
 func _ready() -> void:
+	Looks.apply_start_mode()
 	Controls.setup()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 

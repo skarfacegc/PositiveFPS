@@ -254,14 +254,19 @@ func test_the_reach_guide_draws_in_the_placeholder_look_and_hides_in_the_styled_
 	var runner: GdUnitSceneRunner = s["runner"]
 	td.border.place_beacon(td.border.centre + Vector3(60, 0, 0))
 	await runner.simulate_frames(30)
+	# Checkpoint 7: the placeholder travel is just the word "Stretching" (no line, disc or dashes, so no mesh surface).
 	var mesh: ImmediateMesh = td.reach_guide._mesh
-	assert_int(mesh.get_surface_count()).is_equal(1)
+	var label: Label3D = td.reach_guide._label
+	assert_int(mesh.get_surface_count()).is_equal(0)
+	assert_bool(label.visible and label.text == "Stretching").is_true()
 	td.set_look(Looks.Mode.STYLED)
 	await runner.simulate_frames(3)
 	assert_int(mesh.get_surface_count()).is_equal(0)
+	assert_bool(label.visible).is_false()
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	await runner.simulate_frames(3)
-	assert_int(mesh.get_surface_count()).is_equal(1)
+	assert_int(mesh.get_surface_count()).is_equal(0)
+	assert_bool(label.visible and label.text == "Stretching").is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

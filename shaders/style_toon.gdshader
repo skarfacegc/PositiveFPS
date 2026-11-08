@@ -4,7 +4,7 @@ render_mode cull_back, specular_disabled;
 
 // The styled look's object shader (ported from design/style_test/toon.gdshader).
 // dmode: 0 always drawn, 1 industrial (drawn until it dissolves away), 2 whimsical (dissolves in). `dissolve` is set per
-// mesh (instance uniform): 0 = industrial fully there, 1 = whimsical fully there. A Bayer dither makes the change.
+// mesh (instance uniform): 0 = industrial fully there, 1 = whimsical fully there. A wipe up the building makes the change (checkpoint 7).
 // emit_add lets one mesh glow (the grace cue, a held joy pip) without its own material.
 
 uniform vec4 albedo : source_color = vec4(0.5, 0.5, 0.5, 1.0);
@@ -29,6 +29,7 @@ const vec3 TINTS[7] = vec3[7](
 	vec3(0.498, 0.616, 0.384) // 6 nature coat
 );
 
+const float WIPE_HEIGHT = 14.0;  // Taller than any building or landmark: dissolve 1 has wiped everything.
 varying vec3 wpos;
 
 void vertex() {
@@ -37,9 +38,11 @@ void vertex() {
 
 void fragment() {
 	if (dmode != 0) {
-		float b = bayer4(FRAGCOORD.xy);
-		if (dmode == 1 && b < dissolve) discard;
-		if (dmode == 2 && b >= dissolve) discard;
+		// Checkpoint 7: a clean wipe up the building (a soft noisy line, no dither): the whimsical version grows from the
+		// ground while the industrial one is left above the line.
+		float wipe_y = mix(-1.0, WIPE_HEIGHT, dissolve) + (vnoise(wpos.xz * 1.3) - 0.5) * 1.8 * sin(PI * clamp(dissolve, 0.0, 1.0));
+		if (dmode == 1 && wpos.y < wipe_y) discard;
+		if (dmode == 2 && wpos.y >= wipe_y) discard;
 	}
 	vec3 c = albedo.rgb;
 	if (grime > 0.0) {

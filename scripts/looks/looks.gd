@@ -12,8 +12,39 @@ extends RefCounted
 enum Mode { PLACEHOLDER, STYLED }
 
 static var mode: int = Mode.PLACEHOLDER
+# True once apply_start_mode has run (it acts only once per process).
+static var _start_applied: bool = false
 # Objects that always use their placeholder look, even in styled mode: {"ref": WeakRef, "kind": String}.
 static var _fallbacks: Array[Dictionary] = []
+
+
+# Checkpoint 7: the look the game starts in. A `--look=styled|placeholder` user argument wins; otherwise an exported
+# build (feature "template") starts styled and everything else (the editor, tests, headless) starts placeholder. F4
+# still switches. `args` are the user arguments, `exported` is OS.has_feature("template").
+static func start_mode(args: PackedStringArray, exported: bool) -> int:
+	for arg: String in args:
+		if arg.begins_with(Config.CP7_LOOK_ARG):
+			var value := arg.substr(Config.CP7_LOOK_ARG.length()).to_lower()
+			if value == "styled":
+				return Mode.STYLED
+			if value == "placeholder":
+				return Mode.PLACEHOLDER
+	return Mode.STYLED if exported else Mode.PLACEHOLDER
+
+
+# Applies the starting look once per process (the menu and the level both call it from _ready, whichever comes first).
+# It only ever switches TO styled: the placeholder is already the default, so a test that set a look keeps it.
+static func apply_start_mode() -> void:
+	if _start_applied:
+		return
+	_start_applied = true
+	apply_start_choice(OS.get_cmdline_user_args(), OS.has_feature("template"))
+
+
+# The switch itself (apply_start_mode passes the real arguments; tests pass their own).
+static func apply_start_choice(args: PackedStringArray, exported: bool) -> void:
+	if start_mode(args, exported) == Mode.STYLED:
+		mode = Mode.STYLED
 
 
 static func is_styled() -> bool:

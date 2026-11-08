@@ -37,7 +37,7 @@ static func mat(
 	m.set_shader_parameter("emit", emit)
 	m.set_shader_parameter("pat", pat)
 	m.set_shader_parameter("vary", vary)
-	m.set_shader_parameter("dither_amt", Config.STYLED_DITHER_LIGHT)
+	m.set_shader_parameter("band_soft", Config.CP7_TOON_SOFT)
 	_cache[key] = m
 	return m
 
@@ -48,7 +48,7 @@ static func unique_mat(col: Color, emit: float) -> ShaderMaterial:
 	return m
 
 
-# A glow material (dithered radial glow on the ground, see style_glow.gdshader). Not shared: each caller owns its own.
+# A glow material (soft radial glow on the ground, see style_glow.gdshader). Not shared: each caller owns its own.
 static func glow_mat(col: Color, strength: float) -> ShaderMaterial:
 	if _glow == null:
 		_glow = load(GLOW_SHADER)
@@ -56,7 +56,6 @@ static func glow_mat(col: Color, strength: float) -> ShaderMaterial:
 	m.shader = _glow
 	m.set_shader_parameter("glow_color", col)
 	m.set_shader_parameter("strength", strength)
-	m.set_shader_parameter("dither_k", Config.STYLED_DITHER_GLOW)
 	return m
 
 

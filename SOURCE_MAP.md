@@ -170,13 +170,13 @@ extends Node3D | 1 const | Round 22: the world marks for the burst (G/Q), drawn 
 - L88 `streak_count() -> int`
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 325 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L564 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L572 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
-- L579 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L588 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L598 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L609 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 326 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L568 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L576 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
+- L583 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L592 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L602 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L613 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -471,22 +471,25 @@ extends LandmarkLook | 8 const | The styled landmark (graphics checkpoint 3): it
 
 ### scripts/looks/looks.gd (Looks)
 extends RefCounted | 0 const | The look switch. Every main thing on screen has a rules script (person.gd, border.gd, ...) and a look: a se...
-- L19 `static is_styled() -> bool`
-- L23 `static mode_name() -> String`
-- L27 `static set_mode(new_mode: int) -> void`
-- L32 `static toggle() -> int` - Flips between the two looks. Returns the new mode.
-- L38 `static note_placeholder(obj: Object, kind: String) -> void` - Records that `obj` (a node or look that has no styled version) is drawn with its placeholder look.
-- L44 `static placeholder_fallback_count() -> int` - How many live objects are using a placeholder look while the styled look is on (0 in placeholder mode, where
-- L51 `static fallback_summary() -> String` - "kind x count, ..." for the F3 line, e.g. "projectile x3, bloom x1".
-- L64 `static debug_line() -> String` - One line for the F3 overlay.
-- L84 `static person_look() -> PersonLook`
-- L88 `static player_look() -> PlayerLook`
-- L92 `static building_look() -> BuildingLook`
-- L96 `static landmark_look() -> LandmarkLook`
-- L100 `static ground_look() -> GroundLook`
-- L104 `static border_look() -> BorderLook`
-- L108 `static minimap_look() -> MinimapLook`
-- L112 `static plaza_look() -> PlazaLook`
+- L24 `static start_mode(args: PackedStringArray, exported: bool) -> int` - Checkpoint 7: the look the game starts in. A `--look=styled|placeholder` user argument wins; otherwise an e...
+- L37 `static apply_start_mode() -> void` - Applies the starting look once per process (the menu and the level both call it from _ready, whichever come...
+- L45 `static apply_start_choice(args: PackedStringArray, exported: bool) -> void` - The switch itself (apply_start_mode passes the real arguments; tests pass their own).
+- L50 `static is_styled() -> bool`
+- L54 `static mode_name() -> String`
+- L58 `static set_mode(new_mode: int) -> void`
+- L63 `static toggle() -> int` - Flips between the two looks. Returns the new mode.
+- L69 `static note_placeholder(obj: Object, kind: String) -> void` - Records that `obj` (a node or look that has no styled version) is drawn with its placeholder look.
+- L75 `static placeholder_fallback_count() -> int` - How many live objects are using a placeholder look while the styled look is on (0 in placeholder mode, where
+- L82 `static fallback_summary() -> String` - "kind x count, ..." for the F3 line, e.g. "projectile x3, bloom x1".
+- L95 `static debug_line() -> String` - One line for the F3 overlay.
+- L115 `static person_look() -> PersonLook`
+- L119 `static player_look() -> PlayerLook`
+- L123 `static building_look() -> BuildingLook`
+- L127 `static landmark_look() -> LandmarkLook`
+- L131 `static ground_look() -> GroundLook`
+- L135 `static border_look() -> BorderLook`
+- L139 `static minimap_look() -> MinimapLook`
+- L143 `static plaza_look() -> PlazaLook`
 
 ### scripts/looks/minimap_look.gd (MinimapLook)
 extends RefCounted | 0 const | The look of the minimap: the palette of its picture and the frame round it. The data model and the picture...
@@ -697,14 +700,14 @@ extends RefCounted | 2 const | Shared helpers of the styled look (ported from de
 - L18 `static hexc(h: String) -> Color` - A colour from a "#rrggbb" string.
 - L24 `static mat(col: Color, dmode: int = 0, grime: float = 0.0, emit: float = 0.0, pat: int = 0, vary: float = 0.0) -> ShaderMaterial` - The shared toon material for these values. `dmode` 0 always drawn, 1 industrial, 2 whimsical (see
 - L46 `static unique_mat(col: Color, emit: float) -> ShaderMaterial` - A toon material of its own (not shared), for a value that changes every frame (a pulsing emission).
-- L52 `static glow_mat(col: Color, strength: float) -> ShaderMaterial` - A glow material (dithered radial glow on the ground, see style_glow.gdshader). Not shared: each caller owns...
-- L64 `static glow_plane(parent: Node, m: Material, size: float, pos: Vector3) -> MeshInstance3D` - A flat square of ground glow, `size` metres across, centred on `pos`.
-- L84 `static box(p: Node, size: Vector3, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO, shadow: bool = true) -> MeshInstance3D`
-- L92 `static cyl(p: Node, r: float, h: float, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO, r_top: float = -1.0, sides: int = 10, shadow: bool = true) -> MeshInstance3D`
-- L112 `static sph(p: Node, r: float, pos: Vector3, m: Material, scl: Vector3 = Vector3.ONE, sides: int = 8, shadow: bool = true) -> MeshInstance3D`
-- L125 `static prism(p: Node, size: Vector3, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO, shadow: bool = true) -> MeshInstance3D`
-- L133 `static torus(p: Node, ri: float, ro: float, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO) -> MeshInstance3D`
-- L145 `static seg(p: Node, a: Vector3, b: Vector3, r: float, m: Material, sides: int = 6, shadow: bool = true) -> MeshInstance3D` - A thin cylinder from `a` to `b`.
+- L52 `static glow_mat(col: Color, strength: float) -> ShaderMaterial` - A glow material (soft radial glow on the ground, see style_glow.gdshader). Not shared: each caller owns its...
+- L63 `static glow_plane(parent: Node, m: Material, size: float, pos: Vector3) -> MeshInstance3D` - A flat square of ground glow, `size` metres across, centred on `pos`.
+- L83 `static box(p: Node, size: Vector3, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO, shadow: bool = true) -> MeshInstance3D`
+- L91 `static cyl(p: Node, r: float, h: float, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO, r_top: float = -1.0, sides: int = 10, shadow: bool = true) -> MeshInstance3D`
+- L111 `static sph(p: Node, r: float, pos: Vector3, m: Material, scl: Vector3 = Vector3.ONE, sides: int = 8, shadow: bool = true) -> MeshInstance3D`
+- L124 `static prism(p: Node, size: Vector3, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO, shadow: bool = true) -> MeshInstance3D`
+- L132 `static torus(p: Node, ri: float, ro: float, pos: Vector3, m: Material, rot: Vector3 = Vector3.ZERO) -> MeshInstance3D`
+- L144 `static seg(p: Node, a: Vector3, b: Vector3, r: float, m: Material, sides: int = 6, shadow: bool = true) -> MeshInstance3D` - A thin cylinder from `a` to `b`.
 
 ### scripts/looks/style_landmarks.gd (StyleLandmarks)
 extends RefCounted | 3 const | Graphics checkpoint 3: the three landmarks in the locked style. Each is built twice on the same footprint:...
@@ -725,13 +728,13 @@ extends RefCounted | 0 const | Checkpoint 7: the styled gloom tide (round 26). T
 - L32 `static build_figure(parent: Node3D) -> Node3D` - One figure: a dark pixel body with a round head, standing on its origin (the base). The sway sets its posit...
 
 ### scripts/looks/style_reach.gd (StyleReach)
-extends RefCounted | 15 const | Graphics checkpoint 5 (was the round 20 ring-and-line guide): the shape preview in the locked style.
-- L59 `build(parent: Node3D) -> void` - Builds the pieces under `parent` (all hidden until sync shows them).
-- L86 `hide() -> void` - Hides the preview and travel pieces (not the finished-stretch pulse, see end_pulse).
-- L99 `hide_all() -> void` - Hides everything, the pulse too (the look went back to the placeholder).
-- L106 `sync(border: Border, player: TopDownPlayer, aiming: bool = false) -> void` - Redraws the guide for this frame (ReachGuide then calls pulse() while a finished stretch's wave lasts). The...
-- L159 `pulse(border: Border, p: float, ang: float, tip_at: Vector2) -> void` - A finished stretch: a wave of light along the new arm (the polygon pieces within 1.2 rad of the arm) and a...
-- L193 `end_pulse() -> void` - Ends the pulse.
+extends RefCounted | 14 const | Graphics checkpoint 5 (was the round 20 ring-and-line guide): the shape preview in the locked style.
+- L54 `build(parent: Node3D) -> void` - Builds the pieces under `parent` (all hidden until sync shows them).
+- L78 `hide() -> void` - Hides the preview and travel pieces (not the finished-stretch pulse, see end_pulse).
+- L91 `hide_all() -> void` - Hides everything, the pulse too (the look went back to the placeholder).
+- L98 `sync(border: Border, player: TopDownPlayer, aiming: bool = false) -> void` - Redraws the guide for this frame (ReachGuide then calls pulse() while a finished stretch's wave lasts). The...
+- L144 `pulse(border: Border, p: float, ang: float, tip_at: Vector2) -> void` - A finished stretch: a wave of light along the new arm (the polygon pieces within 1.2 rad of the arm) and a...
+- L178 `end_pulse() -> void` - Ends the pulse.
 
 ### scripts/looks/style_reach_tag.gd (StyleReachTag)
 extends Control | 2 const | Graphics checkpoint 5: the small word that rides the stretching tip ("Stretching") in the styled look. World
@@ -784,7 +787,7 @@ extends Node | 5 const | The camera and post-process pipeline, the one switch be
 
 ### scripts/menu.gd
 extends Control | 5 const | The start menu: a title, one Play button, the Look toggle and a "How to play" panel. Play is the button,
-- L96 `look_text() -> String` - The text of the look button.
+- L97 `look_text() -> String` - The text of the look button.
 
 ### scripts/minimap.gd (Minimap)
 extends Control | 2 const | The round minimap (round 10), top-left, about TD_MINIMAP_WIDTH_FRACTION of the screen width. It shows the w...
@@ -870,9 +873,9 @@ extends Control | 2 const | Round 13b: the one-time prompt of the layered introd
 - L75 `rebuild_look() -> void` - The look was swapped (F4): draw again in the new style.
 
 ### scripts/reach_guide.gd (ReachGuide)
-extends Node3D | 3 const | Round 20/21/22: the placeholder look's guide to the stretching zone, drawn flat on the ground. While E is h...
-- L48 `sync(border: Border, player: TopDownPlayer) -> void` - Redraws the guide for this frame.
-- L83 `static preview(c: Vector2, aim: Vector2, reach: float) -> Dictionary` - Where the tip would stop toward `aim` from the centre `c` with the longest reach `reach`: {"end": Vector2,...
+extends Node3D | 2 const | Round 20/21/22: the placeholder look's guide to the stretching zone, drawn flat on the ground. While E is h...
+- L47 `sync(border: Border, player: TopDownPlayer) -> void` - Redraws the guide for this frame.
+- L80 `static preview(c: Vector2, aim: Vector2, reach: float) -> Dictionary` - Where the tip would stop toward `aim` from the centre `c` with the longest reach `reach`: {"end": Vector2,...
 
 ### scripts/recorder.gd (Recorder)
 extends Node | 3 const | Round 18: the gameplay recorder. While it is on, each game writes a session folder with `events.jsonl` (one...
@@ -923,15 +926,15 @@ extends Control | 0 const | Round 25: the gloom tide's edge pointer. A grey ring
 ### scripts/topdown_main.gd (TopDownMain)
 extends Node3D | 5 const | The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a...
 signals: beacon_placed(pos: Vector3, cost: float, spirit_after: float)
-- L279 `try_place_beacon() -> bool` - Round 19: E. See BeaconPlacement.
-- L302 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
-- L307 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
-- L335 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
-- L339 `sun_light() -> DirectionalLight3D`
-- L343 `environment() -> Environment`
-- L400 `dim_recovery_rate() -> float` - Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
-- L547 `view_half_extents() -> Vector2` - The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the v...
-- L753 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
+- L280 `try_place_beacon() -> bool` - Round 19: E. See BeaconPlacement.
+- L303 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
+- L308 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
+- L336 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
+- L340 `sun_light() -> DirectionalLight3D`
+- L344 `environment() -> Environment`
+- L401 `dim_recovery_rate() -> float` - Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
+- L548 `view_half_extents() -> Vector2` - The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the v...
+- L754 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
 
 ### scripts/topdown_player.gd (TopDownPlayer)
 extends CharacterBody3D | 0 const | The player in top-down mode. WASD moves in world space and the mouse picks an aim point on the floor. The p...
@@ -976,6 +979,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - burst_clear_test (tests/burst_clear_test.gd): 1 tests
 - burst_cue_recorder_test (tests/burst_cue_recorder_test.gd): 1 tests
 - burst_cue_test (tests/burst_cue_test.gd): 4 tests
+- checkpoint7_look_test (tests/checkpoint7_look_test.gd): 5 tests
 - checkpoint7_test (tests/checkpoint7_test.gd): 8 tests
 - config_test (tests/config_test.gd): 5 tests
 - cover_test (tests/cover_test.gd): 14 tests

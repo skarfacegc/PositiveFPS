@@ -1,6 +1,7 @@
 // Shared by the styled look's spatial shaders (ported from design/style_test/common.gdshaderinc).
-// Toon light with three bands and a 4x4 Bayer dither, plus the noise helpers.
-uniform float dither_amt = 0.16;
+// Toon light with three smooth bands (checkpoint 7: no dither), plus the noise helpers. bayer4 stays for the shaders
+// that still dither (ground, ribbon, outline).
+uniform float band_soft = 0.05;
 
 const float M4[16] = float[16](0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.);
 float bayer4(vec2 p) {
@@ -36,7 +37,7 @@ vec3 S(vec3 c) { return pow(c, vec3(2.2)); }
 
 void light() {
 	float nl = clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION;
-	float t = nl + (bayer4(FRAGCOORD.xy) - 0.5) * dither_amt;
-	float band = t < 0.10 ? 0.0 : (t < 0.44 ? 0.55 : 1.0);
+	float band = 0.55 * smoothstep(0.10 - band_soft, 0.10 + band_soft, nl)
+		+ 0.45 * smoothstep(0.44 - band_soft, 0.44 + band_soft, nl);
 	DIFFUSE_LIGHT += LIGHT_COLOR * band / PI;
 }
