@@ -81,7 +81,7 @@ placeholder, `tide_pointer` still is.
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** 0.3.2 Prop styling (#42, #49, #50; plan below, look direction to interview first). Then 0.4 Tug of war
+**Next:** 0.3.2 Prop styling (#42, #49, #50; plan below, look direction agreed). Then 0.4 Tug of war
 (plan below, and on the board).
 0.3 Living town is done (2026-11-07) and 0.3.1 Living town fixes is done (2026-11-08, playtest 4 below), both internal
 only: no release.
@@ -431,18 +431,29 @@ rescued, 2 of 3 dawn lights (people 68%, ground 16%, 1 landmark), 16 gaps (none 
 
 ## 0.3.2 Prop styling plan (2026-11-08) (#42, #49, #50)
 
-A look-focused target: styled look only, nothing reads or writes the rules. The look direction for lamps and benches
-gets a short interview before the build (what "fits" means to the user); the outline below is the starting point.
-- **Lamps (#49).** Lamps and their halos fit the style pillars: a whimsical warm counterpart of an industrial street
-  lamp, the same pixel-diorama shading as the buildings, and a halo that reads as light on the ground, not a pale disc.
-- **Benches (#50).** Benches fit the style pillars: earthy joy palette, the same shading and outline as the buildings,
-  no single bright colour that stands out in the calm opening.
+A look-focused target: styled look only, nothing reads or writes the rules. Look direction agreed with the user on
+2026-11-08. Today a lamp is a thin post, a ball and a big pale disc (`StyleProps._draw_lamp`), and a bench is a plank,
+a back and two legs (`_draw_bench`); both only change colour as they bloom. Both now change shape too (style pillar:
+props transform, not just colour), keeping the existing `bloom` (0 grey, 1 warm) and the 0.3.1 sizes and placement.
+- **Lamps (#49).** In gloom: a stiff iron gas lamp with a caged glass head. As it blooms, vines curl up the post (with
+  a few small leaves or flowers near full bloom) and the glass glows amber.
+  - **Light.** Replace the big pale disc with a soft cone of light from the head down to a pool on the ground, plus
+    a small glow at the head. The light is cool (pale blue-white) on the gloom side and a warm, cheery amber on the
+    light side, following `bloom`. It is stronger at night; by day it is faint or off.
+  - The cone and pool are soft unlit shapes drawn at `L31_SOFT_PRIORITY`, so the post-process quad doesn't paint over
+    them. They must not hide people or gaps.
+- **Benches (#50).** In gloom: a riveted grey metal bench. As it blooms: wooden slats, curled iron ends and a small
+  cushion or blanket in the earthy joy palette. No single bright colour stands out in the calm opening (the orange
+  bench near the start). The same shading and outline as the buildings.
 - **Wires (#42).** Bunting wires and their posts sit above the player's head height everywhere, so the player never
   looks taller than them at play zoom.
+- Planters and market stalls are not restyled in 0.3.2 (the user's call); restyle them later if they clash.
 - Shots: styled play-zoom shots only (`checkpoint_shots.py --set checkpoint7 --play-only`), one contact sheet per
-  round, at most three rounds; save the final set in `design/renders/v0.3.2/`. `test_perf_*` budgets are not loosened.
+  round, at most three rounds; save the final set in `design/renders/v0.3.2/`. Check the lamps both in gloom and inside
+  the zone at night. The ambient and props perf tests hold; `test_perf_*` budgets are not loosened.
 
-Build: one Sonnet agent on `main` (about 250k tokens for all three), then the finish step in a fresh Sonnet session.
+Build: one Sonnet agent on `main` (about 400k tokens for all three; the cone of light may need a new soft-shape layer),
+then the finish step in a fresh Sonnet session.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
