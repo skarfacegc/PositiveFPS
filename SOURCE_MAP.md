@@ -1080,7 +1080,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - stage_change_test (tests/stage_change_test.gd): 4 tests
 - stagger_test (tests/stagger_test.gd): 3 tests
 - stretch_safety_test (tests/stretch_safety_test.gd): 7 tests
-- style_scenery_test (tests/style_scenery_test.gd): 9 tests
+- style_scenery_test (tests/style_scenery_test.gd): 12 tests
 - targeting_test (tests/targeting_test.gd): 11 tests
 - topdown_crowd_test (tests/topdown_crowd_test.gd): 8 tests
 - topdown_mode_test (tests/topdown_mode_test.gd): 10 tests
