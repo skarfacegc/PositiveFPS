@@ -67,7 +67,8 @@ placeholder, `tide_pointer` still is.
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
 - 0.3.1 Living town fixes: #37, #39 and #42 are In review until the user accepts them (the rest are Done, see
-  "playtest 3" below). Props still don't read at play zoom (#48). The gold inner ring (#38) was not raised in any 0.3.1
+  "playtest 3" below). Props still don't read at play zoom: targeted in 0.3.1 (#48, Ready, plan in "playtest 3"). The
+  gold inner ring (#38) was not raised in any 0.3.1
   playtest; it stays in Backlog.
 
 **Watch in the next playtest** (no issue: questions for the interview, not work):
@@ -83,7 +84,8 @@ placeholder, `tide_pointer` still is.
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
 **Next:** 0.3.1 Living town fixes played three times (playtest 3 below): #40, #41, #43, #44, #45 accepted; #37, #39,
-#42 In review until the user accepts them. Then 0.4 Tug of war (plan below, and on the board).
+#42 In review until the user accepts them; props (#48) targeted, Ready. Then 0.4 Tug of war (plan below, and on the
+board).
 0.3 Living town is done (2026-11-07), internal only: no release.
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
@@ -136,7 +138,7 @@ Guides a Godot style test (round 6 or later). Mockups: design/style_mockups*.htm
 - Building to unlock mapping (music shop: guitar upgrades, garden centre: flower variants, cafe: healing item). (#29)
 - Enemy tiers and bosses: light routine people as the bulk, grey normal, dark spreaders rarer and tougher; bosses such as a heavily gloomed figure with a big aura, in a dedicated later target. (#30)
 - Visual progression: the town goes from desaturated to full colour as it is rebuilt; the placeholder look is plain, a richer style comes in look-focused targets. (#2, largely built in 0.3 Living town)
-- From the 0.3.1 playtests: butterfly styling (#46); the push and storm need more impact and more room to play around, to discuss (#47); street props still don't read at play zoom (#48).
+- From the 0.3.1 playtests: butterfly styling (#46); the push and storm need more impact and more room to play around, to discuss (#47).
 
 Wider world and level progression ideas: see `VISION.md`.
 
@@ -368,7 +370,7 @@ writes the rules.
 - Lamps and benches are still small next to the stalls; `tide_pointer` is still a placeholder (0.4 #14); #38 stays in
   Backlog.
 
-## 0.3.1 Living town fixes, playtest 3 (2026-11-08) (#46, #47, #48)
+## 0.3.1 Living town fixes, playtest 3 (2026-11-08) (#46, #47; #48 targeted)
 
 **Recording (copy `e53988c`, styled, 20261108-085302).** Win, 180 s, seed 42, 48 of 60 rescued, 2 of 3 dawn lights
 (people 80%, ground 24%, 1 landmark). Quiet time 2.8% strict / 21.8% relaxed. 12 gaps (median open 2.8 s, max 10.1 s),
@@ -380,9 +382,20 @@ writes the rules.
 - Ground: looked better, no seams noticed (#45 accepted).
 - Storm cloud: better and more obvious (#40 accepted). The push needs more impact and more ability to play around it:
   future discussion (#47, Backlog; ties in with 0.4's surge, #14).
-- Props: not many noticed at play zoom. Ground life and ambient life from #41 are accepted; props split out as #48
-  (Backlog).
+- Props: not many noticed at play zoom. Ground life and ambient life from #41 are accepted; props split out as #48,
+  targeted in 0.3.1.
 - Splash screen: gone (#43 accepted).
+
+**Props (#48), plan.** Props are laid out from the building blocks (`StyleProps.layout_props`), so most sit at the plaza
+edge, away from where the player spends the night; lamps and benches are also small next to the stalls
+(`L31_PROP_SCALE` 1.8, `L31_PROP_LIFT` 0.55).
+1. Count where props land in a normal night (how many are on screen at zoom 19.5 around the player's usual path) before
+   changing anything, and say what the cause is: placement, size or contrast.
+2. Spread more props into the open plaza and along the routes the zone grows into (still scenery only: no collision,
+   no effect on spawns or the rules), and make lamps and benches bigger and warmer so they read beside the stalls.
+3. Check in play-zoom shots at calm opening and mid-night inside the zone (styled only, at most three rounds), then
+   re-render `design/renders/v0.3.1/`. `test_perf_*` budgets are not loosened.
+Build: one Sonnet agent on `main`, then the finish step in the existing finish session.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
