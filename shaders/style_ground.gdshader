@@ -14,6 +14,10 @@ uniform float edge_w = 1.6;
 // scales the living-ground pieces (tufts, flowers, moss, puddles; litter, cracks and leaves outside), both 0..1.
 uniform float gloom_amt = 0.55;
 uniform float life_amt = 1.0;
+// 0.3.1: at play zoom (19.5) a tuft the size of a hand is one pixel. `life_size` draws tufts, flowers and moss this many
+// times bigger than the first version, and `life_bold` (0..1) pushes their colours toward bold so they read on the sand.
+uniform float life_size = 1.0;
+uniform float life_bold = 0.0;
 // Checkpoint 5: first light. `dawn_front` is the radius (metres) of the circle the dawn front has reached; the ground
 // outside it (round distance from the centre at least that) is lit. 1000 = no front yet (nothing changes).
 uniform float dawn_front = 1000.0;
@@ -57,8 +61,13 @@ mat2 rot2(float a) {
 
 // Grass tufts and wildflowers on the painted ground. `bloom` (0..1) follows how deep inside the zone the point is, so
 // more of them show as the paint grows and fewer when it is lost.
+vec3 punch(vec3 c) {
+	float luma = dot(c, vec3(0.3, 0.59, 0.11));
+	return clamp(mix(vec3(luma), c, 1.0 + life_bold * 0.9), 0.0, 1.0);
+}
+
 vec3 grass_and_flowers(vec3 c, vec2 p, float bloom) {
-	const float CELL = 0.7;
+	float CELL = 0.7 * life_size;
 	vec2 g = p / CELL;
 	vec2 cell = floor(g);
 	float h = hash21(cell + 2.3);
@@ -68,16 +77,20 @@ vec3 grass_and_flowers(vec3 c, vec2 p, float bloom) {
 	float on = step(h, 0.4 * bloom * life_amt);
 	float r = length(d);
 	float a = atan(d.y, d.x);
-	float blade = 0.075 + 0.055 * pow(abs(sin(a * 2.5 + h * 6.0)), 3.0);
-	float t = on * (1.0 - smoothstep(blade - 0.02, blade, r));
-	vec3 gdark = S(vec3(0.30, 0.50, 0.22));
-	vec3 glite = S(vec3(0.56, 0.76, 0.34));
+	float sz = life_size;
+	float blade = (0.075 + 0.055 * pow(abs(sin(a * 2.5 + h * 6.0)), 3.0)) * sz;
+	float t = on * (1.0 - smoothstep(blade - 0.02 * sz, blade, r));
+	vec3 gdark = punch(S(vec3(0.26, 0.46, 0.18)));
+	vec3 glite = punch(S(vec3(0.56, 0.76, 0.34)));
 	c = mix(c, mix(gdark, glite, step(0.55, r / blade)), t);
 	float k = hash21(cell + 1.9);
 	vec3 fcol = k > 0.66 ? S(vec3(0.90, 0.40, 0.42)) : (k > 0.33 ? S(vec3(0.97, 0.78, 0.30)) : S(vec3(0.96, 0.92, 0.82)));
-	float fl = on * step(0.5, hash21(cell + 9.1)) * (1.0 - smoothstep(0.022, 0.034, length(d - vec2(0.035, -0.03))));
+	fcol = punch(fcol);
+	vec2 fat = d - vec2(0.035, -0.03) * sz * 1.5;
+	float fs = sz * 1.5;
+	float fl = on * step(0.5, hash21(cell + 9.1)) * (1.0 - smoothstep(0.022 * fs, 0.034 * fs, length(fat)));
 	c = mix(c, fcol, fl);
-	float fc = on * step(0.5, hash21(cell + 9.1)) * (1.0 - smoothstep(0.008, 0.014, length(d - vec2(0.035, -0.03))));
+	float fc = on * step(0.5, hash21(cell + 9.1)) * (1.0 - smoothstep(0.008 * fs, 0.014 * fs, length(fat)));
 	c = mix(c, S(vec3(0.99, 0.88, 0.45)), fc);
 	return c;
 }
@@ -195,29 +208,34 @@ void fragment() {
 	vec3 wc = mix(S(vec3(0.80, 0.68, 0.52)), S(vec3(0.74, 0.60, 0.46)), h);
 	wc = mix(wc, S(vec3(0.82, 0.58, 0.45)), step(0.85, h2) * 0.35);
 	wc = mix(wc, S(vec3(0.90, 0.80, 0.62)), step(0.92, h) * 0.4);
-	float moss_n = smoothstep(0.38, 0.70, vnoise(p * 0.55 + 9.0));
-	vec3 mossc = S(vec3(0.46, 0.60, 0.34));
-	float near_gap = 1.0 - smoothstep(0.03, 0.26, e);
-	wc = mix(wc, mossc, moss_n * near_gap * (0.3 + 0.5 * bloom * life_amt));
+	// 0.3.1: moss grows in patches over the cobbles (thickest at the cobble rims), not only in the thin gaps
+	float moss_n = smoothstep(0.38, 0.70, vnoise(p * 0.55 / life_size * 1.6 + 9.0));
+	vec3 mossc = punch(S(vec3(0.40, 0.58, 0.28)));
+	float near_gap = mix(1.0 - smoothstep(0.03, 0.26 * life_size, e), 1.0, 0.3);
+	wc = mix(wc, mossc, clamp(moss_n * near_gap * (0.35 + 0.55 * bloom * life_amt), 0.0, 0.9));
 	// moss fills the cracks between the cobbles as the zone settles in
 	vec3 wmort = mix(wc * 0.9, mossc, (0.22 + 0.6 * bloom * life_amt) * smoothstep(0.35, 0.7, vnoise(p * 1.3 + 3.0)));
 	wc = mix(wc * dome, wmort, gap);
 
 	// tiny flowers, only where the cell edges are close (i.e. in the gaps)
-	vec2 fcell = floor(q * 2.2);
-	vec2 fcen = (fcell + 0.15 + 0.7 * hash22(fcell + 4.4)) / 2.2;
+	// 0.3.1: flower clumps are round dabs of colour with a pale heart, big enough to read at play zoom
+	float fgrid = 1.0 / (0.45 * life_size);
+	vec2 fcell = floor(q * fgrid);
+	vec2 fcen = (fcell + 0.25 + 0.5 * hash22(fcell + 4.4)) / fgrid;
 	float fl = 0.0;
+	float fheart = 0.0;
 	vec3 fcol = vec3(0.0);
-	if (hash21(fcell + 8.8) > 0.8 && length(q - fcen) < 0.075) {
-		vec3 c1 = voro(fcen * BIG);
-		vec3 c2 = voro(fcen * FINE + c1.yz * 7.3);
-		float sp = step(0.66, hash21(c1.yz + 3.7));
-		float ec = min(c1.x / BIG, mix(9.0, c2.x / FINE, sp));
-		fl = step(ec, 0.16);
+	float frad = 0.05 * life_size;
+	if (hash21(fcell + 8.8) > 0.72) {
+		float fd = length(q - fcen);
+		fl = (1.0 - smoothstep(frad * 0.8, frad, fd)) * bloom * clamp(life_amt, 0.0, 1.0);
+		fheart = 1.0 - smoothstep(frad * 0.3, frad * 0.4, fd);
 		float k = hash21(fcell + 1.9);
 		fcol = k > 0.66 ? S(vec3(0.86, 0.42, 0.42)) : (k > 0.33 ? S(vec3(0.93, 0.74, 0.30)) : S(vec3(0.95, 0.90, 0.78)));
+		fcol = punch(fcol);
 	}
 	wc = mix(wc, fcol, fl);
+	wc = mix(wc, S(vec3(0.99, 0.9, 0.5)), fheart * fl);
 	wc = puddles(wc, p, bloom);
 	wc = grass_and_flowers(wc, p, bloom);
 

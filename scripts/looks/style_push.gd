@@ -1,31 +1,122 @@
 class_name StylePush
 extends RefCounted
 
-# Checkpoint 7: the styled gloom tide (round 26). The wave is a row of pixel fog banks in toon shading (no transparency,
-# so it keeps the low resolution and the outlines), and the figures in it are small dark pixel people. GloomTide builds
-# both under one styled fog node, places and fades that node like the placeholder fog, and sways the figures. Visual
-# only: nothing here reads or writes the rules.
+# The styled gloom tide. 0.3.1: the wave is a low, churning storm cloud (shaders/style_cloud.gdshader): rows of soft
+# puffs (one MultiMesh) as long as the stretch being pushed, dark in the core and pale at the edge, with a smooth alpha
+# falloff and no dither. The figures in it are small dark pixel people, half hidden by the cloud. GloomTide builds both
+# under one styled fog node, places and fades that node like the placeholder fog, sizes the cloud to the pushed stretch
+# and sways the figures. Visual only: nothing here reads or writes the rules.
+
+const SHADER := "res://shaders/style_cloud.gdshader"
 
 
-# The fog banks: `Config.CP7_FOG_BANKS` blocks along the front, `width` metres across and `depth` deep, standing on the
-# ground. The node sits at the fog's height, so the banks drop back down by that height.
+# The cloud: a MultiMesh of puffs (child 0 of the returned node, which stands at the fog's height) at most `width`
+# metres long and `depth` deep. `set_length` then lays the puffs out for the stretch being pushed.
 static func build_fog(parent: Node3D, width: float, depth: float) -> Node3D:
 	var root := Node3D.new()
 	parent.add_child(root)
-	var m := StyleKit.mat(StyleKit.hexc(Config.CP7_FOG_COLOUR))
-	var count := Config.CP7_FOG_BANKS
-	var bank_width := width / float(count) * 1.2
-	for i: int in range(count):
-		var t := (float(i) + 0.5) / float(count)
-		var h := Config.CP7_FOG_BANK_HEIGHT * bank_height_share(i)
-		var at := Vector3(lerpf(-width * 0.5, width * 0.5, t), h * 0.5 - Config.TIDE_FOG_Y, 0.0)
-		StyleKit.box(root, Vector3(bank_width, h, depth), at, m, Vector3.ZERO, false)
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = quad
+	mm.instance_count = max_puffs(width)
+	mm.visible_instance_count = 0
+	var mat := ShaderMaterial.new()
+	mat.shader = load(SHADER)
+	mat.set_shader_parameter("churn", Config.L31_FOG_CHURN)
+	mat.set_shader_parameter("edge_col", StyleKit.hexc(Config.L31_FOG_EDGE))
+	mat.set_shader_parameter("core_col", StyleKit.hexc(Config.L31_FOG_CORE))
+	mat.set_shader_parameter("puff_ref", Config.L31_FOG_PUFF)
+	mat.set_shader_parameter("alpha_max", Config.L31_FOG_ALPHA)
+	# After the post-process quad (which would paint over soft alpha) and after the mist (which would pale the cloud).
+	mat.render_priority = Config.L31_SOFT_PRIORITY + 1
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.custom_aabb = AABB(Vector3(-width, -4.0, -depth * 2.0), Vector3(width * 2.0, 12.0, depth * 4.0))
+	root.add_child(mi)
+	root.set_meta("depth", depth)
+	root.set_meta("length", -1.0)
+	set_length(root, minf(width, Config.L31_FOG_MIN_LENGTH))
 	return root
 
 
-# How tall bank `i` is, as a share of the tallest (0.6 to 1.0): a fixed pattern, so the wave looks the same each time.
-static func bank_height_share(i: int) -> float:
-	return 0.6 + 0.4 * absf(sin(float(i) * 1.9 + 0.7))
+# The most puffs a cloud `width` metres long holds.
+static func max_puffs(width: float) -> int:
+	return (ceili(width / Config.L31_FOG_SPACING) + 1) * Config.L31_FOG_ROWS
+
+
+# How long the cloud is for a wave whose middle stands `distance` metres from the border's centre: the chord of the
+# pushed stretch (the wave pushes TIDE_HALF_WIDTH either side of its direction), within the shortest and widest band.
+static func fog_length(distance: float) -> float:
+	var chord := 2.0 * maxf(distance, 0.0) * sin(Config.TIDE_HALF_WIDTH)
+	return clampf(chord, Config.L31_FOG_MIN_LENGTH, Config.TIDE_FOG_WIDTH)
+
+
+# The puffs of a cloud `length` metres long and `depth` deep: position (x along the band, z across it, y up from
+# the fog's origin, which stands TIDE_FOG_Y above the ground), diameter and colour. Rows near the middle of the
+# depth, and puffs near the middle of the length, are darker, bigger and more opaque; the ends and edges taper off.
+static func layout_puffs(length: float, depth: float) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var along := maxi(2, ceili(length / Config.L31_FOG_SPACING))
+	var rows := maxi(1, Config.L31_FOG_ROWS)
+	var edge := StyleKit.hexc(Config.L31_FOG_EDGE)
+	var core := StyleKit.hexc(Config.L31_FOG_CORE)
+	for r: int in range(rows):
+		var zn := 0.0 if rows == 1 else lerpf(-1.0, 1.0, float(r) / float(rows - 1))
+		for i: int in range(along):
+			var u := (float(i) + 0.5) / float(along)
+			var h1 := _hash(float(i) * 7.13 + float(r) * 3.7)
+			var h2 := _hash(float(i) * 2.91 + float(r) * 9.3 + 1.7)
+			var taper := lerpf(0.55, 1.0, sin(PI * u))
+			var heart := (1.0 - absf(zn) * 0.8) * taper
+			# The size carries the depth in the cloud (0.6 to 1.1 of a puff): the shader reads it back as the colour.
+			var size := Config.L31_FOG_PUFF * lerpf(0.6, 1.1, heart) * (0.94 + 0.12 * h1)
+			var x := (u - 0.5) * length + (h2 - 0.5) * Config.L31_FOG_SPACING * 0.6
+			var z := zn * depth * 0.4 + (h1 - 0.5) * depth * 0.1
+			var colour := edge.lerp(core, clampf(heart * 1.1, 0.0, 1.0))
+			colour.a = lerpf(0.55, 1.0, heart)
+			# The blob's height is L31_FOG_TOP for the biggest puff; its bottom rests on the ground.
+			var height := Config.L31_FOG_TOP * size / (1.1 * Config.L31_FOG_PUFF)
+			var y := height * 0.5 - Config.TIDE_FOG_Y
+			out.append({"pos": Vector3(x, y, z), "size": size, "height": height, "colour": colour})
+	return out
+
+
+# Lays the puffs of `fog` out for a cloud `length` metres long (skipped when it is already about that long).
+static func set_length(fog: Node3D, length: float) -> void:
+	var prev: float = fog.get_meta("length", -1.0)
+	if absf(prev - length) < 0.25:
+		return
+	fog.set_meta("length", length)
+	var depth: float = fog.get_meta("depth", Config.TIDE_FOG_DEPTH)
+	var mm := (fog.get_child(0) as MultiMeshInstance3D).multimesh
+	var puffs := layout_puffs(length, depth)
+	var n := mini(puffs.size(), mm.instance_count)
+	for i: int in range(n):
+		var p: Dictionary = puffs[i]
+		var size: float = p["size"]
+		var at: Vector3 = p["pos"]
+		var height: float = p["height"]
+		var b := Basis().scaled(Vector3(size, height, 1.0))
+		mm.set_instance_transform(i, Transform3D(b, at))
+	mm.visible_instance_count = n
+
+
+# How many puffs `fog` shows now.
+static func puff_count(fog: Node3D) -> int:
+	return (fog.get_child(0) as MultiMeshInstance3D).multimesh.visible_instance_count
+
+
+# The length `fog` is laid out for now.
+static func current_length(fog: Node3D) -> float:
+	return fog.get_meta("length", -1.0)
+
+
+static func _hash(v: float) -> float:
+	return fposmod(sin(v * 12.9898) * 43758.5453, 1.0)
 
 
 # One figure: a dark pixel body with a round head, standing on its origin (the base). The sway sets its position.

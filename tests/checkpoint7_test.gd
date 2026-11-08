@@ -102,19 +102,62 @@ func test_the_styled_spirit_tag_shows_once_the_level_reports_spirit() -> void:
 # --- The styled tide: fog banks and figures ---------------------------------------------------------------------------
 
 
-func test_the_styled_fog_banks_and_figures_are_built_from_pixel_blocks() -> void:
+func test_the_styled_fog_is_a_storm_cloud_of_soft_puffs_and_the_figures_are_pixel_blocks() -> void:
 	var root: Node3D = auto_free(Node3D.new())
-	var fog := StylePush.build_fog(root, 20.0, 4.0)
-	assert_int(fog.get_child_count()).is_equal(Config.CP7_FOG_BANKS)
-	for child: Node in fog.get_children():
-		assert_bool(child is MeshInstance3D).is_true()
-	for i: int in range(Config.CP7_FOG_BANKS):
-		var share := StylePush.bank_height_share(i)
-		assert_float(share).is_greater_equal(0.6)
-		assert_float(share).is_less_equal(1.0)
+	var fog := StylePush.build_fog(root, 40.0, 8.0)
+	assert_int(fog.get_child_count()).is_equal(1)
+	var mmi := fog.get_child(0) as MultiMeshInstance3D
+	assert_bool(mmi != null).is_true()
+	assert_bool(mmi.multimesh.mesh is QuadMesh).is_true()
+	assert_int(mmi.multimesh.instance_count).is_equal(StylePush.max_puffs(40.0))
+	# The cloud is a shader with a soft alpha falloff and no dither.
+	var src := FileAccess.get_file_as_string(StylePush.SHADER)
+	assert_bool(src.contains("ALPHA = ")).is_true()
+	assert_bool(src.contains("FRAGCOORD")).is_false()
+	assert_bool(src.contains("bayer")).is_false()
+	var mat := mmi.material_override as ShaderMaterial
+	assert_float(mat.get_shader_parameter("alpha_max")).is_equal(Config.L31_FOG_ALPHA)
+	assert_float(mat.get_shader_parameter("churn")).is_equal(Config.L31_FOG_CHURN)
+	assert_float(mat.get_shader_parameter("puff_ref")).is_equal(Config.L31_FOG_PUFF)
+	assert_int(mat.render_priority).is_equal(Config.L31_SOFT_PRIORITY + 1)
 	var fig := StylePush.build_figure(root)
 	assert_int(fig.get_child_count()).is_equal(2)
 	assert_bool(fig.get_parent() == root).is_true()
+
+
+func test_the_cloud_is_as_long_as_the_stretch_pushed_and_its_core_is_darker() -> void:
+	var root: Node3D = auto_free(Node3D.new())
+	var fog := StylePush.build_fog(root, Config.TIDE_FOG_WIDTH, Config.TIDE_FOG_DEPTH)
+	# The pushed stretch is TIDE_HALF_WIDTH either side of the wave's direction: its chord, kept inside the limits.
+	var chord := 2.0 * 30.0 * sin(Config.TIDE_HALF_WIDTH)
+	assert_float(StylePush.fog_length(30.0)).is_equal_approx(minf(chord, Config.TIDE_FOG_WIDTH), 0.001)
+	assert_float(StylePush.fog_length(0.0)).is_equal(Config.L31_FOG_MIN_LENGTH)
+	assert_float(StylePush.fog_length(1000.0)).is_equal(Config.TIDE_FOG_WIDTH)
+	StylePush.set_length(fog, 12.0)
+	var short := StylePush.puff_count(fog)
+	assert_float(StylePush.current_length(fog)).is_equal(12.0)
+	StylePush.set_length(fog, 40.0)
+	var long := StylePush.puff_count(fog)
+	assert_bool(long > short).is_true()
+	assert_bool(long <= StylePush.max_puffs(Config.TIDE_FOG_WIDTH)).is_true()
+	# A puff never stands beyond the cloud's own length (give or take its jitter and half its size).
+	var puffs := StylePush.layout_puffs(40.0, Config.TIDE_FOG_DEPTH)
+	assert_int(puffs.size()).is_equal(long)
+	var darkest := 1.0
+	var palest := 0.0
+	for p: Dictionary in puffs:
+		var at: Vector3 = p["pos"]
+		assert_float(absf(at.x)).is_less(20.0 + Config.L31_FOG_SPACING)
+		var c: Color = p["colour"]
+		darkest = minf(darkest, c.v)
+		palest = maxf(palest, c.v)
+	assert_float(darkest).is_less(palest)
+	# A length within a quarter metre of the last one leaves the layout alone.
+	StylePush.set_length(fog, 40.1)
+	assert_float(StylePush.current_length(fog)).is_equal(40.0)
+	# One row only is fine too.
+	var rows := Config.L31_FOG_ROWS
+	assert_bool(rows >= 1).is_true()
 
 
 func test_the_styled_tide_shows_its_fog_only_in_the_styled_look_and_moves_its_figures() -> void:
@@ -135,6 +178,11 @@ func test_the_styled_tide_shows_its_fog_only_in_the_styled_look_and_moves_its_fi
 	assert_bool(tide.styled_figures[0].get_parent() == tide.styled_fog).is_true()
 	# The styled fog sits where the placeholder fog sits.
 	assert_bool(tide.styled_fog.position.is_equal_approx(tide.fog.position)).is_true()
+	# 0.3.1: the cloud is laid out for the stretch being pushed, and the placeholder fog plane is not a fallback in the
+	# styled look (the storm cloud covers it).
+	var dist := tide.front_distance(0) + Config.TIDE_FOG_DEPTH * 0.5
+	assert_float(StylePush.current_length(tide.styled_fog)).is_equal_approx(StylePush.fog_length(dist), 0.3)
+	assert_str(Looks.fallback_summary()).not_contains("tide_fog")
 	# Back to the placeholder look: the plane shows and the banks hide.
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	_at(td, start + 1.3)

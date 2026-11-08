@@ -47,6 +47,70 @@ func test_layout_gives_each_block_its_props_and_lines_without_repeats() -> void:
 	assert_int(StyleProps.layout_lines(centres, 0.5).size()).is_equal(0)
 
 
+func test_lines_are_strung_at_roof_height_from_posts_and_never_bare_in_gloom() -> void:
+	var s: Dictionary = await _level()
+	var td: TopDownMain = s["td"]
+	var sp := td.style_props
+	for l: StyleProps.Line in sp.lines:
+		assert_float(l.a.y).is_equal_approx(Config.L31_LINE_POST_HEIGHT, 0.001)
+		assert_float(l.b.y).is_equal_approx(Config.L31_LINE_POST_HEIGHT, 0.001)
+	assert_bool(StyleProps.line_shown(0.0)).is_false()
+	assert_bool(StyleProps.line_shown(Config.L31_LINE_SHOW - 0.01)).is_false()
+	assert_bool(StyleProps.line_shown(Config.L31_LINE_SHOW)).is_true()
+	# In gloom no line is drawn at all: the drawing is the props alone.
+	_paint_all(td, 0.0)
+	for b: Building in td.border.buildings:
+		b.tint = 0.0
+	sp.refresh(Config.C7_BLOOM_SECONDS * 2.0)
+	for l: StyleProps.Line in sp.lines:
+		assert_float(l.unfurl).is_equal(0.0)
+	var bare_boxes := sp.layers.box_count()
+	var lines := sp.lines.duplicate()
+	sp.lines.clear()
+	sp.refresh(0.0)
+	assert_int(sp.layers.box_count()).is_equal(bare_boxes)
+	# Inside the zone every line stands on two posts: at least a post pair, the rope and its flags more than without.
+	sp.lines.assign(lines)
+	_paint_all(td, 1.0)
+	sp.refresh(Config.C7_BLOOM_SECONDS * 2.0)
+	var with_lines := sp.layers.box_count()
+	assert_bool(with_lines - bare_boxes >= sp.lines.size() * (2 + StyleProps.LINE_PIECES)).is_true()
+
+
+func test_a_line_rises_on_its_posts_as_the_paint_reaches_it() -> void:
+	var s: Dictionary = await _level()
+	var td: TopDownMain = s["td"]
+	var sp := td.style_props
+	var l: StyleProps.Line = sp.lines[0]
+	sp.layers.begin()
+	l.unfurl = Config.L31_LINE_SHOW
+	sp._draw_line(l, 0)
+	assert_bool(sp.layers.box_count() > 0).is_true()
+	# Just shown the posts are still on the ground; unfurled they stand at roof height (and draw a taller line).
+	assert_float(StyleProps.post_growth(Config.L31_LINE_SHOW)).is_equal(0.0)
+	assert_float(StyleProps.post_growth(Config.L31_LINE_SHOW + 0.15)).is_between(0.1, 0.9)
+	assert_float(StyleProps.post_growth(1.0)).is_equal(1.0)
+	sp.layers.begin()
+	l.unfurl = 1.0
+	sp._draw_line(l, 0)
+	assert_bool(sp.layers.box_count() > 0).is_true()
+	sp.layers.begin()
+	l.unfurl = Config.L31_LINE_SHOW * 0.5
+	sp._draw_line(l, 0)
+	assert_int(sp.layers.box_count()).is_equal(0)
+
+
+func test_props_and_ambient_are_drawn_bigger_so_they_read_at_play_zoom() -> void:
+	# The tone helper lifts a bare colour toward the warm one even at bloom 0, and reaches it at full bloom.
+	var bare := Color(0.1, 0.1, 0.1)
+	var warm := Color(0.9, 0.5, 0.2)
+	assert_bool(StyleProps.tone(bare, warm, 0.0).r > bare.r).is_true()
+	assert_bool(StyleProps.tone(bare, warm, 0.0).r < warm.r).is_true()
+	assert_bool(StyleProps.tone(bare, warm, 1.0).is_equal_approx(warm)).is_true()
+	assert_vector(StyleProps.big(Vector3.ONE)).is_equal(Vector3.ONE * Config.L31_PROP_SCALE)
+	assert_float(Config.L31_AMBIENT_SCALE).is_greater(1.0)
+
+
 func test_day_factor_runs_from_night_to_day() -> void:
 	assert_float(StyleProps.day_factor(0.35)).is_equal(0.0)
 	assert_float(StyleProps.day_factor(1.0)).is_equal(1.0)

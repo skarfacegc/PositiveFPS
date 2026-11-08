@@ -69,9 +69,14 @@ VIEWS_R24 = ["fight_strain", "fight_gap_closeup", "fight_strain_closeup", "fight
              "dawn_minimap_mid", "dawn_late", "dawn_minimap_late",
              "walk_grey", "walk_joy", "walk_dimmed", "walk_player", "run_player", "walk_crowd"]
 # Graphics checkpoint 7 (--set checkpoint7): calm opening, mid-night inside and outside the zone, a push, dawn.
-VIEWS_C7 = ["calm_opening", "midnight_inside_zone", "midnight_outside_zone", "push_in_progress", "push_closeup", "dawn"]
-EXPECTED_C7 = (["contact_sheet.png", "contact_sheet_compare.png"]
+# 0.3.1 adds the play-zoom views (full frame at zoom 19.5): calm opening, mid-night inside and outside the zone, a push.
+VIEWS_PLAY = ["play_calm_opening", "play_midnight_inside_zone", "play_midnight_outside_zone", "play_push_in_progress"]
+VIEWS_C7 = (["calm_opening", "midnight_inside_zone", "midnight_outside_zone", "push_in_progress", "push_closeup"]
+            + VIEWS_PLAY + ["dawn"])
+EXPECTED_C7 = (["contact_sheet.png", "contact_sheet_compare.png", "play_sheet.png"]
                + ["%s_%s.png" % (v, look) for v in VIEWS_C7 for look in ("placeholder", "styled")])
+# `--play-only` (checkpoint7 only): the styled look and the four play-zoom views, for tuning rounds.
+EXPECTED_PLAY_ONLY = ["play_sheet.png"] + ["%s_styled.png" % v for v in VIEWS_PLAY]
 
 EXPECTED_R24 = (["overview.png", "contact_sheet.png", "contact_sheet_compare.png", "walk_sheet.png",
                  "fight_sheet.png", "dawn_sheet.png"]
@@ -83,7 +88,11 @@ def main():
     parser.add_argument("--set", dest="shot_set", choices=("checkpoint2", "round19", "round20", "round24", "checkpoint7"),
                         default="checkpoint2")
     parser.add_argument("--out", default=None)
+    parser.add_argument("--play-only", action="store_true",
+                        help="checkpoint7 only: the styled look and the four play-zoom views (tuning rounds)")
     args = parser.parse_args()
+    if args.play_only and args.shot_set != "checkpoint7":
+        parser.error("--play-only needs --set checkpoint7")
     if args.out is None:
         folder = {"round19": "checkpoint_03", "round20": "checkpoint_04", "round24": "checkpoint_05",
                        "checkpoint7": "checkpoint_07"}.get(
@@ -103,6 +112,8 @@ def main():
     cmd = [exe, "--path", ROOT, "res://tools/checkpoint/" + scene, "--", "--out", out_abs.replace("\\", "/")]
     if args.shot_set in ("round19", "round20", "round24", "checkpoint7"):
         cmd += ["--set", args.shot_set]
+    if args.play_only:
+        cmd += ["--play-only"]
     if args.shot_set in ("round20", "round24", "checkpoint7"):
         cmd += ["--timeout", "600"]
     # tools/godot_run.py: hard timeout, output in a log file, ends only the process tree it started.
@@ -117,7 +128,7 @@ def main():
         if line.startswith(("TIMING", "SAVED", "GAPS", "SEALED")) or "ERROR" in line:
             print(line)
     expected = {"round19": EXPECTED_R19, "round20": EXPECTED_R20, "round24": EXPECTED_R24,
-                "checkpoint7": EXPECTED_C7}.get(args.shot_set, EXPECTED)
+                "checkpoint7": EXPECTED_PLAY_ONLY if args.play_only else EXPECTED_C7}.get(args.shot_set, EXPECTED)
     missing = [name for name in expected if not os.path.exists(os.path.join(out_abs, name))]
     if missing:
         print("ERROR: missing outputs: " + ", ".join(missing), file=sys.stderr)

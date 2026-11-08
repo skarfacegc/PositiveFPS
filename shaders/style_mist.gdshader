@@ -17,9 +17,7 @@ varying vec3 wpos;
 void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
 
 float h21(vec2 p) {
-	p = fract(p * vec2(123.34, 456.21));
-	p += dot(p, p + 45.32);
-	return fract(p.x * p.y);
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
 float vn(vec2 p) {
 	vec2 i = floor(p);
@@ -45,8 +43,8 @@ void fragment() {
 	float clear_ = smoothstep(0.25, 0.8, w);
 	vec2 q = p * scale + drift * TIME * 0.05 + seed;
 	float n = vn(q) * 0.6 + vn(q * 2.3 + vec2(TIME * 0.02, 0.0)) * 0.4;
-	float bank = smoothstep(0.35, 0.8, n);
+	// 0.3.1: wider banks (they start at a lower noise level), so the mist reads outside the zone at mid-night
+	float bank = smoothstep(0.22, 0.62, n);
 	float edge = 1.0 - smoothstep(plaza * 0.5, plaza * 0.5 + 25.0, max(abs(p.x), abs(p.y)));
 	ALBEDO = mist_col.rgb;
-	ALPHA = bank * (1.0 - clear_) * strength * mix(0.55, 1.0, edge);
-}
+	ALPHA = bank * (1.0 - clear_) * strength * mix(0.55, 1.0, edge);}

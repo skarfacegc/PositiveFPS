@@ -170,13 +170,13 @@ extends Node3D | 1 const | Round 22: the world marks for the burst (G/Q), drawn 
 - L88 `streak_count() -> int`
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 361 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L610 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L618 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
-- L625 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L634 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L644 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L655 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 376 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L634 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L642 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
+- L649 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L658 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L668 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L679 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -624,12 +624,12 @@ extends Node3D | 7 const | Checkpoint 7: ambient life in the styled look. Butter
 ### scripts/looks/style_atmosphere.gd (StyleAtmosphere)
 extends Node3D | 2 const | Checkpoint 7 (change 5): the styled gloom atmosphere. Scenery only: it reads the night clock, held landmark...
 - L26 `build(main: TopDownMain) -> void` - Builds the mist and the skyline into this node (call once, after adding the node to the level).
-- L50 `mist_layer_count() -> int`
-- L54 `mist_material(i: int) -> ShaderMaterial`
-- L59 `skyline_lit(i: int) -> float` - How lit skyline sector `i` is (0 grey, 1 warm).
-- L63 `skyline_roof_count(i: int) -> int`
-- L69 `static sky_for(night_progress: float) -> Color` - The sky colour for the night's progress (0 at dusk, 1 at dawn). Cooler toward midnight; the share of the ni...
-- L76 `sync(delta: float) -> void` - One frame: the sky, the skyline sectors and the paint-weight picture the mist reads.
+- L52 `mist_layer_count() -> int`
+- L56 `mist_material(i: int) -> ShaderMaterial`
+- L61 `skyline_lit(i: int) -> float` - How lit skyline sector `i` is (0 grey, 1 warm).
+- L65 `skyline_roof_count(i: int) -> int`
+- L71 `static sky_for(night_progress: float) -> Color` - The sky colour for the night's progress (0 at dusk, 1 at dawn). Cooler toward midnight; the share of the ni...
+- L78 `sync(delta: float) -> void` - One frame: the sky, the skyline sectors and the paint-weight picture the mist reads.
 
 ### scripts/looks/style_beacon.gd (StyleBeacon)
 extends RefCounted | 7 const | Graphics checkpoint 3: the spirit beacon in the locked style. A small stone-and-timber lantern post (warm l...
@@ -744,15 +744,24 @@ extends Node3D | 18 const | Checkpoint 7: street props in the styled look. Lamp 
 - L130 `static day_factor(sun_energy: float) -> float` - 1 by day, 0 at night, for a sun energy (NightCycle.sun_energy).
 - L135 `static layout_props(centres: Array[Vector3]) -> Array[Prop]` - The scenery of every block: a lamp, a bench, a planter and (every other block) a stall, from the block cent...
 - L150 `static layout_lines(centres: Array[Vector3], max_dist: float) -> Array[Line]` - A line from each block to its two nearest neighbours that are closer than `max_dist` (no pair twice).
-- L188 `static make_layers(parent: Node3D) -> Layers` - The mesh layers under `parent`: opaque boxes with toon bands, and soft unlit balls.
-- L249 `refresh(delta: float) -> void` - Moves every prop's bloom `delta` seconds toward its target and redraws all the props.
-- L261 `bench_positions() -> Array[Vector3]` - The positions of the benches (scenery only; the ambient life reads them).
+- L189 `static make_layers(parent: Node3D) -> Layers` - The mesh layers under `parent`: opaque boxes with toon bands, and soft unlit balls.
+- L250 `refresh(delta: float) -> void` - Moves every prop's bloom `delta` seconds toward its target and redraws all the props.
+- L262 `bench_positions() -> Array[Vector3]` - The positions of the benches (scenery only; the ambient life reads them).
+- L320 `static tone(bare: Color, warm: Color, bloom: float) -> Color` - 0.3.1: a prop's bare colour lifts toward its warm colour (by L31_PROP_LIFT at least) so it reads on the gre...
+- L325 `static big(v: Vector3) -> Vector3` - A local size or offset drawn L31_PROP_SCALE times bigger.
+- L406 `static line_shown(unfurl: float) -> bool` - 0.3.1: no bare line in gloom (a line over grey buildings read as a line on the ground). A line shows only once
+- L411 `static post_growth(unfurl: float) -> float` - How far the posts have grown (0 on the ground, 1 at roof height) for a line that is `unfurl` unfurled.
 
 ### scripts/looks/style_push.gd (StylePush)
-extends RefCounted | 0 const | Checkpoint 7: the styled gloom tide (round 26). The wave is a row of pixel fog banks in toon shading (no tr...
-- L12 `static build_fog(parent: Node3D, width: float, depth: float) -> Node3D` - The fog banks: `Config.CP7_FOG_BANKS` blocks along the front, `width` metres across and `depth` deep, stand...
-- L27 `static bank_height_share(i: int) -> float` - How tall bank `i` is, as a share of the tallest (0.6 to 1.0): a fixed pattern, so the wave looks the same e...
-- L32 `static build_figure(parent: Node3D) -> Node3D` - One figure: a dark pixel body with a round head, standing on its origin (the base). The sway sets its posit...
+extends RefCounted | 1 const | The styled gloom tide. 0.3.1: the wave is a low, churning storm cloud (shaders/style_cloud.gdshader): rows...
+- L15 `static build_fog(parent: Node3D, width: float, depth: float) -> Node3D` - The cloud: a MultiMesh of puffs (child 0 of the returned node, which stands at the fog's height) at most `w...
+- L47 `static max_puffs(width: float) -> int` - The most puffs a cloud `width` metres long holds.
+- L53 `static fog_length(distance: float) -> float` - How long the cloud is for a wave whose middle stands `distance` metres from the border's centre: the chord...
+- L61 `static layout_puffs(length: float, depth: float) -> Array[Dictionary]` - The puffs of a cloud `length` metres long and `depth` deep: position (x along the band, z across it, y up from
+- L89 `static set_length(fog: Node3D, length: float) -> void` - Lays the puffs of `fog` out for a cloud `length` metres long (skipped when it is already about that long).
+- L109 `static puff_count(fog: Node3D) -> int` - How many puffs `fog` shows now.
+- L114 `static current_length(fog: Node3D) -> float` - The length `fog` is laid out for now.
+- L123 `static build_figure(parent: Node3D) -> Node3D` - One figure: a dark pixel body with a round head, standing on its origin (the base). The sway sets its posit...
 
 ### scripts/looks/style_reach.gd (StyleReach)
 extends RefCounted | 14 const | Graphics checkpoint 5 (was the round 20 ring-and-line guide): the shape preview in the locked style.
@@ -1007,7 +1016,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - burst_cue_recorder_test (tests/burst_cue_recorder_test.gd): 1 tests
 - burst_cue_test (tests/burst_cue_test.gd): 4 tests
 - checkpoint7_look_test (tests/checkpoint7_look_test.gd): 5 tests
-- checkpoint7_test (tests/checkpoint7_test.gd): 8 tests
+- checkpoint7_test (tests/checkpoint7_test.gd): 9 tests
 - config_test (tests/config_test.gd): 5 tests
 - cover_test (tests/cover_test.gd): 14 tests
 - crowd_separation_test (tests/crowd_separation_test.gd): 5 tests
@@ -1080,7 +1089,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - stage_change_test (tests/stage_change_test.gd): 4 tests
 - stagger_test (tests/stagger_test.gd): 3 tests
 - stretch_safety_test (tests/stretch_safety_test.gd): 7 tests
-- style_scenery_test (tests/style_scenery_test.gd): 12 tests
+- style_scenery_test (tests/style_scenery_test.gd): 15 tests
 - targeting_test (tests/targeting_test.gd): 11 tests
 - topdown_crowd_test (tests/topdown_crowd_test.gd): 8 tests
 - topdown_mode_test (tests/topdown_mode_test.gd): 10 tests

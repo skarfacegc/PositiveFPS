@@ -415,8 +415,8 @@ const C7_LAMP_LEAN := 0.3  # Radians a broken lamp post leans in gloom.
 const C7_DAY_ENERGY_LOW := 0.5  # Sun energy at or below this is night (ambient life); above LOW + RANGE, day.
 const C7_DAY_ENERGY_RANGE := 0.35
 const C7_AMBIENT_MIN_WEIGHT := 0.35  # Paint weight a spot needs for butterflies and fireflies to drift there.
-const C7_BUTTERFLIES := 14
-const C7_FIREFLIES := 22
+const C7_BUTTERFLIES := 28  # (was 14; 0.3.1 doubled them so they read at play zoom)
+const C7_FIREFLIES := 44  # (was 22)
 const C7_DRIFT_RADIUS := 2.2  # How far a butterfly or firefly wanders from its anchor (metres).
 const C7_ANCHOR_REACH := 7.0  # How far from a beautified block an anchor may be picked (metres).
 const C7_ANCHOR_INTERVAL := 0.5  # Seconds between two tries to give an idle butterfly or firefly an anchor.
@@ -560,9 +560,6 @@ const PUSH_NOTICE_TEXT := "It bends where they push: joy them"
 const PUSH_BREAK_TEXT := "Broken! Joy the ends, lift who got in"
 
 # ---- Checkpoint 7: styled push and HUD (looks/style_push.gd, looks/style_hud.gd, hud.gd, gloom_tide.gd). ----
-const CP7_FOG_COLOUR := "#b9b4c9"  # The styled tide fog: pale violet grey (a toon colour, no transparency).
-const CP7_FOG_BANKS := 9  # Fog banks along the tide's front (pixel-style blocks, each a different height).
-const CP7_FOG_BANK_HEIGHT := 2.2  # Metres: the tallest bank (the others are 60% to 100% of it).
 const CP7_FIGURE_COLOUR := "#4a4560"  # The styled tide figures: dark violet, a little lighter than the ink.
 const CP7_FIGURE_HEIGHT := 1.6  # Metres to a styled figure's head (placeholder: TIDE_FIGURE_HEIGHT).
 const CP7_NIGHT_WIDTH := 400.0  # The styled Dusk to Dawn panel: its width (centred at the top; the bar fills its base).
@@ -582,11 +579,12 @@ const CP7_LOOK_ARG := "--look="  # The user argument that picks the starting loo
 # ---- Checkpoint 7: living ground and atmosphere (shaders/style_ground, style_mist; looks/style_atmosphere.gd). ----
 # Styled look only, scenery only: reads the night clock, the held landmarks and the paint weights, writes nothing.
 const CP7_GROUND_GLOOM := 0.55  # How far the cold desaturated tint reaches over unpainted ground (0..1).
-const CP7_GROUND_LIFE := 1.0  # Scale of the living pieces: tufts, flowers, moss, puddles; cracks, litter, dead leaves.
-const CP7_MIST_STRENGTH := 0.42  # Peak alpha of the low mist over unpainted ground.
+# How much of the living pieces: tufts, flowers, moss, puddles; cracks, litter, dead leaves (1 = as first built).
+const CP7_GROUND_LIFE := 1.5
+const CP7_MIST_STRENGTH := 0.55  # Peak alpha of the low mist over unpainted ground (was 0.42, and it never drew).
 const CP7_MIST_SCALE := 0.07  # Noise scale of the mist (per metre; smaller = bigger banks).
 const CP7_MIST_HEIGHT := 0.5  # Metres above the ground of the low layer (the high layer sits 2.4 times higher).
-const CP7_MIST_COLOUR := Color(0.62, 0.68, 0.78)
+const CP7_MIST_COLOUR := Color(0.5, 0.56, 0.7)
 const CP7_NIGHT_SKY := Color(0.30, 0.34, 0.48)  # The sky at midnight, before first light warms it.
 const CP7_SKY_NIGHT_MIX := 0.8  # How far toward it the sky goes at midnight.
 const CP7_SKYLINE_RADIUS := 66.0  # Metres from the centre: the rooftops round the plaza.
@@ -596,6 +594,32 @@ const CP7_SKYLINE_EASE := 2.0  # Seconds a sector takes to light up or go grey.
 const CP7_BODY_GREY := Color(0.36, 0.38, 0.46)
 const CP7_ROOF_GREY := Color(0.30, 0.32, 0.40)
 const CP7_ROOF_WARM := Color(1.0, 0.78, 0.42)
+
+# ---- 0.3.1 Living town fixes (#40 storm cloud fog, #41 reads at play zoom, #42 wires). Styled look, scenery only. ----
+# The push fog is a low storm cloud band (shaders/style_cloud.gdshader, looks/style_push.gd): soft puffs in rows along
+# the pushed stretch, dark in the core and pale at the edge.
+const L31_FOG_EDGE := "#59557a"  # The violet grey at the cloud's edge.
+const L31_FOG_CORE := "#14122a"  # The dark storm core.
+const L31_FOG_ALPHA := 0.9  # The most opaque a puff gets (its edge falls off smoothly).
+const L31_FOG_PUFF := 5.2  # Metres across one puff.
+const L31_FOG_SPACING := 1.8  # Metres between two puffs along the band.
+const L31_FOG_ROWS := 3  # Rows of puffs across the band's depth.
+const L31_FOG_TOP := 2.4  # Metres: how high the tallest puff stands (low: the figures stay half in view).
+const L31_FOG_MIN_LENGTH := 8.0  # Metres: the shortest the band gets.
+const L31_FOG_CHURN := 0.55  # How far (a share of a puff) the puffs roll about.
+const L31_SOFT_PRIORITY := 10  # Render priority of the mist and the storm cloud (the post-process quad is 0).
+# The ground life, props and ambient life read at play zoom (19.5): tufts, flowers and moss are drawn this many times
+# bigger than before (the shader's `life_size`), and creatures, props and extras are scaled up and lifted in colour.
+const L31_GROUND_SIZE := 3.0
+const L31_GROUND_CONTRAST := 0.55  # How far the living pieces' colours push toward bold (0 = as before, 1 = full).
+const L31_AMBIENT_SCALE := 2.6  # Butterflies, fireflies, birds and the idle extras are drawn this many times bigger.
+const L31_PROP_SCALE := 1.4  # Street props are drawn this many times bigger (lamp heads, planter flowers, stall cloth).
+const L31_PROP_LIFT := 0.35  # How far a bare prop's colour lifts toward its warm colour so it reads on grey ground.
+# Wires: no bare line in gloom. Where the zone's paint is (the line's unfurl is at least L31_LINE_SHOW) the bunting is
+# strung at roof height between two posts, each L31_LINE_POST_OFFSET metres from its block's centre.
+const L31_LINE_POST_HEIGHT := 3.4  # Metres: the posts and the line's ends (a block is 3 m high).
+const L31_LINE_POST_OFFSET := 2.5
+const L31_LINE_SHOW := 0.3
 
 static var intro_override: int = -1
 static var tides_override: int = -1  # Round 25: as intro_override, for the gloom tides (see tides_on).

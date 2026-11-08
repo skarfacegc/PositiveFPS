@@ -166,8 +166,9 @@ static func layout_lines(centres: Array[Vector3], max_dist: float) -> Array[Line
 			done[key] = true
 			var l := Line.new()
 			var d := Vector3(centres[j].x - centres[i].x, 0.0, centres[j].z - centres[i].z).normalized()
-			l.a = Vector3(centres[i].x, 2.4, centres[i].z) + d * 2.1
-			l.b = Vector3(centres[j].x, 2.4, centres[j].z) - d * 2.1
+			# 0.3.1: the line's ends are the tops of two posts at roof height (the posts stand on the ground below).
+			l.a = Vector3(centres[i].x, Config.L31_LINE_POST_HEIGHT, centres[i].z) + d * Config.L31_LINE_POST_OFFSET
+			l.b = Vector3(centres[j].x, Config.L31_LINE_POST_HEIGHT, centres[j].z) - d * Config.L31_LINE_POST_OFFSET
 			l.block_a = i
 			l.block_b = j
 			l.washing = (i + j) % 2 == 1
@@ -315,81 +316,123 @@ func _at(p: Prop, local: Vector3) -> Vector3:
 	return p.pos + Basis(Vector3.UP, p.yaw) * local
 
 
+# 0.3.1: a prop's bare colour lifts toward its warm colour (by L31_PROP_LIFT at least) so it reads on the grey ground.
+static func tone(bare: Color, warm: Color, bloom: float) -> Color:
+	return bare.lerp(warm, lerpf(Config.L31_PROP_LIFT, 1.0, bloom))
+
+
+# A local size or offset drawn L31_PROP_SCALE times bigger.
+static func big(v: Vector3) -> Vector3:
+	return v * Config.L31_PROP_SCALE
+
+
 func _draw_lamp(p: Prop, night: float) -> void:
 	var lean := lerpf(Config.C7_LAMP_LEAN, 0.0, p.bloom) * (1.0 if p.block % 2 == 0 else -1.0)
-	var metal := METAL_BARE.lerp(METAL_WARM, p.bloom)
+	var metal := tone(METAL_BARE, METAL_WARM, p.bloom)
 	var up := Vector3(-sin(lean), cos(lean), 0.0)
-	layers.box(_at(p, up * 1.1), Vector3(0.12, 2.2, 0.12), metal, p.yaw, lean)
-	layers.box(_at(p, Vector3(0.0, 0.05, 0.0)), Vector3(0.34, 0.1, 0.34), metal, p.yaw)
-	var head := _at(p, up * 2.3)
+	var s := Config.L31_PROP_SCALE
+	layers.box(_at(p, up * 1.1 * s), big(Vector3(0.12, 2.2, 0.12)), metal, p.yaw, lean)
+	layers.box(_at(p, Vector3(0.0, 0.05, 0.0)), big(Vector3(0.34, 0.1, 0.34)), metal, p.yaw)
+	var head := _at(p, up * 2.3 * s)
 	var glow := p.bloom * (0.55 + 0.45 * night)
-	layers.ball(head, 0.2, LAMP_OFF.lerp(LAMP_ON, glow))
+	layers.ball(head, 0.2 * s, LAMP_OFF.lerp(LAMP_ON, glow))
 	if glow > 0.05:
-		layers.ball(head, 0.75, Color(LAMP_ON.r, LAMP_ON.g, LAMP_ON.b, 0.2 * glow))
+		layers.ball(head, 0.75 * s, Color(LAMP_ON.r, LAMP_ON.g, LAMP_ON.b, 0.2 * glow))
 
 
 func _draw_bench(p: Prop) -> void:
-	var wood := WOOD_BARE.lerp(WOOD_WARM, p.bloom)
+	var wood := tone(WOOD_BARE, WOOD_WARM, p.bloom)
 	var broken := p.bloom < 0.25
-	layers.box(_at(p, Vector3(0.0, 0.45, 0.0)), Vector3(1.5, 0.1, 0.5), wood, p.yaw, 0.0, 0.18 if broken else 0.0)
+	layers.box(
+		_at(p, big(Vector3(0.0, 0.45, 0.0))), big(Vector3(1.5, 0.1, 0.5)), wood, p.yaw, 0.0, 0.18 if broken else 0.0
+	)
 	if not broken:
-		layers.box(_at(p, Vector3(0.0, 0.78, -0.22)), Vector3(1.5, 0.42, 0.07), wood, p.yaw)
+		layers.box(_at(p, big(Vector3(0.0, 0.78, -0.22))), big(Vector3(1.5, 0.42, 0.07)), wood, p.yaw)
 	for sx: float in [-0.62, 0.62]:
-		layers.box(_at(p, Vector3(sx, 0.22, 0.0)), Vector3(0.1, 0.44, 0.4), METAL_BARE.lerp(METAL_WARM, p.bloom), p.yaw)
+		layers.box(
+			_at(p, big(Vector3(sx, 0.22, 0.0))),
+			big(Vector3(0.1, 0.44, 0.4)),
+			tone(METAL_BARE, METAL_WARM, p.bloom),
+			p.yaw
+		)
 
 
 func _draw_planter(p: Prop) -> void:
-	layers.box(_at(p, Vector3(0.0, 0.2, 0.0)), Vector3(0.9, 0.4, 0.5), POT_BARE.lerp(POT_WARM, p.bloom), p.yaw)
+	layers.box(
+		_at(p, big(Vector3(0.0, 0.2, 0.0))), big(Vector3(0.9, 0.4, 0.5)), tone(POT_BARE, POT_WARM, p.bloom), p.yaw
+	)
+	var s := Config.L31_PROP_SCALE
 	var stem := STEM_DEAD.lerp(STEM_LIVE, p.bloom)
 	var top := 0.4 + lerpf(0.25, 0.12, p.bloom)
-	var size := 0.14 * smoothstep(0.2, 1.0, p.bloom)
+	var size := 0.14 * smoothstep(0.2, 1.0, p.bloom) * s
 	var xs: Array[float] = [-0.3, -0.1, 0.12, 0.32]
 	for i: int in range(xs.size()):
-		var base := _at(p, Vector3(xs[i], 0.4, 0.0))
-		var tip := _at(p, Vector3(xs[i], top + 0.04 * float(i % 2), 0.0))
-		layers.seg(base, tip, 0.03, stem)
+		var base := _at(p, big(Vector3(xs[i], 0.4, 0.0)))
+		var tip := _at(p, big(Vector3(xs[i], top + 0.04 * float(i % 2), 0.0)))
+		layers.seg(base, tip, 0.03 * s, stem)
 		layers.ball(tip + Vector3(0, 0.03, 0), size, FLOWERS[(p.block + i) % FLOWERS.size()])
 
 
 func _draw_stall(p: Prop) -> void:
-	var wood := WOOD_BARE.lerp(WOOD_WARM, p.bloom)
-	layers.box(_at(p, Vector3(0.0, 0.35, 0.0)), Vector3(1.8, 0.7, 0.9), wood, p.yaw)
+	var wood := tone(WOOD_BARE, WOOD_WARM, p.bloom)
+	var s := Config.L31_PROP_SCALE
+	layers.box(_at(p, big(Vector3(0.0, 0.35, 0.0))), big(Vector3(1.8, 0.7, 0.9)), wood, p.yaw)
 	for sx: float in [-0.85, 0.85]:
-		layers.box(_at(p, Vector3(sx, 0.95, 0.4)), Vector3(0.08, 1.9, 0.08), wood, p.yaw)
+		layers.box(_at(p, big(Vector3(sx, 0.95, 0.4))), big(Vector3(0.08, 1.9, 0.08)), wood, p.yaw)
 	var open := smoothstep(0.3, 0.7, p.bloom)
 	if open < 0.01:
-		layers.box(_at(p, Vector3(0.0, 1.75, 0.1)), Vector3(0.9, 0.04, 0.6), ROPE_BARE, p.yaw, 0.0, 0.5)
+		layers.box(_at(p, big(Vector3(0.0, 1.75, 0.1))), big(Vector3(0.9, 0.04, 0.6)), ROPE_BARE, p.yaw, 0.0, 0.5)
 	else:
 		for k: int in range(4):
 			var col := FLOWERS[0] if k % 2 == 0 else CREAM
 			layers.box(
-				_at(p, Vector3(-0.675 + 0.45 * float(k), 1.9, 0.0)),
-				Vector3(0.45, 0.06, 1.2 * open),
+				_at(p, big(Vector3(-0.675 + 0.45 * float(k), 1.9, 0.0))),
+				big(Vector3(0.45, 0.06, 1.2 * open)),
 				col,
 				p.yaw,
 				0.0,
 				-0.2
 			)
-	var goods := 0.1 * smoothstep(0.5, 0.9, p.bloom)
+	var goods := 0.1 * smoothstep(0.5, 0.9, p.bloom) * s
 	for k: int in range(3):
 		layers.ball(
-			_at(p, Vector3(-0.5 + 0.5 * float(k), 0.8, 0.0)), goods, FLOWERS[(p.block + k + 1) % FLOWERS.size()]
+			_at(p, big(Vector3(-0.5 + 0.5 * float(k), 0.8, 0.0))), goods, FLOWERS[(p.block + k + 1) % FLOWERS.size()]
 		)
 
 
+# 0.3.1: no bare line in gloom (a line over grey buildings read as a line on the ground). A line shows only once
+# the paint has reached it (`unfurl` at least L31_LINE_SHOW); then two posts stand up from the ground and the
+# bunting is strung between their tops at roof height.
+static func line_shown(unfurl: float) -> bool:
+	return unfurl >= Config.L31_LINE_SHOW
+
+
+# How far the posts have grown (0 on the ground, 1 at roof height) for a line that is `unfurl` unfurled.
+static func post_growth(unfurl: float) -> float:
+	return smoothstep(Config.L31_LINE_SHOW, Config.L31_LINE_SHOW + 0.3, unfurl)
+
+
 func _draw_line(l: Line, index: int) -> void:
+	if not line_shown(l.unfurl):
+		return
+	var grow := post_growth(l.unfurl)
+	var rise := Vector3(0.0, l.a.y * (1.0 - grow), 0.0)  # The ends rise with the posts as the line unfurls.
 	var sag := lerpf(Config.C7_LINE_SAG_GLOOM, Config.C7_LINE_SAG_BLOOM, l.unfurl)
 	var rope := ROPE_BARE.lerp(ROPE_WARM, l.unfurl)
+	for tip: Vector3 in [l.a, l.b]:
+		var top := tip - rise
+		layers.box(Vector3(tip.x, top.y * 0.5, tip.z), Vector3(0.18, top.y, 0.18), WOOD_BARE.lerp(WOOD_WARM, l.unfurl))
+		layers.ball(top + Vector3(0.0, 0.1, 0.0), 0.16, LAMP_ON.lerp(CREAM, 0.4))
 	var flat := Vector3(l.b.x - l.a.x, 0.0, l.b.z - l.a.z)
 	var yaw := atan2(flat.x, flat.z)
-	var prev := l.a
+	var prev := l.a - rise
 	for i: int in range(1, LINE_PIECES + 1):
 		var t := float(i) / float(LINE_PIECES)
-		var pt := l.a.lerp(l.b, t) - Vector3(0.0, sag * 4.0 * t * (1.0 - t), 0.0)
+		var pt := (l.a - rise).lerp(l.b - rise, t) - Vector3(0.0, sag * 4.0 * t * (1.0 - t), 0.0)
 		layers.seg(prev, pt, 0.04, rope)
 		if i < LINE_PIECES and l.unfurl > 0.05:
-			var h := (0.55 if l.washing else 0.28) * l.unfurl
-			var w := 0.4 if l.washing else 0.2
+			var h := (0.8 if l.washing else 0.5) * l.unfurl
+			var w := 0.55 if l.washing else 0.4
 			var col := CLOTHS[(index + i) % CLOTHS.size()] if l.washing else FLOWERS[(index + i) % FLOWERS.size()]
 			var sway := sin(time * 1.5 + float(i) + float(index)) * 0.08 * l.unfurl
 			layers.box(pt - Vector3(0.0, h * 0.5, 0.0), Vector3(0.03, h, w), col, yaw, sway)

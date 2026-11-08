@@ -34,6 +34,8 @@ func build(main: TopDownMain) -> void:
 		mat.set_shader_parameter("drift", Vector2(0.45, 0.18) * (1.0 if i == 0 else -0.7))
 		mat.set_shader_parameter("seed", 13.0 * float(i))
 		mat.set_shader_parameter("mist_col", Config.CP7_MIST_COLOUR)
+		# 0.3.1: drawn after the view's post-process quad (priority 0), which would otherwise paint over soft alpha.
+		mat.render_priority = Config.L31_SOFT_PRIORITY
 		_mist_mats.append(mat)
 		var plane := PlaneMesh.new()
 		plane.size = Vector2(PLANE_SIZE, PLANE_SIZE)

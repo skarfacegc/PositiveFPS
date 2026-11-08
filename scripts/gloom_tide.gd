@@ -267,6 +267,9 @@ func _place_fog(idx: int) -> void:
 	styled_fog.position = fog.position
 	styled_fog.rotation = fog.rotation
 	styled_fog.scale.y = maxf(fade, 0.02)
+	# 0.3.1: the storm cloud is as long as the stretch being pushed, and the styled figures stay inside it.
+	if styled_fog.visible:
+		StylePush.set_length(styled_fog, StylePush.fog_length(dist))
 
 
 # Shows the fog in the look that is on: the placeholder plane or the styled banks (the figures go with it).
@@ -288,11 +291,18 @@ func _sway_figures(f: float) -> void:
 		var fig := styled_figures[i]
 		var phase := float(i) * 1.7 + f * Config.TIDE_SECONDS * 3.0
 		fig.position.y = -Config.TIDE_FOG_Y + absf(sin(phase)) * 0.18
-		fig.position.x = _figure_x(i) + sin(phase * 0.5) * 0.4
+		fig.position.x = _styled_figure_x(i) + sin(phase * 0.5) * 0.4
 
 
 func _figure_x(i: int) -> float:
 	return lerpf(-1.0, 1.0, (float(i) + 0.5) / float(Config.TIDE_FIGURES)) * Config.TIDE_FIGURE_SPREAD
+
+
+# 0.3.1: the styled figures spread over the storm cloud's own length (never past TIDE_FIGURE_SPREAD).
+func _styled_figure_x(i: int) -> float:
+	var half := StylePush.current_length(styled_fog) * 0.5 - 1.5
+	var spread := clampf(half, 1.0, Config.TIDE_FIGURE_SPREAD)
+	return lerpf(-1.0, 1.0, (float(i) + 0.5) / float(Config.TIDE_FIGURES)) * spread
 
 
 func _build_figures() -> void:
@@ -327,12 +337,13 @@ func _build_fog() -> void:
 	fog.visible = false
 	_build_figures()
 	main.add_child(fog)
-	Looks.note_placeholder(fog, "tide_fog")
-	# Checkpoint 7: the styled fog (banks and figures) under the same position; shown only in the styled look.
+	# 0.3.1: the placeholder plane is not noted as a fallback: the styled storm cloud below covers it (it was listed on F3
+	# as "tide_fog" in the styled look although only the styled cloud shows there).
+	# Checkpoint 7: the styled fog (cloud and figures) under the same position; shown only in the styled look.
 	styled_fog = StylePush.build_fog(main, Config.TIDE_FOG_WIDTH, Config.TIDE_FOG_DEPTH)
 	styled_fog.visible = false
 	for i: int in range(Config.TIDE_FIGURES):
 		var fig := StylePush.build_figure(styled_fog)
 		var row := -0.3 if i % 2 == 0 else 0.3
-		fig.position = Vector3(_figure_x(i), 0.0, row * Config.TIDE_FOG_DEPTH)
+		fig.position = Vector3(_styled_figure_x(i), 0.0, row * Config.TIDE_FOG_DEPTH)
 		styled_figures.append(fig)

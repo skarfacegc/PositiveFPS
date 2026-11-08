@@ -200,8 +200,9 @@ func _draw_butterfly(f: Flyer) -> void:
 	var yaw := atan2(cos(t), -sin(t * 0.8 + f.phase) * 0.8)
 	var pos := _flyer_pos(f)
 	var flap := 0.3 + 0.9 * absf(sin(time * 12.0 + f.phase))
-	var side := Basis(Vector3.UP, yaw) * Vector3(0.07, 0.0, 0.0)
-	var wing := Vector3(0.14, 0.01, 0.1) * vis
+	var a := Config.L31_AMBIENT_SCALE
+	var side := Basis(Vector3.UP, yaw) * Vector3(0.07, 0.0, 0.0) * a
+	var wing := Vector3(0.14, 0.02, 0.1) * vis * a
 	layers.box(pos + side, wing, f.colour, yaw, flap)
 	layers.box(pos - side, wing, f.colour, yaw, -flap)
 
@@ -212,8 +213,9 @@ func _draw_firefly(f: Flyer) -> void:
 		return
 	var pos := _flyer_pos(f)
 	var pulse := 0.5 + 0.5 * sin(time * 2.5 + f.phase)
-	layers.ball(pos, 0.05, Color(FIREFLY.r, FIREFLY.g, FIREFLY.b, vis))
-	layers.ball(pos, 0.1 + 0.15 * pulse, Color(FIREFLY.r, FIREFLY.g, FIREFLY.b, 0.25 * vis * pulse))
+	var a := Config.L31_AMBIENT_SCALE
+	layers.ball(pos, 0.05 * a, Color(FIREFLY.r, FIREFLY.g, FIREFLY.b, vis))
+	layers.ball(pos, (0.1 + 0.15 * pulse) * a, Color(FIREFLY.r, FIREFLY.g, FIREFLY.b, 0.35 * vis * pulse))
 
 
 func _building_beautified(block: int) -> bool:
@@ -239,14 +241,15 @@ func _step_bird(b: Bird, delta: float) -> void:
 	var heading := b.roof - b.start
 	var yaw := atan2(heading.x, heading.z) if flying else b.phase
 	var fwd := Basis(Vector3.UP, yaw) * Vector3(0.0, 0.0, 1.0)
-	layers.box(pos + Vector3(0, 0.1, 0), Vector3(0.2, 0.14, 0.3), b.colour, yaw)
-	layers.ball(pos + Vector3(0, 0.2, 0) + fwd * 0.16, 0.07, b.colour.lightened(0.15))
-	layers.box(pos + Vector3(0, 0.1, 0) - fwd * 0.2, Vector3(0.07, 0.03, 0.16), b.colour.darkened(0.3), yaw)
+	var a := Config.L31_AMBIENT_SCALE
+	layers.box(pos + Vector3(0, 0.1, 0) * a, Vector3(0.2, 0.14, 0.3) * a, b.colour, yaw)
+	layers.ball(pos + Vector3(0, 0.2, 0) * a + fwd * 0.16 * a, 0.07 * a, b.colour.lightened(0.15))
+	layers.box(pos + Vector3(0, 0.1, 0) * a - fwd * 0.2 * a, Vector3(0.07, 0.03, 0.16) * a, b.colour.darkened(0.3), yaw)
 	if flying:
 		var flap := 0.9 * sin(time * 14.0 + b.phase)
-		var side := Basis(Vector3.UP, yaw) * Vector3(0.14, 0.0, 0.0)
-		layers.box(pos + Vector3(0, 0.15, 0) + side, Vector3(0.22, 0.02, 0.12), b.colour, yaw, flap)
-		layers.box(pos + Vector3(0, 0.15, 0) - side, Vector3(0.22, 0.02, 0.12), b.colour, yaw, -flap)
+		var side := Basis(Vector3.UP, yaw) * Vector3(0.14, 0.0, 0.0) * a
+		layers.box(pos + Vector3(0, 0.15, 0) * a + side, Vector3(0.22, 0.02, 0.12) * a, b.colour, yaw, flap)
+		layers.box(pos + Vector3(0, 0.15, 0) * a - side, Vector3(0.22, 0.02, 0.12) * a, b.colour, yaw, -flap)
 
 
 func _step_idlers(delta: float) -> void:
@@ -291,24 +294,25 @@ func _draw_idle(it: Idler) -> void:
 	if e <= 0.0:
 		return
 	var base := it.person.global_position
+	var a := minf(Config.L31_AMBIENT_SCALE, 1.8)  # The extras beside a person stay human-sized: only a little bigger.
 	match it.action:
 		Action.SIT:
-			layers.box(base + Vector3(0, 0.3, 0), Vector3(1.0, 0.08, 0.4) * e, WOOD)
-			layers.box(base + Vector3(-0.4, 0.14, 0), Vector3(0.08, 0.28, 0.34) * e, WOOD.darkened(0.3))
-			layers.box(base + Vector3(0.4, 0.14, 0), Vector3(0.08, 0.28, 0.34) * e, WOOD.darkened(0.3))
+			layers.box(base + Vector3(0, 0.3, 0), Vector3(1.0, 0.08, 0.4) * e * a, WOOD)
+			layers.box(base + Vector3(-0.4, 0.14, 0), Vector3(0.08, 0.28, 0.34) * e * a, WOOD.darkened(0.3))
+			layers.box(base + Vector3(0.4, 0.14, 0), Vector3(0.08, 0.28, 0.34) * e * a, WOOD.darkened(0.3))
 		Action.WAVE:
 			var hand := base + Vector3(0.34 + 0.12 * sin(time * 7.0), 1.62 + 0.05 * sin(time * 3.5), 0.05)
 			var shoulder := base + Vector3(0.2, 1.25, 0.0)
-			layers.seg(shoulder, shoulder.lerp(hand, e), 0.06, SKIN)
-			layers.ball(hand, 0.07 * e, SKIN)
+			layers.seg(shoulder, shoulder.lerp(hand, e), 0.06 * a, SKIN)
+			layers.ball(hand, 0.07 * e * a, SKIN)
 		_:
-			layers.box(base + Vector3(0, 0.2, 0.55), Vector3(0.5, 0.22, 0.22) * e, WOOD.darkened(0.2))
+			layers.box(base + Vector3(0, 0.2, 0.55), Vector3(0.5, 0.22, 0.22) * e * a, WOOD.darkened(0.2))
 			for k: int in range(3):
 				var col := StyleProps.FLOWERS[(it.person.look_seed + k) % StyleProps.FLOWERS.size()]
-				layers.ball(base + Vector3(-0.15 + 0.15 * float(k), 0.38, 0.55), 0.07 * e, col)
+				layers.ball(base + Vector3(-0.15 + 0.15 * float(k), 0.38, 0.55), 0.07 * e * a, col)
 				var f := fposmod(time * 1.2 + float(k) / 3.0, 1.0)
 				layers.ball(
 					base + Vector3(0.15, 1.0 - 0.55 * f, 0.35 + 0.2 * f),
-					0.035,
+					0.035 * a,
 					Color(WATER.r, WATER.g, WATER.b, 0.8 * e)
 				)

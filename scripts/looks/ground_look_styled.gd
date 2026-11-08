@@ -56,6 +56,8 @@ func _build() -> void:
 	_mat.set_shader_parameter("dawn_front", 1000.0)
 	_mat.set_shader_parameter("gloom_amt", Config.CP7_GROUND_GLOOM)
 	_mat.set_shader_parameter("life_amt", Config.CP7_GROUND_LIFE)
+	_mat.set_shader_parameter("life_size", Config.L31_GROUND_SIZE)
+	_mat.set_shader_parameter("life_bold", Config.L31_GROUND_CONTRAST)
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(PLANE_SIZE, PLANE_SIZE)
 	var inst := MeshInstance3D.new()
