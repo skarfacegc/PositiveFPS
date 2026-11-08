@@ -204,8 +204,9 @@ dithering in the files it owns, so none waits on another):
 
 **Order.** Build after graphics checkpoint 7 is fully built and merged. Checkpoint 7 part A removes the beacon's reach
 guide and part D brings the round 26 push into the styled look; round 27 keeps the styled push working where it can,
-and its new visuals are placeholder only, as usual. Within the round: parts 0 and Q first (code reorganisation and
-build quick wins, see the end of this section), then parts A and B on the new layout.
+and its new visuals are placeholder only, as usual. Within the round, parts are named by what they do: **Reorg** and
+**Quick wins** first (see the end of this section), then **Line** and **Defences** on the new layout, then **Rule
+stepping** if the round has room.
 
 **Discussion (no new playtest; design talk after the checkpoint 7 playtest).** The core loop is *build your zone,
 reinforce and protect it, reach for goals with it*. Shooting is the means to that end. The border should be a visible tug
@@ -270,20 +271,20 @@ so the beacon is replaced. Buildings and landmarks should be denser.
 in the report. Never loosen a threshold or a `test_perf_*` budget. Rules change, so run the determinism check at the end.
 Player-facing text uses the gloom terms. README.md is updated, since the controls change (E pull, F defence).
 
-**Build split** (two Sonnet worktree agents, each adding its values to the per-system config files part 0 creates;
+**Build split** (two Sonnet worktree agents, each adding its values to the per-system config files Reorg creates;
 a new system gets its own file):
-- Part A: changes 1, 2, 3 and 6, the line and the surge (`border.gd`, `border_push.gd`, the beacon scripts, the night
+- **Line:** changes 1, 2, 3 and 6, the line and the surge (`border.gd`, `border_push.gd`, the beacon scripts, the night
   cycle). It adds one hook for defences: a per-angle strength multiplier and a "no break here" flag that
   `border_push.gd` reads through a small interface.
-- Part B: changes 4 and 5, defences, unlocks and layout (new `scripts/defences.gd` and its placeholder look, landmarks,
-  the level layout, cue panel text). It provides that interface and tests against a stub until A merges.
-- The coordinator merges A first, then B, and resolves `config.gd`, README.md and the controls text.
+- **Defences:** changes 4 and 5, defences, unlocks and layout (new `scripts/defences.gd` and its placeholder look, landmarks,
+  the level layout, cue panel text). It provides that interface and tests against a stub until Line merges.
+- The coordinator merges Line first, then Defences, and resolves `config.gd`, README.md and the controls text.
 
 **Playtest questions.** Does pulling feel like pulling against something? Is 25 spirit per pull a real decision? Does a
 thin line read as thin without a meter? Are defences planted during the warning, and is one surge enough tension for the
 night? Are four closer landmarks the right density?
 
-### Round 27 part 0: code reorganisation (before parts A and B)
+### Round 27 Reorg: code reorganisation (before Line and Defences)
 
 **Why.** Of the last 150 commits, `config.gd` changed in 63 and `topdown_main.gd` in 54: almost every change, and most
 merge conflicts between parallel parts, go through these two files. The tuning values are filed by round
@@ -293,7 +294,7 @@ so an agent tuning one system searches both. Tests are frame-bound: the 2400-fra
 **Changes** (one Sonnet worktree agent, no behaviour change):
 1. **Config by system, not by round.** Split `Config`/`ConfigBase` into one small config script per system (for example
    border, push, tide and night, people, projectiles, spirit, landmarks, HUD and cues, recorder), and update every
-   reference. The round history stays in git and IDEAS_RESOLVED.md. Parts A and B then add their values to their own
+   reference. The round history stays in git and IDEAS_RESOLVED.md. Line and Defences then add their values to their own
    systems' files.
 2. **`topdown_main.gd` coordinates only.** Move each system's set-up and per-frame work into that system's script, so
    `TopDownMain` builds the systems and calls them in order. New features should no longer need an edit there.
@@ -301,14 +302,15 @@ so an agent tuning one system searches both. Tests are frame-bound: the 2400-fra
    `coverage_baseline.json` gets the new file paths (never a lower total). Regenerate SOURCE_MAP.md and update
    ARCHITECTURE.md (script map, areas, tuning).
 
-**Later (part C, after A and B merge, or round 28 if the round is full): advance the game rules without the scene.**
+**Rule stepping (after Line and Defences merge, or round 28 if the round is full): advance the game rules without the
+scene.**
 Let people, gloom and border advance on a fixed time step without the scene running, so the long scenario tests stop
 waiting on real frames. Rules and visuals are already split for the looks; this does the same for the simulation.
 
 **Not this round:** sub-folders for `scripts/` (border/, gloom/, people/, hud/, fx/). Coverage, the baseline and the
 fast tier's map are keyed by file path, so it needs a remap tool first; low value for the risk.
 
-### Round 27 part Q: build quick wins (Haiku, alongside part 0; tools and skills only)
+### Round 27 Quick wins: build speed and upkeep (Haiku, alongside Reorg; tools and skills only)
 
 1. **Stop Godot importing tool output.** `.godot/` is 1.4 GB: Godot imports every gdUnit4 report under `reports/` (267
    folders, one logo per report page; 15,395 paths in `reports/determinism-2` alone). `run_tests.py`'s freshness check
