@@ -36,8 +36,12 @@ void vertex() {
 void fragment() {
 	vec2 q = UV * 2.0 - 1.0;
 	float r = clamp(length(q), 0.0, 1.0);
-	float soft = 1.0 - smoothstep(0.1, 1.0, r);
+	// 0.3.1: a fuller body (opaque out to about half the radius) with a still-smooth rim, so the band reads as one cloud
+	float soft = 1.0 - smoothstep(0.38, 1.0, r);
 	float roll = 0.5 + 0.5 * sin(wpos.x * 1.1 + TIME * 0.9) * sin(wpos.z * 1.5 - TIME * 0.7);
-	ALBEDO = puff.rgb * (0.8 + 0.2 * roll);
+	// the colour churns darker and paler across the puff; the rim takes a pale violet lip
+	float lip = smoothstep(0.55, 1.0, r);
+	vec3 col = puff.rgb * (0.5 + 0.45 * roll) + edge_col.rgb * 0.35 * lip;
+	ALBEDO = col;
 	ALPHA = puff.a * alpha_max * soft;
 }

@@ -49,6 +49,15 @@ func test_the_mist_shader_has_no_dithering() -> void:
 	assert_bool(src.contains("dither_k")).is_false()
 
 
+func test_the_mist_noise_uses_an_integer_hash_so_it_has_no_square_seams() -> void:
+	# 0.3.1: the sine hash made each lattice corner differ between its cells (hard square blocks); no sine hash may return.
+	var src := _source("res://shaders/style_mist.gdshader")
+	assert_bool(src.contains("sin(")).is_false()
+	assert_bool(src.contains("uint")).is_true()
+	assert_bool(src.contains("smoothstep(0.3, 0.8, n)")).is_true()
+	assert_float(Config.CP7_MIST_STRENGTH).is_less_equal(0.45)
+
+
 func test_the_ground_material_is_dither_free_and_carries_the_living_ground_settings() -> void:
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]

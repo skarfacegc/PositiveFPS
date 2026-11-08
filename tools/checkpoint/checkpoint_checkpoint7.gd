@@ -11,8 +11,16 @@ extends "res://tools/checkpoint/checkpoint_round20.gd"
 const C7_SHEET_CELL := Vector2i(640, 360)
 # 0.3.1: the play-zoom views (full frame at the default zoom, the one the game is played at) have this prefix.
 const C7_PLAY_NAMES: Array[String] = [
-	"play_calm_opening", "play_midnight_inside_zone", "play_midnight_outside_zone", "play_push_in_progress"
+	"play_calm_opening",
+	"play_midnight_inside_zone",
+	"play_midnight_outside_zone",
+	"play_push_in_progress",
+	"play_props_bunting"
 ]
+# The props view: a ring round two neighbouring blocks (BLOCK_POSITIONS 2 and 3, 18 m apart: bunting runs between them).
+const C7_PROPS_BLOCKS: Array[int] = [2, 3]
+const C7_PROPS_RING_RADIUS := 10.5
+const C7_PROPS_RING_COUNT := 24
 
 var play_only: bool = false  # `--play-only`: the styled look and the four play-zoom views only (for tuning rounds).
 
@@ -29,10 +37,13 @@ func _run_checkpoint7() -> void:
 		await _c7_opening(label, "play_" if play_only else "")
 		await _c7_midnight(label, "play_" if play_only else "")
 		await _c7_push(label, "play_" if play_only else "")
-		if not play_only:
+		if play_only:
+			await _c7_props(label)
+		else:
 			await _c7_opening(label, "play_")
 			await _c7_midnight(label, "play_")
 			await _c7_push(label, "play_")
+			await _c7_props(label)
 			await _c7_dawn(label)
 		print("TIMING ", label, " fallback=", Looks.placeholder_fallback_count(), " ", Looks.fallback_summary())
 	_write_play_sheet()
@@ -125,6 +136,37 @@ func _c7_midnight(label: String, prefix: String = "") -> void:
 	await _c7_shot(prefix + "midnight_outside_zone", label, {}, 20)
 
 
+# 0.3.1 (#41, #42): mid-night at play zoom with two beautified blocks in frame inside the zone: their lamps, benches,
+# planters and stalls, and the bunting strung on posts between them. The ring is moved round the two blocks for this view
+# only (the rules are frozen, so the two buildings are set to their beautified state here, as the rules would have done).
+func _c7_props(label: String) -> void:
+	var saved_centre := ring_centre
+	var saved_radius := ring_radius
+	var saved_count := ring_count
+	var a: Vector3 = TopDownMain.BLOCK_POSITIONS[C7_PROPS_BLOCKS[0]]
+	var b: Vector3 = TopDownMain.BLOCK_POSITIONS[C7_PROPS_BLOCKS[1]]
+	ring_centre = Vector3((a.x + b.x) * 0.5, 0.0, (a.z + b.z) * 0.5 + 1.0)
+	ring_radius = C7_PROPS_RING_RADIUS
+	ring_count = C7_PROPS_RING_COUNT
+	await _c7_level()
+	_c7_night(0.5)
+	await _set_zoom(Config.TD_CAMERA_ORTHO_SIZE)
+	for k: int in C7_PROPS_BLOCKS:
+		var at: Vector3 = TopDownMain.BLOCK_POSITIONS[k]
+		for bd: Building in main.border.buildings:
+			if bd.centre.distance_to(Vector2(at.x, at.z)) < 1.0:
+				bd.inside_time = Config.BORDER_BUILDING_SECONDS
+				bd.beautified = true
+				bd.tint = 1.0
+	await _c7_move_player(ring_centre + Vector3(0.0, 0.0, 2.0))
+	for i: int in range(int(Config.C7_BLOOM_SECONDS / Config.C7_PROPS_INTERVAL) + 8):
+		main.style_props.refresh(Config.C7_PROPS_INTERVAL)
+	await _c7_shot("play_props_bunting", label, {}, 8)
+	ring_centre = saved_centre
+	ring_radius = saved_radius
+	ring_count = saved_count
+
+
 # A push in progress: two dimmed people lean on a stretch of the ring, the rules run a moment so the push builds. 0.3.1: a
 # tide is forced to come from that side (tides are off in the shot run) and the rules keep running while the frame is
 # taken, because the fog only shows while they run. The play-zoom view puts the player between the ring and the fog.
@@ -175,13 +217,13 @@ func _c7_dawn(label: String) -> void:
 
 # play_sheet.png: the four play-zoom views of the styled look in a 2 x 2 grid (one image to look at per tuning round).
 func _write_play_sheet() -> void:
-	var cell := Vector2i(960, 540)
-	var sheet := Image.create(cell.x * 2, cell.y * 2, false, Image.FORMAT_RGBA8)
+	var cell := Vector2i(800, 450)
+	var sheet := Image.create(cell.x * 3, cell.y * 2, false, Image.FORMAT_RGBA8)
 	sheet.fill(Color(0.1, 0.09, 0.12))
 	for i: int in range(C7_PLAY_NAMES.size()):
 		if shots.has(C7_PLAY_NAMES[i]):
 			var by_look: Dictionary = shots[C7_PLAY_NAMES[i]]
-			_fit(by_look["styled"] as Image, sheet, Vector2i((i % 2) * cell.x, (i / 2) * cell.y), cell)
+			_fit(by_look["styled"] as Image, sheet, Vector2i((i % 3) * cell.x, (i / 3) * cell.y), cell)
 	sheet.save_png(ProjectSettings.globalize_path("%s/play_sheet.png" % out_dir))
 
 

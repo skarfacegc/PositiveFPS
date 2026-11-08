@@ -70,7 +70,8 @@ VIEWS_R24 = ["fight_strain", "fight_gap_closeup", "fight_strain_closeup", "fight
              "walk_grey", "walk_joy", "walk_dimmed", "walk_player", "run_player", "walk_crowd"]
 # Graphics checkpoint 7 (--set checkpoint7): calm opening, mid-night inside and outside the zone, a push, dawn.
 # 0.3.1 adds the play-zoom views (full frame at zoom 19.5): calm opening, mid-night inside and outside the zone, a push.
-VIEWS_PLAY = ["play_calm_opening", "play_midnight_inside_zone", "play_midnight_outside_zone", "play_push_in_progress"]
+VIEWS_PLAY = ["play_calm_opening", "play_midnight_inside_zone", "play_midnight_outside_zone", "play_push_in_progress",
+              "play_props_bunting"]
 VIEWS_C7 = (["calm_opening", "midnight_inside_zone", "midnight_outside_zone", "push_in_progress", "push_closeup"]
             + VIEWS_PLAY + ["dawn"])
 EXPECTED_C7 = (["contact_sheet.png", "contact_sheet_compare.png", "play_sheet.png"]

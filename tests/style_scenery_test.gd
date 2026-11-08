@@ -111,6 +111,20 @@ func test_props_and_ambient_are_drawn_bigger_so_they_read_at_play_zoom() -> void
 	assert_float(Config.L31_AMBIENT_SCALE).is_greater(1.0)
 
 
+func test_bunting_is_drawn_bold_enough_for_play_zoom() -> void:
+	assert_float(Config.L31_LINE_BOLD).is_greater(1.0)
+	var s: Dictionary = await _level()
+	var sp: StyleProps = s["td"].style_props
+	var l: StyleProps.Line = sp.lines[0]
+	l.unfurl = 1.0
+	sp.layers.begin()
+	sp._draw_line(l, 0)
+	# Two posts, the rope pieces and the flags, and a finial ball on each post (MultiMesh readback is empty headless).
+	assert_bool(sp.layers.box_count() >= 2 + StyleProps.LINE_PIECES).is_true()
+	assert_bool(sp.layers.ball_count() >= 2).is_true()
+	assert_float(Config.L31_PROP_SCALE).is_greater_equal(1.8)
+
+
 func test_day_factor_runs_from_night_to_day() -> void:
 	assert_float(StyleProps.day_factor(0.35)).is_equal(0.0)
 	assert_float(StyleProps.day_factor(1.0)).is_equal(1.0)

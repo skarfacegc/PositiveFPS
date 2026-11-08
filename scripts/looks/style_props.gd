@@ -419,20 +419,24 @@ func _draw_line(l: Line, index: int) -> void:
 	var rise := Vector3(0.0, l.a.y * (1.0 - grow), 0.0)  # The ends rise with the posts as the line unfurls.
 	var sag := lerpf(Config.C7_LINE_SAG_GLOOM, Config.C7_LINE_SAG_BLOOM, l.unfurl)
 	var rope := ROPE_BARE.lerp(ROPE_WARM, l.unfurl)
+	var bold := Config.L31_LINE_BOLD
 	for tip: Vector3 in [l.a, l.b]:
 		var top := tip - rise
-		layers.box(Vector3(tip.x, top.y * 0.5, tip.z), Vector3(0.18, top.y, 0.18), WOOD_BARE.lerp(WOOD_WARM, l.unfurl))
-		layers.ball(top + Vector3(0.0, 0.1, 0.0), 0.16, LAMP_ON.lerp(CREAM, 0.4))
+		var post_w := 0.18 * bold
+		layers.box(
+			Vector3(tip.x, top.y * 0.5, tip.z), Vector3(post_w, top.y, post_w), WOOD_BARE.lerp(WOOD_WARM, l.unfurl)
+		)
+		layers.ball(top + Vector3(0.0, 0.1, 0.0), 0.16 * bold, LAMP_ON.lerp(CREAM, 0.4))
 	var flat := Vector3(l.b.x - l.a.x, 0.0, l.b.z - l.a.z)
 	var yaw := atan2(flat.x, flat.z)
 	var prev := l.a - rise
 	for i: int in range(1, LINE_PIECES + 1):
 		var t := float(i) / float(LINE_PIECES)
 		var pt := (l.a - rise).lerp(l.b - rise, t) - Vector3(0.0, sag * 4.0 * t * (1.0 - t), 0.0)
-		layers.seg(prev, pt, 0.04, rope)
+		layers.seg(prev, pt, 0.04 * bold, rope)
 		if i < LINE_PIECES and l.unfurl > 0.05:
-			var h := (0.8 if l.washing else 0.5) * l.unfurl
-			var w := 0.55 if l.washing else 0.4
+			var h := (0.8 if l.washing else 0.5) * l.unfurl * bold
+			var w := (0.55 if l.washing else 0.4) * bold
 			var col := CLOTHS[(index + i) % CLOTHS.size()] if l.washing else FLOWERS[(index + i) % FLOWERS.size()]
 			var sway := sin(time * 1.5 + float(i) + float(index)) * 0.08 * l.unfurl
 			layers.box(pt - Vector3(0.0, h * 0.5, 0.0), Vector3(0.03, h, w), col, yaw, sway)

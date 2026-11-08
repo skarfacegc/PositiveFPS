@@ -581,7 +581,7 @@ const CP7_LOOK_ARG := "--look="  # The user argument that picks the starting loo
 const CP7_GROUND_GLOOM := 0.55  # How far the cold desaturated tint reaches over unpainted ground (0..1).
 # How much of the living pieces: tufts, flowers, moss, puddles; cracks, litter, dead leaves (1 = as first built).
 const CP7_GROUND_LIFE := 1.5
-const CP7_MIST_STRENGTH := 0.55  # Peak alpha of the low mist over unpainted ground (was 0.42, and it never drew).
+const CP7_MIST_STRENGTH := 0.4  # Peak alpha of the low mist over unpainted ground (the ground reads through it).
 const CP7_MIST_SCALE := 0.07  # Noise scale of the mist (per metre; smaller = bigger banks).
 const CP7_MIST_HEIGHT := 0.5  # Metres above the ground of the low layer (the high layer sits 2.4 times higher).
 const CP7_MIST_COLOUR := Color(0.5, 0.56, 0.7)
@@ -600,11 +600,11 @@ const CP7_ROOF_WARM := Color(1.0, 0.78, 0.42)
 # the pushed stretch, dark in the core and pale at the edge.
 const L31_FOG_EDGE := "#59557a"  # The violet grey at the cloud's edge.
 const L31_FOG_CORE := "#14122a"  # The dark storm core.
-const L31_FOG_ALPHA := 0.9  # The most opaque a puff gets (its edge falls off smoothly).
-const L31_FOG_PUFF := 5.2  # Metres across one puff.
+const L31_FOG_ALPHA := 0.95  # The most opaque a puff gets (its edge falls off smoothly).
+const L31_FOG_PUFF := 6.4  # Metres across one puff (was 5.2: the first cloud was too faint to pick out).
 const L31_FOG_SPACING := 1.8  # Metres between two puffs along the band.
-const L31_FOG_ROWS := 3  # Rows of puffs across the band's depth.
-const L31_FOG_TOP := 2.4  # Metres: how high the tallest puff stands (low: the figures stay half in view).
+const L31_FOG_ROWS := 4  # Rows of puffs across the band's depth (was 3).
+const L31_FOG_TOP := 3.2  # Metres: how high the tallest puff stands (low: the figures stay half in view).
 const L31_FOG_MIN_LENGTH := 8.0  # Metres: the shortest the band gets.
 const L31_FOG_CHURN := 0.55  # How far (a share of a puff) the puffs roll about.
 const L31_SOFT_PRIORITY := 10  # Render priority of the mist and the storm cloud (the post-process quad is 0).
@@ -613,13 +613,14 @@ const L31_SOFT_PRIORITY := 10  # Render priority of the mist and the storm cloud
 const L31_GROUND_SIZE := 3.0
 const L31_GROUND_CONTRAST := 0.55  # How far the living pieces' colours push toward bold (0 = as before, 1 = full).
 const L31_AMBIENT_SCALE := 2.6  # Butterflies, fireflies, birds and the idle extras are drawn this many times bigger.
-const L31_PROP_SCALE := 1.4  # Street props are drawn this many times bigger (lamp heads, planter flowers, stall cloth).
-const L31_PROP_LIFT := 0.35  # How far a bare prop's colour lifts toward its warm colour so it reads on grey ground.
+const L31_PROP_SCALE := 1.8  # Street props are drawn this many times bigger (lamp heads, planter flowers, stall cloth).
+const L31_PROP_LIFT := 0.55  # How far a bare prop's colour lifts toward its warm colour so it reads on grey ground.
 # Wires: no bare line in gloom. Where the zone's paint is (the line's unfurl is at least L31_LINE_SHOW) the bunting is
 # strung at roof height between two posts, each L31_LINE_POST_OFFSET metres from its block's centre.
 const L31_LINE_POST_HEIGHT := 3.4  # Metres: the posts and the line's ends (a block is 3 m high).
 const L31_LINE_POST_OFFSET := 2.5
 const L31_LINE_SHOW := 0.3
+const L31_LINE_BOLD := 1.8  # How much thicker the bunting posts and rope, and bigger its flags, are drawn.
 
 static var intro_override: int = -1
 static var tides_override: int = -1  # Round 25: as intro_override, for the gloom tides (see tides_on).

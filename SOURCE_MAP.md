@@ -170,13 +170,13 @@ extends Node3D | 1 const | Round 22: the world marks for the burst (G/Q), drawn 
 - L88 `streak_count() -> int`
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 376 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L634 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L642 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
-- L649 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L658 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L668 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L679 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 377 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L635 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L643 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
+- L650 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L659 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L669 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L680 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -1052,7 +1052,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - looks_base_test (tests/looks_base_test.gd): 6 tests
 - looks_checkpoint5_test (tests/looks_checkpoint5_test.gd): 18 tests
 - looks_checkpoint6_test (tests/looks_checkpoint6_test.gd): 11 tests
-- looks_checkpoint7_ground_test (tests/looks_checkpoint7_ground_test.gd): 9 tests
+- looks_checkpoint7_ground_test (tests/looks_checkpoint7_ground_test.gd): 10 tests
 - looks_cues_test (tests/looks_cues_test.gd): 8 tests
 - looks_round19_test (tests/looks_round19_test.gd): 10 tests
 - looks_round20_extra_test (tests/looks_round20_extra_test.gd): 3 tests
@@ -1089,7 +1089,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - stage_change_test (tests/stage_change_test.gd): 4 tests
 - stagger_test (tests/stagger_test.gd): 3 tests
 - stretch_safety_test (tests/stretch_safety_test.gd): 7 tests
-- style_scenery_test (tests/style_scenery_test.gd): 15 tests
+- style_scenery_test (tests/style_scenery_test.gd): 16 tests
 - targeting_test (tests/targeting_test.gd): 11 tests
 - topdown_crowd_test (tests/topdown_crowd_test.gd): 8 tests
 - topdown_mode_test (tests/topdown_mode_test.gd): 10 tests

@@ -120,6 +120,10 @@ func test_the_styled_fog_is_a_storm_cloud_of_soft_puffs_and_the_figures_are_pixe
 	assert_float(mat.get_shader_parameter("churn")).is_equal(Config.L31_FOG_CHURN)
 	assert_float(mat.get_shader_parameter("puff_ref")).is_equal(Config.L31_FOG_PUFF)
 	assert_int(mat.render_priority).is_equal(Config.L31_SOFT_PRIORITY + 1)
+	# 0.3.1 fix pass: a fuller body (opaque out to 0.38 of the radius), more rows, bigger puffs.
+	assert_bool(src.contains("smoothstep(0.38, 1.0, r)")).is_true()
+	assert_int(Config.L31_FOG_ROWS).is_greater_equal(4)
+	assert_float(Config.L31_FOG_PUFF).is_greater_equal(6.0)
 	var fig := StylePush.build_figure(root)
 	assert_int(fig.get_child_count()).is_equal(2)
 	assert_bool(fig.get_parent() == root).is_true()
