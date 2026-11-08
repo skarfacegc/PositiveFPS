@@ -617,6 +617,21 @@ const L31_BUTTERFLY_SCALE := 4.2  # Butterflies only (fewer, larger: they hurt p
 const L31_AMBIENT_RECHECK := 0.4  # Seconds between the ambient life's paint lookups (cached between).
 const L31_PROP_SCALE := 1.8  # Street props are drawn this many times bigger (lamp heads, planter flowers, stall cloth).
 const L31_PROP_LIFT := 0.55  # How far a bare prop's colour lifts toward its warm colour so it reads on grey ground.
+# Props (#48): the playtest found no props in the play-zoom frame. Cause: placement (all of them stand at the blocks,
+# 25 m or more from the middle where the night is played), then size and contrast. Plaza props stand on a lattice over
+# the open plaza (one every L31_PLAZA_SPACING metres, none within L31_PLAZA_CLEAR of a block or landmark,
+# L31_PLAZA_START_CLEAR of the player's start or L31_PLAZA_EDGE of the plaza's edge). Lamps and benches are drawn
+# bigger and warmer.
+const L31_PLAZA_SPACING := 12.0
+const L31_PLAZA_CLEAR := 6.5
+const L31_PLAZA_START_CLEAR := 4.0
+const L31_PLAZA_EDGE := 5.0
+const L31_LAMP_SCALE := 1.35  # Lamps are drawn this many times bigger again than the other props.
+const L31_LAMP_HEIGHT := 0.65  # A lamp post's height as a share of its drawn scale (its head was out of frame).
+const L31_BENCH_SCALE := 1.4  # Benches too.
+const L31_BENCH_LIFT := 0.8  # A bare bench lifts this far toward its warm colour.
+const L31_LAMP_MIN_GLOW := 0.7  # A lamp's glow never falls below this, even in gloom, so it reads as a warm light.
+const L31_LAMP_HALO := 0.5  # The lamp's halo radius as a share of the old 0.75 x scale (the soft balls now show).
 # Wires: no bare line in gloom. Where the zone's paint is (the line's unfurl is at least L31_LINE_SHOW) the bunting is
 # strung at roof height between two posts, each L31_LINE_POST_OFFSET metres from its block's centre.
 const L31_LINE_POST_HEIGHT := 3.4  # Metres: the posts and the line's ends (a block is 3 m high).

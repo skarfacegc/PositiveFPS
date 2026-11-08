@@ -44,6 +44,7 @@ class Prop:
 	var yaw: float = 0.0
 	var block: int = 0
 	var bloom: float = 0.0
+	var plaza: bool = false  # 0.3.1 (#48): stands in the open plaza, not at a block (blooms by the paint alone).
 
 
 # A bunting or washing line between two blocks.
@@ -146,6 +147,39 @@ static func layout_props(centres: Array[Vector3]) -> Array[Prop]:
 	return out
 
 
+# 0.3.1 (#48): props in the open plaza, on a lattice `L31_PLAZA_SPACING` apart (offset half a step so the player's
+# start is never on a spot). A spot is skipped when it is too near a block or a landmark (`L31_PLAZA_CLEAR`), the
+# player's start (the middle, `L31_PLAZA_START_CLEAR`) or the plaza's edge. The kind and the turn follow the lattice
+# position, so the layout is the same on every run.
+static func layout_plaza(
+	centres: Array[Vector3], landmarks: Array[Vector3], half: float, step: float = Config.L31_PLAZA_SPACING
+) -> Array[Prop]:
+	var out: Array[Prop] = []
+	var n := floori(half / step)
+	var kinds: Array[int] = [Kind.LAMP, Kind.BENCH, Kind.PLANTER, Kind.LAMP]
+	for ix: int in range(-n, n):
+		for iz: int in range(-n, n):
+			var at := Vector3((float(ix) + 0.5) * step, 0.0, (float(iz) + 0.5) * step)
+			if absf(at.x) > half - Config.L31_PLAZA_EDGE or absf(at.z) > half - Config.L31_PLAZA_EDGE:
+				continue
+			if _near(at, centres, Config.L31_PLAZA_CLEAR) or _near(at, landmarks, Config.L31_PLAZA_CLEAR):
+				continue
+			if at.length() < Config.L31_PLAZA_START_CLEAR:
+				continue
+			var k := posmod(ix * 2 + iz, 4)
+			var p := _prop(kinds[k], at, float(posmod(ix + iz, 2)) * PI / 2.0, out.size())
+			p.plaza = true
+			out.append(p)
+	return out
+
+
+static func _near(at: Vector3, list: Array[Vector3], dist: float) -> bool:
+	for c: Vector3 in list:
+		if Vector2(at.x - c.x, at.z - c.z).length() < dist:
+			return true
+	return false
+
+
 # A line from each block to its two nearest neighbours that are closer than `max_dist` (no pair twice).
 static func layout_lines(centres: Array[Vector3], max_dist: float) -> Array[Line]:
 	var out: Array[Line] = []
@@ -208,6 +242,9 @@ static func _make_multimesh(parent: Node3D, ball: bool, capacity: int) -> MultiM
 		mm.mesh = sphere
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		# 0.3.1 (#48): drawn after the post-process quad (priority 0), which otherwise paints over every soft ball: the
+		# lamp glows, planter flowers and fireflies were invisible in the styled look.
+		mat.render_priority = Config.L31_SOFT_PRIORITY
 	else:
 		var cube := BoxMesh.new()
 		cube.size = Vector3.ONE
@@ -230,6 +267,9 @@ func _ready() -> void:
 	for c: Vector3 in TopDownMain.BLOCK_POSITIONS:
 		_blocks.append(c)
 	props = layout_props(_blocks)
+	var landmarks: Array[Vector3] = []
+	landmarks.assign(Config.LANDMARK_POSITIONS)
+	props.append_array(layout_plaza(_blocks, landmarks, float(Config.TD_PLAZA_SIZE) * 0.5))
 	lines = layout_lines(_blocks, Config.C7_LINE_MAX_DIST)
 	layers = make_layers(self)
 	visible = false
@@ -251,7 +291,7 @@ func refresh(delta: float) -> void:
 	var step := delta / maxf(Config.C7_BLOOM_SECONDS, 0.01)
 	var tints := _block_tints()
 	for p: Prop in props:
-		p.bloom = move_toward(p.bloom, _target(p.pos, tints[p.block]), step)
+		p.bloom = move_toward(p.bloom, _target(p.pos, 0.0 if p.plaza else tints[p.block]), step)
 	for l: Line in lines:
 		var t := (_target(l.a, tints[l.block_a]) + _target(l.b, tints[l.block_b])) * 0.5
 		l.unfurl = move_toward(l.unfurl, t, step)
@@ -262,7 +302,7 @@ func refresh(delta: float) -> void:
 func bench_positions() -> Array[Vector3]:
 	var out: Array[Vector3] = []
 	for p: Prop in props:
-		if p.kind == Kind.BENCH:
+		if p.kind == Kind.BENCH and not p.plaza:
 			out.append(p.pos)
 	return out
 
@@ -317,8 +357,9 @@ func _at(p: Prop, local: Vector3) -> Vector3:
 
 
 # 0.3.1: a prop's bare colour lifts toward its warm colour (by L31_PROP_LIFT at least) so it reads on the grey ground.
-static func tone(bare: Color, warm: Color, bloom: float) -> Color:
-	return bare.lerp(warm, lerpf(Config.L31_PROP_LIFT, 1.0, bloom))
+static func tone(bare: Color, warm: Color, bloom: float, lift: float = -1.0) -> Color:
+	var base := Config.L31_PROP_LIFT if lift < 0.0 else lift
+	return bare.lerp(warm, lerpf(base, 1.0, bloom))
 
 
 # A local size or offset drawn L31_PROP_SCALE times bigger.
@@ -326,33 +367,44 @@ static func big(v: Vector3) -> Vector3:
 	return v * Config.L31_PROP_SCALE
 
 
+# A bench's local size or offset: L31_BENCH_SCALE bigger again than the other props.
+static func bench_big(v: Vector3) -> Vector3:
+	return v * Config.L31_PROP_SCALE * Config.L31_BENCH_SCALE
+
+
 func _draw_lamp(p: Prop, night: float) -> void:
 	var lean := lerpf(Config.C7_LAMP_LEAN, 0.0, p.bloom) * (1.0 if p.block % 2 == 0 else -1.0)
 	var metal := tone(METAL_BARE, METAL_WARM, p.bloom)
 	var up := Vector3(-sin(lean), cos(lean), 0.0)
-	var s := Config.L31_PROP_SCALE
-	layers.box(_at(p, up * 1.1 * s), big(Vector3(0.12, 2.2, 0.12)), metal, p.yaw, lean)
-	layers.box(_at(p, Vector3(0.0, 0.05, 0.0)), big(Vector3(0.34, 0.1, 0.34)), metal, p.yaw)
-	var head := _at(p, up * 2.3 * s)
-	var glow := p.bloom * (0.55 + 0.45 * night)
+	var s := Config.L31_PROP_SCALE * Config.L31_LAMP_SCALE  # 0.3.1 (#48): lamps are bigger again.
+	var h := Config.L31_LAMP_HEIGHT  # Shorter and stouter: the head stays in the frame at play zoom.
+	layers.box(_at(p, up * 1.1 * s * h), Vector3(0.12 * 1.6, 2.2 * h, 0.12 * 1.6) * s, metal, p.yaw, lean)
+	layers.box(_at(p, Vector3(0.0, 0.05, 0.0)), Vector3(0.34, 0.1, 0.34) * s, metal, p.yaw)
+	var head := _at(p, up * 2.3 * s * h)
+	var glow := maxf(Config.L31_LAMP_MIN_GLOW, p.bloom * (0.55 + 0.45 * night))
 	layers.ball(head, 0.2 * s, LAMP_OFF.lerp(LAMP_ON, glow))
-	if glow > 0.05:
-		layers.ball(head, 0.75 * s, Color(LAMP_ON.r, LAMP_ON.g, LAMP_ON.b, 0.2 * glow))
+	layers.ball(head, 0.75 * s * Config.L31_LAMP_HALO, Color(LAMP_ON.r, LAMP_ON.g, LAMP_ON.b, 0.24 * glow))
 
 
 func _draw_bench(p: Prop) -> void:
-	var wood := tone(WOOD_BARE, WOOD_WARM, p.bloom)
+	var lift := Config.L31_BENCH_LIFT  # 0.3.1 (#48): benches are bigger and warmer than the other props.
+	var wood := tone(WOOD_BARE, WOOD_WARM, p.bloom, lift)
 	var broken := p.bloom < 0.25
 	layers.box(
-		_at(p, big(Vector3(0.0, 0.45, 0.0))), big(Vector3(1.5, 0.1, 0.5)), wood, p.yaw, 0.0, 0.18 if broken else 0.0
+		_at(p, bench_big(Vector3(0.0, 0.45, 0.0))),
+		bench_big(Vector3(1.5, 0.1, 0.5)),
+		wood,
+		p.yaw,
+		0.0,
+		0.18 if broken else 0.0
 	)
 	if not broken:
-		layers.box(_at(p, big(Vector3(0.0, 0.78, -0.22))), big(Vector3(1.5, 0.42, 0.07)), wood, p.yaw)
+		layers.box(_at(p, bench_big(Vector3(0.0, 0.78, -0.22))), bench_big(Vector3(1.5, 0.42, 0.07)), wood, p.yaw)
 	for sx: float in [-0.62, 0.62]:
 		layers.box(
-			_at(p, big(Vector3(sx, 0.22, 0.0))),
-			big(Vector3(0.1, 0.44, 0.4)),
-			tone(METAL_BARE, METAL_WARM, p.bloom),
+			_at(p, bench_big(Vector3(sx, 0.22, 0.0))),
+			bench_big(Vector3(0.1, 0.44, 0.4)),
+			tone(METAL_BARE, METAL_WARM, p.bloom, lift),
 			p.yaw
 		)
 
