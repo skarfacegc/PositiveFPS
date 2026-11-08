@@ -66,9 +66,9 @@ placeholder, `tide_pointer` still is.
 - Open question: should the recorder rename `gap_open` / `gap_close` to `break_*`? (#23)
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
-- Living town leftovers: built as 0.3.1 Living town fixes (#37, #39 to #43, "built" section below), In review until the
-  playtest. Lamps and benches are still small next to the stalls. The gold inner ring (#38) was not raised again in the
-  checkpoint 7 playtest; it stays in Backlog to confirm at the 0.3.1 playtest.
+- 0.3.1 Living town fixes: #37, #39 and #42 are In review until the user accepts them (the rest are Done, see
+  "playtest 3" below). Props still don't read at play zoom (#48). The gold inner ring (#38) was not raised in any 0.3.1
+  playtest; it stays in Backlog.
 
 **Watch in the next playtest** (no issue: questions for the interview, not work):
 - Checkpoint 6's notice banner under the night bar and the styled target ring have no full-frame screenshot yet.
@@ -82,9 +82,8 @@ placeholder, `tide_pointer` still is.
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** playtest 0.3.1 Living town fixes again (playtest 2 fixes #44, #45 built 2026-11-08, "playtest 2 built" below;
-#37, #39 to #43 built and played, all In review until the user accepts them), then 0.4 Tug of war (plan below, and on
-the board).
+**Next:** 0.3.1 Living town fixes played three times (playtest 3 below): #40, #41, #43, #44, #45 accepted; #37, #39,
+#42 In review until the user accepts them. Then 0.4 Tug of war (plan below, and on the board).
 0.3 Living town is done (2026-11-07), internal only: no release.
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
@@ -137,6 +136,7 @@ Guides a Godot style test (round 6 or later). Mockups: design/style_mockups*.htm
 - Building to unlock mapping (music shop: guitar upgrades, garden centre: flower variants, cafe: healing item). (#29)
 - Enemy tiers and bosses: light routine people as the bulk, grey normal, dark spreaders rarer and tougher; bosses such as a heavily gloomed figure with a big aura, in a dedicated later target. (#30)
 - Visual progression: the town goes from desaturated to full colour as it is rebuilt; the placeholder look is plain, a richer style comes in look-focused targets. (#2, largely built in 0.3 Living town)
+- From the 0.3.1 playtests: butterfly styling (#46); the push and storm need more impact and more room to play around, to discuss (#47); street props still don't read at play zoom (#48).
 
 Wider world and level progression ideas: see `VISION.md`.
 
@@ -367,6 +367,22 @@ writes the rules.
 - The ground fix was judged from the re-rendered play shots, not played: look for seams in the playtest.
 - Lamps and benches are still small next to the stalls; `tide_pointer` is still a placeholder (0.4 #14); #38 stays in
   Backlog.
+
+## 0.3.1 Living town fixes, playtest 3 (2026-11-08) (#46, #47, #48)
+
+**Recording (copy `e53988c`, styled, 20261108-085302).** Win, 180 s, seed 42, 48 of 60 rescued, 2 of 3 dawn lights
+(people 80%, ground 24%, 1 landmark). Quiet time 2.8% strict / 21.8% relaxed. 12 gaps (median open 2.8 s, max 10.1 s),
+3 relapses, 3 bursts. 2 tides (72 s south: 4 gaps; 97 s north: 2 gaps), 0 wobbles or relapses from them. 2 beacons
+(+94 sq m). Embrace: 8 begun, 4 rescues (mean 18.0 s). First light finished.
+
+**Feedback.**
+- Butterflies: size and count are good (#44 accepted). Their styling needs work: future item (#46, Backlog).
+- Ground: looked better, no seams noticed (#45 accepted).
+- Storm cloud: better and more obvious (#40 accepted). The push needs more impact and more ability to play around it:
+  future discussion (#47, Backlog; ties in with 0.4's surge, #14).
+- Props: not many noticed at play zoom. Ground life and ambient life from #41 are accepted; props split out as #48
+  (Backlog).
+- Splash screen: gone (#43 accepted).
 
 ## 0.4 Tug of war plan (2026-11-07)
 
