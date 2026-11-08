@@ -74,6 +74,9 @@ the fallback font, not a pixel font.
 - Open question: should the recorder rename `gap_open` / `gap_close` to `break_*`?
 - Whether Embrace gets noticed (it did not in the round 25 playtests).
 - Wider-world and progression ideas (`VISION.md`) are not scheduled.
+- Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
+  step before a break. Investigate after round 27's push and pull.
+- Round 27 (push and pull) is planned below and waits for graphics checkpoint 7 to finish.
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -196,3 +199,84 @@ dithering in the files it owns, so none waits on another):
   `style_hud*.gd`.
 - Merge order D, A, C, B; then one `round_end.py` with the determinism check; then one Haiku pass for the checkpoint
   shots, README, ARCHITECTURE's Looks section and a styled playtest copy.
+
+## Round 27 plan: push and pull (2026-11-07)
+
+**Order.** Build after graphics checkpoint 7 is fully built and merged. Checkpoint 7 part A removes the beacon's reach
+guide and part D brings the round 26 push into the styled look; round 27 keeps the styled push working where it can,
+and its new visuals are placeholder only, as usual.
+
+**Discussion (no new playtest; design talk after the checkpoint 7 playtest).** The core loop is *build your zone,
+reinforce and protect it, reach for goals with it*. Shooting is the means to that end. The border should be a visible tug
+of war: the player pulls it outward, the gloom pushes it in. E "kinda works" but growth doesn't push against anything,
+so the beacon is replaced. Buildings and landmarks should be denser.
+
+**Decisions (interview).**
+- Shaping: **grab and pull (E)** and **rescues pull the line**. Defences do not pull the line out (tent pegs not
+  picked); they hold it.
+- The beacon is **replaced** (its arms, preview and 50 spirit cost go). Spirit stays for bursts and warmth.
+- Grab and pull costs **spirit per pull**, on top of the thin-line weakness.
+- Defences cost **rescued people as staff**, go on **F, inside near the edge**, and **landmarks unlock types**, with
+  **none available until the first capture**.
+- The night gets **one long telegraphed surge** in place of the two tides.
+- Parked for later: people popping out of a deep dent and dimming again (see the open items).
+
+**Changes** (values marked "default" are the coordinator's calls; the playtest can overrule them).
+1. **Grab and pull (E), replacing the beacon.** Hold E: the stretch of border nearest the cursor is grabbed. Drag
+   outward and a preview shows the new shape (a smooth bulge, wider the further you pull). Release to set it, paying
+   `PULL_SPIRIT_COST` (default 25); right-click cancels; not enough spirit shows the slim banner. The pulled shape
+   becomes the line's rest shape: members walk out to fill it, and it holds there until pressed in. Reach is capped by
+   headcount (see 3). Default: outward only this round.
+2. **Rescues pull the line.** A person rescued outside the zone joins the border at the point nearest where they stood
+   and pulls that stretch's rest shape out toward them by `RESCUE_PULL_SHARE` of the distance (default 0.5, capped by
+   headcount). Where you rescue is where you grow. Rescues inside the zone add headcount as now.
+3. **The line is a balance of forces; tight or stretched.**
+   - Each angle sample has a rest position (from pulls and rescues) and a pressure (pushers and the surge, as round 26).
+     The line sits between them and springs back to its rest shape, not further, when relieved. Default: no automatic
+     outward drift.
+   - Strength per metre falls as the same people cover a longer line: member spacing widens, and dent resistance and
+     break depth scale down with it (`THIN_LINE_*`). A compact zone holds; a long reach is a thin, risky line. The
+     thinness must read in the placeholder look (wider member spacing, a thinner ribbon), not as a meter or alarm.
+   - **Land follows the line:** ground under a dent fades toward grey while the dent holds and recolours when the line
+     springs back. Ground left outside after a deep press is lost to the gloom as it is today outside the border.
+4. **Defences (F).** Hold F to aim on painted ground inside the zone near the edge, release to plant; right-click
+   cancels. With more than one type unlocked, the mouse wheel cycles the type while F is held (it zooms otherwise).
+   The nearest free border member walks over and staffs it (they leave the line, so the line thins). A defence
+   strengthens the stretch of border nearest it. One type per landmark:
+   - Bandstand (music): pushers within its reach are weakened, so that stretch dents less.
+   - Garden (nature): the nearby line resists denting and cannot break there.
+   - Gallery (art): painted ground near it cannot be worn away, and the dent's grey fade (3) skips it.
+   - Bell tower: when the nearby line is pressed hard, the bell rings and calms that stretch (a small free burst, with
+     a cooldown).
+   A defence left outside the line goes quiet (no effect) and its staff drains like any member until the line takes it
+   back. Defaults: `DEFENCE_MAX` 4 in total; any rescued person can staff any type (no element matching).
+5. **Landmarks unlock defences; denser layout.**
+   - Capturing a landmark (held 3 s, as now) unlocks its defence type for the rest of the night; nothing is unlocked
+     at the start. The unlock shows in the slim banner and the cue panel.
+   - Add a fourth landmark, the **Gallery** (art), and move the Bandstand and Bell tower closer: today they are about
+     49 m and 45 m from the start (the Garden about 14 m). Default: all four within about 18 to 32 m of the start, on
+     different sides, so reaching one takes a pull or two, not a trek.
+   - More ordinary buildings, closer together (default about 1.5x as many), keeping paths for people and the player.
+   - The third dawn light still needs 75% rescued and 2 landmarks (of four now); watch it in the playtest.
+6. **One long telegraphed surge**, replacing the rising and midnight tides:
+   - **Warning** (default about 40 s before the peak): a fog bank gathers on one or two sides, visible on screen and
+     on the minimap, and the light cools. That is the window to pull, plant and staff.
+   - **Surge** (default about 50 s): a long, heavy push from the side shown, using round 26's wave and pushers.
+   - **Aftermath:** the fog thins and arrivals ease, leaving time to repair and reach for the next landmark.
+   - Tune with bot nights so a compact zone with a defence holds and an over-stretched one bends or breaks.
+
+**Constraints.** Placeholder look only. Tests for the removed beacon may be removed or rewritten for the pull; list them
+in the report. Never loosen a threshold or a `test_perf_*` budget. Rules change, so run the determinism check at the end.
+Player-facing text uses the gloom terms. README.md is updated, since the controls change (E pull, F defence).
+
+**Build split** (two Sonnet worktree agents, each with its own config block "Round 27: <part>"):
+- Part A: changes 1, 2, 3 and 6, the line and the surge (`border.gd`, `border_push.gd`, the beacon scripts, the night
+  cycle). It adds one hook for defences: a per-angle strength multiplier and a "no break here" flag that
+  `border_push.gd` reads through a small interface.
+- Part B: changes 4 and 5, defences, unlocks and layout (new `scripts/defences.gd` and its placeholder look, landmarks,
+  the level layout, cue panel text). It provides that interface and tests against a stub until A merges.
+- The coordinator merges A first, then B, and resolves `config.gd`, README.md and the controls text.
+
+**Playtest questions.** Does pulling feel like pulling against something? Is 25 spirit per pull a real decision? Does a
+thin line read as thin without a meter? Are defences planted during the warning, and is one surge enough tension for the
+night? Are four closer landmarks the right density?
