@@ -14,8 +14,8 @@ SOURCE_MAP.md (every script's public functions with line numbers, generated: reg
   town", "0.4 Tug of war". It holds gameplay, look and tooling work alike (a look-focused target replaces the old
   "graphics checkpoint"). A target may take several **passes** (build, then playtest); passes are known by date and
   commit, not numbered. Parts inside a target get short purpose names ("Tug of war: Line").
-- **Versions:** 0.x is pre-alpha. A finished target is tagged `v0.N.0` (release build when the user wants one);
-  fixes after its playtest are `v0.N.1`. 1.0 is alpha: one town fully playable and the core loop settled.
+- **Versions:** 0.x is pre-alpha. A finished target closes its milestone. Only a target the user releases is tagged
+  `v0.N.0` (with a release build); internal targets get no tag (0.3 was internal). Fixes to a release are `v0.N.1`. 1.0 is alpha: one town fully playable and the core loop settled.
 - Older work used round and checkpoint numbers; IDEAS_RESOLVED.md maps them to versions. Don't rename history.
 
 ## The board
@@ -45,7 +45,7 @@ SOURCE_MAP.md (every script's public functions with line numbers, generated: reg
 4. **Build:** items go to In progress. Delegate to subagents on the cheapest capable model (Haiku for tuning and small
    features, Sonnet for debugging emergent behaviour or tooling). The main session only coordinates.
 5. **Report:** items go to In review. Relay the results, list anything loosened, and show `coverage/index.html`. When
-   the user calls the target done: close its milestone and tag `v0.N.0`.
+   the user calls the target done: close its milestone; tag `v0.N.0` only if they release it.
 
 ## Keeping targets cheap
 
