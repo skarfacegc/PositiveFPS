@@ -184,10 +184,15 @@ report if they don't fit. New checkpoint shots (`tools/checkpoint_shots.py`) for
 outside the zone, a push, and dawn, saved in `design/renders/checkpoint_07/`. README updated at the end (this is a
 checkpoint), including the removed F patch.
 
-**Build split** (parallel worktree agents, each with its own config block "Checkpoint 7: <part>"):
-- Part A (Sonnet): changes 1 and 7, cleanup, dithering removal and look by context. It touches shaders shared with the
-  others, so it lands first, or the others avoid `style_glow` and the reach pieces.
-- Part B (Sonnet): changes 2 and 5, ground and atmosphere (`style_ground.gdshader`, `ground_look_styled.gd`, sky and
-  view pipeline).
-- Part C (Sonnet): changes 3 and 4, props and ambient life (new `scripts/looks/style_props.gd`, `style_ambient.gd`).
-- Part D (Haiku or Sonnet): change 6, styled catch-up (`border_look_styled.gd`, `style_hud*.gd`).
+**Build split** (four parallel worktree agents, each with its own config block "Checkpoint 7: <part>"; each removes the
+dithering in the files it owns, so none waits on another):
+- Part A (Sonnet): change 1 except the ground and ribbon dithering, and change 7. Owns `reach_guide.gd`, `style_reach.gd`,
+  the people and toon shaders, `style_glow`, the start-look code and the `launch-playtest` skill.
+- Part B (Sonnet): changes 2 and 5, plus the ground's dithering. Owns `style_ground.gdshader`, `ground_look_styled.gd`
+  and the sky and view pipeline.
+- Part C (Sonnet): changes 3 and 4. Owns new `scripts/looks/style_props.gd` and `style_ambient.gd`, plus one hook each in
+  the scene.
+- Part D (Haiku): change 6, plus the ribbon's dithering. Owns `border_look_styled.gd`, the ribbon shader and
+  `style_hud*.gd`.
+- Merge order D, A, C, B; then one `round_end.py` with the determinism check; then one Haiku pass for the checkpoint
+  shots, README, ARCHITECTURE's Looks section and a styled playtest copy.
