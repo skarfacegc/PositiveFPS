@@ -82,8 +82,9 @@ placeholder, `tide_pointer` still is.
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** 0.3.1 Living town fixes, playtest 2 fixes (#44, #45, plan below; #37, #39 to #43 built and played, In
-review), then 0.4 Tug of war (plan below, and on the board).
+**Next:** playtest 0.3.1 Living town fixes again (playtest 2 fixes #44, #45 built 2026-11-08, "playtest 2 built" below;
+#37, #39 to #43 built and played, all In review until the user accepts them), then 0.4 Tug of war (plan below, and on
+the board).
 0.3 Living town is done (2026-11-07), internal only: no release.
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
@@ -345,6 +346,27 @@ Three commits on `main`, in a row, no worktrees. All look-only: nothing reads or
 **Build.** One Sonnet agent on `main` (look and perf, same area), screenshot budget as before (styled play-zoom shots,
 one contact sheet per round, at most three rounds), re-render `design/renders/v0.3.1/`. Then a fresh Sonnet session
 runs `finish-target`.
+
+## 0.3.1 Living town fixes, playtest 2 built (2026-11-08) (#44, #45)
+
+One commit on `main` (`04d86e6`, Sonnet, Refs #44 #45), after the plan (`ef84ed5`). Look and perf only; nothing reads or
+writes the rules.
+- **Butterflies (#44).** 9 butterflies (was 28) at `L31_BUTTERFLY_SCALE` 4.2, a butterfly-only scale. Paint lookups
+  are cached and rechecked every `L31_AMBIENT_RECHECK` 0.4 s, not every frame. One ambient step went from about
+  0.49 ms to about 0.37 ms. New test `test_perf_the_ambient_step_with_a_full_zone_is_cheap` (budget 0.6 ms).
+- **Ground seams (#45).** Cause: the float fract hash `hash21` and `vnoise` in `shaders/style_ground.gdshader` stepped
+  at lattice lines on the GPU, giving straight vertical edges. All ground noise now uses the integer hash. New
+  assertions in `looks_checkpoint7_ground_test.gd` and `style_scenery_test.gd`.
+- `design/renders/v0.3.1/` was re-rendered; the coordinator checked the play shots and saw no seams.
+- **Gate (2026-11-08).** `gate.py --full`: 843 tests, line coverage 99.9%, baseline OK. Determinism: both runs hit the
+  same lines. Baseline updated. Nothing loosened.
+
+**Open notes.**
+- The butterflies were checked only by tests: no shot shows them (there is no daytime play view). Watch them in the
+  playtest: size, count and whether they read.
+- The ground fix was judged from the re-rendered play shots, not played: look for seams in the playtest.
+- Lamps and benches are still small next to the stalls; `tide_pointer` is still a placeholder (0.4 #14); #38 stays in
+  Backlog.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
