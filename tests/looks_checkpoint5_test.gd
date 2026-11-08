@@ -216,6 +216,19 @@ func test_the_styled_minimap_draws_a_dark_line_just_ahead_of_the_dawn_front() ->
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
+func test_an_idle_cue_panel_draws_as_a_quiet_tag() -> void:
+	Looks.set_mode(Looks.Mode.STYLED)
+	var panel: StyledPanel = auto_free(StyledPanel.new())
+	panel.kind = StyledPanel.Kind.CUE
+	panel.size = StyleDawn.cue_size("G: lift 2")
+	add_child(panel)
+	panel.set_cue("G: lift 2", false, 1)
+	await await_idle_frame()
+	await await_idle_frame()
+	assert_bool(panel.cue_ready).is_false()
+	assert_str(panel.cue_text).is_equal("G: lift 2")
+
+
 func test_an_empty_cue_draws_nothing() -> void:
 	var ci: Control = auto_free(Control.new())
 	StyleDawn.draw_cue(ci, "", true, 0)

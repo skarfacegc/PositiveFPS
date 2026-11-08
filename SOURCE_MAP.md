@@ -999,7 +999,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - landmarks_test (tests/landmarks_test.gd): 11 tests
 - local_gap_test (tests/local_gap_test.gd): 9 tests
 - looks_base_test (tests/looks_base_test.gd): 6 tests
-- looks_checkpoint5_test (tests/looks_checkpoint5_test.gd): 17 tests
+- looks_checkpoint5_test (tests/looks_checkpoint5_test.gd): 18 tests
 - looks_checkpoint6_test (tests/looks_checkpoint6_test.gd): 11 tests
 - looks_cues_test (tests/looks_cues_test.gd): 8 tests
 - looks_round19_test (tests/looks_round19_test.gd): 10 tests
