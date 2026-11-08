@@ -639,6 +639,28 @@ const L31_LINE_POST_OFFSET := 2.5
 const L31_LINE_SHOW := 0.3
 const L31_LINE_BOLD := 1.8  # How much thicker the bunting posts and rope, and bigger its flags, are drawn.
 
+# ---- 0.3.2 Prop styling (scripts/looks/style_props.gd, shaders/style_lamp_light.gdshader; styled look only). ----
+# Wires (#42): the player's styled model is about 3.1 m tall to the tip of the hat feather (measured by a test from
+# StylePeople.build_player). The bunting posts, the rope's lowest sag and the longest flag all stay above it.
+const L32_PLAYER_HEIGHT := 3.1  # Metres: the styled player's height (the test measures the model and checks this).
+const L32_LINE_CLEARANCE := 0.3  # Metres: the least the lowest bunting point stands above the player's height.
+const L32_LINE_POST_HEIGHT := 5.3  # Metres: the posts and the line's ends (was L31_LINE_POST_HEIGHT 3.4).
+const L32_LINE_RISE := 0.1  # A line's posts reach full height once it is this far past L31_LINE_SHOW (was 0.3).
+const L32_LINE_SAG_GLOOM := 1.0  # How far a limp line hangs at its middle (was C7_LINE_SAG_GLOOM 1.5).
+const L32_LINE_SAG_BLOOM := 0.4  # How far a taut line hangs at its middle (was C7_LINE_SAG_BLOOM 0.5).
+# Lamps (#49): a cone of light from the head to a pool on the ground, and a small glow at the head. Cool pale blue-white
+# in gloom, warm amber in full bloom; stronger at night, faint by day. The alphas are low on purpose: the light is
+# drawn over the people and must not hide them or a gap.
+const L32_LIGHT_COOL := Color(0.74, 0.88, 1.0)  # The light of a lamp in gloom (bloom 0).
+const L32_LIGHT_WARM := Color(1.0, 0.74, 0.32)  # The light of a lamp in full bloom.
+const L32_LIGHT_GLOOM := 0.75  # A gloom lamp's light strength as a share of a bloomed lamp's.
+const L32_LIGHT_DAY := 0.12  # The light's strength by day, as a share of its strength at night.
+const L32_CONE_ALPHA := 0.26  # The cone's alpha at the head at full strength.
+const L32_POOL_ALPHA := 0.3  # The pool's alpha in its middle at full strength.
+const L32_HEAD_ALPHA := 0.3  # The small glow at the head.
+const L32_POOL_RADIUS := 3.0  # Metres: the pool on the ground (and the cone's width at the ground).
+const L32_MAX_LIGHT_ALPHA := 0.35  # No light shape is ever more opaque than this (the test checks the constants).
+
 static var intro_override: int = -1
 static var tides_override: int = -1  # Round 25: as intro_override, for the gloom tides (see tides_on).
 

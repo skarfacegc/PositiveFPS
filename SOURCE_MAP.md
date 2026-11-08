@@ -170,13 +170,13 @@ extends Node3D | 1 const | Round 22: the world marks for the burst (G/Q), drawn 
 - L88 `streak_count() -> int`
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 389 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L652 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L660 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
-- L667 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L676 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L686 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L697 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 404 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L674 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L682 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
+- L689 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L698 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L708 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L719 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
 extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
@@ -739,20 +739,30 @@ extends RefCounted | 5 const | The styled bodies (ported from design/style_test/
 - L218 `static build_player(root: Node3D, parts: Dictionary) -> void` - ---- Player. `parts["ring"]` is the outer ring mesh (its colour shows the target's element), `parts["glow"]...
 
 ### scripts/looks/style_props.gd (StyleProps)
-extends Node3D | 18 const | Checkpoint 7: street props in the styled look. Lamp posts, benches, planters and market stalls round the bl...
-- L123 `static attach(level: TopDownMain) -> StyleProps` - Builds the props under `level` (TopDownMain keeps the node in `style_props`).
-- L131 `static day_factor(sun_energy: float) -> float` - 1 by day, 0 at night, for a sun energy (NightCycle.sun_energy).
-- L136 `static layout_props(centres: Array[Vector3]) -> Array[Prop]` - The scenery of every block: a lamp, a bench, a planter and (every other block) a stall, from the block cent...
-- L154 `static layout_plaza(centres: Array[Vector3], landmarks: Array[Vector3], half: float, step: float = Config.L31_PLAZA_SPACING) -> Array[Prop]` - 0.3.1 (#48): props in the open plaza, on a lattice `L31_PLAZA_SPACING` apart (offset half a step so the pla...
-- L184 `static layout_lines(centres: Array[Vector3], max_dist: float) -> Array[Line]` - A line from each block to its two nearest neighbours that are closer than `max_dist` (no pair twice).
-- L223 `static make_layers(parent: Node3D) -> Layers` - The mesh layers under `parent`: opaque boxes with toon bands, and soft unlit balls.
-- L290 `refresh(delta: float) -> void` - Moves every prop's bloom `delta` seconds toward its target and redraws all the props.
-- L302 `bench_positions() -> Array[Vector3]` - The positions of the benches (scenery only; the ambient life reads them).
-- L360 `static tone(bare: Color, warm: Color, bloom: float, lift: float = -1.0) -> Color` - 0.3.1: a prop's bare colour lifts toward its warm colour (by L31_PROP_LIFT at least) so it reads on the gre...
-- L366 `static big(v: Vector3) -> Vector3` - A local size or offset drawn L31_PROP_SCALE times bigger.
-- L371 `static bench_big(v: Vector3) -> Vector3` - A bench's local size or offset: L31_BENCH_SCALE bigger again than the other props.
-- L458 `static line_shown(unfurl: float) -> bool` - 0.3.1: no bare line in gloom (a line over grey buildings read as a line on the ground). A line shows only once
-- L463 `static post_growth(unfurl: float) -> float` - How far the posts have grown (0 on the ground, 1 at roof height) for a line that is `unfurl` unfurled.
+extends Node3D | 34 const | Checkpoint 7: street props in the styled look. Lamp posts, benches, planters and market stalls round the bl...
+- L193 `static attach(level: TopDownMain) -> StyleProps` - Builds the props under `level` (TopDownMain keeps the node in `style_props`).
+- L201 `static day_factor(sun_energy: float) -> float` - 1 by day, 0 at night, for a sun energy (NightCycle.sun_energy).
+- L206 `static layout_props(centres: Array[Vector3]) -> Array[Prop]` - The scenery of every block: a lamp, a bench, a planter and (every other block) a stall, from the block cent...
+- L224 `static layout_plaza(centres: Array[Vector3], landmarks: Array[Vector3], half: float, step: float = Config.L31_PLAZA_SPACING) -> Array[Prop]` - 0.3.1 (#48): props in the open plaza, on a lattice `L31_PLAZA_SPACING` apart (offset half a step so the pla...
+- L254 `static layout_lines(centres: Array[Vector3], max_dist: float) -> Array[Line]` - A line from each block to its two nearest neighbours that are closer than `max_dist` (no pair twice).
+- L295 `static make_layers(parent: Node3D, light: bool = false) -> Layers` - The mesh layers under `parent`: opaque boxes with toon bands, and soft unlit balls. With `light`, also the...
+- L399 `refresh(delta: float) -> void` - Moves every prop's bloom `delta` seconds toward its target and redraws all the props.
+- L411 `bench_positions() -> Array[Vector3]` - The positions of the benches (scenery only; the ambient life reads them).
+- L469 `static tone(bare: Color, warm: Color, bloom: float, lift: float = -1.0) -> Color` - 0.3.1: a prop's bare colour lifts toward its warm colour (by L31_PROP_LIFT at least) so it reads on the gre...
+- L475 `static big(v: Vector3) -> Vector3` - A local size or offset drawn L31_PROP_SCALE times bigger.
+- L480 `static bench_big(v: Vector3) -> Vector3` - A bench's local size or offset: L31_BENCH_SCALE bigger again than the other props.
+- L485 `static lamp_light_colour(bloom: float) -> Color` - 0.3.2 (#49): the colour of a lamp's light: cool pale blue-white in gloom, warm cheery amber in full bloom.
+- L490 `static lamp_light_strength(bloom: float, night: float) -> float` - 0.3.2 (#49): how strongly a lamp's light shows (0 to 1): full at night, faint by day, a little less in gloom.
+- L498 `static vine_amount(bloom: float) -> float` - 0.3.2 (#49): how far the vines have grown up a lamp post (0 bare to 1 in full leaf).
+- L503 `static vine_steps(bloom: float) -> int` - 0.3.2 (#49): how many of the VINE_STEPS pieces of vine a lamp at `bloom` shows.
+- L508 `static lamp_head_height() -> float` - The height (metres) of a lamp's head, the middle of its glass.
+- L575 `static bench_joy(bloom: float) -> float` - 0.3.2 (#50): how far a bench has turned from riveted grey metal (0) to wooden slats, iron curls and a cushi...
+- L580 `static cushion_index(pos: Vector3) -> int` - 0.3.2 (#50): the cushion's colour index (0 to 2), the same on every run for a bench in the same place.
+- L709 `static line_shown(unfurl: float) -> bool` - 0.3.1: no bare line in gloom (a line over grey buildings read as a line on the ground). A line shows only once
+- L714 `static post_growth(unfurl: float) -> float` - How far the posts have grown (0 on the ground, 1 at roof height) for a line that is `unfurl` unfurled.
+- L719 `static line_sag(unfurl: float) -> float` - 0.3.2 (#42): how far a line that is `unfurl` unfurled hangs at its middle.
+- L724 `static flag_length(unfurl: float, washing: bool) -> float` - 0.3.2 (#42): how long a flag hangs on a line that is `unfurl` unfurled (drawn size, washing is longer than...
+- L730 `static line_low_point(unfurl: float, washing: bool) -> float` - 0.3.2 (#42): the lowest point (metres above the ground) a fully risen line of `unfurl` ever draws: its post...
 
 ### scripts/looks/style_push.gd (StylePush)
 extends RefCounted | 1 const | The styled gloom tide. 0.3.1: the wave is a low, churning storm cloud (shaders/style_cloud.gdshader): rows...
@@ -1091,6 +1101,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - stage_change_test (tests/stage_change_test.gd): 4 tests
 - stagger_test (tests/stagger_test.gd): 3 tests
 - stretch_safety_test (tests/stretch_safety_test.gd): 7 tests
+- style_props_032_test (tests/style_props_032_test.gd): 11 tests
 - style_props_plaza_test (tests/style_props_plaza_test.gd): 6 tests
 - style_scenery_test (tests/style_scenery_test.gd): 19 tests
 - targeting_test (tests/targeting_test.gd): 11 tests

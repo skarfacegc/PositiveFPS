@@ -52,8 +52,8 @@ func test_lines_are_strung_at_roof_height_from_posts_and_never_bare_in_gloom() -
 	var td: TopDownMain = s["td"]
 	var sp := td.style_props
 	for l: StyleProps.Line in sp.lines:
-		assert_float(l.a.y).is_equal_approx(Config.L31_LINE_POST_HEIGHT, 0.001)
-		assert_float(l.b.y).is_equal_approx(Config.L31_LINE_POST_HEIGHT, 0.001)
+		assert_float(l.a.y).is_equal_approx(Config.L32_LINE_POST_HEIGHT, 0.001)
+		assert_float(l.b.y).is_equal_approx(Config.L32_LINE_POST_HEIGHT, 0.001)
 	assert_bool(StyleProps.line_shown(0.0)).is_false()
 	assert_bool(StyleProps.line_shown(Config.L31_LINE_SHOW - 0.01)).is_false()
 	assert_bool(StyleProps.line_shown(Config.L31_LINE_SHOW)).is_true()
@@ -88,7 +88,7 @@ func test_a_line_rises_on_its_posts_as_the_paint_reaches_it() -> void:
 	assert_bool(sp.layers.box_count() > 0).is_true()
 	# Just shown the posts are still on the ground; unfurled they stand at roof height (and draw a taller line).
 	assert_float(StyleProps.post_growth(Config.L31_LINE_SHOW)).is_equal(0.0)
-	assert_float(StyleProps.post_growth(Config.L31_LINE_SHOW + 0.15)).is_between(0.1, 0.9)
+	assert_float(StyleProps.post_growth(Config.L31_LINE_SHOW + Config.L32_LINE_RISE * 0.5)).is_between(0.1, 0.9)
 	assert_float(StyleProps.post_growth(1.0)).is_equal(1.0)
 	sp.layers.begin()
 	l.unfurl = 1.0

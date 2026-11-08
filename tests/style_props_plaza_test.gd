@@ -141,9 +141,10 @@ func test_a_lamp_glows_in_gloom_and_the_soft_balls_draw_after_the_post_process_q
 	layers.begin()
 	sp._draw_lamp(lamp, 0.0)
 	layers.finish()
-	assert_int(layers.box_count()).is_equal(2)
-	# The head and the halo are both drawn at bloom 0.
+	assert_bool(layers.box_count() >= 10).is_true()
+	# The glass globe and the small glow at the head are both drawn at bloom 0; the light is a cone and a pool.
 	assert_int(layers.ball_count()).is_equal(2)
+	assert_int(layers.cone_count()).is_equal(0)  # (these layers were made without the light shapes)
 	# The soft balls draw after the post-process quad (priority 0), or they are painted over and never seen.
 	var ball_mi: MultiMeshInstance3D = parent.get_child(1)
 	var ball_mat: BaseMaterial3D = ball_mi.material_override
