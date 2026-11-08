@@ -415,7 +415,7 @@ const C7_LAMP_LEAN := 0.3  # Radians a broken lamp post leans in gloom.
 const C7_DAY_ENERGY_LOW := 0.5  # Sun energy at or below this is night (ambient life); above LOW + RANGE, day.
 const C7_DAY_ENERGY_RANGE := 0.35
 const C7_AMBIENT_MIN_WEIGHT := 0.35  # Paint weight a spot needs for butterflies and fireflies to drift there.
-const C7_BUTTERFLIES := 28  # (was 14; 0.3.1 doubled them so they read at play zoom)
+const C7_BUTTERFLIES := 9  # (was 14, then 28 in 0.3.1; 0.3.1 playtest 2: fewer and larger, see L31_BUTTERFLY_SCALE)
 const C7_FIREFLIES := 44  # (was 22)
 const C7_DRIFT_RADIUS := 2.2  # How far a butterfly or firefly wanders from its anchor (metres).
 const C7_ANCHOR_REACH := 7.0  # How far from a beautified block an anchor may be picked (metres).
@@ -613,6 +613,8 @@ const L31_SOFT_PRIORITY := 10  # Render priority of the mist and the storm cloud
 const L31_GROUND_SIZE := 3.0
 const L31_GROUND_CONTRAST := 0.55  # How far the living pieces' colours push toward bold (0 = as before, 1 = full).
 const L31_AMBIENT_SCALE := 2.6  # Butterflies, fireflies, birds and the idle extras are drawn this many times bigger.
+const L31_BUTTERFLY_SCALE := 4.2  # Butterflies only (fewer, larger: they hurt performance and read small at play zoom).
+const L31_AMBIENT_RECHECK := 0.4  # Seconds between the ambient life's paint lookups (cached between).
 const L31_PROP_SCALE := 1.8  # Street props are drawn this many times bigger (lamp heads, planter flowers, stall cloth).
 const L31_PROP_LIFT := 0.55  # How far a bare prop's colour lifts toward its warm colour so it reads on grey ground.
 # Wires: no bare line in gloom. Where the zone's paint is (the line's unfurl is at least L31_LINE_SHOW) the bunting is

@@ -41,6 +41,7 @@ class Bird:
 	var t: float = 0.0
 	var phase: float = 0.0
 	var colour := Color.WHITE
+	var wanted: bool = false  # Whether its block is beautified, cached between rechecks.
 
 
 # One rescued person's idle action: how long they have stood still, which action, and how far into it they are.
@@ -52,6 +53,7 @@ class Idler:
 	var action: int = 0
 	var ease_in: float = 0.0
 	var wanted: bool = false
+	var in_zone: bool = true  # The paint-weight check, cached between rechecks.
 
 
 var main: TopDownMain
@@ -62,8 +64,11 @@ var birds: Array[Bird] = []
 var idlers: Dictionary = {}
 var time: float = 0.0
 var day: float = 1.0
+var weight_lookups: int = 0  # Paint-weight lookups made so far (the tests bound the per-frame work with it).
 var _rng := RandomNumberGenerator.new()
 var _anchor_timer: float = 0.0
+var _recheck_timer: float = 1000.0  # Large so the first step looks everything up.
+var _recheck: bool = true  # True on the frames that make the (cached) paint-weight and beautified lookups.
 
 
 # Builds the ambient life under `level` (TopDownMain keeps the node in `style_ambient`).
@@ -112,6 +117,10 @@ func step(delta: float) -> void:
 	if main != null and main.night != null:
 		day = StyleProps.day_factor(main.night.sun_energy())
 	layers.begin()
+	_recheck_timer += delta
+	_recheck = _recheck_timer >= Config.L31_AMBIENT_RECHECK
+	if _recheck:
+		_recheck_timer = 0.0
 	_anchor_timer += delta
 	var pick := _anchor_timer >= Config.C7_ANCHOR_INTERVAL
 	if pick:
@@ -146,6 +155,7 @@ func _flyer(col: Color) -> Flyer:
 func _weight(pos: Vector3) -> float:
 	if main == null or main.ground == null:
 		return 0.0
+	weight_lookups += 1
 	return main.ground.paint_weight_at(pos)
 
 
@@ -175,7 +185,7 @@ func _pick_anchor() -> Vector3:
 
 
 func _step_flyer(f: Flyer, delta: float, pick: bool) -> void:
-	if f.live and _weight(f.anchor) < Config.C7_AMBIENT_MIN_WEIGHT * 0.5:
+	if _recheck and f.live and _weight(f.anchor) < Config.C7_AMBIENT_MIN_WEIGHT * 0.5:
 		f.live = false
 	if not f.live and pick:
 		var at := _pick_anchor()
@@ -200,7 +210,7 @@ func _draw_butterfly(f: Flyer) -> void:
 	var yaw := atan2(cos(t), -sin(t * 0.8 + f.phase) * 0.8)
 	var pos := _flyer_pos(f)
 	var flap := 0.3 + 0.9 * absf(sin(time * 12.0 + f.phase))
-	var a := Config.L31_AMBIENT_SCALE
+	var a := Config.L31_BUTTERFLY_SCALE
 	var side := Basis(Vector3.UP, yaw) * Vector3(0.07, 0.0, 0.0) * a
 	var wing := Vector3(0.14, 0.02, 0.1) * vis * a
 	layers.box(pos + side, wing, f.colour, yaw, flap)
@@ -229,7 +239,9 @@ func _building_beautified(block: int) -> bool:
 
 
 func _step_bird(b: Bird, delta: float) -> void:
-	var target := 1.0 if _building_beautified(b.block) else 0.0
+	if _recheck:
+		b.wanted = _building_beautified(b.block)
+	var target := 1.0 if b.wanted else 0.0
 	b.t = move_toward(b.t, target, delta / maxf(Config.C7_BIRD_SECONDS, 0.01))
 	if b.t <= 0.001:
 		return
@@ -257,9 +269,10 @@ func _step_idlers(delta: float) -> void:
 		return
 	for p: Person in main.people:
 		var id := p.get_instance_id()
-		var eligible := p.is_rescued and not p.wobbling and _weight(p.global_position) >= Config.C7_IDLE_MIN_WEIGHT
+		var base_ok := p.is_rescued and not p.wobbling
+		# The paint-weight lookup runs only on a recheck frame (every L31_AMBIENT_RECHECK seconds); between, it is cached.
 		if not idlers.has(id):
-			if not eligible:
+			if not base_ok or not _recheck or _weight(p.global_position) < Config.C7_IDLE_MIN_WEIGHT:
 				continue
 			var fresh := Idler.new()
 			fresh.person = p
@@ -267,6 +280,9 @@ func _step_idlers(delta: float) -> void:
 			fresh.action = posmod(p.look_seed + p.affinity, 3)
 			idlers[id] = fresh
 		var it: Idler = idlers[id]
+		if _recheck:
+			it.in_zone = _weight(p.global_position) >= Config.C7_IDLE_MIN_WEIGHT
+		var eligible := base_ok and it.in_zone
 		if p.global_position.distance_to(it.last) > Config.C7_IDLE_STILL:
 			it.last = p.global_position
 			it.still = 0.0

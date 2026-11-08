@@ -58,6 +58,22 @@ func test_the_mist_noise_uses_an_integer_hash_so_it_has_no_square_seams() -> voi
 	assert_float(Config.CP7_MIST_STRENGTH).is_less_equal(0.45)
 
 
+func test_the_ground_noise_uses_the_integer_hash_so_puddles_and_grass_have_no_straight_edges() -> void:
+	# 0.3.1 playtest 2 (#45): the float fract hash (`hash21`) and `vnoise` built on it jumped along lattice lines on the
+	# GPU (the four hash copies in one `vnoise` rounded differently) and cut puddles, grass and moss into rectangles. The
+	# ground now draws every random number through `h21` (integer hash) and `vnoise_i`; the float ones must not return.
+	var src := _source("res://shaders/style_ground.gdshader")
+	assert_bool(src.contains("hash21(")).is_false()
+	assert_bool(src.contains("vnoise(")).is_false()
+	assert_bool(src.contains("ihash(")).is_true()
+	assert_bool(src.contains("vnoise_i(")).is_true()
+	assert_bool(src.contains("float h21(vec2 p)")).is_true()
+	# The integer hash itself is in the shared include and is not a sine or float-fract hash.
+	var common := _source("res://shaders/style_common.gdshaderinc")
+	assert_bool(common.contains("float ihash(ivec2 q)")).is_true()
+	assert_bool(common.contains("float vnoise_i(vec2 p)")).is_true()
+
+
 func test_the_ground_material_is_dither_free_and_carries_the_living_ground_settings() -> void:
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]

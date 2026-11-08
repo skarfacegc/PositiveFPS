@@ -111,6 +111,55 @@ func test_props_and_ambient_are_drawn_bigger_so_they_read_at_play_zoom() -> void
 	assert_float(Config.L31_AMBIENT_SCALE).is_greater(1.0)
 
 
+func test_there_are_few_butterflies_and_each_is_drawn_larger_than_the_other_ambient_life() -> void:
+	assert_int(Config.C7_BUTTERFLIES).is_between(8, 10)
+	assert_float(Config.L31_BUTTERFLY_SCALE).is_greater(Config.L31_AMBIENT_SCALE)
+	var s: Dictionary = await _level()
+	var td: TopDownMain = s["td"]
+	var sa := td.style_ambient
+	assert_int(sa.butterflies.size()).is_equal(Config.C7_BUTTERFLIES)
+	# A live butterfly's wing is drawn at the butterfly scale (14 cm times it, at full fade and day).
+	var f: StyleAmbient.Flyer = sa.butterflies[0]
+	f.live = true
+	f.fade = 1.0
+	f.anchor = Vector3(0, 1, 0)
+	sa.day = 1.0
+	sa.layers.begin()
+	sa._draw_butterfly(f)
+	assert_int(sa.layers.box_count()).is_equal(2)
+
+
+func test_the_ambient_step_looks_the_paint_up_only_now_and_then() -> void:
+	var s: Dictionary = await _level()
+	var td: TopDownMain = s["td"]
+	var sa := td.style_ambient
+	for b: Building in td.border.buildings:
+		b.tint = 1.0
+		b.beautified = true
+	_paint_all(td, 1.0)
+	td.night.elapsed = 0.0
+	for i: int in range(td.people.size()):
+		var p := td.people[i]
+		var a := TAU * float(i) / float(td.people.size())
+		TopDownTestUtil.place(p, Vector3(cos(a) * 12.0, 0.0, sin(a) * 12.0), p.affinity, 0.0)
+		p.is_rescued = true
+	for i: int in range(20):
+		sa.step(0.6)
+	var before := sa.weight_lookups
+	for i: int in range(60):
+		sa.step(1.0 / 60.0)
+	var per_second := sa.weight_lookups - before
+	# One second is two or three rechecks of about (butterflies + people) lookups each, not one set per frame (~4000).
+	assert_int(per_second).is_less(400)
+	# A change is still picked up on the next recheck: lose the ground and everyone leaves.
+	_paint_all(td, 0.0)
+	for i: int in range(3):
+		sa.step(Config.L31_AMBIENT_RECHECK)
+	assert_int(_count_live(sa.butterflies)).is_equal(0)
+	for id: Variant in sa.idlers:
+		assert_bool((sa.idlers[id] as StyleAmbient.Idler).in_zone).is_false()
+
+
 func test_bunting_is_drawn_bold_enough_for_play_zoom() -> void:
 	assert_float(Config.L31_LINE_BOLD).is_greater(1.0)
 	var s: Dictionary = await _level()
@@ -227,6 +276,38 @@ func test_butterflies_drift_by_day_and_fireflies_by_night_only_inside_the_zone()
 	assert_int(_count_live(sa.fireflies)).is_equal(0)
 
 
+func test_perf_the_ambient_step_with_a_full_zone_is_cheap() -> void:
+	var s: Dictionary = await _level()
+	var td: TopDownMain = s["td"]
+	var sa := td.style_ambient
+	for b: Building in td.border.buildings:
+		b.tint = 1.0
+		b.beautified = true
+	_paint_all(td, 1.0)
+	td.night.elapsed = 0.0
+	for i: int in range(td.people.size()):
+		var p := td.people[i]
+		var a := TAU * float(i) / float(td.people.size())
+		TopDownTestUtil.place(p, Vector3(cos(a) * 12.0, 0.0, sin(a) * 12.0), p.affinity, 0.0)
+		p.is_rescued = true
+	for i: int in range(20):
+		sa.step(0.6)
+	assert_bool(_count_live(sa.butterflies) > 0).is_true()
+	# Best of three batches of 120 frames: the cost of one StyleAmbient.step (butterflies, birds, idlers) in ms.
+	var per_frame_ms := 1.0e9
+	for batch: int in range(3):
+		var start := Time.get_ticks_usec()
+		for i: int in range(120):
+			sa.step(1.0 / 60.0)
+		per_frame_ms = minf(per_frame_ms, float(Time.get_ticks_usec() - start) / 1000.0 / 120.0)
+	print("PERF ambient step with 60 people, full zone, by day: %.4f ms" % per_frame_ms)
+	# 0.3.1 playtest 2: before (28 butterflies, a lookup per flyer, bird and person per frame) 0.489, 0.496, 0.485 ms;
+	# after (9 butterflies, lookups every 0.4 s) 0.360, 0.350, 0.375, 0.398, 0.370, 0.360 ms (max 0.398).
+	# Budget = max x 1.5.
+	if OS.get_environment("POSITIVEFPS_PERF_ENFORCE") == "1":
+		assert_float(per_frame_ms).is_less(0.6)
+
+
 func test_a_bird_lands_on_a_beautified_roof_and_leaves_when_it_is_lost() -> void:
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
@@ -322,10 +403,10 @@ func test_idle_sinks_are_put_back_and_the_unrescued_never_idle() -> void:
 	sa.step(0.1)
 	assert_bool(sa.idlers.has(p.get_instance_id())).is_false()
 	p.wobbling = false
-	sa.step(0.1)
+	sa.step(Config.L31_AMBIENT_RECHECK)  # New idlers and zone changes are looked up on a recheck step.
 	assert_bool(sa.idlers.has(p.get_instance_id())).is_true()
 	_paint_all(td, 0.0)
-	sa.step(0.1)
+	sa.step(Config.L31_AMBIENT_RECHECK)
 	assert_bool(sa.idlers.has(p.get_instance_id())).is_false()
 
 
