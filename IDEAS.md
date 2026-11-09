@@ -582,6 +582,14 @@ plus the tooling #5 to #8 and #20 and the code health #19 and #21, which the gat
 layout items #52, #51, #17 (not accepted yet; the user did not say). #23 (recorder gap_* to break_*) stays Ready, undecided.
 #9 (stale worktrees) is still the coordinator's. Nothing else came up.
 
+## 0.3.3 Town layout, playtest 3, styled (2026-11-09) (#52, #17 accepted; #55 new)
+
+Played commit b286fc1 in the styled look. The user: the town layout is effective, so **#52 is Done**; the Gallery worked, so
+**#17 is Done**. But the layout is "a little dense for how this plays", and it is not clear whether to thin the layout or
+retune the gameplay (#55, M, Backlog, a design decision first; ideas: fewer blocks than 20, wider streets, or gameplay
+values that assume blocks, such as post worth and member spacing). #51 (orange plank) was not mentioned, so it stays In
+review. #23 and #9 are unchanged.
+
 ## 0.4 Tug of war plan (2026-11-07)
 
 Planned as rounds 27 and 28 before the switch to targets; the content is unchanged. **Order:** first pass **Reorg**
