@@ -63,7 +63,8 @@ placeholder, `tide_pointer` still is.
 - Gap arrows now sit at the edge of the safe band, so a gap straight north shows its arrow part way down the screen. (#24)
 - The player's jog barely differs from the walk in the styled look. (#27)
 - Sound cues: not designed yet. (#25)
-- The town is a little dense for how it plays: thin the layout or retune the gameplay (a decision first). (#55)
+- The town is dense for how it plays and the game does not flow yet. Decided 2026-11-09: the town becomes a grid the
+  line follows (walls and gates, block by block); see the 0.4 plan. (#55, #56)
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
 - The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
@@ -84,7 +85,7 @@ placeholder, `tide_pointer` still is.
 **Recorder:** breaks are logged as `break_open` / `break_close` (#23); the analyser still reads the old `gap_*` names.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Next target:
-**0.4 Tug of war** (plan below, and on the board). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Tug of war** (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -142,14 +143,21 @@ Wider world and level progression ideas: see `VISION.md`.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
-Planned as rounds 27 and 28 before the switch to targets; the content is unchanged. **Order:** first pass **Reorg**
-and **Quick wins** together (no gameplay change, so no playtest: the gate, the determinism check and the timings are
-the proof), then **Line** and **Defences** on the reorganised layout, then **Rule stepping** if there is room.
+Planned as rounds 27 and 28 before the switch to targets. **Order** (confirmed by the user, 2026-11-09: code health
+first, then the gameplay changes):
+- **Pass 1, Reorg** (#3, #4): the code-health items. No gameplay change, so no playtest: the gate, the determinism
+  check and the timings are the proof. (Quick wins were done in 0.3.3.)
+- **Pass 2, Grid and Line** and **pass 3, Pressure and Defences:** Walls and gates on the reorganised layout (reshaped
+  2026-11-09: the town becomes a grid and the line follows it).
+- **Rule stepping** (#18) if there is room.
 
 ### Tug of war: Reorg, code reorganisation (#3, #4)
 
-Two parts at once in their own worktrees: **Reorg** (Sonnet) and **Quick wins** (Haiku, tools and skills only, so no
-overlap).
+**Pass 1 of 0.4.** One Sonnet agent; #4 builds on #3's files, so they are not split.
+
+**Scope note (2026-11-09).** Pass 2 removes the round loop, the beacon, its arms and the reach guide, and posts. Reorg
+moves their constants and set-up as they are, into files of their own (for example a beacon config and a round-loop
+config), and spends no effort tidying them, so pass 2 can delete whole files.
 
 **Why.** Of the last 150 commits, `config.gd` changed in 63 and `topdown_main.gd` in 54: almost every change, and most
 merge conflicts between parallel parts, go through these two files. The tuning values are filed by round
@@ -159,8 +167,8 @@ so an agent tuning one system searches both.
 **Changes** (one Sonnet worktree agent, no behaviour change):
 1. **Config by system, not by round** (#3). Split `Config`/`ConfigBase` into one small config script per system (for example
    border, push, tide and night, people, projectiles, spirit, landmarks, HUD and cues, recorder), and update every
-   reference. The round history stays in git and IDEAS_RESOLVED.md. Line and Defences then add their values to
-   their own systems' files.
+   reference. The round history stays in git and IDEAS_RESOLVED.md. Walls and gates then adds its values to
+   its own systems' files.
 2. **`topdown_main.gd` coordinates only** (#4). Move each system's set-up and per-frame work into that system's script, so
    `TopDownMain` builds the systems and calls them in order. New features should no longer need an edit there.
 3. **Proof of no change:** the full gate and the determinism check give the same tests and lines hit as before;
@@ -192,89 +200,127 @@ Moved to 0.3.3 Town layout (2026-11-09); the text stays here.
    copies and `agent-afd5…` are stale), and suggest `/fewer-permission-prompts` to the user to allowlist the common
    tool commands.
 
-### Tug of war: push and pull (Line #10 to #14, Defences #15 to #17)
+### Tug of war: Walls and gates (Grid #55, Line #56 and #10 to #14, Defences #15 and #16)
 
-**Order.** Build after Reorg and Quick wins are merged. Checkpoint 7 part A removed the beacon's reach guide and
-part D brought the round 26 push into the styled look; this keeps the styled push working where it can, and its new
-visuals are placeholder only, as usual.
+**Reshaped on 2026-11-09** after the 0.3.3 styled playtest and a design talk about #55. The 2026-11-07 version of this
+section (free-form grab and pull on the round loop) is in git at `ea6432a`. Its interview decisions still stand and are
+listed below; what changed is how each one is built.
 
-**Discussion (no new playtest; design talk after the checkpoint 7 playtest).** The core loop is *build your zone,
-reinforce and protect it, reach for goals with it*. Shooting is the means to that end. The border should be a visible tug
-of war: the player pulls it outward, the gloom pushes it in. E "kinda works" but growth doesn't push against anything,
-so the beacon is replaced. Buildings and landmarks should be denser.
+**Discussion (2026-11-09).** The town layout is liked, but the game "feels cramped and doesn't flow" and "is not fun
+yet". The user's answers: things were visually dense even before the layout, and it is hard to parse what is happening
+and what a decision changed, apart from rescuing someone; there is no clear next goal and it is the same thing all
+night; things get in the way. Wanted from the boundary: shape it, fortify it, fight at it, and use the town. On the
+town's role the user liked both "anchors and gates" and "block by block" and asked for a hybrid.
 
-**Decisions (interview).**
-- Shaping: **grab and pull (E)** and **rescues pull the line**. Defences do not pull the line out (tent pegs not
-  picked); they hold it.
-- The beacon is **replaced** (its arms, preview and 50 spirit cost go). Spirit stays for bursts and warmth.
-- Grab and pull costs **spirit per pull**, on top of the thin-line weakness.
-- Defences cost **rescued people as staff**, go on **F, inside near the edge**, and **landmarks unlock types**, with
-  **none available until the first capture**.
-- The night gets **one long telegraphed surge** in place of the two tides.
-- Parked for later: people popping out of a deep dent and dimming again (see the open items).
+**Diagnosis.** Mostly gameplay and readability, partly layout. The border is one round loop (about 180 m long by the
+end of the last game) measured from a moving centre, and any metre of it can matter, so there is nowhere obvious to
+look and nothing obvious to do next. The town only gets in the way: blocks are 4 m obstacles the loop wraps around.
+Thinning the town would not fix that. The town has to give the line its shape.
+
+**The model: walls and gates, block by block.**
+- **The town is a grid of cells** with streets between them. A cell is a built block (houses, solid), or an open
+  square (the start square in the middle and the four landmark squares).
+- **The zone is the set of cells you hold**, plus the street pieces between two held cells. It starts as the start
+  square once the first few people are rescued.
+- **The line is the zone's outline.** Where it runs along the face of a held built block it is a **wall**: it holds
+  firm, cannot dent and needs nobody. Where it crosses a street mouth, or runs along the open side of a held square, it
+  is a **gate**: rescued people stand across it, and it is the only place the gloom can push.
+- **Growth is block by block.** A cell next to the zone can be taken; it lights up and the line jumps to its far side.
+- **The trade-off.** Taking a built block adds wall and usually two street mouths. Taking a square adds open sides,
+  which cost more people. A cell the zone surrounds joins by itself, which closes gates. More gates than people to
+  hold them is a thin line.
+- **Loss is block by block too.** A gate left broken long enough loses the cell behind it.
+
+**Decisions that stand (interview, 2026-11-07).** E shapes the line and costs spirit per use; rescues pull the line;
+the beacon is replaced (its arms, preview and 50 spirit cost go); defences cost rescued people as staff, go on F, hold
+the line and do not extend it; landmarks unlock defence types and none is available until the first capture; the night
+gets one long telegraphed surge in place of the two tides.
+
+**Why rebuild the line, not bend the round loop to fit** (code check, 2026-11-09). `border.gd` keeps a radius at 48
+angles round a centre that drifts with the rescued (`_organic_polygon`), and `border_push.gd` keeps its dent at the
+same 48 angles. That loop can only be star-shaped from its centre, a 10 m gate would be two or three samples wide, and
+its upkeep (the size ease, the wrap round blocks, the map-edge seals, the arms and the pull-in in `border_centre.gd`)
+is where the zone-control snags came from (#53). A zone made of cells needs none of that: the outline is traced
+exactly, and each edge already knows whether it is a wall or a gate. About 2,600 lines across the five `border*.gd`
+scripts are affected; 16 other scripts read the border, mostly its `polygon`, `members` and `push`, and that surface
+is kept so they change little.
 
 **Changes** (values marked "default" are the coordinator's calls; the playtest can overrule them).
-1. **Grab and pull (E), replacing the beacon** (#10). Hold E: the stretch of border nearest the cursor is grabbed. Drag
-   outward and a preview shows the new shape (a smooth bulge, wider the further you pull). Release to set it, paying
-   `PULL_SPIRIT_COST` (default 25); right-click cancels; not enough spirit shows the slim banner. The pulled shape
-   becomes the line's rest shape: members walk out to fill it, and it holds there until pressed in. Reach is capped by
-   headcount (see 3). Default: outward only for now.
-2. **Rescues pull the line** (#11). A person rescued outside the zone joins the border at the point nearest where they stood
-   and pulls that stretch's rest shape out toward them by `RESCUE_PULL_SHARE` of the distance (default 0.5, capped by
-   headcount). Where you rescue is where you grow. Rescues inside the zone add headcount as now.
-3. **The line is a balance of forces; tight or stretched** (#12; land follows the line #13).
-   - Each angle sample has a rest position (from pulls and rescues) and a pressure (pushers and the surge, as round 26).
-     The line sits between them and springs back to its rest shape, not further, when relieved. Default: no automatic
-     outward drift.
-   - Strength per metre falls as the same people cover a longer line: member spacing widens, and dent resistance and
-     break depth scale down with it (`THIN_LINE_*`). A compact zone holds; a long reach is a thin, risky line. The
-     thinness must read in the placeholder look (wider member spacing, a thinner ribbon), not as a meter or alarm.
-   - **Land follows the line:** ground under a dent fades toward grey while the dent holds and recolours when the line
-     springs back. Ground left outside after a deep press is lost to the gloom as it is today outside the border.
-4. **Defences (F)** (#15). Hold F to aim on painted ground inside the zone near the edge, release to plant; right-click
-   cancels. With more than one type unlocked, the mouse wheel cycles the type while F is held (it zooms otherwise).
-   The nearest free border member walks over and staffs it (they leave the line, so the line thins). A defence
-   strengthens the stretch of border nearest it. One type per landmark:
-   - Bandstand (music): pushers within its reach are weakened, so that stretch dents less.
-   - Garden (nature): the nearby line resists denting and cannot break there.
-   - Gallery (art): painted ground near it cannot be worn away, and the dent's grey fade (3) skips it.
-   - Bell tower: when the nearby line is pressed hard, the bell rings and calms that stretch (a small free burst, with
-     a cooldown).
-   A defence left outside the line goes quiet (no effect) and its staff drains like any member until the line takes it
-   back. Defaults: `DEFENCE_MAX` 4 in total; any rescued person can staff any type (no element matching).
-5. **Landmarks unlock defences (#16); denser layout (#17, moved to 0.3.3 Town layout on 2026-11-09).**
-   - Capturing a landmark (held 3 s, as now) unlocks its defence type for the rest of the night; nothing is unlocked
-     at the start. The unlock shows in the slim banner and the cue panel.
-   - Add a fourth landmark, the **Gallery** (art), and move the Bandstand and Bell tower closer: today they are about
-     49 m and 45 m from the start (the Garden about 14 m). Default: all four within about 18 to 32 m of the start, on
-     different sides, so reaching one takes a pull or two, not a trek.
-   - More ordinary buildings, closer together (default about 1.5x as many), keeping paths for people and the player.
-   - The third dawn light still needs 75% rescued and 2 landmarks (of four now); watch it in the playtest.
-6. **One long telegraphed surge** (#14), replacing the rising and midnight tides:
-   - **Warning** (default about 40 s before the peak): a fog bank gathers on one or two sides, visible on screen and
-     on the minimap, and the light cools. That is the window to pull, plant and staff.
-   - **Surge** (default about 50 s): a long, heavy push from the side shown, using round 26's wave and pushers.
-   - **Aftermath:** the fog thins and arrivals ease, leaving time to repair and reach for the next landmark.
-   - Tune with bot nights so a compact zone with a defence holds and an over-stretched one bends or breaks.
-   - The warning must reach the player wherever they are: in the 0.3.1 playtest neither tide was seen, because both
-     came from the far side and the off-screen cue was only the placeholder `tide_pointer`.
+1. **Town grid** (#55). Replaces the two-street plan of 0.3.3 on the same 100 m plaza.
+   - Default: 5 by 5 cells, 12 m cells and 10 m streets. The middle cell is the start square; four cells are landmark
+     squares; the other 20 are built blocks, each a tight group of houses filling its cell.
+   - Default: the landmark squares are the four diagonal cells next to the start square (about 31 m away, as now).
+   - Built blocks are solid for everyone, so the player, the people and the gloom all move on streets and squares.
+     Streets stay clear down the middle: lamps, benches and planters stand against the block faces.
+   - Unrescued people stand on the streets and squares; each belongs to the nearest cell.
+   - The grid has loops everywhere, so no more out and back through the middle.
+   - A new `scripts/town_grid.gd` holds the plan (cells, kinds, rectangles, neighbours, street pieces);
+     `TownLayout` and `TopDownMain.BLOCK_POSITIONS` read from it.
+2. **The line follows the grid** (#56). The zone is a set of held cells; the line is its outline, split into wall edges
+   and gate edges.
+   - Members stand only on gates, spread across each one at `BORDER_TARGET_SPACING`; everyone else stands inside.
+   - The round 26 push is kept but lives on gates: dimmed people lean on a gate, it bends inward, it breaks past
+     `PUSH_BREAK_DEPTH`, and it mends by the same rules. Joy at bending members and the burst calm a gate as now.
+   - Dimmed people head for the nearest gate along the streets.
+   - Gone: the round loop and its drifting centre, the size ease, the wrap round blocks, the map-edge seals, posts and
+     post worth (#54: walls replace them), and with (3) the beacon, its arms and the reach guide.
+   - Kept for the scripts that read the border: `polygon` (now the traced outline, with extra points across each gate
+     so a dent shows), `members`, `segment_gap`, `cover_at`, `line_blocks`, `clip_move` and `push.dent` per point.
+3. **Take a block (E), replacing the beacon** (#10). Hold E and point at a cell next to the zone: a preview shows the
+   new line, the gates it opens and closes, and whether you have the people for it. Release to take it, paying
+   `TAKE_SPIRIT_COST` (default 25); right-click cancels. Refused, with the slim banner, when spirit is short or the new
+   gates need more members than you have.
+4. **Rescues pull the line** (#11). Each cell next to the zone shows pips. Rescuing someone who belongs to it fills a
+   pip; at `TAKE_RESCUES` (default 3) the cell joins without E, if you have the people for its gates. Where you rescue
+   is where you grow.
+5. **A stretched line is thin** (#12). Each gate needs members for its width (a 10 m street mouth about 3, an open
+   square side about 4). When the zone has fewer members than its gates need, the gates share them and a short-handed
+   gate dents and breaks sooner (`THIN_LINE_*`). It must read in the placeholder look as people standing further
+   apart, not as a meter.
+6. **Land follows the line** (#13). A gate broken for `GATE_LOST_SECONDS` (default 12) loses the cell behind it: the
+   cell goes grey, the line jumps back and its members regroup. Nobody relapses just because a cell is lost. The start
+   square is never lost this way.
+7. **One long telegraphed surge** (#14), replacing the two tides. Warning (default about 40 s): a fog bank gathers at
+   the far end of one street, shown on screen and on the minimap, and the light cools. Surge (default about 50 s): it
+   rolls down that street and pushes the gate it meets, and at half strength the gates either side. Aftermath: the fog
+   thins and arrivals ease. The warning must reach the player wherever they are (in 0.3.1 neither tide was seen).
+8. **Defences (F), planted at gates** (#15). Hold F and point at a gate, release to plant; one per gate, `DEFENCE_MAX`
+   4 in all. The nearest free member staffs it. One type per landmark:
+   - Bandstand (music): pushers at this gate are weakened.
+   - Garden (nature): this gate bends but cannot break.
+   - Gallery (art): the cells either side of this gate cannot be lost.
+   - Bell tower: when this gate is pressed hard the bell rings and calms it (a small free burst, with a cooldown).
+   A defence whose gate closes (its street is now inside the zone) is handed back and its staff rejoin the line.
+9. **Landmarks unlock defences** (#16). A landmark is claimed by holding its square for 3 s, as now, and unlocks its
+   defence type for the rest of the night. The third dawn light still needs 75% rescued and 2 landmarks.
 
-**Constraints.** Placeholder look only. Tests for the removed beacon may be removed or rewritten for the pull; list them
-in the report. Never loosen a threshold or a `test_perf_*` budget. Rules change, so run the determinism check at the end.
-Player-facing text uses the gloom terms. README.md is updated, since the controls change (E pull, F defence).
+**What stays as it is.** Joy, elements and moods; the gloom's phases and arrivals; the burst; spirit and spirit warmth;
+wobble and relapse; first light; the dawn rating; the cue panel and the slim banner; both looks.
 
-**Build split** (two Sonnet worktree agents, each adding its values to the per-system config files Reorg creates;
-a new system gets its own file):
-- **Line:** changes 1, 2, 3 and 6, the line and the surge (`border.gd`, `border_push.gd`, the beacon scripts, the night
-  cycle). It adds one hook for defences: a per-angle strength multiplier and a "no break here" flag that
-  `border_push.gd` reads through a small interface.
-- **Defences:** changes 4 and 5, defences, unlocks and layout (new `scripts/defences.gd` and its placeholder look, landmarks,
-  the level layout, cue panel text). It provides that interface and tests against a stub until Line merges.
-- The coordinator merges Line first, then Defences, and resolves the shared config files, README.md and the controls text.
+**Passes.** Pass 1 is Reorg (#3, #4), above. Then:
+- **Pass 2, Grid and Line** (#55, #56, #10, #11): the smallest playable version of the idea. One Sonnet agent, since
+  the grid and the line depend on each other. The two tides keep running, aimed at gates, until pass 3.
+  Playtest question: does the town now tell you where to look and what to do next?
+- **Pass 3, Pressure and Defences** (#12, #13, #14, #15, #16): two Sonnet worktree agents, **Pressure** (thin line,
+  lost cells, the surge) and **Defences** (defences and unlocks, against a small per-gate interface: a strength
+  multiplier, a "cannot break" flag and a "cannot be lost" flag). The coordinator merges Pressure first.
+- Tune passes 2 and 3 with bot nights so a compact zone holds and an over-reached one loses cells.
 
-**Playtest questions.** Does pulling feel like pulling against something? Is 25 spirit per pull a real decision? Does a
-thin line read as thin without a meter? Are defences planted during the warning, and is one surge enough tension for the
-night? Are four closer landmarks the right density?
+**Constraints.** Placeholder look only: the styled look keeps working where it can (blocks, ribbon, minimap), and the
+styled grid town is a later look-focused target. Border tests written for the round loop, the beacon and posts are
+rewritten for the grid or removed; list every one in the report. Never loosen a threshold or a `test_perf_*` budget.
+Rules change, so run the determinism check at the end of each pass. Player-facing text uses the gloom terms. README.md
+is updated, since the controls change (E take a block, F defence).
+
+**Playtest questions.** Do walls and gates make the line easy to read at a glance? Is the next block a clear goal, and
+is taking it a real decision? Do solid blocks and 10 m streets feel roomy or cramped? Is 25 spirit, or three rescues,
+the right price for a block? Does a thin line read as thin without a meter? Is one surge enough tension for the night?
+
+**Open for the user** (defaults above are used unless overruled).
+- Built blocks solid for the player too, or only for the gloom? Solid is simpler and makes the streets matter;
+  walk-through keeps more room to move.
+- 25 cells with 20 built blocks, or a smaller 3 by 3 town with wider cells?
+- This also answers #47 (more room to play around the push): the gates are that room. Close #47 once pass 2 is played?
 
 ### Tug of war: Rule stepping, advance the game rules without the scene (#18; after Line and Defences merge, or the next target)
 
