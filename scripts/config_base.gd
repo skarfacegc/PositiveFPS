@@ -559,13 +559,9 @@ const EDGE_PRESSURE_REACH := 12.0 * WORLD_SCALE
 const TD_DIMMED_PRESS_STOP := 0.6
 # Protection values closer than this count as equal when a dimmed person picks a target.
 const EDGE_PROTECTION_TIE := 0.05
-# Local gaps: a border member drained below MEMBER_FALTER_FRACTION of their joy needed falters (steps back
-# MEMBER_FALTER_STEP_BACK metres) and opens a gap on both sides of them. (The plan said 0.5, but a person relapses at
-# RELAPSE_FRACTION 0.5, so faltering starts higher.) Spare inner members only take a faltering member's place after
-# GAP_HEAL_DELAY seconds.
+# Local gaps: a border member drained below MEMBER_FALTER_FRACTION of their joy needed falters and opens a gap on both
+# sides of them. (The plan said 0.5, but a person relapses at RELAPSE_FRACTION 0.5, so faltering starts higher.)
 const MEMBER_FALTER_FRACTION := 0.75
-const MEMBER_FALTER_STEP_BACK := 0.5
-const GAP_HEAL_DELAY := 3.0
 # Noticeable stage changes: a grey-violet (gloomy, not icy) puff and ripple when someone sinks a stage, a warm one
 # when
 # they lift. The minimap shows a blip for BLIP_SECONDS when someone becomes dimmed.

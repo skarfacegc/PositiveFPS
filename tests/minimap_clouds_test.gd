@@ -34,6 +34,31 @@ func _cell(at: Vector2) -> int:
 	return iz * n + ix
 
 
+# --- The cached ground layer --------------------------------------------------------------------------------------
+
+
+func test_the_ground_layer_is_rebuilt_only_when_it_may_have_changed() -> void:
+	var m := _map()
+	m._ready()
+	m._render()
+	assert_bool(m._base_is_current()).is_true()
+	m.tick(0.2)
+	assert_bool(m._base_is_current()).is_true()
+	m.first_light_edge = 12.0  # the dawn front moved
+	assert_bool(m._base_is_current()).is_false()
+	m._render()
+	assert_bool(m._base_is_current()).is_true()
+	m.tick(Config.MINIMAP_GROUND_SECONDS + 0.01)  # the painted ground may have changed
+	assert_bool(m._base_is_current()).is_false()
+	m._render()
+	assert_bool(m._base_is_current()).is_true()
+	m.cloud_alpha_at(0, 0)  # a cloud repaint is only counted when something changed
+	assert_bool(m._base_is_current()).is_true()
+	m.refresh_clouds(_crowd(Vector2(-20, -20), 4))
+	m.cloud_alpha_at(0, 0)
+	assert_bool(m._base_is_current()).is_false()
+
+
 # --- Binning ---------------------------------------------------------------------------------------------------------
 
 

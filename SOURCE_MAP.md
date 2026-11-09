@@ -170,16 +170,16 @@ extends Node3D | 1 const | Round 22: the world marks for the burst (G/Q), drawn 
 - L88 `streak_count() -> int`
 
 ### scripts/config.gd (Config)
-extends ConfigBase | 404 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
-- L674 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
-- L682 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
-- L689 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
-- L698 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
-- L708 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
-- L719 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
+extends ConfigBase | 405 const | Round 19 onward: tuning values and the tiny pure helpers. Older constants live in config_base.gd (ConfigBas...
+- L676 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
+- L684 `static tides_on() -> bool` - Round 25: the gloom tides run in the game and not under automated tests (like the intro), so the older scen...
+- L691 `static multiplier(element: int, affinity: int) -> float` - Returns how much a hit with `element` is multiplied when the person has `affinity`.
+- L700 `static falloff(distance: float) -> float` - Returns the strength of a hit at `distance` metres: 1.0 up close, falling to FALLOFF_MIN far away.
+- L710 `static gloom_level(g: float) -> int` - Returns the visible grey level (0 light, 1 grey, 2 dimmed) for a hidden gloom value.
+- L721 `static is_automated_test() -> bool` - True when the game is running under the automated tests (tools/run_tests.py): the POSITIVEFPS_TEST=1 enviro...
 
 ### scripts/config_base.gd (ConfigBase)
-extends RefCounted | 370 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
+extends RefCounted | 368 const | All tuning values for the prototype live here. Change a number and run the game to feel the difference.
 
 ### scripts/controls.gd (Controls)
 extends RefCounted | 0 const | Registers every input action the game uses. Each action is only added if it does not exist yet,
@@ -839,15 +839,15 @@ extends Control | 5 const | The start menu: a title, one Play button, the Look t
 
 ### scripts/minimap.gd (Minimap)
 extends Control | 2 const | The round minimap (round 10), top-left, about TD_MINIMAP_WIDTH_FRACTION of the screen width. It shows the w...
-- L87 `rebuild_look() -> void` - Swaps the look in place (F4): the data model is kept, the picture is redrawn with the new palette.
-- L94 `is_circular() -> bool` - The minimap is a circle: the picture is clipped to it, and the frame is drawn round it.
-- L99 `radius() -> float` - The circle's radius on screen, in pixels.
-- L105 `tick(delta: float) -> bool` - Advances the refresh timer by `delta`. Returns true when the picture should be rebuilt now (about 10 times a
-- L125 `clouds_due() -> bool` - Round 20: true when the people clouds are due a recount (at the next refresh_from).
-- L131 `refresh_from(ground: PaintedGround, border: Border, people: Array[Person], player_at: Vector3, view_centre: Vector3, view_half: Vector2) -> void` - Reads the level into the data model and redraws the picture. `view_half` is the half size of the camera's v...
-- L193 `refresh_clouds(people: Array[Person]) -> void` - Round 20: bins the unrescued people into the coarse grid and sets one blob per busy cell, at the mean of it...
-- L278 `cloud_alpha_at(px: int, py: int) -> float` - Round 20: the alpha of the people clouds at picture pixel (px, py), 0 to 1. Zero outside every blob.
-- L335 `add_blip(world: Vector2) -> void` - Round 12b: a blip at a world point (x, z) for MINIMAP_BLIP_SECONDS, drawn as a ring (someone became dimmed).
+- L95 `rebuild_look() -> void` - Swaps the look in place (F4): the data model is kept, the picture is redrawn with the new palette.
+- L102 `is_circular() -> bool` - The minimap is a circle: the picture is clipped to it, and the frame is drawn round it.
+- L107 `radius() -> float` - The circle's radius on screen, in pixels.
+- L113 `tick(delta: float) -> bool` - Advances the refresh timer by `delta`. Returns true when the picture should be rebuilt now (about 10 times a
+- L134 `clouds_due() -> bool` - Round 20: true when the people clouds are due a recount (at the next refresh_from).
+- L140 `refresh_from(ground: PaintedGround, border: Border, people: Array[Person], player_at: Vector3, view_centre: Vector3, view_half: Vector2) -> void` - Reads the level into the data model and redraws the picture. `view_half` is the half size of the camera's v...
+- L202 `refresh_clouds(people: Array[Person]) -> void` - Round 20: bins the unrescued people into the coarse grid and sets one blob per busy cell, at the mean of it...
+- L287 `cloud_alpha_at(px: int, py: int) -> float` - Round 20: the alpha of the people clouds at picture pixel (px, py), 0 to 1. Zero outside every blob.
+- L345 `add_blip(world: Vector2) -> void` - Round 12b: a blip at a world point (x, z) for MINIMAP_BLIP_SECONDS, drawn as a ring (someone became dimmed).
 
 ### scripts/mood_icons.gd (MoodIcons)
 extends RefCounted | 1 const | Round 13b: the small icons of the game's communication (screen-space UI, drawn with _draw on any CanvasItem...
@@ -1072,7 +1072,7 @@ extends Control | 0 const | Checkpoint 5: the wobble alert. A drained rescued pe
 - looks_round20_test (tests/looks_round20_test.gd): 17 tests
 - looks_test (tests/looks_test.gd): 19 tests
 - menu_test (tests/menu_test.gd): 14 tests
-- minimap_clouds_test (tests/minimap_clouds_test.gd): 17 tests
+- minimap_clouds_test (tests/minimap_clouds_test.gd): 18 tests
 - moods_test (tests/moods_test.gd): 14 tests
 - night_cycle_test (tests/night_cycle_test.gd): 9 tests
 - paint_bloom_camera_test (tests/paint_bloom_camera_test.gd): 8 tests

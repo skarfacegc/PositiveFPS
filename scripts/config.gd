@@ -150,6 +150,8 @@ const MINIMAP_CLOUD_MAX_ALPHA := 0.9
 const MINIMAP_CLOUD_CORE := 0.55
 const MINIMAP_CLOUD_EASE_SECONDS := 0.4
 const MINIMAP_CLOUD_PAINT_SECONDS := 0.2
+# The minimap's ground layer is rebuilt at most this often (a rebuild is about 8 ms).
+const MINIMAP_GROUND_SECONDS := 0.5
 const MINIMAP_CLOUD_RIM := 0.9
 const MINIMAP_CLOUD_COLOUR := Color(0.06, 0.1, 0.34)
 

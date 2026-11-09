@@ -72,6 +72,14 @@ var _cloud_paint_left: float = 0.0
 var _cloud_profile := PackedFloat32Array()
 # Round 21: false until the first recount, which snaps its blobs into place (see refresh_clouds).
 var _cloud_started: bool = false
+# The cached ground layer (see _build_base) and what it was built from; `_cloud_version` counts cloud repaints.
+var _base: Image
+var _base_left: float = 0.0
+var _base_look: MinimapLook
+var _base_edge: float = -1.0
+var _base_cloud_version: int = -1
+var _base_ground: PaintedGround
+var _cloud_version: int = 0
 
 
 func _ready() -> void:
@@ -110,6 +118,7 @@ func tick(delta: float) -> bool:
 		if left <= 0.0:
 			blips.remove_at(i)
 	_cloud_paint_left -= delta
+	_base_left -= delta
 	_cloud_age += delta
 	if _cloud_age >= Config.MINIMAP_CLOUD_SECONDS:
 		_cloud_due = true
@@ -287,6 +296,7 @@ func _update_cloud_alpha(force: bool = false) -> void:
 	if _cloud_dirty and (force or _cloud_paint_left <= 0.0):
 		_paint_clouds()
 		_cloud_dirty = false
+		_cloud_version += 1
 		_cloud_paint_left = Config.MINIMAP_CLOUD_PAINT_SECONDS
 
 
@@ -346,13 +356,25 @@ func _draw() -> void:
 	look.draw_frame(self)
 
 
-# Rebuilds the image from the data model: the ground inside the circle, then the buildings, the border, the people,
-# the landmark, the player and the view.
-func _render() -> void:
-	if _image == null:
-		return
-	_update_cloud_alpha()
-	_image.fill(Color(0.0, 0.0, 0.0, 0.0))
+# The ground layer (ground colour, dawn front and people clouds) is the costly part of a redraw: a per-pixel loop
+# over the whole circle, about 8 ms. It is kept in `_base` and rebuilt only when the clouds repaint, the dawn front
+# moves, the look changes, or MINIMAP_GROUND_SECONDS have passed (the painted ground changes slowly); every other
+# redraw copies it.
+func _base_is_current() -> bool:
+	return (
+		_base != null
+		and _base_left > 0.0
+		and _base_look == look
+		and _base_edge == first_light_edge
+		and _base_cloud_version == _cloud_version
+		and _base_ground == _ground
+	)
+
+
+func _build_base() -> void:
+	if _base == null:
+		_base = Image.create(RESOLUTION, RESOLUTION, false, Image.FORMAT_RGBA8)
+	_base.fill(Color(0.0, 0.0, 0.0, 0.0))
 	var cloud := look.cloud_colour()
 	var clouds_on := cloud.a > 0.0 and _cloud_alpha.size() == RESOLUTION * RESOLUTION
 	for py: int in range(RESOLUTION):
@@ -365,7 +387,23 @@ func _render() -> void:
 				# Round 20: the people clouds sit on the ground, under the buildings and every marker.
 				if clouds_on and _cloud_alpha[py * RESOLUTION + px] > 0.0:
 					col = col.lerp(cloud, _cloud_alpha[py * RESOLUTION + px] * cloud.a)
-				_image.set_pixel(px, py, col)
+				_base.set_pixel(px, py, col)
+	_base_left = Config.MINIMAP_GROUND_SECONDS
+	_base_look = look
+	_base_edge = first_light_edge
+	_base_cloud_version = _cloud_version
+	_base_ground = _ground
+
+
+# Rebuilds the image from the data model: the ground layer, then the buildings, the border, the people, the landmark,
+# the player and the view.
+func _render() -> void:
+	if _image == null:
+		return
+	_update_cloud_alpha()
+	if not _base_is_current():
+		_build_base()
+	_image.copy_from(_base)
 	for i: int in range(building_rects.size()):
 		_fill_rect(building_rects[i], look.building_colour(building_warm[i]))
 	var n := border_pts.size()
