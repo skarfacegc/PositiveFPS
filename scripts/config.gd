@@ -671,6 +671,17 @@ const TOWN_PLANTER_OFFSET := Vector2(2.7, 2.6)  # A block's planter: forward, th
 const LANDMARK_NEAREST := 18.0  # Metres: every landmark stands between these two distances of the start.
 const LANDMARK_FARTHEST := 32.0
 
+# ---- 0.3.3 Zone control around buildings (#53): border_shape.gd (clear_of_blocks, step_around), border.gd. ----
+# People are not stopped by blocks (they are moved directly), so on the street grid slots and walks ran through the
+# block footprints. Slots and targets are moved out of every footprint grown by this clearance, and a walking person
+# slides round a footprint's face instead of through it. A body size, so it is not scaled by WORLD_SCALE.
+const ZONE_BLOCK_CLEAR := 0.8  # Metres a person keeps from a block's face (the footprint grown by this on every side).
+const ZONE_DETOUR_ARRIVE := 0.3  # Metres from the target at which a detour is dropped.
+const ZONE_CORNER_OUT := 0.02  # Metres a detour's corner stands outside the grown footprint.
+const ZONE_CORNER_LANE := 0.5  # Metres: the most a person's corner may lie beyond the grown footprint.
+const ZONE_CORNER_REACHED := 0.01  # Metres from a corner at which it counts as reached (a step lands on it).
+const ZONE_CORNER_SLACK := 0.03  # A straight walk to a corner may skim a footprint's edge by this much.
+
 static var intro_override: int = -1
 static var tides_override: int = -1  # Round 25: as intro_override, for the gloom tides (see tides_on).
 

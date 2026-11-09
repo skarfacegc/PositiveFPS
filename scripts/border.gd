@@ -54,6 +54,8 @@ var inner: Array[Person] = []
 # One entry per slot segment: true when that stretch is a gap.
 var segment_gap: Array[bool] = []
 var buildings: Array[Building] = []
+# The block footprints as a flat list (BorderShape.footprints), for the walks; read it through boxes().
+var zone_boxes := PackedFloat32Array()
 # Round 19: the landmark blocks, in registration order (the order of Config.LANDMARK_NAMES).
 var landmark_buildings: Array[Building] = []
 # Round 12a: how much faster the border loses ground (1 normally, DIM_LOSS_MULT while the player is dim), and whether
@@ -88,6 +90,8 @@ var _open: Array[float] = []
 var _phase: float = 0.0
 # Where each rescued person should stand: Person -> Vector3.
 var _targets: Dictionary = {}
+# Person -> the corner (Vector2) they are heading round while a detour is on (see _move_members).
+var _detour: Dictionary = {}
 var _time: float = 0.0
 var _strength: float = 1.0
 # Round 12b: per angle sample, the time the raw radius was last pushed outward (a rescue or a shove), so dimmed people
@@ -644,6 +648,13 @@ func _mean_radius() -> float:
 	return total / float(polygon.size())
 
 
+# The block footprints (BorderShape.footprints), rebuilt when blocks were added or removed.
+func boxes() -> PackedFloat32Array:
+	if zone_boxes.size() != buildings.size() * 4:
+		zone_boxes = BorderShape.footprints(buildings)
+	return zone_boxes
+
+
 # Walks every rescued person toward their target at BORDER_WALK_SPEED.
 func _move_members(delta: float) -> void:
 	var step := Config.BORDER_WALK_SPEED * delta
@@ -662,8 +673,25 @@ func _move_members(delta: float) -> void:
 		var go := minf(step, d * arrive)
 		if d <= 0.01:
 			p.position = Vector3(target.x, 0.0, target.z)
+			_detour.erase(p)
 		else:
-			p.position += to / d * go
+			# 0.3.3 (#53): a person slides round a block's face and does not walk through it.
+			var way: Vector2 = _detour.get(p, Vector2.INF)
+			var res := BorderShape.step_around(
+				boxes(),
+				Vector2(p.position.x, p.position.z),
+				Vector2(target.x, target.z),
+				go,
+				Config.ZONE_BLOCK_CLEAR,
+				way
+			)
+			var at: Vector2 = res["pos"]
+			p.position = Vector3(at.x, p.position.y, at.y)
+			way = res["waypoint"]
+			if way == Vector2.INF or d <= Config.ZONE_DETOUR_ARRIVE:
+				_detour.erase(p)
+			else:
+				_detour[p] = way
 
 
 # Blocks: the share of each footprint inside the loop (sampled on a 5 x 5 grid) drives their beautifying.

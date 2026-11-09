@@ -120,7 +120,9 @@ func assign_members(rescued: Array[Person]) -> void:
 		else:
 			best_k = nearest_free_slot(Vector2(p.position.x, p.position.z), slots, slot_taken)
 		slot_taken[best_k] = true
-		var slot_at := slots[best_k]
+		var slot_at := BorderShape.clear_of_blocks(
+			b.boxes(), slots[best_k], Config.ZONE_BLOCK_CLEAR, Vector2(b.centre.x, b.centre.z)
+		)
 		b._targets[p] = Vector3(slot_at.x, 0.0, slot_at.y)
 		b.members.append(p)
 
@@ -128,7 +130,13 @@ func assign_members(rescued: Array[Person]) -> void:
 	for j: int in range(b.inner.size()):
 		var ang := float(j) * Border.GOLDEN_ANGLE
 		var r := minf(Config.BORDER_INNER_SPACING * sqrt(float(j) + 1.0), spiral_cap)
-		b._targets[b.inner[j]] = Vector3(b.centre.x + cos(ang) * r, 0.0, b.centre.z + sin(ang) * r)
+		var rest := BorderShape.clear_of_blocks(
+			b.boxes(),
+			Vector2(b.centre.x + cos(ang) * r, b.centre.z + sin(ang) * r),
+			Config.ZONE_BLOCK_CLEAR,
+			Vector2(b.centre.x, b.centre.z)
+		)
+		b._targets[b.inner[j]] = Vector3(rest.x, 0.0, rest.y)
 
 	b.member_count = b.members.size()
 	b.inner_count = b.inner.size()
