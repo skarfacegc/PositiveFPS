@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__ccd_turn__update_plan",
+      "mcp__ccd_turn__wrap_up",
+      "mcp__ccd_session__mark_chapter",
+      "mcp__ccd_view__show_pane",
+      "mcp__terminal__read_terminal",
+      "mcp__ccd_session_mgmt__list_sessions",
+      "Bash(python tools/board.py list)",
+      "Bash(python tools/board.py list *)",
+      "Bash(python tools/board.py scan)",
+      "Bash(python tools/round_end.py --status)",
+      "Bash(python tools/cleanup_worktrees.py --dry-run)",
+      "Bash(python tools/lint.py)",
+      "Bash(tasklist)",
+      "Bash(tasklist *)"
+    ]
+  }
+}
