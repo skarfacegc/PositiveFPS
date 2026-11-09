@@ -370,7 +370,7 @@ func _r20_flag_dawn(_label: String) -> void:
 	main.running = false
 	var r := DawnRating.rate(42, Config.TD_PEOPLE_COUNT, 0.46, 3)
 	main.rating = r
-	main.hud.show_end("Dawn: %d of 3 dawn lights" % (r["lights"] as int), main._detail_text(), r)
+	main.hud.show_end("Dawn: %d of 3 dawn lights" % (r["lights"] as int), main.level_end.detail_text(), r)
 
 
 func _write_sheets_round20() -> void:

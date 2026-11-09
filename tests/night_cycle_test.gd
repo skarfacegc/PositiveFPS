@@ -82,7 +82,7 @@ func test_the_level_shows_the_night_progress_and_its_light() -> void:
 	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 	await runner.simulate_frames(5)
 	assert_float(td.hud.night_bar.value).is_greater(45.0)
-	assert_float(td._sun.light_energy).is_equal_approx(NightCycle.MIDNIGHT_ENERGY, 0.05)
+	assert_float(td.camera_rig.sun.light_energy).is_equal_approx(NightCycle.MIDNIGHT_ENERGY, 0.05)
 	assert_bool(td.running).is_true()
 
 

@@ -258,7 +258,7 @@ func test_bunting_posts_and_wires_stay_above_the_players_head_everywhere() -> vo
 			var u := lerpf(StyleConfig.L31_LINE_SHOW + StyleConfig.L32_LINE_RISE, 1.0, float(i) / 14.0)
 			assert_float(StyleProps.line_low_point(u, washing)).is_greater_equal(h + StyleConfig.L32_LINE_CLEARANCE)
 	var centres: Array[Vector3] = []
-	for c: Vector3 in TopDownMain.BLOCK_POSITIONS:
+	for c: Vector3 in Plaza.BLOCK_POSITIONS:
 		centres.append(c)
 	for l: StyleProps.Line in StyleProps.layout_lines(centres, StyleConfig.C7_LINE_MAX_DIST):
 		assert_float(l.a.y).is_greater(h + StyleConfig.L32_LINE_CLEARANCE)

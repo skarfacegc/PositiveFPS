@@ -182,6 +182,16 @@ extends Node3D | 1 const | Round 22: the world marks for the burst (G/Q), drawn 
 - L84 `halo_count() -> int`
 - L88 `streak_count() -> int`
 
+### scripts/camera_rig.gd (CameraRig)
+extends RefCounted | 0 const | The level's view: the environment and sun (dusk to dawn), the orthographic camera that follows the player,...
+- L23 `setup_environment() -> void`
+- L42 `update_light() -> void` - Dusk to dawn: the sun and the ambient light follow the night (see NightCycle).
+- L49 `build() -> void` - Makes the camera and gives it to the level (`main.camera`).
+- L59 `handle_zoom(event: InputEvent) -> void` - One wheel notch per frame (a repeated delivery in the same frame counts once).
+- L70 `update(delta: float) -> void` - The camera follows the player from above and behind, looking at a point just north of them (round 10: ortho...
+- L88 `view_centre() -> Vector3` - The point the camera looks at: the player plus TD_CAMERA_LOOK_OFFSET, scaled with the zoom (the player keep...
+- L97 `view_half_extents() -> Vector2` - The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the v...
+
 ### scripts/config.gd (Config)
 extends RefCounted | 18 const | Shared tuning: the world scale, the elements and the joy matchups, and the tiny pure helpers. Every other
 - L77 `static intro_on() -> bool` - True when the layered introduction (round 13b) is on: always in the game, never under automated tests, unle...
@@ -194,6 +204,10 @@ extends RefCounted | 18 const | Shared tuning: the world scale, the elements and
 ### scripts/controls.gd (Controls)
 extends RefCounted | 0 const | Registers every input action the game uses. Each action is only added if it does not exist yet,
 - L8 `static setup() -> void`
+
+### scripts/cover_update.gd (CoverUpdate)
+extends RefCounted | 0 const | Works out every person's cover and protection every GROUND_UPDATE_INTERVAL. With a border, cover is how far...
+- L18 `update(delta: float) -> void`
 
 ### scripts/crowd_movement.gd (CrowdMovement)
 extends RefCounted | 0 const | Moves the unrescued people each frame (wander, pursuit, separation, the dimmed reach for the player). Moved...
@@ -209,6 +223,16 @@ extends RefCounted | 0 const | Round 19: the level is won by reaching dawn, and 
 - L37 `static lights_text(lights: int) -> String` - The lights drawn as text: "[*][*][ ]" for two.
 - L45 `static hint_for(lights: int) -> String` - What the next light needs, for the end screen ("" at three lights).
 - L65 `static detail_text(main: TopDownMain) -> String` - The lines on the end screen (moved from TopDownMain in round 21): the dawn lights (at dawn) with the reason...
+
+### scripts/dim_gate.gd (DimGate)
+extends RefCounted | 0 const | The midnight stagger (round 14): people sink to dimmed one at a time, and not at all during the calm opening.
+- L21 `hold_back(delta: float) -> void` - Round 13b: nobody sinks to dimmed during the calm opening (they wait as gloomy: the cap holds them under th...
+- L32 `ask() -> bool` - Round 14, the midnight stagger: asked by a person who would sink to dimmed (Person._check_level), in the or...
+
+### scripts/dim_recovery.gd (DimRecovery)
+extends RefCounted | 0 const | Round 12a: a dim player recovers spirit only inside the border (or near a landmark before a border exists),...
+- L14 `update(delta: float) -> void`
+- L24 `rate() -> float` - Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
 
 ### scripts/edge_dim.gd (EdgeDim)
 extends RefCounted | 0 const | Round 25 (edge cleanup): dimmed people who are still outside the border are drawn at lower contrast, so the
@@ -405,6 +429,47 @@ extends Node3D | 4 const | Round 19: the level's landmarks and what they give. O
 - L68 `held_flags() -> Array[bool]` - Which landmarks are held, in order (for the minimap).
 - L76 `held_lines() -> Array[String]` - The HUD panel's lines: one per held landmark, with its boost.
 - L85 `static near_any(pos: Vector3, radius: float) -> bool` - True when `pos` is within `radius` of any landmark.
+
+### scripts/level_end.gd (LevelEnd)
+extends RefCounted | 0 const | How a level ends and is left: the end conditions (the border falling loses; dawn is a win rated in dawn lig...
+- L15 `check() -> void` - The end conditions, in order: the border falling loses, and dawn ends the level (a win, rated in dawn lights).
+- L25 `end_round(title: String) -> void`
+- L38 `current_rating() -> Dictionary` - What the rating would be right now (people rescued, ground held, landmarks held).
+- L46 `detail_text() -> String` - The lines on the end screen (built by DawnRating.detail_text).
+- L52 `leave(reason: String, scene_path: String) -> void` - Leaves the level for `scene_path` (empty = start this level again) after telling the recorder why. Tests set
+- L63 `note_exit(reason: String) -> void` - Round 18: tells the recorder why the level is being left.
+
+### scripts/level_events.gd (LevelEvents)
+extends RefCounted | 0 const | What the level does when something happens: a person is rescued, relapses or changes stage, joy is blocked...
+- L17 `wire_landmarks(landmarks: Landmarks) -> void` - Round 20: a claim or a loss is announced on the HUD.
+- L24 `wire_border(border: Border) -> void` - The border's stretch ending early, and the zone pulling in, are noticed in the prompt bar.
+- L34 `on_stage_changed(_from_level: int, to_level: int, p: Person) -> void` - Round 12b: someone sank or lifted a stage. The minimap shows a brief blip where a person became dimmed.
+- L40 `on_person_rescued(p: Person) -> void` - A rescued person (`p`) was made: the border takes them in. The count goes up.
+- L51 `on_person_relapsed(p: Person) -> void` - A rescued person (`p`) relapsed: they step out of the border, and the count goes down.
+- L60 `on_landmark_claimed(lm: Landmark) -> void` - Round 20: a landmark was claimed (its boost is on) or lost (its boost is off): a notice across the top.
+- L64 `on_landmark_lost(lm: Landmark) -> void`
+- L68 `on_joy_blocked(reason: int, p: Person) -> void`
+- L77 `on_joy_landed(p: Person) -> void` - Round 14: joy landed on a dimmed person: their progress ring shows, and the one-time dimmed prompt.
+- L84 `on_burst_fired(_at: Vector3) -> void`
+- L89 `on_player_dim_changed(dim: bool) -> void`
+- L96 `on_grab_landed(_p: Person) -> void`
+
+### scripts/level_hud.gd (LevelHud)
+extends RefCounted | 2 const | Builds the level's screen-space layer and keeps it up to date: the HUD with the minimap, the landmark point...
+- L24 `build() -> void` - The HUD, the minimap (top-left circle, a fifth of the screen width) and the off-screen gap arrows (round 10...
+- L62 `start() -> void` - After the systems that draw on the HUD exist: the hint line, the targeting mode and the starting numbers.
+- L76 `update_readability(delta: float) -> void` - Each frame: the off-screen gap arrows. The minimap picture is refreshed about 10 times a second (see Minima...
+- L104 `update_landmarks() -> void` - The landmark panel: which are held and what they give.
+- L109 `update_spirit_hud() -> void`
+- L117 `update_target_mood() -> void` - Round 12b: the target's mood next to its element on the HUD ("Target: Music (guarded)").
+- L126 `update_feedback(delta: float) -> void` - Every frame, also after the round ends: the overlays advance and redraw.
+- L136 `toggle_debug() -> void` - F3: flips the debug overlay. The player reads the key and emits debug_toggled.
+- L142 `set_debug(on: bool) -> void` - Turns the F3 debug overlay on or off: cover and protection labels above each person, border labels on the l...
+- L151 `update_debug_hint() -> void`
+
+### scripts/look_switch.gd (LookSwitch)
+extends RefCounted | 0 const | F4: switches the level to `new_mode` (Looks.Mode) in place. Every object keeps its rules state and rebuilds...
+- L8 `static apply(main: TopDownMain, new_mode: int) -> void`
 
 ### scripts/looks/border_look.gd (BorderLook)
 extends Node3D | 0 const | The look of the living border. The rules (border.gd) own the loop, the members and the gaps; this node read...
@@ -883,10 +948,11 @@ extends RefCounted | 1 const | Round 13b: the small icons of the game's communic
 
 ### scripts/moods.gd (Moods)
 extends Node | 0 const | Round 12b, read the person: the moods of unrescued wistful and gloomy people, and the sheltering of dimmed...
-- L33 `static assign(people: Array[Person], seed_value: int) -> void` - Gives every person one mood, shuffled from a repeating bag (so the three moods are split evenly, within one...
-- L49 `update(people: Array[Person], player: TopDownPlayer, delta: float) -> void` - Advances every mood by `delta`: sheltering flags, the guarded turn, the skittish scare and the glum look-ups.
-- L81 `is_fleeing(p: Person) -> bool` - True while `p` is backing away from the player (the level moves them, see TopDownMain._update_people).
-- L86 `flee_dir(p: Person) -> Vector3` - The flat direction `p` backs away in: straight away from the point they fled from.
+- L33 `static unlock_for_intro(people: Array[Person], intro: Intro) -> void` - Round 13b, the layered introduction: a mood is dormant until its fraction of the night (the people keep the...
+- L42 `static assign(people: Array[Person], seed_value: int) -> void` - Gives every person one mood, shuffled from a repeating bag (so the three moods are split evenly, within one...
+- L58 `update(people: Array[Person], player: TopDownPlayer, delta: float) -> void` - Advances every mood by `delta`: sheltering flags, the guarded turn, the skittish scare and the glum look-ups.
+- L90 `is_fleeing(p: Person) -> bool` - True while `p` is backing away from the player (the level moves them, see TopDownMain._update_people).
+- L95 `flee_dir(p: Person) -> Vector3` - The flat direction `p` backs away in: straight away from the point they fled from.
 
 ### scripts/night_config.gd (NightConfig)
 extends RefCounted | 57 const | The night: its length and strength curve, dimmed arrivals, first light and the gloom tides.
@@ -949,6 +1015,18 @@ signals: rescued, relapsed, wobbled(seconds: float), saved, stage_changed(from_l
 ### scripts/player_config.gd (PlayerConfig)
 extends RefCounted | 33 const | The player and the camera: movement, zoom, targeting, hover, highlight and the player marker.
 
+### scripts/plaza.gd (Plaza)
+extends RefCounted | 3 const | The plaza: the floor and walls (collision only; the looks draw them), the obstacle blocks and the landmark...
+- L48 `build() -> void` - Floor, walls, blocks and landmark blocks, with the plaza look.
+- L79 `make_look() -> void` - The floor and walls look for the current look mode (also called when F4 flips the look).
+- L86 `register_buildings(border: Border) -> void` - Gives the border every block (and landmark block) it can beautify.
+- L96 `static make_body(size: Vector3, pos: Vector3) -> StaticBody3D` - Creates a static body with a box collision shape (the drawing is done by looks).
+- L108 `spawn_people() -> void` - Makes the people (TD_PEOPLE_COUNT of them, on seeded spots) and hooks them to the level's events and gates.
+- L134 `find_spot(placed: Array[Vector3]) -> Vector3` - Tries up to 200 random spots inside the plaza and returns the first that is clear of the
+- L144 `spot_ok(p: Vector3, placed: Array[Vector3]) -> bool`
+- L156 `near_block(p: Vector3, margin: float) -> bool` - True if `p` is inside any block's footprint (the landmark included), grown by `margin` metres.
+- L168 `static flat_dist(a: Vector3, b: Vector3) -> float` - Distance between two points, ignoring height.
+
 ### scripts/projectile_config.gd (ProjectileConfig)
 extends RefCounted | 57 const | Joy projectiles (notes, paint, flowers), blooms, trails and their effects.
 
@@ -968,17 +1046,18 @@ extends Node3D | 2 const | Round 20/21/22: the placeholder look's guide to the s
 ### scripts/recorder.gd (Recorder)
 extends Node | 3 const | Round 18: the gameplay recorder. While it is on, each game writes a session folder with `events.jsonl` (one...
 - L51 `static requested() -> bool` - True when this game should record: the menu toggle or the `--record` user argument.
-- L56 `static load_setting() -> void` - Loads the saved menu choice (not under automated tests, which must not read a player's settings).
-- L63 `static load_setting_from(path: String) -> void` - Reads the menu choice from the config file at `path` (a missing or unreadable file leaves it as it is).
-- L69 `static save_setting() -> void`
-- L76 `static save_setting_to(path: String) -> void` - Writes the menu choice into the config file at `path`, keeping whatever else that file holds.
-- L84 `static phase_for(progress: float) -> String` - The night phase name for a night progress 0..1 (the calm opening, then thirds up to dawn).
-- L95 `attach(main: TopDownMain) -> bool` - Starts a session for `main` (call at the end of its _ready). Returns false when it could not open a file.
-- L212 `is_open() -> bool`
-- L255 `note_exit(reason: String) -> void` - Marks why the level is being left (the restart and menu keys call this just before changing scene).
-- L261 `end(reason: String) -> void` - Writes session_end (once) and closes the file. `reason` is "win", "loss", "dawn", "restart", "menu", "quit" or
-- L289 `on_round_end(title: String) -> void` - The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn...
-- L308 `emit_event(type: String, fields: Dictionary = {}) -> void` - Adds one line: t, night_phase and night are filled in; `fields` are the rest. Cheap: one JSON string into a...
+- L57 `static start(main: TopDownMain) -> Recorder` - Starts recording `main`'s level when it was asked for (the menu check box or `-- --record`); null when not,...
+- L69 `static load_setting() -> void` - Loads the saved menu choice (not under automated tests, which must not read a player's settings).
+- L76 `static load_setting_from(path: String) -> void` - Reads the menu choice from the config file at `path` (a missing or unreadable file leaves it as it is).
+- L82 `static save_setting() -> void`
+- L89 `static save_setting_to(path: String) -> void` - Writes the menu choice into the config file at `path`, keeping whatever else that file holds.
+- L97 `static phase_for(progress: float) -> String` - The night phase name for a night progress 0..1 (the calm opening, then thirds up to dawn).
+- L108 `attach(main: TopDownMain) -> bool` - Starts a session for `main` (call at the end of its _ready). Returns false when it could not open a file.
+- L225 `is_open() -> bool`
+- L268 `note_exit(reason: String) -> void` - Marks why the level is being left (the restart and menu keys call this just before changing scene).
+- L274 `end(reason: String) -> void` - Writes session_end (once) and closes the file. `reason` is "win", "loss", "dawn", "restart", "menu", "quit" or
+- L302 `on_round_end(title: String) -> void` - The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn...
+- L321 `emit_event(type: String, fields: Dictionary = {}) -> void` - Adds one line: t, night_phase and night are filled in; `fields` are the rest. Cheap: one JSON string into a...
 
 ### scripts/recorder_config.gd (RecorderConfig)
 extends RefCounted | 6 const | The gameplay recorder (scripts/recorder.gd).
@@ -1018,23 +1097,28 @@ signals: warmed(person: Person, joy: float, spirit: float)
 ### scripts/style_config.gd (StyleConfig)
 extends RefCounted | 95 const | Styled look numbers (scenery, atmosphere, props, ambient life, jog). The rules never read them.
 
+### scripts/target_highlight.gd (TargetHighlight)
+extends MeshInstance3D | 0 const | The ring under the target's feet: a flat warm disc (placeholder) or the styled ring (StyleTarget). Hidden w...
+- L12 `static attach(main: TopDownMain) -> TargetHighlight`
+- L23 `apply_look() -> void` - Checkpoint 6: the highlight's pieces for the current look: the warm disc (placeholder) or the flat ring wit...
+- L45 `sync(delta: float) -> void` - Moves the highlight to the target's feet and pulses it slowly. Hidden while there is no valid target.
+
 ### scripts/tide_pointer.gd (TidePointer)
 extends Control | 0 const | Round 25: the gloom tide's edge pointer. A grey ring and arrow at the screen edge, pointing toward the side...
 - L19 `show_at(at: Vector2, direction: Vector2) -> void` - Shows the pointer with its tip at `at` (window pixels) and its outward direction `direction` (a unit vector).
 - L26 `hide_pointer() -> void`
 
 ### scripts/topdown_main.gd (TopDownMain)
-extends Node3D | 5 const | The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a...
+extends Node3D | 0 const | The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a...
 signals: beacon_placed(pos: Vector3, cost: float, spirit_after: float)
-- L296 `try_place_beacon() -> bool` - Round 19: E. See BeaconPlacement.
-- L319 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
-- L324 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
-- L352 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
-- L356 `sun_light() -> DirectionalLight3D`
-- L360 `environment() -> Environment`
-- L417 `dim_recovery_rate() -> float` - Spirit per second the dim player recovers where they stand: DIM_RECOVER_RATE times (DIM_RECOVER_BASE plus
-- L566 `view_half_extents() -> Vector2` - The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the v...
-- L772 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
+- L208 `try_place_beacon() -> bool` - Round 19: E. See BeaconPlacement.
+- L213 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
+- L218 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
+- L223 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
+- L227 `sun_light() -> DirectionalLight3D`
+- L231 `environment() -> Environment`
+- L235 `view_half_extents() -> Vector2`
+- L240 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
 
 ### scripts/topdown_player.gd (TopDownPlayer)
 extends CharacterBody3D | 0 const | The player in top-down mode. WASD moves in world space and the mouse picks an aim point on the floor. The p...

@@ -33,7 +33,7 @@ func _count_live(list: Array[StyleAmbient.Flyer]) -> int:
 
 func test_layout_gives_each_block_its_props_and_lines_without_repeats() -> void:
 	var centres: Array[Vector3] = []
-	for c: Vector3 in TopDownMain.BLOCK_POSITIONS:
+	for c: Vector3 in Plaza.BLOCK_POSITIONS:
 		centres.append(c)
 	var props := StyleProps.layout_props(centres)
 	assert_int(props.size()).is_equal(centres.size() * 2)
@@ -224,7 +224,7 @@ func test_a_beautified_block_blooms_its_own_props_first() -> void:
 		if p.bloom > 0.99:
 			lit += 1
 	assert_int(lit).is_equal(2)
-	assert_int(sp.bench_positions().size()).is_equal(TopDownMain.BLOCK_POSITIONS.size())
+	assert_int(sp.bench_positions().size()).is_equal(Plaza.BLOCK_POSITIONS.size())
 
 
 func test_props_and_ambient_are_hidden_and_idle_in_the_placeholder_look() -> void:
@@ -321,8 +321,8 @@ func test_a_bird_lands_on_a_beautified_roof_and_leaves_when_it_is_lost() -> void
 	var building := td.border.buildings[0]
 	building.beautified = true
 	var idx := -1
-	for i: int in range(TopDownMain.BLOCK_POSITIONS.size()):
-		var c := TopDownMain.BLOCK_POSITIONS[i]
+	for i: int in range(Plaza.BLOCK_POSITIONS.size()):
+		var c := Plaza.BLOCK_POSITIONS[i]
 		if building.centre.distance_to(Vector2(c.x, c.z)) < 1.0:
 			idx = i
 	assert_bool(idx >= 0).is_true()

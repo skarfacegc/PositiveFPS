@@ -64,7 +64,7 @@ func _walk(td: TopDownMain, start: Array[Vector3], frames: int) -> Array[Vector3
 	for i: int in range(td.people.size()):
 		td.people[i].global_position = start[i]
 	td._crowd._wander.clear()
-	td._rng.seed = 7
+	td.plaza.rng.seed = 7
 	for f: int in range(frames):
 		td._crowd.update_people(0.016)
 	var out: Array[Vector3] = []

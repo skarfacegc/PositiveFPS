@@ -86,8 +86,8 @@ func _ready() -> void:
 		butterflies.append(_flyer(WING_COLOURS[i % WING_COLOURS.size()]))
 	for i: int in range(StyleConfig.C7_FIREFLIES):
 		fireflies.append(_flyer(FIREFLY))
-	for i: int in range(TopDownMain.BLOCK_POSITIONS.size()):
-		var c := TopDownMain.BLOCK_POSITIONS[i]
+	for i: int in range(Plaza.BLOCK_POSITIONS.size()):
+		var c := Plaza.BLOCK_POSITIONS[i]
 		var b := Bird.new()
 		b.block = i
 		b.roof = Vector3(c.x + _rng.randf_range(-1.2, 1.2), BANK_Y, c.z + _rng.randf_range(-1.2, 1.2))
@@ -231,7 +231,7 @@ func _draw_firefly(f: Flyer) -> void:
 func _building_beautified(block: int) -> bool:
 	if main == null or main.border == null:
 		return false
-	var c := TopDownMain.BLOCK_POSITIONS[block]
+	var c := Plaza.BLOCK_POSITIONS[block]
 	for b: Building in main.border.buildings:
 		if b.centre.distance_to(Vector2(c.x, c.z)) < 1.0:
 			return b.beautified

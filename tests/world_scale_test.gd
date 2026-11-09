@@ -70,7 +70,7 @@ func test_the_plaza_is_a_hundred_metres_and_the_ground_grid_matches() -> void:
 	assert_float(td.ground.paint_radius).is_equal_approx(6.0 * Config.WORLD_SCALE, 0.0001)
 	# Every block and the landmark are inside the walls, and the start area stays clear of them.
 	var half := Config.TD_PLAZA_SIZE / 2.0
-	for pos: Vector3 in TopDownMain.BLOCK_POSITIONS:
+	for pos: Vector3 in Plaza.BLOCK_POSITIONS:
 		assert_float(absf(pos.x)).is_less(half - 6.0)
 		assert_float(absf(pos.z)).is_less(half - 6.0)
 		assert_float(Vector2(pos.x, pos.z).length()).is_greater(12.0)
@@ -139,7 +139,7 @@ func test_territory_constants_scale_and_interaction_constants_do_not() -> void:
 	assert_float(RoundLoopConfig.BORDER_PUSH_WIDTH).is_equal(0.5)
 	assert_float(RoundLoopConfig.BORDER_SHOVE_RANGE).is_equal(4.0)
 	assert_float(PeopleConfig.TD_DIMMED_STOP_DISTANCE).is_equal(2.5)
-	assert_vector(TopDownMain.BLOCK_SIZE).is_equal(Vector3(4, 2, 4))
+	assert_vector(Plaza.BLOCK_SIZE).is_equal(Vector3(4, 2, 4))
 	assert_vector(LandmarkConfig.BORDER_LANDMARK_SIZE).is_equal(Vector3(4, 3.5, 4))
 
 	# Speeds: about 10% faster, not scaled by 1.43.
@@ -268,13 +268,13 @@ func test_spawn_spots_keep_clear_of_the_centre_blocks_and_each_other() -> void:
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
 	var none: Array[Vector3] = []
-	assert_bool(td._spot_ok(Vector3(PeopleConfig.TD_SPAWN_CENTRE_CLEAR - 0.5, 0, 0), none)).is_false()
-	assert_bool(td._spot_ok(TopDownMain.BLOCK_POSITIONS[0] * Vector3(1, 0, 1), none)).is_false()
+	assert_bool(td.plaza.spot_ok(Vector3(PeopleConfig.TD_SPAWN_CENTRE_CLEAR - 0.5, 0, 0), none)).is_false()
+	assert_bool(td.plaza.spot_ok(Plaza.BLOCK_POSITIONS[0] * Vector3(1, 0, 1), none)).is_false()
 	var near: Array[Vector3] = [Vector3(20, 0, 0)]
-	assert_bool(td._spot_ok(Vector3(20 + PeopleConfig.TD_SPAWN_SPACING - 0.5, 0, 0), near)).is_false()
-	assert_bool(td._spot_ok(Vector3(20 + PeopleConfig.TD_SPAWN_SPACING + 0.5, 0, 0), near)).is_true()
-	td._end_round("Test")
+	assert_bool(td.plaza.spot_ok(Vector3(20 + PeopleConfig.TD_SPAWN_SPACING - 0.5, 0, 0), near)).is_false()
+	assert_bool(td.plaza.spot_ok(Vector3(20 + PeopleConfig.TD_SPAWN_SPACING + 0.5, 0, 0), near)).is_true()
+	td.level_end.end_round("Test")
 	assert_bool(td.running).is_false()
-	td._end_round("Again")
+	td.level_end.end_round("Again")
 	assert_bool(td.running).is_false()
 	await TopDownTestUtil.leave_loaded_scene(td)

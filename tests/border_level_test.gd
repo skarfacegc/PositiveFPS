@@ -399,7 +399,7 @@ func test_f3_from_the_menu_shows_the_border_labels() -> void:
 	await menu.simulate_frames(20)
 	menu.simulate_key_pressed(KEY_F3)
 	await menu.simulate_frames(10)
-	assert_bool(td.debug_on).is_true()
+	assert_bool(td.level_hud.debug_on).is_true()
 	assert_bool(td.hud.debug_hint_label.visible).is_true()
 	assert_str(td.hud.debug_hint_label.text).contains("border")
 	assert_int(td.border.visible_debug_label_count()).is_greater(0)

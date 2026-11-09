@@ -138,8 +138,8 @@ func test_a_spawn_spot_in_a_full_plaza_is_the_last_try_and_is_not_clear() -> voi
 	for ix: int in range(-48, 49, 3):
 		for iz: int in range(-48, 49, 3):
 			placed.append(Vector3(float(ix), 0.0, float(iz)))
-	var spot := td._find_spot(placed)
-	assert_bool(td._spot_ok(spot, placed)).is_false()
+	var spot := td.plaza.find_spot(placed)
+	assert_bool(td.plaza.spot_ok(spot, placed)).is_false()
 	assert_float(absf(spot.x)).is_less_equal(Config.TD_PLAZA_SIZE / 2.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -147,15 +147,15 @@ func test_a_spawn_spot_in_a_full_plaza_is_the_last_try_and_is_not_clear() -> voi
 func test_a_wanderer_next_to_a_block_stays_put_when_no_clear_spot_turns_up() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
-	td._rng.seed = Config.RNG_SEED
-	var block: Vector3 = TopDownMain.BLOCK_POSITIONS[0]
+	td.plaza.rng.seed = Config.RNG_SEED
+	var block: Vector3 = Plaza.BLOCK_POSITIONS[0]
 	var stayed := 0
 	for i: int in range(20):
 		var target := td._new_wander_target(block)
 		if target == block:
 			stayed += 1
 		else:
-			assert_bool(td._near_block(target, PeopleConfig.TD_BLOCK_CLEARANCE)).is_false()
+			assert_bool(td.plaza.near_block(target, PeopleConfig.TD_BLOCK_CLEARANCE)).is_false()
 			assert_float(GloomSim.flat_dist(target, block)).is_less_equal(PeopleConfig.TD_WANDER_RANGE)
 	# Most tries from a block's centre land inside the block's clearance, so with the seed fixed some call stays put.
 	assert_int(stayed).is_greater(0)

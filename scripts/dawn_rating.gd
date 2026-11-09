@@ -63,7 +63,7 @@ static func hint_for(lights: int) -> String:
 # The lines on the end screen (moved from TopDownMain in round 21): the dawn lights (at dawn) with the reasons, then the
 # buildings beautified.
 static func detail_text(main: TopDownMain) -> String:
-	var r: Dictionary = main.rating if not main.rating.is_empty() else main._current_rating()
+	var r: Dictionary = main.rating if not main.rating.is_empty() else main.level_end.current_rating()
 	var lights: int = r["lights"]
 	var lines: Array[String] = []
 	if not main.rating.is_empty():

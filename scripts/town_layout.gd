@@ -2,7 +2,7 @@ class_name TownLayout
 extends RefCounted
 
 # 0.3.3 (#52): the shape of the town. A main street along x (z = 0) and a cross street along z (x = 0) cross at the
-# player's start (the small square). The blocks (TopDownMain.BLOCK_POSITIONS) stand in rows on both sides of the two
+# player's start (the small square). The blocks (Plaza.BLOCK_POSITIONS) stand in rows on both sides of the two
 # streets and face them; the landmarks stand at the street ends. This script answers questions about that plan for the
 # props (lamps along the kerbs, benches and planters in front of the blocks, stalls on the square) and for the tests.
 # It only reads positions: it adds no rules.

@@ -365,7 +365,7 @@ static func _make_multimesh(parent: Node3D, ball: bool, capacity: int) -> MultiM
 
 
 func _ready() -> void:
-	for c: Vector3 in TopDownMain.BLOCK_POSITIONS:
+	for c: Vector3 in Plaza.BLOCK_POSITIONS:
 		_blocks.append(c)
 	props = layout_props(_blocks)
 	props.append_array(layout_streets())

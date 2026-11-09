@@ -235,7 +235,7 @@ func test_target_changes_are_logged_once_each() -> void:
 func test_the_end_of_the_round_logs_the_outcome_and_ends_the_session() -> void:
 	var s: Dictionary = await _start(true)
 	var td: TopDownMain = s["td"]
-	td._end_round("The border fell")
+	td.level_end.end_round("The border fell")
 	var events := _read_file(td)
 	assert_int(_of_type(events, "loss").size()).is_equal(1)
 	var last := events[events.size() - 1]
@@ -260,7 +260,7 @@ func test_quitting_flushes_what_was_buffered() -> void:
 func test_leaving_the_level_writes_session_end_once_with_the_reason() -> void:
 	var s: Dictionary = await _start(true)
 	var td: TopDownMain = s["td"]
-	td._note_exit("restart")
+	td.level_end.note_exit("restart")
 	td.recorder.end(td.recorder._exit_reason)
 	td.recorder.end("quit")
 	var text := FileAccess.get_file_as_string(td.recorder.events_path)

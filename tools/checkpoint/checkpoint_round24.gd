@@ -274,7 +274,7 @@ func _r24_reach(label: String) -> void:
 # Puts the night at `progress` through first light and moves the front there (the rules are run by hand).
 func _r24_front(progress: float) -> void:
 	main.night.elapsed = NightConfig.NIGHT_LENGTH - NightConfig.FIRST_LIGHT_SECONDS * (1.0 - progress)
-	main._update_light()
+	main.camera_rig.update_light()
 	main.hud.set_night_progress(main.night.progress())
 	main.first_light.step(0.0)
 	main.minimap.refresh_clouds(main.people)

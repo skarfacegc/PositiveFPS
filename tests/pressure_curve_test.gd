@@ -172,14 +172,14 @@ func test_the_midnight_gate_in_the_level_follows_the_night() -> void:
 	await runner.simulate_frames(10)
 	var td: TopDownMain = runner.scene()
 	# Eight seconds since the last sink: the rising phase lets the next one go, the easing phase holds it back.
-	td._dim_clock = 100.0
+	td.dim_gate.clock = 100.0
 	td.night.elapsed = NightConfig.NIGHT_LENGTH * 0.3
-	td._last_dim_sink = 92.0
-	assert_bool(td._try_dim_sink()).is_true()
-	td._last_dim_sink = 92.0
+	td.dim_gate.last_sink = 92.0
+	assert_bool(td.dim_gate.ask()).is_true()
+	td.dim_gate.last_sink = 92.0
 	td.night.elapsed = NightConfig.NIGHT_LENGTH * 0.95
-	assert_bool(td._try_dim_sink()).is_false()
+	assert_bool(td.dim_gate.ask()).is_false()
 	# Thirty-two seconds is enough even then (the gap peaks at DIM_GAP_EASE_END, 30 s).
-	td._last_dim_sink = 68.0
-	assert_bool(td._try_dim_sink()).is_true()
+	td.dim_gate.last_sink = 68.0
+	assert_bool(td.dim_gate.ask()).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)

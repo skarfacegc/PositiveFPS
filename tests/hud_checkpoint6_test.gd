@@ -260,7 +260,7 @@ func test_the_target_highlight_is_a_flat_ring_in_the_styled_look_and_the_warm_di
 	var p: Person = td.people[0]
 	TopDownTestUtil.place(p, td.player.global_position + Vector3(2, 0, 2), Config.Element.NATURE, 0.0)
 	td.player.target = p
-	td._update_highlight(0.016)
+	td.highlight.sync(0.016)
 	assert_bool(td.highlight.visible).is_true()
 	var tint: Color = (disc.material_override as ShaderMaterial).get_shader_parameter("fill_color")
 	assert_bool(tint.is_equal_approx(Config.ELEMENT_COLORS[Config.Element.NATURE])).is_true()

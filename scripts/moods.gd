@@ -28,6 +28,15 @@ func _init() -> void:
 	_rng.seed = Config.RNG_SEED + 12
 
 
+# Round 13b, the layered introduction: a mood is dormant until its fraction of the night (the people keep their mood but
+# it does nothing and shows nothing).
+static func unlock_for_intro(people: Array[Person], intro: Intro) -> void:
+	if not intro.enabled:
+		return
+	for p: Person in people:
+		p.mood_unlocked = intro.mood_active(p.mood)
+
+
 # Gives every person one mood, shuffled from a repeating bag (so the three moods are split evenly, within one) with a
 # seeded generator. Returns nothing; it sets Person.mood.
 static func assign(people: Array[Person], seed_value: int) -> void:

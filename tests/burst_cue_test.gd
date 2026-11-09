@@ -23,7 +23,7 @@ func _border_level(count: int, r: float) -> Dictionary:
 
 func test_the_f_patch_is_gone_from_the_keys_the_hint_and_the_menu() -> void:
 	assert_bool(InputMap.has_action("patch_gap")).is_false()
-	assert_str(TopDownMain.HINT_PLAY).not_contains("patch")
+	assert_str(LevelHud.HINT_PLAY).not_contains("patch")
 	var menu_text: String = (load("res://scripts/menu.gd") as GDScript).get_script_constant_map()["HOW_TO_PLAY_TEXT"]
 	assert_str(menu_text).not_contains("patch")
 	assert_str(menu_text).contains("spring back")

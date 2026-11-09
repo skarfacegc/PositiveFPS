@@ -52,6 +52,19 @@ static func requested() -> bool:
 	return enabled or "--record" in OS.get_cmdline_user_args()
 
 
+# Starts recording `main`'s level when it was asked for (the menu check box or `-- --record`); null when not, or when
+# the recording folder could not be made.
+static func start(main: TopDownMain) -> Recorder:
+	if not requested():
+		return null
+	var rec := Recorder.new()
+	main.add_child(rec)
+	if not rec.attach(main):
+		rec.queue_free()
+		return null
+	return rec
+
+
 # Loads the saved menu choice (not under automated tests, which must not read a player's settings).
 static func load_setting() -> void:
 	if Config.is_automated_test():
@@ -293,7 +306,7 @@ func on_round_end(title: String) -> void:
 	var kind := "loss"
 	if not title.begins_with("The border fell"):
 		kind = "win"
-		var r: Dictionary = _main.rating if not _main.rating.is_empty() else _main._current_rating()
+		var r: Dictionary = _main.rating if not _main.rating.is_empty() else _main.level_end.current_rating()
 		var people_share: float = r["people"]
 		var ground_share: float = r["ground"]
 		fields["lights"] = r["lights"]

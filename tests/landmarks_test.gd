@@ -50,7 +50,7 @@ func test_landmarks_are_inside_the_map_clear_of_blocks_and_each_other_and_near_t
 		var d := Vector2(at.x, at.z).length()
 		assert_float(d).is_between(TownConfig.LANDMARK_NEAREST, TownConfig.LANDMARK_FARTHEST)
 		# Clear of every ordinary block (a block is 4 wide: keep a wide margin) and of each other.
-		for block: Vector3 in TopDownMain.BLOCK_POSITIONS:
+		for block: Vector3 in Plaza.BLOCK_POSITIONS:
 			assert_float(Vector2(at.x - block.x, at.z - block.z).length()).is_greater(8.0)
 		for j: int in range(i + 1, count):
 			var other := LandmarkConfig.LANDMARK_POSITIONS[j]
@@ -197,9 +197,9 @@ func test_a_dim_player_recovers_near_each_landmark_before_a_border_exists() -> v
 	var td: TopDownMain = runner.scene()
 	for at: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
 		td.player.global_position = Vector3(at.x, 0.0, at.z + 4.0)
-		assert_float(td.dim_recovery_rate()).is_equal(SpiritConfig.DIM_RECOVER_RATE)
+		assert_float(td.dim_recovery.rate()).is_equal(SpiritConfig.DIM_RECOVER_RATE)
 		td.player.global_position = Vector3(at.x, 0.0, at.z + SpiritConfig.LANDMARK_RECOVER_RADIUS + 6.0)
-		assert_float(td.dim_recovery_rate()).is_equal(0.0)
+		assert_float(td.dim_recovery.rate()).is_equal(0.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

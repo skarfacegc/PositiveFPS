@@ -26,7 +26,7 @@ func _paint_all(td: TopDownMain, weight: float) -> void:
 
 func _blocks() -> Array[Vector3]:
 	var centres: Array[Vector3] = []
-	for c: Vector3 in TopDownMain.BLOCK_POSITIONS:
+	for c: Vector3 in Plaza.BLOCK_POSITIONS:
 		centres.append(c)
 	return centres
 
@@ -142,8 +142,8 @@ func test_street_props_are_part_of_the_scene_but_not_its_bench_list() -> void:
 		if p.plaza:
 			plaza_n += 1
 	assert_int(plaza_n).is_equal(_plaza().size())
-	assert_int(sp.props.size()).is_equal(TopDownMain.BLOCK_POSITIONS.size() * 2 + plaza_n)
-	assert_int(sp.bench_positions().size()).is_equal(TopDownMain.BLOCK_POSITIONS.size())
+	assert_int(sp.props.size()).is_equal(Plaza.BLOCK_POSITIONS.size() * 2 + plaza_n)
+	assert_int(sp.bench_positions().size()).is_equal(Plaza.BLOCK_POSITIONS.size())
 	# A bare plaza lamp still glows warm (never dark in gloom) and the drawing stays inside the layers' capacity.
 	_paint_all(td, 0.0)
 	sp.refresh(StyleConfig.C7_PROPS_INTERVAL)

@@ -219,7 +219,7 @@ func test_recovery_grows_with_depth_stops_outside_and_a_dim_player_deep_inside_l
 	await _form_border(runner, td)
 	var centre := td.border.centre
 	td.player.global_position = Vector3(centre.x, 0.0, centre.z)
-	var deep := td.dim_recovery_rate()
+	var deep := td.dim_recovery.rate()
 	assert_float(deep).is_equal_approx(SpiritConfig.DIM_RECOVER_RATE, 0.01)
 
 	# Half the edge band inside the line: depth protection 0.5 (round 13a: the band is 1 m x WORLD_SCALE).
@@ -227,7 +227,7 @@ func test_recovery_grows_with_depth_stops_outside_and_a_dim_player_deep_inside_l
 	var inward := (Vector2(centre.x, centre.z) - edge).normalized()
 	var shallow_pt := edge + inward * (0.5 * BorderConfig.BORDER_EDGE_BAND)
 	td.player.global_position = Vector3(shallow_pt.x, 0.0, shallow_pt.y)
-	var shallow := td.dim_recovery_rate()
+	var shallow := td.dim_recovery.rate()
 	var expected := (
 		SpiritConfig.DIM_RECOVER_RATE * (SpiritConfig.DIM_RECOVER_BASE + SpiritConfig.DIM_RECOVER_DEPTH * 0.5)
 	)
@@ -236,7 +236,7 @@ func test_recovery_grows_with_depth_stops_outside_and_a_dim_player_deep_inside_l
 
 	var outside := edge - inward * 3.0
 	td.player.global_position = Vector3(outside.x, 0.0, outside.y)
-	assert_float(td.dim_recovery_rate()).is_equal(0.0)
+	assert_float(td.dim_recovery.rate()).is_equal(0.0)
 	var player: TopDownPlayer = td.player
 	player.global_position = Vector3(td.border.centre.x, 0.0, td.border.centre.z)
 	player.spirit = 0.0
@@ -276,7 +276,7 @@ func test_before_a_border_a_dim_player_recovers_only_near_the_landmark() -> void
 	player.global_position = Vector3(landmark.x, 0.0, landmark.z + 5.0)
 	_go_dim(td)
 	assert_bool(td.border.active).is_false()
-	assert_float(td.dim_recovery_rate()).is_equal(SpiritConfig.DIM_RECOVER_RATE)
+	assert_float(td.dim_recovery.rate()).is_equal(SpiritConfig.DIM_RECOVER_RATE)
 	await runner.simulate_frames(60)
 	assert_float(player.spirit).is_equal_approx(SpiritConfig.DIM_RECOVER_RATE, 1.5)
 

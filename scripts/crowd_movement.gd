@@ -79,7 +79,7 @@ func _stop_distance(p: Person, target_p: Person) -> float:
 func _reaches_for_player(p: Person) -> bool:
 	if not GloomSim.is_dimmed(p) or main.player.is_dim or not main.player.active:
 		return false
-	return main._flat_dist(p.global_position, main.player.global_position) <= SpiritConfig.GRAB_NOTICE_RANGE
+	return Plaza.flat_dist(p.global_position, main.player.global_position) <= SpiritConfig.GRAB_NOTICE_RANGE
 
 
 # Works out which rescued person each dimmed person drifts toward (the weakest point). Each rescued person takes at most
@@ -113,7 +113,7 @@ func _weakest_with_slot(pos: Vector3, rescued_list: Array[Person], slots: Dictio
 		var used: int = slots.get(r, 0)
 		if used >= PeopleConfig.TD_MAX_PURSUERS_PER_TARGET:
 			continue
-		var d := main._flat_dist(pos, r.global_position)
+		var d := Plaza.flat_dist(pos, r.global_position)
 		if d > PeopleConfig.TD_PURSUIT_SEARCH_RADIUS:
 			continue
 		# Round 12b, edge pressure: among equally exposed people the newest and outermost stretch of the border is
@@ -140,7 +140,7 @@ func _wander_dir(p: Person, delta: float) -> Vector3:
 	to.y = 0.0
 	if st["timer"] <= 0.0 or to.length() <= PeopleConfig.TD_WANDER_REACH:
 		st["target"] = new_wander_target(here)
-		st["timer"] = main._rng.randf_range(PeopleConfig.TD_WANDER_TIME_MIN, PeopleConfig.TD_WANDER_TIME_MAX)
+		st["timer"] = main.plaza.rng.randf_range(PeopleConfig.TD_WANDER_TIME_MIN, PeopleConfig.TD_WANDER_TIME_MAX)
 		to = st["target"] - here
 		to.y = 0.0
 	if to.length() > 0.01:
@@ -277,12 +277,12 @@ func _may_loom(a: Person, b: Person) -> bool:
 func new_wander_target(from: Vector3) -> Vector3:
 	var limit := Config.TD_PLAZA_SIZE / 2.0 - Config.TD_EDGE_MARGIN
 	for attempt: int in range(10):
-		var angle := main._rng.randf() * TAU
-		var dist := main._rng.randf() * PeopleConfig.TD_WANDER_RANGE
+		var angle := main.plaza.rng.randf() * TAU
+		var dist := main.plaza.rng.randf() * PeopleConfig.TD_WANDER_RANGE
 		var c := from + Vector3(cos(angle) * dist, 0.0, sin(angle) * dist)
 		c.x = clampf(c.x, -limit, limit)
 		c.z = clampf(c.z, -limit, limit)
-		if not main._near_block(c, PeopleConfig.TD_BLOCK_CLEARANCE):
+		if not main.plaza.near_block(c, PeopleConfig.TD_BLOCK_CLEARANCE):
 			return c
 	return from
 
@@ -298,7 +298,7 @@ func _step(p: Person, dir: Vector3, speed: float, delta: float) -> void:
 	next_pos.z = clampf(next_pos.z, -limit, limit)
 	if GloomSim.is_dimmed(p):
 		next_pos = main.border.clip_move(p.position, next_pos)
-	if main._near_block(next_pos, PeopleConfig.TD_BLOCK_CLEARANCE):
+	if main.plaza.near_block(next_pos, PeopleConfig.TD_BLOCK_CLEARANCE):
 		# Blocked: make a wanderer choose a new target next time.
 		if _wander.has(p):
 			_wander[p]["timer"] = 0.0

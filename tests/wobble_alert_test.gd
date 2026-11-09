@@ -29,7 +29,7 @@ func _off_screen_spot(td: TopDownMain) -> Vector3:
 
 func _refresh_minimap(td: TopDownMain) -> void:
 	td.minimap.refresh_from(
-		td.ground, td.border, td.people, td.player.global_position, td._view_centre(), td.view_half_extents()
+		td.ground, td.border, td.people, td.player.global_position, td.camera_rig.view_centre(), td.view_half_extents()
 	)
 
 

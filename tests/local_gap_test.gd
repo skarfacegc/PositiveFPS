@@ -138,7 +138,10 @@ func test_a_dimmed_person_outside_the_border_walks_up_to_the_line_and_presses_it
 	var m: Person = td.border.members[3]
 	for cand: Person in td.border.members:
 		var o := _outward(td, cand)
-		if not td._near_block(cand.position + o * 2.0, 3.0) and not td._near_block(cand.position + o * 4.0, 3.0):
+		if (
+			not td.plaza.near_block(cand.position + o * 2.0, 3.0)
+			and not td.plaza.near_block(cand.position + o * 4.0, 3.0)
+		):
 			m = cand
 			break
 	var dimmed := td.people[20]

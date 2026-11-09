@@ -151,7 +151,7 @@ func _build_scenario() -> void:
 	main.running = false
 	main.border._time = BorderConfig.BORDER_GAP_PULSE_SECONDS * 0.5
 	main.border._draw_lines()
-	main._update_light()
+	main.camera_rig.update_light()
 	for p: Person in people:
 		p._update_visuals()
 
@@ -293,7 +293,7 @@ func _build_edge_scenario() -> void:
 	main.border._time = BorderConfig.BORDER_GAP_PULSE_SECONDS * 0.5
 	for p: Person in people:
 		p._update_visuals()
-	main._update_light()
+	main.camera_rig.update_light()
 
 
 func _print_stats() -> void:
@@ -387,7 +387,7 @@ func _set_zoom(size: float) -> void:
 	if is_equal_approx(current_zoom, size):
 		return
 	current_zoom = size
-	main._zoom_target = size
+	main.camera_rig.zoom_target = size
 	await _settle(100)
 
 
@@ -559,7 +559,7 @@ func _build_round19_scenario() -> void:
 			child.queue_free()
 	main.border._time = BorderConfig.BORDER_GAP_PULSE_SECONDS * 0.5
 	main.border._draw_lines()
-	main._update_light()
+	main.camera_rig.update_light()
 	for p: Person in people:
 		p._update_visuals()
 
@@ -644,7 +644,7 @@ func _r19_landmark_states(held: Array[bool], claiming: int) -> void:
 func _r19_show_end(lights: int) -> void:
 	if lights == 0:
 		main.rating = {}
-		main.hud.show_end("The border fell", main._detail_text(), {})
+		main.hud.show_end("The border fell", main.level_end.detail_text(), {})
 		return
 	var r: Dictionary = {}
 	if lights == 3:
@@ -654,7 +654,7 @@ func _r19_show_end(lights: int) -> void:
 	else:
 		r = DawnRating.rate(14, Config.TD_PEOPLE_COUNT, 0.1, 0)
 	main.rating = r
-	main.hud.show_end("Dawn: %d of 3 dawn lights" % (r["lights"] as int), main._detail_text(), r)
+	main.hud.show_end("Dawn: %d of 3 dawn lights" % (r["lights"] as int), main.level_end.detail_text(), r)
 
 
 # contact_sheet.png (styled), contact_sheet_compare.png (placeholder | styled), compare.png (the overview pair) and

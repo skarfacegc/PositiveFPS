@@ -253,13 +253,13 @@ func test_f3_toggles_the_cover_debug_labels_and_hint() -> void:
 	TopDownTestUtil.place(p, Vector3(0, 0, -8), 1, 0.0)
 	await runner.simulate_frames(2)
 	# Off by default: no label is built and the HUD hint is hidden.
-	assert_bool(td.debug_on).is_false()
+	assert_bool(td.level_hud.debug_on).is_false()
 	assert_object(p.debug_label).is_null()
 	assert_bool(td.hud.debug_hint_label.visible).is_false()
 
 	runner.simulate_key_pressed(KEY_F3)
 	await runner.simulate_frames(2)
-	assert_bool(td.debug_on).is_true()
+	assert_bool(td.level_hud.debug_on).is_true()
 	assert_bool(td.hud.debug_hint_label.visible).is_true()
 	assert_bool(p.debug_label.visible).is_true()
 	assert_str(p.debug_label.text).contains("c ")
@@ -267,6 +267,6 @@ func test_f3_toggles_the_cover_debug_labels_and_hint() -> void:
 
 	runner.simulate_key_pressed(KEY_F3)
 	await runner.simulate_frames(2)
-	assert_bool(td.debug_on).is_false()
+	assert_bool(td.level_hud.debug_on).is_false()
 	assert_bool(td.hud.debug_hint_label.visible).is_false()
 	assert_bool(p.debug_label.visible).is_false()
