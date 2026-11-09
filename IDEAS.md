@@ -522,6 +522,35 @@ read as scattered. Decisions (interview, 2026-11-09):
   plaza sit on the streets, the orange stall or planter restyle (#51) rides along.
 - Size: L (was M). Built in 0.3.3, before 0.4 Tug of war, since both touch where buildings stand.
 
+## 0.3.3 Town layout, playtest 1 and fix plan (2026-11-09) (#53; #52, #51, #17, #5 to #8, #19 to #21 In review)
+
+Played commit 760d19c (165 s, quit, 38 rescued, zone 870 sq m, three landmarks claimed, Bell tower lost once). The user
+liked the buildings, but **zone control is glitchy because of them**: on watching the replay, people were bunched in the
+middle of the zone, the border snagged, and people got stuck. It happens as the zone grows. Nothing accepted yet; all
+0.3.3 items stay In review. The recording shows 13 to 31 people gloomy throughout and 9 gaps opened by the second tide
+with only 5 members on that side; it logs no member positions, so the cause is unproven. Task #23 (recorder gap_* to
+break_*) is back at Ready, undecided.
+
+### Fix plan: Zone control around buildings (#53, M)
+
+Probable cause: the 20 blocks of the street grid sit inside the growing zone and in the way of members walking to the
+border's rest shape (and of rescued people walking in), so they bunch against block faces and corners. One Sonnet agent,
+sequential:
+1. **Reproduce first.** In a bot run (as the bot-night check in .scratch/botnight.gd) log member and rescued-person
+   positions and speeds against the blocks; find where people stall (block corners, the 10 m streets, gaps between
+   rows) and why the border rest shape and member spacing misplace them. Confirm before changing anything; put the
+   finding in the commit message.
+2. **Fix the cause found.** Likely options, cheapest first: members and rescued people steer around blocks (slide along
+   faces, or target a point on the street side) instead of pushing into them; border sample positions that fall inside
+   a block are moved to the nearest street edge; rest-shape pulls ignore the block footprints. Keep it to behaviour
+   near blocks: no new rules, placeholder look only.
+3. **Prove it.** A test that puts members and a rescued person behind a block and asserts they reach their targets in
+   a set time; a bot-run comparison before and after (members used per rescued count back near the old 28, no one stuck
+   more than a few seconds); `gate.py --full` and the determinism check (it touches the simulation).
+4. Not in this fix: moving or removing blocks (the layout is liked), the Gallery art, the defences.
+
+Then replay the same pass for the user's playtest 2.
+
 ## 0.4 Tug of war plan (2026-11-07)
 
 Planned as rounds 27 and 28 before the switch to targets; the content is unchanged. **Order:** first pass **Reorg**
