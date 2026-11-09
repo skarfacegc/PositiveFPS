@@ -103,6 +103,7 @@
     "scripts/tide_pointer.gd": 100.0,
     "scripts/topdown_main.gd": 100.0,
     "scripts/topdown_player.gd": 100.0,
+    "scripts/town_layout.gd": 100.0,
     "scripts/wobble_alert.gd": 100.0
   },
   "line_overall": 99.9
