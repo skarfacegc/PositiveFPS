@@ -149,6 +149,13 @@ try:
     handed = fed([line("user", 60, "start"), line("assistant", 50, tool_use("h9", "SubagentHandback", {"message": "r"})),
                   line("user", 49, tool_result("h9", "sent")), line("user", 5, "continue")])
     expect("a handed-back agent that is sent a message runs again", handed.status(NOW), "running")
+    cut_off = fed([line("user", 60, "start"),
+                   line("assistant", 50, [{"type": "text", "text": "partial"}], stop_reason="max_tokens")])
+    expect("a reply cut off by max_tokens is finished", cut_off.status(NOW), "finished")
+    noticed = fed([line("user", 60, "start"),
+                   line("assistant", 50, [{"type": "text", "text": "Done."}], stop_reason="end_turn"),
+                   line("user", 10, "<system-reminder>a background task finished</system-reminder>")])
+    expect("a harness notice does not wake a finished agent", noticed.status(NOW), "finished")
     busy = fed([line("user", 60, "start"),
                 line("assistant", 50, tool_use("b1", "Bash", {"command": "x"}), stop_reason="tool_use")])
     expect("an agent in the middle of a tool call is not finished", busy.status(NOW), "running")

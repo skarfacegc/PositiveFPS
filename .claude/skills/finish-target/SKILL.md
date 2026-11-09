@@ -85,7 +85,9 @@ Regenerate the code map after merging (`python tools/source_map.py`; it conflict
 and commit `SOURCE_MAP.md` with the docs. Update IDEAS.md (what was built, what was loosened or deferred, the playtest
 notes) and refresh its "Current state" section (mechanics, open items, push status); move the finished build and plan
 sections and resolved items to `IDEAS_RESOLVED.md` (text unchanged, add its heading to the index line at the top),
-keeping only the current target's section in IDEAS.md. Keep the issue ids (`#N`) on headlines; a new open item or idea
+keeping only the current target's section in IDEAS.md. That includes every older build and plan section still sitting
+in IDEAS.md (for example a finished round's "build" section): IDEAS.md should end the pass holding "Current state", the
+open items and the next target's plan only. Keep the issue ids (`#N`) on headlines; a new open item or idea
 gets an issue (step 6) and its id. Update README.md's feature and key list only in a look-focused target or when the
 user asks (keys and menu text in the game are still checked in step 3). Update ARCHITECTURE.md only where a
 fact an agent needs changed (a new script's one-line purpose, an area's files, a new gotcha or tool): describe how

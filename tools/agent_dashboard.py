@@ -31,6 +31,9 @@ STUCK_AFTER = 300      # seconds of silence before an unfinished agent is flagge
 GODOT_LONG = 900       # seconds a Godot process may run before it is flagged
 STALE_AFTER = 3600     # an unfinished agent silent this long is shown as stale (abandoned), not stuck
 RECENT_CALLS = 25
+# Text the harness itself injects into a transcript (a finished background task, a reminder). It is not a follow-up
+# message, so it must not wake a finished agent and make it show as running again.
+SYSTEM_NOTICES = ("<system-reminder", "<task-notification")
 SESSION_ID = re.compile(r"^[0-9A-Za-z._-]{1,80}$")
 TEST_CMD = re.compile(r"run_tests|gate\.py|coverage\.py|lint\.py|test_[a-z_]+\.(py|sh)|gdunit|--headless", re.I)
 COMMIT_OUT = re.compile(r"^\[([^\]\s]+)(?: \(root-commit\))? ([0-9a-f]{6,40})\] (.*)$", re.M)
@@ -197,7 +200,10 @@ class Agent:
             self.model = msg.get("model") or self.model
             self.stop_reason = msg.get("stop_reason") or self.stop_reason
             if msg.get("stop_reason"):
-                self.ended = msg["stop_reason"] == "end_turn" and not any(b.get("type") == "tool_use" for b in content)
+                # Any stop that is not a tool call and holds no tool_use block ends the turn (end_turn, but also
+                # max_tokens, stop_sequence or refusal): an agent that stopped that way is not running.
+                self.ended = (msg["stop_reason"] != "tool_use"
+                              and not any(b.get("type") == "tool_use" for b in content))
             self.interrupted = False
             usage = msg.get("usage") or {}
             self.out_tokens += int(usage.get("output_tokens") or 0)
@@ -222,7 +228,7 @@ class Agent:
                             self.files[path] = self.files.get(path, 0) + 1
         else:
             for block in content:
-                if block.get("type") == "text":
+                if block.get("type") == "text" and not block.get("text", "").lstrip().startswith(SYSTEM_NOTICES):
                     # A new message to the agent (a follow-up) wakes it again; the user's stop marks it stopped.
                     self.interrupted = block.get("text", "").startswith("[Request interrupted by user")
                     self.ended = False

@@ -60,6 +60,22 @@ class PruneReportsTest(unittest.TestCase):
             remove_tree(root)
 
 
+class GdignoreTest(unittest.TestCase):
+    def test_existing_output_folders_get_a_gdignore_once(self):
+        import tempfile
+        root = tempfile.mkdtemp(prefix="gdignore_")
+        try:
+            os.makedirs(os.path.join(root, "reports"))
+            os.makedirs(os.path.join(root, "scripts"))
+            self.assertEqual(run_tests.ensure_gdignore(root), ["reports"])
+            self.assertTrue(os.path.isfile(os.path.join(root, "reports", ".gdignore")))
+            self.assertFalse(os.path.exists(os.path.join(root, "coverage")))
+            self.assertFalse(os.path.exists(os.path.join(root, "scripts", ".gdignore")))
+            self.assertEqual(run_tests.ensure_gdignore(root), [])
+        finally:
+            remove_tree(root)
+
+
 class BrokenScriptParsingTest(unittest.TestCase):
     def test_parse_error_names_file_and_line(self):
         found = run_tests.broken_scripts(PARSE_OUTPUT)

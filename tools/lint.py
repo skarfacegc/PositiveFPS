@@ -3,7 +3,7 @@
 
 Usage:
     python tools/lint.py          # check only; exit 1 if gdformat or gdlint reports a problem
-    python tools/lint.py --fix    # run gdformat over scripts/ and tests/ (no --check), then gdlint
+    python tools/lint.py --fix    # run gdformat over scripts/ and tests/ (no --check), regenerate SOURCE_MAP.md, then gdlint
 
 Uses gdtoolkit 4.x through its Python modules (python -m gdtoolkit.formatter / gdtoolkit.linter), so no
 gdformat/gdlint launcher needs to be on PATH. Install with: python -m pip install --user "gdtoolkit==4.*"
@@ -67,6 +67,10 @@ def main():
         if code != 0:
             print("ERROR: gdformat failed", file=sys.stderr)
             return 2
+        # Formatting moves line numbers, so the map would be stale: rewrite it (the commit hook still checks it).
+        proc = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "source_map.py")], cwd=ROOT,
+                              capture_output=True, text=True, encoding="utf-8", errors="replace")
+        print("SOURCE_MAP.md: regenerated" if proc.returncode == 0 else "SOURCE_MAP.md: regenerate failed")
     else:
         code, out = run_tool("gdtoolkit.formatter", ["-l", LINE_LENGTH, "--check"])
         if code != 0:

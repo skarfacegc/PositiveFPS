@@ -79,6 +79,9 @@ PERF_PREFIX = "test_perf_"  # timing tests: see the module docstring
 # Each run writes reports/<timestamp>/ (hundreds of files). Only the newest REPORTS_KEEP runs per report root are kept;
 # older ones are removed when a run starts (271 old runs had piled up to 150,000 files).
 REPORTS_KEEP = 10
+# Tool-output folders that hold no game assets: each gets a .gdignore so Godot does not import them (design/, recordings/
+# and dist-builds/ are not here: design/ is a nested project, the others are never loaded by the game).
+GDIGNORE_FOLDERS = ("reports", "coverage")
 _STAMP_RE = re.compile(r"^\d{8}-\d{6}$")
 # Set to 1 by a parallel part agent (see ARCHITECTURE.md): the plain run then skips the serial timing pass, because the
 # other agents' load would make the budget flaky. The coordinator's `gate.py --full` after the merge still enforces it.
@@ -475,6 +478,23 @@ def prune_reports(report_root, keep=REPORTS_KEEP):
     return old
 
 
+def ensure_gdignore(project, folders=GDIGNORE_FOLDERS):
+    """Puts an empty .gdignore in each existing tool-output folder so Godot never imports its files (gdUnit4 writes a logo
+    per report page; 15,000 paths had piled into the import cache). Returns the folders that got a new file."""
+    made = []
+    for name in folders:
+        folder = os.path.join(project, name)
+        marker = os.path.join(folder, ".gdignore")
+        if os.path.isdir(folder) and not os.path.exists(marker):
+            try:
+                with open(marker, "w", encoding="utf-8"):
+                    pass
+                made.append(name)
+            except OSError:
+                pass
+    return made
+
+
 def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=False, problems=None, suites=None,
               selected=None):
     """Runs the whole suite on `project`. Returns (exit code, list of test result dicts or None, report dir).
@@ -495,6 +515,7 @@ def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=F
     report_dir = os.path.join(report_root, stamp)
     os.makedirs(report_dir, exist_ok=True)
     prune_reports(report_root)  # the new folder is the newest, so it is always kept
+    ensure_gdignore(project)
     # An instrumented copy always imports; any other run skips the ~38 s import when nothing changed (import_is_current).
     if cov_dir or not import_is_current(project):
         import_project(project)

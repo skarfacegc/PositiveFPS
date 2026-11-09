@@ -1,0 +1,4 @@
+# Gitignored files that a new agent worktree copies from the main checkout (Claude Code reads this file).
+# Godot's import cache: with it a fresh worktree skips its first full `godot --import`.
+# Measured 2026-11-09 after the .gdignore clean-up: the cache is 107 MB, copying it takes 0.6 s, the import takes 15 s.
+.godot/

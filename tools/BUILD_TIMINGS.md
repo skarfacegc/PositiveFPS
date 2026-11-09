@@ -116,3 +116,17 @@ it matches the working tree it stands in for pass 1, so only one fresh run is ma
 
 Caveat: other agents may have been using the CPU during the 204 s run, and the "before" figure was not re-measured in the same
 session. The result is the same as before: 366 tests, 5790 lines hit, 0 lines differ.
+
+## Godot import cache shrunk (0.3.3, 2026-11-09) (#5, #6)
+Godot was importing every gdUnit4 report page under `reports/` (one logo per page). `run_tests.py` now puts an empty
+`.gdignore` in `reports/` and `coverage/` (`ensure_gdignore`, called at the start of each run), and `.godot/imported` was
+cleared once and rebuilt.
+
+| What | Before | After |
+|---|---|---|
+| `.godot/` size | 1.4 GB (`imported` 1.7 GB on disk) | 107 MB (738 imported files) |
+| `godot --import` | about 38 s | 15 s |
+| Deleting `.godot/imported` | not timed | 9 s |
+
+`.worktreeinclude` lists `.godot/` so a new agent worktree copies the cache instead of importing: copying 107 MB took
+0.6 s against the 15 s import.

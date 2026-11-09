@@ -57,8 +57,8 @@ EVERY GODOT RUN MUST END ITSELF. Give every scripted Godot run a timeout and a l
 `python tools/godot_run.py --timeout <seconds> -- <command>` (it ends only the process tree it started and prints the
 exit, time and log path). Never leave a Godot process behind, and never end one you did not start.
 
-SOURCE_MAP.md: the commit hook refuses a commit with .gd files when the map is stale. Before committing, run
-`python tools/source_map.py` and add SOURCE_MAP.md to your commit. (Parallel parts: the coordinator regenerates it
+SOURCE_MAP.md: the commit hook refuses a commit with .gd files when the map is stale. `python tools/lint.py --fix`
+regenerates it (after formatting); otherwise run `python tools/source_map.py`. Add SOURCE_MAP.md to your commit. (Parallel parts: the coordinator regenerates it
 after the merge, so a conflict there is resolved by regenerating, never by hand.)
 
 Commits: explicit paths only (include new .gd.uid files), never `git add -A`, never push, never amend. Mention the
