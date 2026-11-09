@@ -1,7 +1,7 @@
 # PositiveFPS — Game Ideas
 
 **What to build next is on the GitHub board** "Positive game dev" (https://github.com/users/skarfacegc/projects/3):
-headlines, targets (milestones such as "0.4 Tug of war"), status and size. This file holds the detail; a `#N` on a
+headlines, targets (milestones such as "0.4 Walls and gates"), status and size. This file holds the detail; a `#N` on a
 headline is its issue. Finished history and resolved issues live in `IDEAS_RESOLVED.md` (one line per round or target
 at its top, plus the map from old round numbers to versions). This file keeps the current state, the standing ideas and
 the current targets' plans. To find code use `SOURCE_MAP.md`
@@ -66,7 +66,7 @@ placeholder, `tide_pointer` still is.
 - The town is dense for how it plays and the game does not flow yet. Decided 2026-11-09: the town becomes a grid the
   line follows (walls and gates, block by block); see the 0.4 plan. (#55, #56)
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
-  step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
+  step before a break. Investigate after 0.4 Walls and gates's push and pull. (#22)
 - The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
 - The Gallery has no styled art (it uses the bandstand model); its dent-fade protection and defence unlock are in 0.4. (#16)
 
@@ -85,7 +85,7 @@ placeholder, `tide_pointer` still is.
 **Recorder:** breaks are logged as `break_open` / `break_close` (#23); the analyser still reads the old `gap_*` names.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Next target:
-**0.4 Tug of war** (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates** (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -141,7 +141,7 @@ Guides a Godot style test (round 6 or later). Mockups: design/style_mockups*.htm
 
 Wider world and level progression ideas: see `VISION.md`.
 
-## 0.4 Tug of war plan (2026-11-07)
+## 0.4 Walls and gates plan (2026-11-07; called "Tug of war" until 2026-11-09)
 
 Planned as rounds 27 and 28 before the switch to targets. **Order** (confirmed by the user, 2026-11-09: code health
 first, then the gameplay changes):
@@ -151,7 +151,7 @@ first, then the gameplay changes):
   2026-11-09: the town becomes a grid and the line follows it).
 - **Rule stepping** (#18) if there is room.
 
-### Tug of war: Reorg, code reorganisation (#3, #4)
+### Walls and gates: Reorg, code reorganisation (#3, #4)
 
 **Pass 1 of 0.4.** One Sonnet agent; #4 builds on #3's files, so they are not split.
 
@@ -178,7 +178,7 @@ so an agent tuning one system searches both.
 **Not in Reorg:** sub-folders for `scripts/` (border/, gloom/, people/, hud/, fx/). Coverage, the baseline and the
 fast tier's map are keyed by file path, so it needs a remap tool first; low value for the risk.
 
-### Tug of war: Quick wins, build speed and upkeep (#5 to #9)
+### Walls and gates: Quick wins, build speed and upkeep (#5 to #9)
 
 Moved to 0.3.3 Town layout (2026-11-09); the text stays here.
 
@@ -200,7 +200,7 @@ Moved to 0.3.3 Town layout (2026-11-09); the text stays here.
    copies and `agent-afd5…` are stale), and suggest `/fewer-permission-prompts` to the user to allowlist the common
    tool commands.
 
-### Tug of war: Walls and gates (Grid #55, Line #56 and #10 to #14, Defences #15 and #16)
+### Walls and gates: Grid, Line and Defences (Grid #55, Line #56 and #10 to #14, Defences #15 and #16)
 
 **Reshaped on 2026-11-09** after the 0.3.3 styled playtest and a design talk about #55. The 2026-11-07 version of this
 section (free-form grab and pull on the round loop) is in git at `ea6432a`. Its interview decisions still stand and are
@@ -322,7 +322,7 @@ the right price for a block? Does a thin line read as thin without a meter? Is o
 - 25 cells with 20 built blocks, or a smaller 3 by 3 town with wider cells?
 - This also answers #47 (more room to play around the push): the gates are that room. Close #47 once pass 2 is played?
 
-### Tug of war: Rule stepping, advance the game rules without the scene (#18; after Line and Defences merge, or the next target)
+### Walls and gates: Rule stepping, advance the game rules without the scene (#18; after Line and Defences merge, or the next target)
 
 Tests are frame-bound: the 2400-frame border test sets the suite's floor. Let people, gloom and border advance on a
 fixed time step without the scene running, so the long scenario tests stop waiting on real frames. Rules and visuals are already split for the looks; this does the same for the simulation.

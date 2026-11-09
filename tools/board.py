@@ -493,7 +493,7 @@ def build_parser():
     p.add_argument("title")
     p.add_argument("--label", action="append", required=True, help="repeat for more labels")
     p.add_argument("--size", choices=SIZES, required=True)
-    p.add_argument("--pointer", required=True, help="where the full plan lives, e.g. IDEAS.md → 0.4 Tug of war plan → Line")
+    p.add_argument("--pointer", required=True, help="where the full plan lives, e.g. IDEAS.md → 0.4 Walls and gates plan → Line")
     p.add_argument("--milestone")
     p.add_argument("--status", choices=STATUSES, default="Backlog")
     p.add_argument("--dry-run", action="store_true")

@@ -11,9 +11,9 @@ SOURCE_MAP.md (every script's public functions with line numbers, generated: reg
 ## Targets and versions
 
 - **A target** is a goal you can play that ends in a playtest, named by what it is, with a version: "0.3 Living
-  town", "0.4 Tug of war". It holds gameplay, look and tooling work alike (a look-focused target replaces the old
+  town", "0.4 Walls and gates". It holds gameplay, look and tooling work alike (a look-focused target replaces the old
   "graphics checkpoint"). A target may take several **passes** (build, then playtest); passes are known by date and
-  commit, not numbered. Parts inside a target get short purpose names ("Tug of war: Line").
+  commit, not numbered. Parts inside a target get short purpose names ("Walls and gates: Line").
 - **Versions:** 0.x is pre-alpha. A finished target closes its milestone. Only a target the user releases is tagged
   `v0.N.0` (with a release build); internal targets get no tag (0.3 was internal). Fixes to a release are `v0.N.1`. 1.0 is alpha: one town fully playable and the core loop settled.
 - Older work used round and checkpoint numbers; IDEAS_RESOLVED.md maps them to versions. Don't rename history.
@@ -28,7 +28,7 @@ SOURCE_MAP.md (every script's public functions with line numbers, generated: reg
   waiting for the playtest), Done (played and accepted). Moving to Done closes the issue and closing moves it to Done,
   so commits say `Refs #N`, never `Closes #N`.
 - **Keep it in sync with the conversation.** When the user targets, adds or drops something, update the board in the
-  same turn and say what changed. Docs carry the issue id on each headline (`### Tug of war: Line (#9, #10)`), so
+  same turn and say what changed. Docs carry the issue id on each headline (`### Walls and gates: Line (#9, #10)`), so
   docs and board can be cross-checked.
 - `python tools/board.py list | add | set | archive | drop | scan` does the updates (`scan` lists untriaged items,
   issues missing from the board or the docs, docs lines without an id, and issues from other people, which are
@@ -62,7 +62,7 @@ SOURCE_MAP.md (every script's public functions with line numbers, generated: reg
   agent with `isolation: "worktree"`, then merge the branches.
   - Expect small conflicts in shared files (`scripts/config.gd`, README.md, IDEAS.md, menu text). The coordinator
     resolves them at merge time.
-  - Give each part its own constants block (for example "Tug of war: Line") to keep conflicts small.
+  - Give each part its own constants block (for example "Walls and gates: Line") to keep conflicts small.
 - **Check the base first.** Worktree agents start from `origin/main`, not local main, and main is usually ahead
   because passes aren't pushed. Before launching, compare `git rev-parse origin/main main`. If they differ, tell
   each agent the local main commit hash and have it run `git merge --ff-only <hash>` in its worktree before any edit,

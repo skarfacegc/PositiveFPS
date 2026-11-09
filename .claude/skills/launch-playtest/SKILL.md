@@ -94,7 +94,7 @@ After the interview, in the same turn:
 - New ideas and snags from the interview: `python tools/board.py add "<headline>" --label <area> --size <XS..XL>
   --pointer "IDEAS.md → <section>"`, Status Backlog unless the user targets them, and put the new `#N` on the
   matching IDEAS.md line.
-- Anything the user targets ("do X next", "put Y in Tug of war"): set its milestone and Status Ready.
+- Anything the user targets ("do X next", "put Y in Walls and gates"): set its milestone and Status Ready.
 
 Say what changed on the board in one or two lines.
 
