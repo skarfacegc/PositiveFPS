@@ -16,7 +16,7 @@ static func is_faded(border: Border, p: Person) -> bool:
 
 # Moves each person's fade toward its target over EDGE_OUT_FADE_SECONDS (`delta` is the time since the last update).
 static func update(border: Border, people: Array[Person], delta: float) -> void:
-	var step := delta / maxf(Config.EDGE_OUT_FADE_SECONDS, 0.01)
+	var step := delta / maxf(BorderConfig.EDGE_OUT_FADE_SECONDS, 0.01)
 	for p: Person in people:
 		var look: PersonLook = p.look
 		if look == null:
@@ -27,4 +27,4 @@ static func update(border: Border, people: Array[Person], delta: float) -> void:
 
 # The body colour of a person at `fade`: `col` moved toward the ground tone by EDGE_OUT_FADE x fade.
 static func faded(col: Color, fade: float) -> Color:
-	return col.lerp(Config.EDGE_OUT_GROUND, Config.EDGE_OUT_FADE * clampf(fade, 0.0, 1.0))
+	return col.lerp(BorderConfig.EDGE_OUT_GROUND, BorderConfig.EDGE_OUT_FADE * clampf(fade, 0.0, 1.0))

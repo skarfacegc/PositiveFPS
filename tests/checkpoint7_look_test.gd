@@ -68,4 +68,4 @@ func test_glow_and_toon_materials_carry_no_dither_parameters() -> void:
 	assert_that(glow.get_shader_parameter("strength")).is_equal(0.5)
 	var toon := StyleKit.mat(Color.RED)
 	assert_object(toon.get_shader_parameter("dither_amt")).is_null()
-	assert_that(toon.get_shader_parameter("band_soft")).is_equal(Config.CP7_TOON_SOFT)
+	assert_that(toon.get_shader_parameter("band_soft")).is_equal(StyleConfig.CP7_TOON_SOFT)

@@ -82,7 +82,7 @@ func test_a_shot_is_logged_and_saved_downsized_and_an_empty_one_is_ignored() -> 
 	rec._record_shot(null)
 	rec._record_shot(Image.new())
 	assert_int(rec.shots_taken).is_equal(0)
-	var img := Image.create(Config.RECORD_SHOT_WIDTH * 2, 400, false, Image.FORMAT_RGB8)
+	var img := Image.create(RecorderConfig.RECORD_SHOT_WIDTH * 2, 400, false, Image.FORMAT_RGB8)
 	rec._record_shot(img)
 	assert_int(rec.shots_taken).is_equal(1)
 	var shots := _of_type(_events(td), "screenshot")
@@ -98,10 +98,10 @@ func test_a_shot_is_logged_and_saved_downsized_and_an_empty_one_is_ignored() -> 
 
 func test_saving_a_shot_shrinks_wide_pictures_and_keeps_narrow_ones() -> void:
 	DirAccess.make_dir_recursive_absolute(_base)
-	var wide := Image.create(Config.RECORD_SHOT_WIDTH * 2, 600, false, Image.FORMAT_RGB8)
+	var wide := Image.create(RecorderConfig.RECORD_SHOT_WIDTH * 2, 600, false, Image.FORMAT_RGB8)
 	Recorder._save_shot(wide, _base.path_join("wide.png"))
 	var got_wide := Image.load_from_file(_base.path_join("wide.png"))
-	assert_int(got_wide.get_width()).is_equal(Config.RECORD_SHOT_WIDTH)
+	assert_int(got_wide.get_width()).is_equal(RecorderConfig.RECORD_SHOT_WIDTH)
 	assert_int(got_wide.get_height()).is_equal(300)
 	var narrow := Image.create(100, 50, false, Image.FORMAT_RGB8)
 	Recorder._save_shot(narrow, _base.path_join("narrow.png"))
@@ -170,13 +170,13 @@ func test_an_umbrella_pop_is_logged_when_the_shield_down_time_jumps() -> void:
 	var rec: Recorder = td.recorder
 	var p: Person = td.people[6]
 	rec._poll_shields()
-	p.shield_down_left = Config.SHELTER_REGROW
+	p.shield_down_left = MoodConfig.SHELTER_REGROW
 	rec._poll_shields()
 	var pops := _of_type(_events(td), "umbrella_pop")
 	assert_int(pops.size()).is_equal(1)
 	assert_float(pops[0]["id"]).is_equal(6.0)
 	# Counting down again is not a pop.
-	p.shield_down_left = Config.SHELTER_REGROW * 0.5
+	p.shield_down_left = MoodConfig.SHELTER_REGROW * 0.5
 	rec._poll_shields()
 	assert_int(_of_type(_events(td), "umbrella_pop").size()).is_equal(1)
 

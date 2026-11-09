@@ -3,7 +3,7 @@ extends RefCounted
 
 # The floor overlay registry (round 10). Every transient floor effect (sound rings, paint splats, splash rings, petal
 # bursts, blooms and trail pieces) joins the group GROUP with its kind and priority (see the inventory in config.gd).
-# The live count is capped at Config.TD_MAX_FLOOR_EFFECTS: when a new effect would go over the cap, the oldest effect
+# The live count is capped at TD_MAX_FLOOR_EFFECTS: when a new effect would go over the cap, the oldest effect
 # of the lowest priority (the highest number, so priority 3 before anything else) is freed first.
 
 const GROUP := "floor_effect"
@@ -39,7 +39,7 @@ static func live(tree: SceneTree) -> Array[Node]:
 # Frees the oldest effect of the lowest priority until no more than TD_MAX_FLOOR_EFFECTS are alive.
 static func enforce_cap(tree: SceneTree) -> void:
 	var nodes := live(tree)
-	while nodes.size() > Config.TD_MAX_FLOOR_EFFECTS:
+	while nodes.size() > GroundConfig.TD_MAX_FLOOR_EFFECTS:
 		var victim := _pick_victim(nodes)
 		victim.queue_free()
 		nodes.erase(victim)
@@ -77,4 +77,4 @@ static func summary(tree: SceneTree) -> String:
 		var n: int = counts[kind]
 		parts.append("%s %d" % [str(kind), n])
 	var detail := "none" if parts.is_empty() else ", ".join(parts)
-	return "floor fx %d/%d: %s" % [live(tree).size(), Config.TD_MAX_FLOOR_EFFECTS, detail]
+	return "floor fx %d/%d: %s" % [live(tree).size(), GroundConfig.TD_MAX_FLOOR_EFFECTS, detail]

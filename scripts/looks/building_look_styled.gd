@@ -96,8 +96,8 @@ func _build_post_marker() -> void:
 	)
 	_post_ring = StyleKit.torus(
 		self,
-		Config.BORDER_POST_RING_INNER,
-		Config.BORDER_POST_RING_OUTER,
+		BeaconConfig.BORDER_POST_RING_INNER,
+		BeaconConfig.BORDER_POST_RING_OUTER,
 		Vector3(0.0, -size.y * 0.5 + 0.08, 0.0),
 		gold
 	)

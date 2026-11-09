@@ -31,7 +31,7 @@ func setup(hud: Hud, minimap: Control) -> void:
 func update_from(main: TopDownMain, delta: float = -1.0) -> void:
 	if delta >= 0.0:
 		_since += delta
-		if _since < Config.LANDMARK_POINTER_REFRESH:
+		if _since < HudConfig.LANDMARK_POINTER_REFRESH:
 			return
 	_since = 0.0
 	_shown.clear()
@@ -42,15 +42,15 @@ func update_from(main: TopDownMain, delta: float = -1.0) -> void:
 		queue_redraw()
 		return
 	var font := get_theme_default_font()
-	var font_px := Config.LANDMARK_POINTER_FONT_SIZE
+	var font_px := HudConfig.LANDMARK_POINTER_FONT_SIZE
 	var avoid := _avoid_rects(main)
-	for k: int in range(Config.LANDMARK_POSITIONS.size()):
+	for k: int in range(LandmarkConfig.LANDMARK_POSITIONS.size()):
 		if main.landmarks.is_held(k):
 			continue
-		var at := main.world_to_screen(Config.LANDMARK_POSITIONS[k])
+		var at := main.world_to_screen(LandmarkConfig.LANDMARK_POSITIONS[k])
 		if on_screen(at, screen):
 			continue
-		var text := "%s: %s" % [Config.LANDMARK_NAMES[k], Config.LANDMARK_BOOST_TEXT[k]]
+		var text := "%s: %s" % [LandmarkConfig.LANDMARK_NAMES[k], LandmarkConfig.LANDMARK_BOOST_TEXT[k]]
 		var label_size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px) + Vector2(12, 8)
 		var placed := place(at, screen, label_size, avoid)
 		placed["text"] = text
@@ -75,13 +75,13 @@ func pointer_for(text_start: String) -> Dictionary:
 
 func _draw() -> void:
 	var font := get_theme_default_font()
-	var font_px := Config.LANDMARK_POINTER_FONT_SIZE
+	var font_px := HudConfig.LANDMARK_POINTER_FONT_SIZE
 	for s: Dictionary in _shown:
 		var label: Rect2 = s["label"]
 		var tip: Vector2 = s["tip"]
 		var dir: Vector2 = s["dir"]
 		var text: String = s["text"]
-		draw_rect(label, Config.LANDMARK_POINTER_BG_COLOUR)
+		draw_rect(label, HudConfig.LANDMARK_POINTER_BG_COLOUR)
 		draw_string(
 			font,
 			label.position + Vector2(6, 4 + font.get_ascent(font_px)),
@@ -89,13 +89,13 @@ func _draw() -> void:
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
 			font_px,
-			Config.LANDMARK_POINTER_COLOUR
+			HudConfig.LANDMARK_POINTER_COLOUR
 		)
-		var arrow := Config.LANDMARK_POINTER_ARROW
+		var arrow := HudConfig.LANDMARK_POINTER_ARROW
 		var side := Vector2(-dir.y, dir.x)
 		var base := tip - dir * arrow
 		var points := PackedVector2Array([tip, base + side * arrow * 0.55, base - side * arrow * 0.55])
-		draw_colored_polygon(points, Config.LANDMARK_POINTER_COLOUR)
+		draw_colored_polygon(points, HudConfig.LANDMARK_POINTER_COLOUR)
 
 
 # True when the window position `p` is inside the screen `screen` (the window size).
@@ -125,13 +125,13 @@ static func edge_point(target: Vector2, screen: Vector2, inset: float) -> Vector
 # where the label clears every rectangle in `avoid`. If no spot is clear, it keeps the first one.
 # Returns {"tip": Vector2, "dir": Vector2 (outward, unit), "label": Rect2, "box": Rect2 (arrow and label)}.
 static func place(target: Vector2, screen: Vector2, label_size: Vector2, avoid: Array[Rect2]) -> Dictionary:
-	var inset := Config.LANDMARK_POINTER_INSET
+	var inset := HudConfig.LANDMARK_POINTER_INSET
 	var centre := screen * 0.5
 	var dir := (target - centre).normalized() if (target - centre).length() > 0.0001 else Vector2.UP
 	var rect := Rect2(Vector2.ONE * inset, screen - Vector2.ONE * inset * 2.0)
 	var perimeter := 2.0 * (rect.size.x + rect.size.y)
 	var start := _perimeter_param(edge_point(target, screen, inset), rect)
-	var step := Config.LANDMARK_POINTER_SLIDE_STEP
+	var step := HudConfig.LANDMARK_POINTER_SLIDE_STEP
 	var first := {}
 	var k := 0
 	while k * step <= perimeter * 0.5:
@@ -160,7 +160,7 @@ static func _pointer_at(tip: Vector2, dir: Vector2, label_size: Vector2, rect: R
 		inward = Vector2.DOWN
 	else:
 		inward = Vector2.UP
-	var gap := Config.LANDMARK_POINTER_ARROW + 4.0
+	var gap := HudConfig.LANDMARK_POINTER_ARROW + 4.0
 	var label: Rect2
 	if inward.x != 0.0:
 		var lx := tip.x + gap if inward.x > 0.0 else tip.x - gap - label_size.x
@@ -168,7 +168,7 @@ static func _pointer_at(tip: Vector2, dir: Vector2, label_size: Vector2, rect: R
 	else:
 		var ly := tip.y + gap if inward.y > 0.0 else tip.y - gap - label_size.y
 		label = Rect2(tip.x - label_size.x * 0.5, ly, label_size.x, label_size.y)
-	var arrow := Config.LANDMARK_POINTER_ARROW
+	var arrow := HudConfig.LANDMARK_POINTER_ARROW
 	var box := Rect2(tip - Vector2.ONE * arrow, Vector2.ONE * arrow * 2.0).merge(label)
 	return {"tip": tip, "dir": dir, "label": label, "box": box}
 
@@ -178,7 +178,7 @@ static func _clear(box: Rect2, avoid: Array[Rect2], screen: Vector2) -> bool:
 	if box.position.x < 0.0 or box.position.y < 0.0 or box.end.x > screen.x or box.end.y > screen.y:
 		return false
 	for r: Rect2 in avoid:
-		if box.intersects(r.grow(Config.LANDMARK_POINTER_CLEAR_MARGIN)):
+		if box.intersects(r.grow(HudConfig.LANDMARK_POINTER_CLEAR_MARGIN)):
 			return false
 	return true
 

@@ -73,10 +73,10 @@ func _ready() -> void:
 	night_view = Control.new()
 	night_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	night_view.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	night_view.offset_left = -Config.CP7_NIGHT_WIDTH * 0.5
-	night_view.offset_right = Config.CP7_NIGHT_WIDTH * 0.5
+	night_view.offset_left = -HudConfig.CP7_NIGHT_WIDTH * 0.5
+	night_view.offset_right = HudConfig.CP7_NIGHT_WIDTH * 0.5
 	night_view.offset_top = 4
-	night_view.offset_bottom = 4 + Config.CP7_NIGHT_HEIGHT
+	night_view.offset_bottom = 4 + HudConfig.CP7_NIGHT_HEIGHT
 	night_view.draw.connect(_draw_night_view)
 	add_child(night_view)
 
@@ -96,26 +96,26 @@ func _ready() -> void:
 	# Spirit (round 13b): a bigger bar at the bottom centre; SpiritMeter draws over the bar (ticks, flash, floating
 	# numbers). The label and bar keep the values for the tests and for reading. Checkpoint 5 follow-up: the label sits
 	# above the bar, centred on it, not to its left, where it ran into the burst line on the bottom left.
-	var half := Config.SPIRIT_METER_WIDTH * 0.5
+	var half := HudConfig.SPIRIT_METER_WIDTH * 0.5
 	spirit_label = Label.new()
 	spirit_label.add_theme_font_size_override("font_size", 20)
 	spirit_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	spirit_label.offset_left = -half
 	spirit_label.offset_right = half
-	spirit_label.offset_top = Config.SPIRIT_LABEL_TOP
-	spirit_label.offset_bottom = Config.SPIRIT_LABEL_TOP + Config.SPIRIT_LABEL_HEIGHT
+	spirit_label.offset_top = HudConfig.SPIRIT_LABEL_TOP
+	spirit_label.offset_bottom = HudConfig.SPIRIT_LABEL_TOP + HudConfig.SPIRIT_LABEL_HEIGHT
 	spirit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	spirit_label.visible = false
 	add_child(spirit_label)
 	spirit_bar = ProgressBar.new()
 	spirit_bar.min_value = 0.0
-	spirit_bar.max_value = Config.SPIRIT_MAX
+	spirit_bar.max_value = SpiritConfig.SPIRIT_MAX
 	spirit_bar.show_percentage = false
 	spirit_bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	spirit_bar.offset_left = -half
 	spirit_bar.offset_right = half
 	spirit_bar.offset_top = -110.0
-	spirit_bar.offset_bottom = -110.0 + Config.SPIRIT_METER_HEIGHT
+	spirit_bar.offset_bottom = -110.0 + HudConfig.SPIRIT_METER_HEIGHT
 	spirit_bar.visible = false
 	add_child(spirit_bar)
 	spirit_view = Control.new()
@@ -123,8 +123,8 @@ func _ready() -> void:
 	spirit_view.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	spirit_view.offset_left = -half
 	spirit_view.offset_right = half
-	spirit_view.offset_top = Config.SPIRIT_LABEL_TOP
-	spirit_view.offset_bottom = Config.SPIRIT_LABEL_TOP + Config.SPIRIT_LABEL_HEIGHT
+	spirit_view.offset_top = HudConfig.SPIRIT_LABEL_TOP
+	spirit_view.offset_bottom = HudConfig.SPIRIT_LABEL_TOP + HudConfig.SPIRIT_LABEL_HEIGHT
 	spirit_view.visible = false
 	spirit_view.draw.connect(_draw_spirit_view)
 	add_child(spirit_view)
@@ -166,7 +166,7 @@ func _ready() -> void:
 	landmark_panel.offset_left = -270
 	landmark_panel.offset_right = -20
 	landmark_panel.offset_top = 90
-	landmark_panel.offset_bottom = 90 + 44 + 40 * Config.LANDMARK_NAMES.size()  # The header and 40 px a landmark.
+	landmark_panel.offset_bottom = 90 + 44 + 40 * LandmarkConfig.LANDMARK_NAMES.size()  # The header and 40 px a landmark.
 	add_child(landmark_panel)
 
 	# Rescued counter. The level places it under the minimap (see place_rescued_below).
@@ -196,11 +196,11 @@ func _ready() -> void:
 	# Relapse alert: a short orange message near the top that fades out (see show_alert).
 	alert_label = Label.new()
 	# Checkpoint 6: a slim line just under the night bar (it was a 34 px line near the middle of the play area).
-	alert_label.position = Vector2(0, Config.CP6_BANNER_TOP)
-	alert_label.size = Vector2(1280, Config.CP6_BANNER_HEIGHT)
+	alert_label.position = Vector2(0, HudConfig.CP6_BANNER_TOP)
+	alert_label.size = Vector2(1280, HudConfig.CP6_BANNER_HEIGHT)
 	alert_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	alert_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	alert_label.add_theme_font_size_override("font_size", Config.CP6_ALERT_FONT)
+	alert_label.add_theme_font_size_override("font_size", HudConfig.CP6_ALERT_FONT)
 	alert_label.add_theme_color_override("font_color", Color(1, 0.6, 0.1))
 	alert_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	alert_label.add_theme_constant_override("outline_size", 6)
@@ -255,8 +255,8 @@ func _push_line(p: StyledPanel, text: String, state: int, colour: Color) -> void
 	if not p.set_line(text, state, colour):
 		return
 	var w := StyleHudText.line_width(p.kind, text)
-	var h := Config.CP6_LINE_HEIGHT
-	var m := Config.CP6_LINE_MARGIN
+	var h := HudConfig.CP6_LINE_HEIGHT
+	var m := HudConfig.CP6_LINE_MARGIN
 	if p.kind == StyledPanel.Kind.RESCUED:
 		p.size = Vector2(w, h)
 	elif p.kind == StyledPanel.Kind.TARGETING:
@@ -270,7 +270,7 @@ func _push_line(p: StyledPanel, text: String, state: int, colour: Color) -> void
 		p.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 		p.offset_left = m
 		p.offset_right = m + w
-		p.offset_bottom = -6.0 - float(slot) * (h + Config.CP6_LINE_GAP)
+		p.offset_bottom = -6.0 - float(slot) * (h + HudConfig.CP6_LINE_GAP)
 		p.offset_top = p.offset_bottom - h
 
 
@@ -348,8 +348,8 @@ func set_target_mood(mood: String) -> void:
 func _refresh_target() -> void:
 	if _target_affinity < 0:
 		element_label.text = "No target"
-		element_label.add_theme_color_override("font_color", Config.TD_NO_TARGET_COLOR)
-		_push_line(target_panel, element_label.text, StyleHudText.DIM, Config.TD_NO_TARGET_COLOR)
+		element_label.add_theme_color_override("font_color", PlayerConfig.TD_NO_TARGET_COLOR)
+		_push_line(target_panel, element_label.text, StyleHudText.DIM, PlayerConfig.TD_NO_TARGET_COLOR)
 	else:
 		element_label.text = "Target: " + Config.ELEMENT_NAMES[_target_affinity]
 		if _target_mood != "":
@@ -361,7 +361,7 @@ func _refresh_target() -> void:
 # Top-down: shows the targeting mode (see Config.TargetingMode) in the top right.
 func set_targeting(mode: int) -> void:
 	_targeting_on = true
-	targeting_label.text = "Targeting: " + Config.TD_TARGETING_NAMES[mode] + "  [F2]"
+	targeting_label.text = "Targeting: " + PlayerConfig.TD_TARGETING_NAMES[mode] + "  [F2]"
 	_push_line(targeting_panel, targeting_label.text, StyleHudText.IDLE, StyleUi.AMBER)
 	_show_line(targeting_label, targeting_panel, true)
 
@@ -443,10 +443,10 @@ func set_spirit(spirit: float, is_dim: bool) -> void:
 	spirit_bar.visible = true
 	spirit_bar.value = spirit
 	if is_dim:
-		spirit_label.text = ("DIM  spirit %d / %d" % [roundi(spirit), roundi(Config.SPIRIT_MAX)])
+		spirit_label.text = ("DIM  spirit %d / %d" % [roundi(spirit), roundi(SpiritConfig.SPIRIT_MAX)])
 		spirit_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	else:
-		spirit_label.text = "Spirit %d / %d" % [roundi(spirit), roundi(Config.SPIRIT_MAX)]
+		spirit_label.text = "Spirit %d / %d" % [roundi(spirit), roundi(SpiritConfig.SPIRIT_MAX)]
 		spirit_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.5))
 
 
@@ -455,7 +455,7 @@ func set_spirit(spirit: float, is_dim: bool) -> void:
 func set_burst(cooldown_left: float, has_spirit: bool = true, targets: int = 0) -> void:
 	var state := StyleHudText.READY
 	if not has_spirit:
-		burst_label.text = "Joy burst [G]: needs %d spirit" % roundi(Config.BURST_SPIRIT_COST)
+		burst_label.text = "Joy burst [G]: needs %d spirit" % roundi(SpiritConfig.BURST_SPIRIT_COST)
 		burst_label.add_theme_color_override("font_color", Color(0.9, 0.5, 0.4))
 		state = StyleHudText.WARN
 	elif cooldown_left <= 0.0:

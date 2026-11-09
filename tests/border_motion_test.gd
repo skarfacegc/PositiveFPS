@@ -43,7 +43,7 @@ func _pushed(shoves: int, ang: float) -> Dictionary:
 	_rescue_ring(td, Vector3.ZERO, 10.0, 30)
 	await runner.simulate_frames(300)
 	for k: int in range(shoves):
-		td.border._push_at(ang, Config.BORDER_SHOVE_AMOUNT / maxf(td.border._scale, 0.01))
+		td.border._push_at(ang, RoundLoopConfig.BORDER_SHOVE_AMOUNT / maxf(td.border._scale, 0.01))
 		await runner.simulate_frames(FRAMES_BETWEEN_SHOVES)
 	return s
 
@@ -79,7 +79,7 @@ func _side_gap(b: Border) -> float:
 	var best := INF
 	var n := b.polygon.size()
 	var total: float = b._arc[n]
-	var apart := 3.0 * Config.BORDER_TARGET_SPACING
+	var apart := 3.0 * BorderConfig.BORDER_TARGET_SPACING
 	for i: int in range(n):
 		for j: int in range(i + 1, n):
 			var along: float = b._arc[j] - b._arc[i]
@@ -140,7 +140,7 @@ func test_the_loop_does_not_creep_toward_the_pushed_side_and_settles_quickly_wit
 	assert_float(worst).is_less(DRIFT_BOUND)
 	assert_float(settled).is_greater_equal(0.0)
 	assert_float(settled).is_less_equal(SETTLE_SECONDS)
-	assert_float(closest).is_greater_equal(APART_FRACTION * Config.BORDER_TARGET_SPACING)
+	assert_float(closest).is_greater_equal(APART_FRACTION * BorderConfig.BORDER_TARGET_SPACING)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -152,7 +152,7 @@ func test_a_spike_relaxes_and_its_sides_stay_a_spacing_apart() -> void:
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	for k: int in range(6):
-		td.border._push_at(0.0, 3.0 * Config.BORDER_SHOVE_AMOUNT / maxf(td.border._scale, 0.01))
+		td.border._push_at(0.0, 3.0 * RoundLoopConfig.BORDER_SHOVE_AMOUNT / maxf(td.border._scale, 0.01))
 	await runner.simulate_frames(1)
 	var narrow := _side_gap(td.border)
 	var spread0 := _spread(td.border)
@@ -194,20 +194,20 @@ func test_no_pair_passes_through_each_other_while_the_loop_grows() -> void:
 						continue  # The newcomer walks in from where they were rescued; it is the others that must not cross.
 					closest = minf(closest, GloomSim.flat_dist(ms[i].position, ms[j].position))
 	print("PROBE closest=%.2f spacing=%.1f" % [closest, td.border.spacing])
-	assert_float(closest).is_greater_equal(PASS_FRACTION * Config.BORDER_TARGET_SPACING)
+	assert_float(closest).is_greater_equal(PASS_FRACTION * BorderConfig.BORDER_TARGET_SPACING)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
 # (e) Sealed stretches shorter than a spacing are opened again; longer ones stay sealed.
 func test_a_sealed_stretch_shorter_than_a_spacing_is_opened() -> void:
-	var lim := Config.BORDER_MAP_LIMIT
+	var lim := RoundLoopConfig.BORDER_MAP_LIMIT
 	var pts := BorderShape.circle_polygon(Vector2.ZERO, 20.0, 48)
 	# Push two neighbouring points out to the east edge: a seal that is a single short segment.
 	pts[0] = Vector2(lim + 5.0, 0.0)
 	pts[1] = Vector2(lim + 5.0, 1.0)
 	var sealed := BorderShape.clamp_to_map(pts)
 	assert_float(sealed.max()).is_greater(0.0)
-	BorderShape.drop_short_seals(pts, sealed, Config.BORDER_MIN_SEAL_RUN)
+	BorderShape.drop_short_seals(pts, sealed, RoundLoopConfig.BORDER_MIN_SEAL_RUN)
 	assert_float(sealed.max()).is_equal(0.0)
 	# A long stretch along the edge keeps its seal.
 	var long_pts := PackedVector2Array()
@@ -215,7 +215,7 @@ func test_a_sealed_stretch_shorter_than_a_spacing_is_opened() -> void:
 		long_pts.append(Vector2(lim, -14.0 + float(k) * 4.0))
 	long_pts.append(Vector2(0.0, 30.0))
 	var long_sealed := BorderShape.clamp_to_map(long_pts)
-	BorderShape.drop_short_seals(long_pts, long_sealed, Config.BORDER_MIN_SEAL_RUN)
+	BorderShape.drop_short_seals(long_pts, long_sealed, RoundLoopConfig.BORDER_MIN_SEAL_RUN)
 	assert_float(long_sealed.max()).is_equal(1.0)
 	# A loop sealed all the way round has no open segment to count from: left alone.
 	var all: Array[float] = [1.0, 1.0, 1.0]

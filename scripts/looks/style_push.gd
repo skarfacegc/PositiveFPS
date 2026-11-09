@@ -24,13 +24,13 @@ static func build_fog(parent: Node3D, width: float, depth: float) -> Node3D:
 	mm.visible_instance_count = 0
 	var mat := ShaderMaterial.new()
 	mat.shader = load(SHADER)
-	mat.set_shader_parameter("churn", Config.L31_FOG_CHURN)
-	mat.set_shader_parameter("edge_col", StyleKit.hexc(Config.L31_FOG_EDGE))
-	mat.set_shader_parameter("core_col", StyleKit.hexc(Config.L31_FOG_CORE))
-	mat.set_shader_parameter("puff_ref", Config.L31_FOG_PUFF)
-	mat.set_shader_parameter("alpha_max", Config.L31_FOG_ALPHA)
+	mat.set_shader_parameter("churn", StyleConfig.L31_FOG_CHURN)
+	mat.set_shader_parameter("edge_col", StyleKit.hexc(StyleConfig.L31_FOG_EDGE))
+	mat.set_shader_parameter("core_col", StyleKit.hexc(StyleConfig.L31_FOG_CORE))
+	mat.set_shader_parameter("puff_ref", StyleConfig.L31_FOG_PUFF)
+	mat.set_shader_parameter("alpha_max", StyleConfig.L31_FOG_ALPHA)
 	# After the post-process quad (which would paint over soft alpha) and after the mist (which would pale the cloud).
-	mat.render_priority = Config.L31_SOFT_PRIORITY + 1
+	mat.render_priority = StyleConfig.L31_SOFT_PRIORITY + 1
 	var mi := MultiMeshInstance3D.new()
 	mi.multimesh = mm
 	mi.material_override = mat
@@ -39,20 +39,20 @@ static func build_fog(parent: Node3D, width: float, depth: float) -> Node3D:
 	root.add_child(mi)
 	root.set_meta("depth", depth)
 	root.set_meta("length", -1.0)
-	set_length(root, minf(width, Config.L31_FOG_MIN_LENGTH))
+	set_length(root, minf(width, StyleConfig.L31_FOG_MIN_LENGTH))
 	return root
 
 
 # The most puffs a cloud `width` metres long holds.
 static func max_puffs(width: float) -> int:
-	return (ceili(width / Config.L31_FOG_SPACING) + 1) * Config.L31_FOG_ROWS
+	return (ceili(width / StyleConfig.L31_FOG_SPACING) + 1) * StyleConfig.L31_FOG_ROWS
 
 
 # How long the cloud is for a wave whose middle stands `distance` metres from the border's centre: the chord of the
 # pushed stretch (the wave pushes TIDE_HALF_WIDTH either side of its direction), within the shortest and widest band.
 static func fog_length(distance: float) -> float:
-	var chord := 2.0 * maxf(distance, 0.0) * sin(Config.TIDE_HALF_WIDTH)
-	return clampf(chord, Config.L31_FOG_MIN_LENGTH, Config.TIDE_FOG_WIDTH)
+	var chord := 2.0 * maxf(distance, 0.0) * sin(NightConfig.TIDE_HALF_WIDTH)
+	return clampf(chord, StyleConfig.L31_FOG_MIN_LENGTH, NightConfig.TIDE_FOG_WIDTH)
 
 
 # The puffs of a cloud `length` metres long and `depth` deep: position (x along the band, z across it, y up from
@@ -60,10 +60,10 @@ static func fog_length(distance: float) -> float:
 # depth, and puffs near the middle of the length, are darker, bigger and more opaque; the ends and edges taper off.
 static func layout_puffs(length: float, depth: float) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	var along := maxi(2, ceili(length / Config.L31_FOG_SPACING))
-	var rows := maxi(1, Config.L31_FOG_ROWS)
-	var edge := StyleKit.hexc(Config.L31_FOG_EDGE)
-	var core := StyleKit.hexc(Config.L31_FOG_CORE)
+	var along := maxi(2, ceili(length / StyleConfig.L31_FOG_SPACING))
+	var rows := maxi(1, StyleConfig.L31_FOG_ROWS)
+	var edge := StyleKit.hexc(StyleConfig.L31_FOG_EDGE)
+	var core := StyleKit.hexc(StyleConfig.L31_FOG_CORE)
 	for r: int in range(rows):
 		var zn := 0.0 if rows == 1 else lerpf(-1.0, 1.0, float(r) / float(rows - 1))
 		for i: int in range(along):
@@ -73,14 +73,14 @@ static func layout_puffs(length: float, depth: float) -> Array[Dictionary]:
 			var taper := lerpf(0.55, 1.0, sin(PI * u))
 			var heart := (1.0 - absf(zn) * 0.8) * taper
 			# The size carries the depth in the cloud (0.6 to 1.1 of a puff): the shader reads it back as the colour.
-			var size := Config.L31_FOG_PUFF * lerpf(0.6, 1.1, heart) * (0.94 + 0.12 * h1)
-			var x := (u - 0.5) * length + (h2 - 0.5) * Config.L31_FOG_SPACING * 0.6
+			var size := StyleConfig.L31_FOG_PUFF * lerpf(0.6, 1.1, heart) * (0.94 + 0.12 * h1)
+			var x := (u - 0.5) * length + (h2 - 0.5) * StyleConfig.L31_FOG_SPACING * 0.6
 			var z := zn * depth * 0.4 + (h1 - 0.5) * depth * 0.1
 			var colour := edge.lerp(core, clampf(heart * 1.1, 0.0, 1.0))
 			colour.a = lerpf(0.55, 1.0, heart)
 			# The blob's height is L31_FOG_TOP for the biggest puff; its bottom rests on the ground.
-			var height := Config.L31_FOG_TOP * size / (1.1 * Config.L31_FOG_PUFF)
-			var y := height * 0.5 - Config.TIDE_FOG_Y
+			var height := StyleConfig.L31_FOG_TOP * size / (1.1 * StyleConfig.L31_FOG_PUFF)
+			var y := height * 0.5 - NightConfig.TIDE_FOG_Y
 			out.append({"pos": Vector3(x, y, z), "size": size, "height": height, "colour": colour})
 	return out
 
@@ -91,7 +91,7 @@ static func set_length(fog: Node3D, length: float) -> void:
 	if absf(prev - length) < 0.25:
 		return
 	fog.set_meta("length", length)
-	var depth: float = fog.get_meta("depth", Config.TIDE_FOG_DEPTH)
+	var depth: float = fog.get_meta("depth", NightConfig.TIDE_FOG_DEPTH)
 	var mm := (fog.get_child(0) as MultiMeshInstance3D).multimesh
 	var puffs := layout_puffs(length, depth)
 	var n := mini(puffs.size(), mm.instance_count)
@@ -123,8 +123,8 @@ static func _hash(v: float) -> float:
 static func build_figure(parent: Node3D) -> Node3D:
 	var fig := Node3D.new()
 	parent.add_child(fig)
-	var m := StyleKit.mat(StyleKit.hexc(Config.CP7_FIGURE_COLOUR))
-	var height := Config.CP7_FIGURE_HEIGHT
+	var m := StyleKit.mat(StyleKit.hexc(StyleConfig.CP7_FIGURE_COLOUR))
+	var height := StyleConfig.CP7_FIGURE_HEIGHT
 	StyleKit.cyl(fig, 0.3, height * 0.6, Vector3(0.0, height * 0.3, 0.0), m, Vector3.ZERO, -1.0, 6, false)
 	StyleKit.sph(fig, 0.2, Vector3(0.0, height * 0.8, 0.0), m, Vector3.ONE, 6, false)
 	return fig

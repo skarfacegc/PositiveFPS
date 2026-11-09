@@ -10,8 +10,8 @@ const SCALE_FLOOR := 0.2
 # Round 16: pulls every point onto the map (within BORDER_MAP_LIMIT of the middle) and returns, per segment (point j to
 # point j + 1), whether the segment runs along the map edge: both ends sit on the same side.
 static func clamp_to_map(pts: PackedVector2Array) -> Array[float]:
-	var lim := Config.BORDER_MAP_LIMIT
-	var band := Config.BORDER_SEAL_BAND
+	var lim := RoundLoopConfig.BORDER_MAP_LIMIT
+	var band := RoundLoopConfig.BORDER_SEAL_BAND
 	var n := pts.size()
 	for i: int in range(n):
 		pts[i] = Vector2(clampf(pts[i].x, -lim, lim), clampf(pts[i].y, -lim, lim))
@@ -88,7 +88,7 @@ static func open_perimeter_of(pts: PackedVector2Array, sealed: Array[float]) -> 
 
 # How many slots a loop of this perimeter holds (perimeter over the target spacing, rounded up).
 static func slot_count_for(loop_perimeter: float) -> int:
-	return ceili(loop_perimeter / Config.BORDER_TARGET_SPACING)
+	return ceili(loop_perimeter / BorderConfig.BORDER_TARGET_SPACING)
 
 
 # Checkpoint 5: the slot count with hysteresis. The loop is eased to n x BORDER_TARGET_SPACING, exactly where the plain
@@ -98,8 +98,8 @@ static func held_slot_count(loop_perimeter: float, previous: int) -> int:
 	var fresh := slot_count_for(loop_perimeter)
 	if previous <= 0:
 		return fresh
-	var exact := loop_perimeter / Config.BORDER_TARGET_SPACING
-	var hold := Config.BORDER_SLOT_COUNT_HOLD
+	var exact := loop_perimeter / BorderConfig.BORDER_TARGET_SPACING
+	var hold := BorderConfig.BORDER_SLOT_COUNT_HOLD
 	if exact > float(previous - 1) - hold and exact <= float(previous) + hold:
 		return previous
 	return fresh
@@ -113,7 +113,7 @@ static func gap_flags(
 	var out: Array[bool] = []
 	var m := filled.size()
 	for k: int in range(m):
-		var gap := spacing_m > Config.BORDER_MAX_GAP or not filled[k] or not filled[(k + 1) % m]
+		var gap := spacing_m > BorderConfig.BORDER_MAX_GAP or not filled[k] or not filled[(k + 1) % m]
 		if faltering.size() == m and (faltering[k] or faltering[(k + 1) % m]):
 			gap = true
 		if anchored.size() == m and (anchored[k] or anchored[(k + 1) % m]):
@@ -165,7 +165,7 @@ static func ray_box(o: Vector2, d: Vector2, lo: Vector2, hi: Vector2) -> Vector2
 # while a wide, slow swell (the loop really reaching one way) hardly changes. The sum is kept, so the size is not lost.
 static func relax_radii(raw: Array[float], sealed: Array[float], delta: float) -> Array[float]:
 	var n := raw.size()
-	var k := clampf(Config.BORDER_RELAX_RATE * delta, 0.0, 1.0)
+	var k := clampf(RoundLoopConfig.BORDER_RELAX_RATE * delta, 0.0, 1.0)
 	var out: Array[float] = []
 	for i: int in range(n):
 		var near := raw[(i - 2 + n) % n] + raw[(i - 1 + n) % n] + raw[(i + 1) % n] + raw[(i + 2) % n]
@@ -185,7 +185,7 @@ static func relax_radii(raw: Array[float], sealed: Array[float], delta: float) -
 # radii now stop BORDER_WALL_SLACK past the edge (counting the size factor), so pulling back starts at once and is
 # gradual.
 static func trim_to_map(raw: Array[float], centre: Vector3, size_factor: float) -> void:
-	var lim := Config.BORDER_MAP_LIMIT
+	var lim := RoundLoopConfig.BORDER_MAP_LIMIT
 	var n := raw.size()
 	for i: int in range(n):
 		var a := TAU * float(i) / float(n)
@@ -195,7 +195,9 @@ static func trim_to_map(raw: Array[float], centre: Vector3, size_factor: float) 
 			reach = minf(reach, ((lim if d.x > 0.0 else -lim) - centre.x) / d.x)
 		if absf(d.y) > 1e-6:
 			reach = minf(reach, ((lim if d.y > 0.0 else -lim) - centre.z) / d.y)
-		var cap := maxf(reach, Config.BORDER_MIN_RADIUS) * Config.BORDER_WALL_SLACK / maxf(size_factor, 0.2)
+		var cap := (
+			maxf(reach, RoundLoopConfig.BORDER_MIN_RADIUS) * RoundLoopConfig.BORDER_WALL_SLACK / maxf(size_factor, 0.2)
+		)
 		raw[i] = minf(raw[i], cap)
 
 
@@ -332,14 +334,14 @@ static func step_around(
 	var go := minf(step, d)
 	var reached := false
 	if waypoint != Vector2.INF:
-		reached = from.distance_to(waypoint) < Config.ZONE_CORNER_REACHED
-		if reached or not walk_blocked(boxes, from, target, clear - Config.ZONE_CORNER_SLACK):
+		reached = from.distance_to(waypoint) < BorderConfig.ZONE_CORNER_REACHED
+		if reached or not walk_blocked(boxes, from, target, clear - BorderConfig.ZONE_CORNER_SLACK):
 			waypoint = Vector2.INF
 	if waypoint == Vector2.INF and not reached and block_at(boxes, from + dir * go, clear) < 0:
 		return {"pos": from + dir * go, "waypoint": Vector2.INF}  # The usual case: a free step.
 	var q := clear_of_blocks(boxes, from, clear)
 	if waypoint == Vector2.INF:
-		var i := first_blocker(boxes, q, target, clear - Config.ZONE_CORNER_SLACK)
+		var i := first_blocker(boxes, q, target, clear - BorderConfig.ZONE_CORNER_SLACK)
 		if i < 0:  # Only skimming a footprint's edge: the step stays out of the grown box.
 			return {"pos": clear_of_blocks(boxes, q + dir * go, clear), "waypoint": Vector2.INF}
 		waypoint = _best_corner(boxes, i, q, target, clear)
@@ -377,14 +379,16 @@ static func _best_corner(boxes: PackedFloat32Array, i: int, q: Vector2, target: 
 	var best_len := INF
 	# A lane (0 to ZONE_CORNER_LANE metres, from the target so it is the same each time) keeps people who go round the same
 	# corner from stacking up on one point.
-	var lane := fposmod(target.x * 3.7 + target.y * 1.9, 1.0) * Config.ZONE_CORNER_LANE + Config.ZONE_CORNER_OUT
+	var lane := (
+		fposmod(target.x * 3.7 + target.y * 1.9, 1.0) * BorderConfig.ZONE_CORNER_LANE + BorderConfig.ZONE_CORNER_OUT
+	)
 	var ext := Vector2(boxes[i + 2] + clear + lane, boxes[i + 3] + clear + lane)
 	for sx: float in [-1.0, 1.0]:
 		for sz: float in [-1.0, 1.0]:
 			var c := Vector2(boxes[i] + sx * ext.x, boxes[i + 1] + sz * ext.y)
 			if (
-				q.distance_to(c) < Config.ZONE_CORNER_REACHED
-				or walk_blocked(boxes, q, c, clear - Config.ZONE_CORNER_SLACK)
+				q.distance_to(c) < BorderConfig.ZONE_CORNER_REACHED
+				or walk_blocked(boxes, q, c, clear - BorderConfig.ZONE_CORNER_SLACK)
 			):
 				continue
 			var len := q.distance_to(c) + c.distance_to(target)

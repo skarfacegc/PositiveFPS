@@ -80,18 +80,18 @@ static func attach(level: TopDownMain) -> StyleAmbient:
 
 
 func _ready() -> void:
-	_rng.seed = Config.C7_SEED
+	_rng.seed = StyleConfig.C7_SEED
 	layers = StyleProps.make_layers(self)
-	for i: int in range(Config.C7_BUTTERFLIES):
+	for i: int in range(StyleConfig.C7_BUTTERFLIES):
 		butterflies.append(_flyer(WING_COLOURS[i % WING_COLOURS.size()]))
-	for i: int in range(Config.C7_FIREFLIES):
+	for i: int in range(StyleConfig.C7_FIREFLIES):
 		fireflies.append(_flyer(FIREFLY))
 	for i: int in range(TopDownMain.BLOCK_POSITIONS.size()):
 		var c := TopDownMain.BLOCK_POSITIONS[i]
 		var b := Bird.new()
 		b.block = i
 		b.roof = Vector3(c.x + _rng.randf_range(-1.2, 1.2), BANK_Y, c.z + _rng.randf_range(-1.2, 1.2))
-		b.start = b.roof + Basis(Vector3.UP, float(i) * 1.1) * Config.C7_BIRD_START
+		b.start = b.roof + Basis(Vector3.UP, float(i) * 1.1) * StyleConfig.C7_BIRD_START
 		b.phase = _rng.randf() * TAU
 		b.colour = BIRD_COLOURS[i % BIRD_COLOURS.size()]
 		birds.append(b)
@@ -118,11 +118,11 @@ func step(delta: float) -> void:
 		day = StyleProps.day_factor(main.night.sun_energy())
 	layers.begin()
 	_recheck_timer += delta
-	_recheck = _recheck_timer >= Config.L31_AMBIENT_RECHECK
+	_recheck = _recheck_timer >= StyleConfig.L31_AMBIENT_RECHECK
 	if _recheck:
 		_recheck_timer = 0.0
 	_anchor_timer += delta
-	var pick := _anchor_timer >= Config.C7_ANCHOR_INTERVAL
+	var pick := _anchor_timer >= StyleConfig.C7_ANCHOR_INTERVAL
 	if pick:
 		_anchor_timer = 0.0
 	for f: Flyer in butterflies:
@@ -175,30 +175,30 @@ func _pick_anchor() -> Vector3:
 		return Vector3.INF
 	var c := centres[_rng.randi_range(0, centres.size() - 1)]
 	var a := _rng.randf() * TAU
-	var r := _rng.randf() * Config.C7_ANCHOR_REACH
+	var r := _rng.randf() * StyleConfig.C7_ANCHOR_REACH
 	var half := float(Config.TD_PLAZA_SIZE) * 0.5 - 1.0
 	var at := Vector3(clampf(c.x + cos(a) * r, -half, half), 0.0, clampf(c.z + sin(a) * r, -half, half))
-	if _weight(at) < Config.C7_AMBIENT_MIN_WEIGHT:
+	if _weight(at) < StyleConfig.C7_AMBIENT_MIN_WEIGHT:
 		return Vector3.INF
 	at.y = _rng.randf_range(0.8, 2.0)
 	return at
 
 
 func _step_flyer(f: Flyer, delta: float, pick: bool) -> void:
-	if _recheck and f.live and _weight(f.anchor) < Config.C7_AMBIENT_MIN_WEIGHT * 0.5:
+	if _recheck and f.live and _weight(f.anchor) < StyleConfig.C7_AMBIENT_MIN_WEIGHT * 0.5:
 		f.live = false
 	if not f.live and pick:
 		var at := _pick_anchor()
 		if at != Vector3.INF:
 			f.anchor = at
 			f.live = true
-	f.fade = move_toward(f.fade, 1.0 if f.live else 0.0, delta / maxf(Config.C7_FADE_SECONDS, 0.01))
+	f.fade = move_toward(f.fade, 1.0 if f.live else 0.0, delta / maxf(StyleConfig.C7_FADE_SECONDS, 0.01))
 
 
 # Where a flyer is now: a slow loop round its anchor.
 func _flyer_pos(f: Flyer) -> Vector3:
 	var t := time * f.rate + f.phase
-	var r := Config.C7_DRIFT_RADIUS
+	var r := StyleConfig.C7_DRIFT_RADIUS
 	return f.anchor + Vector3(sin(t) * r, sin(t * 1.7) * 0.4, cos(t * 0.8 + f.phase) * r)
 
 
@@ -210,7 +210,7 @@ func _draw_butterfly(f: Flyer) -> void:
 	var yaw := atan2(cos(t), -sin(t * 0.8 + f.phase) * 0.8)
 	var pos := _flyer_pos(f)
 	var flap := 0.3 + 0.9 * absf(sin(time * 12.0 + f.phase))
-	var a := Config.L31_BUTTERFLY_SCALE
+	var a := StyleConfig.L31_BUTTERFLY_SCALE
 	var side := Basis(Vector3.UP, yaw) * Vector3(0.07, 0.0, 0.0) * a
 	var wing := Vector3(0.14, 0.02, 0.1) * vis * a
 	layers.box(pos + side, wing, f.colour, yaw, flap)
@@ -223,7 +223,7 @@ func _draw_firefly(f: Flyer) -> void:
 		return
 	var pos := _flyer_pos(f)
 	var pulse := 0.5 + 0.5 * sin(time * 2.5 + f.phase)
-	var a := Config.L31_AMBIENT_SCALE
+	var a := StyleConfig.L31_AMBIENT_SCALE
 	layers.ball(pos, 0.05 * a, Color(FIREFLY.r, FIREFLY.g, FIREFLY.b, vis))
 	layers.ball(pos, (0.1 + 0.15 * pulse) * a, Color(FIREFLY.r, FIREFLY.g, FIREFLY.b, 0.35 * vis * pulse))
 
@@ -242,7 +242,7 @@ func _step_bird(b: Bird, delta: float) -> void:
 	if _recheck:
 		b.wanted = _building_beautified(b.block)
 	var target := 1.0 if b.wanted else 0.0
-	b.t = move_toward(b.t, target, delta / maxf(Config.C7_BIRD_SECONDS, 0.01))
+	b.t = move_toward(b.t, target, delta / maxf(StyleConfig.C7_BIRD_SECONDS, 0.01))
 	if b.t <= 0.001:
 		return
 	var e := smoothstep(0.0, 1.0, b.t)
@@ -253,7 +253,7 @@ func _step_bird(b: Bird, delta: float) -> void:
 	var heading := b.roof - b.start
 	var yaw := atan2(heading.x, heading.z) if flying else b.phase
 	var fwd := Basis(Vector3.UP, yaw) * Vector3(0.0, 0.0, 1.0)
-	var a := Config.L31_AMBIENT_SCALE
+	var a := StyleConfig.L31_AMBIENT_SCALE
 	layers.box(pos + Vector3(0, 0.1, 0) * a, Vector3(0.2, 0.14, 0.3) * a, b.colour, yaw)
 	layers.ball(pos + Vector3(0, 0.2, 0) * a + fwd * 0.16 * a, 0.07 * a, b.colour.lightened(0.15))
 	layers.box(pos + Vector3(0, 0.1, 0) * a - fwd * 0.2 * a, Vector3(0.07, 0.03, 0.16) * a, b.colour.darkened(0.3), yaw)
@@ -272,7 +272,7 @@ func _step_idlers(delta: float) -> void:
 		var base_ok := p.is_rescued and not p.wobbling
 		# The paint-weight lookup runs only on a recheck frame (every L31_AMBIENT_RECHECK seconds); between, it is cached.
 		if not idlers.has(id):
-			if not base_ok or not _recheck or _weight(p.global_position) < Config.C7_IDLE_MIN_WEIGHT:
+			if not base_ok or not _recheck or _weight(p.global_position) < StyleConfig.C7_IDLE_MIN_WEIGHT:
 				continue
 			var fresh := Idler.new()
 			fresh.person = p
@@ -281,15 +281,15 @@ func _step_idlers(delta: float) -> void:
 			idlers[id] = fresh
 		var it: Idler = idlers[id]
 		if _recheck:
-			it.in_zone = _weight(p.global_position) >= Config.C7_IDLE_MIN_WEIGHT
+			it.in_zone = _weight(p.global_position) >= StyleConfig.C7_IDLE_MIN_WEIGHT
 		var eligible := base_ok and it.in_zone
-		if p.global_position.distance_to(it.last) > Config.C7_IDLE_STILL:
+		if p.global_position.distance_to(it.last) > StyleConfig.C7_IDLE_STILL:
 			it.last = p.global_position
 			it.still = 0.0
 		else:
 			it.still += delta
-		it.wanted = eligible and it.still >= Config.C7_IDLE_AFTER
-		it.ease_in = move_toward(it.ease_in, 1.0 if it.wanted else 0.0, delta / maxf(Config.C7_IDLE_EASE, 0.01))
+		it.wanted = eligible and it.still >= StyleConfig.C7_IDLE_AFTER
+		it.ease_in = move_toward(it.ease_in, 1.0 if it.wanted else 0.0, delta / maxf(StyleConfig.C7_IDLE_EASE, 0.01))
 		if it.ease_in <= 0.0 and not eligible:
 			_sink(it, 0.0)
 			idlers.erase(id)
@@ -301,7 +301,7 @@ func _step_idlers(delta: float) -> void:
 func _sink(it: Idler, amount: float) -> void:
 	if it == null or not is_instance_valid(it.person) or it.person.look == null:
 		return
-	it.person.look.position.y = -Config.C7_SIT_DROP * amount
+	it.person.look.position.y = -StyleConfig.C7_SIT_DROP * amount
 
 
 func _draw_idle(it: Idler) -> void:
@@ -310,7 +310,7 @@ func _draw_idle(it: Idler) -> void:
 	if e <= 0.0:
 		return
 	var base := it.person.global_position
-	var a := minf(Config.L31_AMBIENT_SCALE, 1.8)  # The extras beside a person stay human-sized: only a little bigger.
+	var a := minf(StyleConfig.L31_AMBIENT_SCALE, 1.8)  # The extras beside a person stay human-sized: only a little bigger.
 	match it.action:
 		Action.SIT:
 			layers.box(base + Vector3(0, 0.3, 0), Vector3(1.0, 0.08, 0.4) * e * a, WOOD)

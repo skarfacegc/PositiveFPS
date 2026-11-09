@@ -83,9 +83,9 @@ func test_the_wedge_spans_exactly_guarded_arc_deg_either_side_of_the_facing() ->
 		lo = minf(lo, a)
 		hi = maxf(hi, a)
 		far = maxf(far, Vector2(w.x - p.global_position.x, w.z - p.global_position.z).length())
-	assert_float(lo).is_equal_approx(-Config.GUARDED_ARC_DEG, 0.01)
-	assert_float(hi).is_equal_approx(Config.GUARDED_ARC_DEG, 0.01)
-	assert_float(far).is_equal_approx(Config.GUARDED_WEDGE_RADIUS, 0.01)
+	assert_float(lo).is_equal_approx(-MoodConfig.GUARDED_ARC_DEG, 0.01)
+	assert_float(hi).is_equal_approx(MoodConfig.GUARDED_ARC_DEG, 0.01)
+	assert_float(far).is_equal_approx(MoodConfig.GUARDED_WEDGE_RADIUS, 0.01)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -124,8 +124,8 @@ func test_the_wedge_follows_the_facing_as_the_person_turns() -> void:
 			edge_lo = minf(edge_lo, a)
 			edge_hi = maxf(edge_hi, a)
 			mid += w - p.global_position
-		assert_float(edge_lo).is_equal_approx(-Config.GUARDED_ARC_DEG, 0.01)
-		assert_float(edge_hi).is_equal_approx(Config.GUARDED_ARC_DEG, 0.01)
+		assert_float(edge_lo).is_equal_approx(-MoodConfig.GUARDED_ARC_DEG, 0.01)
+		assert_float(edge_hi).is_equal_approx(MoodConfig.GUARDED_ARC_DEG, 0.01)
 		# The fan's middle lies along the person's facing.
 		var mid_dir := Vector3(mid.x, 0.0, mid.z).normalized()
 		assert_float(mid_dir.dot(facing)).is_greater(0.99)
@@ -155,7 +155,7 @@ func test_the_open_side_is_brighter_exactly_when_a_shot_from_the_player_would_la
 		assert_bool(p.shot_lands_now()).is_equal(expected)
 		assert_bool(p.look.wedge_open).is_equal(expected)
 		var colour: Color = p.look.wedge_mat.albedo_color
-		assert_bool(colour.is_equal_approx(Config.GUARDED_WEDGE_OPEN_COLOUR)).is_equal(expected)
+		assert_bool(colour.is_equal_approx(MoodConfig.GUARDED_WEDGE_OPEN_COLOUR)).is_equal(expected)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -171,6 +171,6 @@ func test_a_guarded_person_turns_at_the_round_17_speed() -> void:
 	p.rotation.y = 1.0
 	await runner.simulate_frames(1)
 	var step := absf(p.rotation.y - 1.0)
-	assert_float(Config.GUARDED_TURN_SPEED).is_equal(0.45)
-	assert_float(step).is_equal_approx(Config.GUARDED_TURN_SPEED / 60.0, 0.0005)
+	assert_float(MoodConfig.GUARDED_TURN_SPEED).is_equal(0.45)
+	assert_float(step).is_equal_approx(MoodConfig.GUARDED_TURN_SPEED / 60.0, 0.0005)
 	await TopDownTestUtil.leave_loaded_scene(td)

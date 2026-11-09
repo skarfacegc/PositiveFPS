@@ -20,11 +20,11 @@ func refresh() -> void:
 		_last_frame = -100000
 		return
 	var now := Engine.get_process_frames()
-	if now - _last_frame >= Config.EDGE_RIBBON_REBUILD_FRAMES:
+	if now - _last_frame >= BorderConfig.EDGE_RIBBON_REBUILD_FRAMES:
 		_last_frame = now
 		_rebuild_strips()
 		_mesh.clear_surfaces()
-		var arrays := EdgeRibbon.mesh_arrays(strips, Config.BORDER_LINE_HEIGHT, 1.0)
+		var arrays := EdgeRibbon.mesh_arrays(strips, BorderConfig.BORDER_LINE_HEIGHT, 1.0)
 		if not arrays.is_empty():
 			_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	# Round 12a: a dim player makes the line flicker (see Border.flicker).

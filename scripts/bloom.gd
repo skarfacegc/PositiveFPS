@@ -28,21 +28,21 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_age += delta
 	_pulse += delta
-	if _pulse >= Config.TD_BLOOM_PULSE_SECONDS:
+	if _pulse >= ProjectileConfig.TD_BLOOM_PULSE_SECONDS:
 		_soak(_pulse)
 		_pulse = 0.0
-	var left := Config.TD_BLOOM_SECONDS - _age
-	var fade_window := Config.TD_BLOOM_SECONDS * Config.TD_BLOOM_FADE_FRACTION
+	var left := ProjectileConfig.TD_BLOOM_SECONDS - _age
+	var fade_window := ProjectileConfig.TD_BLOOM_SECONDS * ProjectileConfig.TD_BLOOM_FADE_FRACTION
 	_set_fade(clampf(left / fade_window, 0.0, 1.0))
-	if _age >= Config.TD_BLOOM_SECONDS:
+	if _age >= ProjectileConfig.TD_BLOOM_SECONDS:
 		queue_free()
 
 
 # Gives joy to everyone inside the radius. `seconds` is how long the pulse covers.
 func _soak(seconds: float) -> void:
-	var amount := Config.TD_BLOOM_JOY_PER_SEC * seconds
+	var amount := ProjectileConfig.TD_BLOOM_JOY_PER_SEC * seconds
 	for p: Person in people:
-		if GloomSim.flat_dist(global_position, p.global_position) <= Config.TD_BLOOM_RADIUS:
+		if GloomSim.flat_dist(global_position, p.global_position) <= ProjectileConfig.TD_BLOOM_RADIUS:
 			p.receive_joy(Config.Element.NATURE, amount, 0.0, global_position, false)
 
 
@@ -55,19 +55,19 @@ func _set_fade(factor: float) -> void:
 
 # A faint patch: a translucent fill over the whole radius, and a few small flowers.
 func _build_patch() -> void:
-	add_child(_disc(Config.TD_BLOOM_RADIUS, PETAL_COLOR, Config.TD_BLOOM_FILL_ALPHA, 0.0))
+	add_child(_disc(ProjectileConfig.TD_BLOOM_RADIUS, PETAL_COLOR, ProjectileConfig.TD_BLOOM_FILL_ALPHA, 0.0))
 
 	var petal_mat := _track(PETAL_COLOR, 1.0)
 	var centre_mat := _track(CENTRE_COLOR, 1.0)
-	var flowers := Config.TD_BLOOM_FLOWER_COUNT
+	var flowers := ProjectileConfig.TD_BLOOM_FLOWER_COUNT
 	for i: int in range(flowers):
 		var a := TAU * i / float(flowers)
-		var r := Config.TD_BLOOM_RADIUS * (0.35 if i % 2 == 0 else 0.6)
+		var r := ProjectileConfig.TD_BLOOM_RADIUS * (0.35 if i % 2 == 0 else 0.6)
 		var flower := Node3D.new()
 		flower.position = Vector3(cos(a) * r, 0.03, sin(a) * r)
 		add_child(flower)
-		for k: int in range(Config.TD_BLOOM_PETALS):
-			var pa := TAU * k / float(Config.TD_BLOOM_PETALS)
+		for k: int in range(ProjectileConfig.TD_BLOOM_PETALS):
+			var pa := TAU * k / float(ProjectileConfig.TD_BLOOM_PETALS)
 			var petal := MeshInstance3D.new()
 			var petal_mesh := CylinderMesh.new()
 			petal_mesh.top_radius = 0.12

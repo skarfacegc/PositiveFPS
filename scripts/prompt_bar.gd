@@ -44,7 +44,7 @@ func tick(screen: Rect2) -> void:
 	big = intro.big
 	coral = intro.coral
 	icon = Intro.icon_for(prompt_id)
-	var fade := Config.PROMPT_FADE_SECONDS
+	var fade := HudConfig.PROMPT_FADE_SECONDS
 	var elapsed := intro.duration - intro.time_left
 	alpha = clampf(minf(elapsed / fade, intro.time_left / fade), 0.0, 1.0)
 	_rect = _place(screen)
@@ -59,16 +59,16 @@ func _place(screen: Rect2) -> Rect2:
 # Checkpoint 6: a notice is a slim banner at the top centre, just under the Dusk to Dawn bar (or under the HUD alert
 # while one shows), no wider than CP6_BANNER_MAX_WIDTH: the text shrinks (to 11 px) to fit rather than run out.
 func _place_banner(screen: Rect2, font: Font) -> Rect2:
-	font_px = Config.NOTICE_FONT_SIZE
+	font_px = HudConfig.NOTICE_FONT_SIZE
 	var extra := 62.0 if icon != MoodIcons.Kind.NONE else 44.0
-	var avail := minf(Config.CP6_BANNER_MAX_WIDTH, screen.size.x - 20.0)
+	var avail := minf(HudConfig.CP6_BANNER_MAX_WIDTH, screen.size.x - 20.0)
 	while font_px > 11 and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px).x + extra > avail:
 		font_px -= 1
 	var w := minf(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px).x + extra, avail)
-	var top := Config.CP6_BANNER_TOP
+	var top := HudConfig.CP6_BANNER_TOP
 	if main != null and main.hud != null and main.hud.alert_showing():
-		top += Config.CP6_BANNER_HEIGHT + Config.CP6_BANNER_GAP
-	return Rect2(Vector2(screen.size.x * 0.5 - w * 0.5, top), Vector2(w, Config.NOTICE_HEIGHT))
+		top += HudConfig.CP6_BANNER_HEIGHT + HudConfig.CP6_BANNER_GAP
+	return Rect2(Vector2(screen.size.x * 0.5 - w * 0.5, top), Vector2(w, HudConfig.NOTICE_HEIGHT))
 
 
 # The look was swapped (F4): draw again in the new style.
@@ -92,7 +92,7 @@ func _draw() -> void:
 	style.set_border_width_all(2)
 	if coral:
 		style.bg_color = Color(0.16, 0.05, 0.05, 0.9 * alpha)
-		style.border_color = Config.NOTICE_COLOUR
+		style.border_color = HudConfig.NOTICE_COLOUR
 		style.border_color.a = alpha
 		style.set_border_width_all(2)
 	draw_style_box(style, _rect)

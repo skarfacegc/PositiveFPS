@@ -137,7 +137,7 @@ func test_three_locked_rescues_by_real_clicks_form_the_border() -> void:
 func test_slot_and_inner_counts_follow_the_formula() -> void:
 	# Round 13a: all sizes here are times WORLD_SCALE, so the counts are the same. A circle of radius 3 (perimeter
 	# about 18.85) has 8 slots at 2.6 m (round 11). Twelve people: eight border members, four inner.
-	var loop := BorderShape.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+	var loop := BorderShape.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, RoundLoopConfig.BORDER_SAMPLES)
 	var border := _bare_border(loop)
 	var people := _people(12)
 	var rescued: Array[Person] = []
@@ -156,7 +156,7 @@ func test_slot_and_inner_counts_follow_the_formula() -> void:
 func test_fewer_people_than_slots_spread_out_and_leave_gaps() -> void:
 	# Four people on a radius 3 loop: all four are border members, spaced about 4.7 m apart (over the 3.5 m limit).
 	var border := _bare_border(
-		BorderShape.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+		BorderShape.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, RoundLoopConfig.BORDER_SAMPLES)
 	)
 	var people := _people(4)
 	var rescued: Array[Person] = []
@@ -174,7 +174,7 @@ func test_fewer_people_than_slots_spread_out_and_leave_gaps() -> void:
 
 func test_gaps_are_drawn_in_their_own_colour() -> void:
 	var border := _bare_border(
-		BorderShape.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+		BorderShape.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, RoundLoopConfig.BORDER_SAMPLES)
 	)
 	var people := _people(4)
 	var rescued: Array[Person] = []
@@ -185,10 +185,10 @@ func test_gaps_are_drawn_in_their_own_colour() -> void:
 		rescued.append(people[i])
 	border._assign_members(rescued)
 	assert_bool(border.segment_is_gap(0)).is_true()
-	assert_bool(border.segment_colour(0).is_equal_approx(Config.BORDER_INTACT_COLOUR)).is_false()
+	assert_bool(border.segment_colour(0).is_equal_approx(BorderConfig.BORDER_INTACT_COLOUR)).is_false()
 
 	var intact := _bare_border(
-		BorderShape.circle_polygon(Vector2.ZERO, 5.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+		BorderShape.circle_polygon(Vector2.ZERO, 5.0 * Config.WORLD_SCALE, RoundLoopConfig.BORDER_SAMPLES)
 	)
 	var more := _people(14)
 	var more_rescued: Array[Person] = []
@@ -199,14 +199,14 @@ func test_gaps_are_drawn_in_their_own_colour() -> void:
 		more_rescued.append(more[i])
 	intact._assign_members(more_rescued)
 	assert_bool(intact.segment_is_gap(0)).is_false()
-	assert_bool(intact.segment_colour(0).is_equal_approx(Config.BORDER_INTACT_COLOUR)).is_true()
+	assert_bool(intact.segment_colour(0).is_equal_approx(BorderConfig.BORDER_INTACT_COLOUR)).is_true()
 
 
 # --- Holding gloom ---------------------------------------------------------------------------------------
 
 
 func test_a_dimmed_person_outside_is_stopped_at_an_intact_line() -> void:
-	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
+	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES))
 	var people := _people(14)
 	var rescued: Array[Person] = []
 	for i: int in range(14):
@@ -224,7 +224,7 @@ func test_a_dimmed_person_outside_is_stopped_at_an_intact_line() -> void:
 
 func test_a_dimmed_person_passes_through_a_gap() -> void:
 	# Three members on a radius 5 loop are 10.5 m apart: every stretch is a gap, so nothing holds the dimmed person back.
-	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
+	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES))
 	var people := _people(3)
 	var rescued: Array[Person] = []
 	for i: int in range(3):
@@ -238,7 +238,7 @@ func test_a_dimmed_person_passes_through_a_gap() -> void:
 
 
 func test_a_dimmed_person_inside_the_loop_is_not_held() -> void:
-	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES))
+	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES))
 	var from := Vector3(1.0, 0.0, 0.0)
 	var to := Vector3(2.0, 0.0, 0.0)
 	assert_bool(border.clip_move(from, to).is_equal_approx(to)).is_true()
@@ -258,7 +258,7 @@ func test_a_relapsed_member_leaves_and_the_others_reshuffle() -> void:
 	leaver.grace_left = 0.0
 	leaver.drain_joy(Config.JOY_MAX)
 	# Round 24: the relapse follows the wobble (up to WOBBLE_SECONDS plus its jitter), then the others reshuffle.
-	await runner.simulate_frames(int((Config.WOBBLE_SECONDS * (1.0 + Config.WOBBLE_JITTER) + 2.0) * 60.0))
+	await runner.simulate_frames(int((PeopleConfig.WOBBLE_SECONDS * (1.0 + PeopleConfig.WOBBLE_JITTER) + 2.0) * 60.0))
 	assert_bool(leaver.is_rescued).is_false()
 	assert_int(td.border.member_count).is_equal(4)
 	assert_bool(td.border.members.has(leaver)).is_false()
@@ -290,7 +290,8 @@ func test_losing_the_border_by_relapse_below_three_ends_the_level() -> void:
 	assert_bool(td.border.formed).is_true()
 	made[0].grace_left = 0.0
 	made[0].drain_joy(Config.JOY_MAX)
-	await runner.simulate_frames(int((Config.WOBBLE_SECONDS * (1.0 + Config.WOBBLE_JITTER) + 1.0) * 60.0))  # Round 24
+	# Round 24
+	await runner.simulate_frames(int((PeopleConfig.WOBBLE_SECONDS * (1.0 + PeopleConfig.WOBBLE_JITTER) + 1.0) * 60.0))
 	assert_bool(td.running).is_false()
 	assert_str(td.hud.end_label.text).contains("The border fell")
 
@@ -301,8 +302,8 @@ func test_losing_the_border_by_relapse_below_three_ends_the_level() -> void:
 func test_tiles_inside_the_loop_paint_in_over_time_and_outside_stays_grey() -> void:
 	var ground: PaintedGround = auto_free(PaintedGround.new())
 	add_child(ground)
-	ground.setup(40, Config.TD_GROUND_SPREAD_SPEED, Config.TD_GROUND_FADE_SPEED, true)
-	ground.set_region(BorderShape.circle_polygon(Vector2.ZERO, 6.0, Config.BORDER_SAMPLES))
+	ground.setup(40, GroundConfig.TD_GROUND_SPREAD_SPEED, GroundConfig.TD_GROUND_FADE_SPEED, true)
+	ground.set_region(BorderShape.circle_polygon(Vector2.ZERO, 6.0, RoundLoopConfig.BORDER_SAMPLES))
 	var none: Array[Person] = []
 	for i: int in range(10):
 		ground.update_paint(none, 0.11)
@@ -314,7 +315,7 @@ func test_tiles_inside_the_loop_paint_in_over_time_and_outside_stays_grey() -> v
 
 
 func test_a_grey_person_inside_the_loop_lightens_and_one_outside_dims() -> void:
-	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 6.0, Config.BORDER_SAMPLES))
+	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 6.0, RoundLoopConfig.BORDER_SAMPLES))
 	var people := _people(2)
 	var inside: Person = people[0]
 	inside.position = Vector3(0.0, 0.0, 0.0)
@@ -354,12 +355,12 @@ func test_a_building_is_beautified_after_three_seconds_inside() -> void:
 func test_landmark_hold_grows_then_resets_when_not_beautified() -> void:
 	var lm: Landmark = auto_free(Landmark.new())
 	add_child(lm)
-	lm.update(Config.BORDER_LANDMARK_HOLD * 0.4, true)
+	lm.update(LandmarkConfig.BORDER_LANDMARK_HOLD * 0.4, true)
 	assert_float(lm.progress()).is_equal_approx(0.4, 0.001)
 	assert_bool(lm.is_held()).is_false()
 	lm.update(1.0, false)
 	assert_float(lm.hold).is_equal(0.0)
-	lm.update(Config.BORDER_LANDMARK_HOLD, true)
+	lm.update(LandmarkConfig.BORDER_LANDMARK_HOLD, true)
 	assert_bool(lm.is_held()).is_true()
 
 
@@ -369,7 +370,7 @@ func test_a_held_landmark_no_longer_ends_the_level() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	_rescue_ring(td, Config.LANDMARK_POSITIONS[0], 2.5, 3)
+	_rescue_ring(td, LandmarkConfig.LANDMARK_POSITIONS[0], 2.5, 3)
 	var frames := 0
 	while not td.landmarks.items[0].is_held() and frames < 1500:
 		await runner.simulate_frames(1)

@@ -44,8 +44,8 @@ func _saturation(c: Color) -> float:
 func test_the_lamp_light_is_cool_in_gloom_and_warm_in_bloom() -> void:
 	var cool := StyleProps.lamp_light_colour(0.0)
 	var warm := StyleProps.lamp_light_colour(1.0)
-	assert_bool(cool.is_equal_approx(Config.L32_LIGHT_COOL)).is_true()
-	assert_bool(warm.is_equal_approx(Config.L32_LIGHT_WARM)).is_true()
+	assert_bool(cool.is_equal_approx(StyleConfig.L32_LIGHT_COOL)).is_true()
+	assert_bool(warm.is_equal_approx(StyleConfig.L32_LIGHT_WARM)).is_true()
 	# Pale blue-white: blue is the strongest channel. Cheery amber: red the strongest, blue the weakest.
 	assert_bool(cool.b >= cool.g and cool.g >= cool.r).is_true()
 	assert_bool(warm.r > warm.g and warm.g > warm.b).is_true()
@@ -62,13 +62,13 @@ func test_the_lamp_light_is_cool_in_gloom_and_warm_in_bloom() -> void:
 func test_the_lamp_light_is_strong_at_night_and_faint_by_day() -> void:
 	for bloom: float in [0.0, 0.5, 1.0]:
 		assert_float(StyleProps.lamp_light_strength(bloom, 1.0)).is_greater(StyleProps.lamp_light_strength(bloom, 0.0))
-		assert_float(StyleProps.lamp_light_strength(bloom, 0.0)).is_less_equal(Config.L32_LIGHT_DAY + 0.001)
+		assert_float(StyleProps.lamp_light_strength(bloom, 0.0)).is_less_equal(StyleConfig.L32_LIGHT_DAY + 0.001)
 	assert_float(StyleProps.lamp_light_strength(1.0, 1.0)).is_equal_approx(1.0, 0.001)
-	assert_float(StyleProps.lamp_light_strength(0.0, 1.0)).is_equal_approx(Config.L32_LIGHT_GLOOM, 0.001)
+	assert_float(StyleProps.lamp_light_strength(0.0, 1.0)).is_equal_approx(StyleConfig.L32_LIGHT_GLOOM, 0.001)
 	assert_float(StyleProps.lamp_light_strength(1.0, 5.0)).is_equal_approx(1.0, 0.001)
 	# The light never hides a person or a gap: every shape stays see-through, even at its strongest.
-	for a: float in [Config.L32_CONE_ALPHA, Config.L32_POOL_ALPHA, Config.L32_HEAD_ALPHA]:
-		assert_float(a).is_less_equal(Config.L32_MAX_LIGHT_ALPHA)
+	for a: float in [StyleConfig.L32_CONE_ALPHA, StyleConfig.L32_POOL_ALPHA, StyleConfig.L32_HEAD_ALPHA]:
+		assert_float(a).is_less_equal(StyleConfig.L32_MAX_LIGHT_ALPHA)
 		assert_float(a).is_greater(0.0)
 
 
@@ -92,9 +92,9 @@ func test_a_lamp_draws_a_cone_a_pool_and_a_head_glow_at_every_bloom() -> void:
 	assert_float(cone.origin.z).is_equal_approx(-3.0, 0.001)
 	assert_float(pool.origin.y).is_between(0.0, 0.2)
 	assert_float(pool.basis.x.length()).is_equal_approx(cone.basis.x.length(), 0.001)
-	assert_float(pool.basis.x.length()).is_equal_approx(Config.L32_POOL_RADIUS * 2.0, 0.001)
+	assert_float(pool.basis.x.length()).is_equal_approx(StyleConfig.L32_POOL_RADIUS * 2.0, 0.001)
 	# A full pool of the light does not run past a lamp's neighbours on the plaza lattice.
-	assert_float(Config.L32_POOL_RADIUS).is_less(Config.TOWN_LAMP_SPACING * 0.5)
+	assert_float(StyleConfig.L32_POOL_RADIUS).is_less(TownConfig.TOWN_LAMP_SPACING * 0.5)
 	_free(s)
 
 
@@ -104,7 +104,7 @@ func test_the_light_shapes_draw_after_the_post_process_quad_and_a_layer_can_be_l
 	for i: int in [2, 3]:
 		var mi: MultiMeshInstance3D = (s["parent"] as Node3D).get_child(i)
 		var mat := mi.material_override as ShaderMaterial
-		assert_int(mat.render_priority).is_equal(Config.L31_SOFT_PRIORITY)
+		assert_int(mat.render_priority).is_equal(StyleConfig.L31_SOFT_PRIORITY)
 		assert_object(mat.shader).is_not_null()
 	# Layers made without the light (the ambient life's) simply ignore a cone or a pool.
 	var parent := Node3D.new()
@@ -245,24 +245,24 @@ func _top_of(node: Node, parent_t: Transform3D) -> float:
 
 func test_the_player_height_constant_is_the_measured_styled_height() -> void:
 	var h := _player_height()
-	assert_float(h).is_less_equal(Config.L32_PLAYER_HEIGHT)
-	assert_float(h).is_greater(Config.L32_PLAYER_HEIGHT - 0.4)
+	assert_float(h).is_less_equal(StyleConfig.L32_PLAYER_HEIGHT)
+	assert_float(h).is_greater(StyleConfig.L32_PLAYER_HEIGHT - 0.4)
 
 
 func test_bunting_posts_and_wires_stay_above_the_players_head_everywhere() -> void:
 	var h := _player_height()
-	assert_float(Config.L32_LINE_POST_HEIGHT).is_greater(h + Config.L32_LINE_CLEARANCE)
+	assert_float(StyleConfig.L32_LINE_POST_HEIGHT).is_greater(h + StyleConfig.L32_LINE_CLEARANCE)
 	# The rope's lowest point and the longest flag, at every unfurl from just shown to full, for bunting and washing.
 	for washing: bool in [false, true]:
 		for i: int in range(0, 15):
-			var u := lerpf(Config.L31_LINE_SHOW + Config.L32_LINE_RISE, 1.0, float(i) / 14.0)
-			assert_float(StyleProps.line_low_point(u, washing)).is_greater_equal(h + Config.L32_LINE_CLEARANCE)
+			var u := lerpf(StyleConfig.L31_LINE_SHOW + StyleConfig.L32_LINE_RISE, 1.0, float(i) / 14.0)
+			assert_float(StyleProps.line_low_point(u, washing)).is_greater_equal(h + StyleConfig.L32_LINE_CLEARANCE)
 	var centres: Array[Vector3] = []
 	for c: Vector3 in TopDownMain.BLOCK_POSITIONS:
 		centres.append(c)
-	for l: StyleProps.Line in StyleProps.layout_lines(centres, Config.C7_LINE_MAX_DIST):
-		assert_float(l.a.y).is_greater(h + Config.L32_LINE_CLEARANCE)
-		assert_float(l.b.y).is_greater(h + Config.L32_LINE_CLEARANCE)
+	for l: StyleProps.Line in StyleProps.layout_lines(centres, StyleConfig.C7_LINE_MAX_DIST):
+		assert_float(l.a.y).is_greater(h + StyleConfig.L32_LINE_CLEARANCE)
+		assert_float(l.b.y).is_greater(h + StyleConfig.L32_LINE_CLEARANCE)
 
 
 func test_every_drawn_piece_of_a_risen_line_is_above_the_players_head() -> void:
@@ -270,10 +270,10 @@ func test_every_drawn_piece_of_a_risen_line_is_above_the_players_head() -> void:
 	var s := _props()
 	var sp: StyleProps = s["sp"]
 	for washing: bool in [false, true]:
-		for u: float in [Config.L31_LINE_SHOW + Config.L32_LINE_RISE, 0.5, 0.8, 1.0]:
+		for u: float in [StyleConfig.L31_LINE_SHOW + StyleConfig.L32_LINE_RISE, 0.5, 0.8, 1.0]:
 			var l := StyleProps.Line.new()
-			l.a = Vector3(0, Config.L32_LINE_POST_HEIGHT, 0)
-			l.b = Vector3(10, Config.L32_LINE_POST_HEIGHT, 4)
+			l.a = Vector3(0, StyleConfig.L32_LINE_POST_HEIGHT, 0)
+			l.b = Vector3(10, StyleConfig.L32_LINE_POST_HEIGHT, 4)
 			l.washing = washing
 			l.unfurl = u
 			sp.layers.begin()
@@ -284,7 +284,7 @@ func test_every_drawn_piece_of_a_risen_line_is_above_the_players_head() -> void:
 			for span: Vector2 in sp.layers.spans:
 				if span.x < 0.01:
 					posts += 1  # A post: it stands on the ground and reaches up to the line.
-					assert_float(span.y).is_greater_equal(Config.L32_LINE_POST_HEIGHT - 0.01)
+					assert_float(span.y).is_greater_equal(StyleConfig.L32_LINE_POST_HEIGHT - 0.01)
 					continue
 				lowest = minf(lowest, span.x)
 			assert_int(posts).is_equal(2)

@@ -178,9 +178,9 @@ func test_the_buffer_is_written_out_on_the_flush_interval() -> void:
 	var rec: Recorder = td.recorder
 	rec._flush_timer = 0.0
 	rec.emit_event("custom", {"x": 1})
-	rec._process(Config.RECORD_FLUSH_SECONDS * 0.5)
+	rec._process(RecorderConfig.RECORD_FLUSH_SECONDS * 0.5)
 	assert_bool(FileAccess.get_file_as_string(rec.events_path).contains("custom")).is_false()
-	rec._process(Config.RECORD_FLUSH_SECONDS * 0.6)
+	rec._process(RecorderConfig.RECORD_FLUSH_SECONDS * 0.6)
 	assert_bool(FileAccess.get_file_as_string(rec.events_path).contains("custom")).is_true()
 
 
@@ -190,9 +190,9 @@ func test_a_sample_is_written_on_each_sample_interval() -> void:
 	var rec: Recorder = td.recorder
 	rec._sample_timer = 0.0
 	var before := _of_type(_events(td), "sample").size()
-	rec._process(Config.RECORD_SAMPLE_SECONDS * 0.5)
+	rec._process(RecorderConfig.RECORD_SAMPLE_SECONDS * 0.5)
 	assert_int(_of_type(_events(td), "sample").size()).is_equal(before)
-	rec._process(Config.RECORD_SAMPLE_SECONDS * 0.6)
+	rec._process(RecorderConfig.RECORD_SAMPLE_SECONDS * 0.6)
 	assert_int(_of_type(_events(td), "sample").size()).is_equal(before + 1)
 
 
@@ -201,7 +201,7 @@ func test_the_screenshot_timer_asks_for_a_shot_which_is_skipped_headless() -> vo
 	var td: TopDownMain = s["td"]
 	var rec: Recorder = td.recorder
 	rec._shot_timer = 0.0
-	rec._process(Config.RECORD_SHOT_SECONDS + 0.1)
+	rec._process(RecorderConfig.RECORD_SHOT_SECONDS + 0.1)
 	assert_float(rec._shot_timer).is_equal(0.0)
 	if DisplayServer.get_name() == "headless":
 		assert_int(rec.shots_taken).is_equal(0)

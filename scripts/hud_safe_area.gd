@@ -36,10 +36,10 @@ static func avoid_rects(hud: Hud, minimap: Control, main: TopDownMain = null) ->
 # centre is in the top half of the screen and at the bottom by every one in the bottom half (each with
 # WOBBLE_ALERT_PANEL_GAP to spare).
 static func safe_rect(screen: Vector2, avoid: Array[Rect2]) -> Rect2:
-	var inset := Config.WOBBLE_ALERT_SAFE_INSET
+	var inset := HudConfig.WOBBLE_ALERT_SAFE_INSET
 	var top := inset
 	var bottom := screen.y - inset
-	var gap := Config.WOBBLE_ALERT_PANEL_GAP
+	var gap := HudConfig.WOBBLE_ALERT_PANEL_GAP
 	for r: Rect2 in avoid:
 		if r.get_center().y < screen.y * 0.5:
 			top = maxf(top, r.end.y + gap)

@@ -41,7 +41,7 @@ func test_the_start_and_the_first_border_ring_sit_on_the_crossing() -> void:
 	assert_bool(TownLayout.on_street(Vector3.ZERO)).is_true()
 	assert_bool(TownLayout.on_square(Vector3.ZERO)).is_true()
 	# The smallest border ring (BORDER_MIN_RADIUS) fits the crossing without touching a block.
-	var ring := Config.BORDER_MIN_RADIUS
+	var ring := RoundLoopConfig.BORDER_MIN_RADIUS
 	for c: Vector3 in _blocks():
 		var nearest := Vector2(maxf(absf(c.x) - 2.0, 0.0), maxf(absf(c.z) - 2.0, 0.0)).length()
 		assert_float(nearest).is_greater(ring + 2.0)
@@ -63,8 +63,8 @@ func test_lamps_stand_inside_the_walls_on_the_pavement_and_off_the_blocks() -> v
 	var spots := TownLayout.lamp_spots()
 	assert_int(spots.size()).is_greater(16)
 	for at: Vector3 in spots:
-		assert_float(absf(at.x)).is_less_equal(half - Config.TOWN_EDGE_CLEAR)
-		assert_float(absf(at.z)).is_less_equal(half - Config.TOWN_EDGE_CLEAR)
+		assert_float(absf(at.x)).is_less_equal(half - TownConfig.TOWN_EDGE_CLEAR)
+		assert_float(absf(at.z)).is_less_equal(half - TownConfig.TOWN_EDGE_CLEAR)
 		assert_bool(TownLayout.on_street(at, 1.0)).is_true()
 		for c: Vector3 in _blocks():
 			assert_bool(absf(at.x - c.x) < 2.0 and absf(at.z - c.z) < 2.0).is_false()
@@ -77,7 +77,7 @@ func test_every_landmark_and_every_block_front_can_be_walked_to() -> void:
 	var blocked := {}
 	var obstacles: Array[Vector3] = []
 	obstacles.append_array(_blocks())
-	obstacles.append_array(Config.LANDMARK_POSITIONS)
+	obstacles.append_array(LandmarkConfig.LANDMARK_POSITIONS)
 	for o: Vector3 in obstacles:
 		var reach := TopDownMain.BLOCK_SIZE.x * 0.5 + 0.5
 		for x: int in range(floori(o.x - reach), ceili(o.x + reach) + 1):
@@ -95,7 +95,7 @@ func test_every_landmark_and_every_block_front_can_be_walked_to() -> void:
 				continue
 			seen[next] = true
 			queue.append(next)
-	for at: Vector3 in Config.LANDMARK_POSITIONS:
+	for at: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
 		# A cell next to the landmark's block on the side toward the start.
 		var toward := -Vector2(at.x, at.z).normalized()
 		var spot := Vector2i(roundi(at.x + toward.x * 4.0), roundi(at.z + toward.y * 4.0))

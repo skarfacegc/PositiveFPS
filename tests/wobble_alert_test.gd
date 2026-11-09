@@ -13,7 +13,7 @@ func _start_wobble(p: Person) -> void:
 	p.loss_mult = 1.0
 	p.relapse_gate = Callable()
 	p.joy = p.joy_needed()
-	p.drain_joy(p.joy - p.joy_needed() * Config.RELAPSE_FRACTION + 1.0)
+	p.drain_joy(p.joy - p.joy_needed() * PeopleConfig.RELAPSE_FRACTION + 1.0)
 
 
 # A floor spot a little way from the player that the camera does not show, so a wobbler there is off screen.
@@ -166,7 +166,7 @@ func test_an_up_right_pointer_stays_in_the_safe_rect_and_clear_of_the_hud() -> v
 	var safe := td.wobble_alert.safe_rect(Vector2(1280, 720))
 	assert_bool(safe.has_point(tip)).is_true()
 	# The whole pointer (ring, arrow and count) is inside the safe rectangle and touches no HUD rectangle.
-	var reach := Config.WOBBLE_ALERT_REACH
+	var reach := HudConfig.WOBBLE_ALERT_REACH
 	var box := Rect2(tip - Vector2.ONE * reach, Vector2.ONE * reach * 2.0)
 	assert_bool(safe.grow(0.01).encloses(box)).is_true()
 	for r: Rect2 in td.wobble_alert.avoid_rects():
@@ -188,8 +188,8 @@ func test_the_safe_rect_is_the_screen_less_the_hud_top_and_bottom() -> void:
 			assert_float(safe.position.y).is_greater_equal(r.end.y)
 		else:
 			assert_float(safe.end.y).is_less_equal(r.position.y)
-	assert_float(safe.position.x).is_equal_approx(Config.WOBBLE_ALERT_SAFE_INSET, 0.001)
-	assert_float(safe.end.x).is_equal_approx(screen.x - Config.WOBBLE_ALERT_SAFE_INSET, 0.001)
+	assert_float(safe.position.x).is_equal_approx(HudConfig.WOBBLE_ALERT_SAFE_INSET, 0.001)
+	assert_float(safe.end.x).is_equal_approx(screen.x - HudConfig.WOBBLE_ALERT_SAFE_INSET, 0.001)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -219,9 +219,9 @@ func test_far_apart_wobblers_each_get_a_pointer_up_to_the_cap() -> void:
 	var entries: Array[Dictionary] = []
 	for k: int in range(4):
 		entries.append({"pos": Vector3(k * 60.0, 0, 0), "urgency": 0.5})
-	var clusters := WobbleAlert.group(entries, Config.WOBBLE_ALERT_CLUSTER_RADIUS)
+	var clusters := WobbleAlert.group(entries, HudConfig.WOBBLE_ALERT_CLUSTER_RADIUS)
 	assert_int(clusters.size()).is_equal(4)
-	assert_int(Config.WOBBLE_ALERT_MAX).is_less(clusters.size())
+	assert_int(HudConfig.WOBBLE_ALERT_MAX).is_less(clusters.size())
 
 
 func test_grouping_takes_the_most_urgent_first_and_means_the_centre() -> void:
@@ -230,7 +230,7 @@ func test_grouping_takes_the_most_urgent_first_and_means_the_centre() -> void:
 		{"pos": Vector3(3, 0, 0), "urgency": 0.9},
 		{"pos": Vector3(100, 0, 0), "urgency": 0.5},
 	]
-	var clusters := WobbleAlert.group(entries, Config.WOBBLE_ALERT_CLUSTER_RADIUS)
+	var clusters := WobbleAlert.group(entries, HudConfig.WOBBLE_ALERT_CLUSTER_RADIUS)
 	assert_int(clusters.size()).is_equal(2)
 	var first: Dictionary = clusters[0]
 	assert_int(first["count"]).is_equal(2)
@@ -246,9 +246,9 @@ func test_grouping_takes_the_most_urgent_first_and_means_the_centre() -> void:
 
 
 func test_the_pulse_speeds_up_as_the_wobble_runs_out() -> void:
-	assert_float(WobbleAlert.hz_for(0.0)).is_equal_approx(Config.WOBBLE_ALERT_PULSE_HZ_CALM, 0.001)
-	assert_float(WobbleAlert.hz_for(1.0)).is_equal_approx(Config.WOBBLE_ALERT_PULSE_HZ_URGENT, 0.001)
-	assert_float(WobbleAlert.hz_for(5.0)).is_equal_approx(Config.WOBBLE_ALERT_PULSE_HZ_URGENT, 0.001)
+	assert_float(WobbleAlert.hz_for(0.0)).is_equal_approx(HudConfig.WOBBLE_ALERT_PULSE_HZ_CALM, 0.001)
+	assert_float(WobbleAlert.hz_for(1.0)).is_equal_approx(HudConfig.WOBBLE_ALERT_PULSE_HZ_URGENT, 0.001)
+	assert_float(WobbleAlert.hz_for(5.0)).is_equal_approx(HudConfig.WOBBLE_ALERT_PULSE_HZ_URGENT, 0.001)
 	assert_float(WobbleAlert.pulse_at(0.0, 0.3)).is_equal_approx(0.0, 0.001)
 	var half_beat := 0.5 / WobbleAlert.hz_for(0.3)
 	assert_float(WobbleAlert.pulse_at(half_beat, 0.3)).is_equal_approx(1.0, 0.001)
@@ -279,7 +279,7 @@ func test_the_minimap_blip_is_drawn_in_both_looks() -> void:
 	assert_float(MinimapLookStyled.new().member_colour(0.0).a).is_less(MinimapLookStyled.new().member_colour(1.0).a)
 	# Without a pulse it is still the plain member dot.
 	var plain := MinimapLookPlaceholder.new().member_colour()
-	assert_bool(plain.is_equal_approx(Config.TD_MINIMAP_MEMBER_COLOUR)).is_true()
+	assert_bool(plain.is_equal_approx(HudConfig.TD_MINIMAP_MEMBER_COLOUR)).is_true()
 
 
 # Snag round: a wobbler straight across from the centre (a ray along one axis) leaves the safe rect through the side it

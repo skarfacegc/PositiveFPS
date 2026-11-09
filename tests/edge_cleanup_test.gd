@@ -35,10 +35,10 @@ func test_a_new_burst_or_lift_mark_replaces_one_at_the_same_spot() -> void:
 
 
 func test_the_effects_are_short_and_no_light_column_is_left() -> void:
-	assert_float(Config.BURST_FX_SECONDS).is_less_equal(0.6)
-	assert_float(Config.FX_HALO_SECONDS).is_less_equal(1.0)
-	assert_float(Config.FX_TEXT_SECONDS).is_less_equal(1.1)
-	assert_float(Config.SPARE_GLOW_SECONDS).is_less_equal(1.5)
+	assert_float(SpiritConfig.BURST_FX_SECONDS).is_less_equal(0.6)
+	assert_float(SpiritConfig.FX_HALO_SECONDS).is_less_equal(1.0)
+	assert_float(SpiritConfig.FX_TEXT_SECONDS).is_less_equal(1.1)
+	assert_float(SpiritConfig.SPARE_GLOW_SECONDS).is_less_equal(1.5)
 	# Styled marks are flat rings: no node of the fight marks stands taller than a person.
 	Looks.set_mode(Looks.Mode.STYLED)
 	var fx := BurstFx.new()

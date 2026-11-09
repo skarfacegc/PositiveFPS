@@ -17,7 +17,7 @@ func test_a_loop_with_no_length_or_no_rescued_people_places_nobody() -> void:
 	var border := _border(flat)
 	border._assign_members([])
 	assert_int(border.member_count).is_equal(0)
-	var ring := _border(BorderShape.circle_polygon(Vector2.ZERO, 4.0, Config.BORDER_SAMPLES))
+	var ring := _border(BorderShape.circle_polygon(Vector2.ZERO, 4.0, RoundLoopConfig.BORDER_SAMPLES))
 	ring._assign_members([])
 	assert_int(ring.member_count).is_equal(0)
 	assert_float(ring.perimeter).is_greater(1.0)
@@ -25,11 +25,11 @@ func test_a_loop_with_no_length_or_no_rescued_people_places_nobody() -> void:
 
 func test_the_mean_radius_of_no_loop_is_the_minimum() -> void:
 	var border := _border(PackedVector2Array())
-	assert_float(border._mean_radius()).is_equal(Config.BORDER_MIN_RADIUS)
+	assert_float(border._mean_radius()).is_equal(RoundLoopConfig.BORDER_MIN_RADIUS)
 
 
 func test_someone_without_a_slot_is_left_where_they_stand() -> void:
-	var border := _border(BorderShape.circle_polygon(Vector2.ZERO, 4.0, Config.BORDER_SAMPLES))
+	var border := _border(BorderShape.circle_polygon(Vector2.ZERO, 4.0, RoundLoopConfig.BORDER_SAMPLES))
 	var p: Person = auto_free(Person.new())
 	add_child(p)
 	p.position = Vector3(1.0, 0.0, 2.0)
@@ -39,7 +39,7 @@ func test_someone_without_a_slot_is_left_where_they_stand() -> void:
 
 
 func test_debug_labels_hide_again_when_switched_off() -> void:
-	var border := _border(BorderShape.circle_polygon(Vector2.ZERO, 4.0, Config.BORDER_SAMPLES))
+	var border := _border(BorderShape.circle_polygon(Vector2.ZERO, 4.0, RoundLoopConfig.BORDER_SAMPLES))
 	var ring: Array[Person] = []
 	for i: int in range(4):
 		var p: Person = auto_free(Person.new())

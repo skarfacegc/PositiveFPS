@@ -26,7 +26,7 @@ func _map() -> Minimap:
 
 # The index of the grid cell that holds world point `at` (the same binning as Minimap.refresh_clouds).
 func _cell(at: Vector2) -> int:
-	var n := Config.MINIMAP_CLOUD_CELLS
+	var n := HudConfig.MINIMAP_CLOUD_CELLS
 	var cell_m := float(Config.TD_PLAZA_SIZE) / float(n)
 	var half := Config.TD_PLAZA_SIZE * 0.5
 	var ix := clampi(floori((at.x + half) / cell_m), 0, n - 1)
@@ -48,7 +48,7 @@ func test_the_ground_layer_is_rebuilt_only_when_it_may_have_changed() -> void:
 	assert_bool(m._base_is_current()).is_false()
 	m._render()
 	assert_bool(m._base_is_current()).is_true()
-	m.tick(Config.MINIMAP_GROUND_SECONDS + 0.01)  # the painted ground may have changed
+	m.tick(HudConfig.MINIMAP_GROUND_SECONDS + 0.01)  # the painted ground may have changed
 	assert_bool(m._base_is_current()).is_false()
 	m._render()
 	assert_bool(m._base_is_current()).is_true()
@@ -97,7 +97,7 @@ func test_a_bigger_crowd_makes_a_wider_and_stronger_cloud() -> void:
 	assert_float(a_small).is_greater(0.0)
 	# Round 21: a dense cell is stronger than a sparse one, and reaches the higher peak (12 of 12 people).
 	assert_float(a_big).is_greater(a_small)
-	assert_float(absf(a_big - Config.MINIMAP_CLOUD_MAX_ALPHA)).is_less(0.01)
+	assert_float(absf(a_big - HudConfig.MINIMAP_CLOUD_MAX_ALPHA)).is_less(0.01)
 
 
 func test_the_cloud_is_soft_strongest_at_its_centre_and_gone_beyond_its_edge() -> void:
@@ -117,7 +117,7 @@ func test_the_cloud_is_soft_strongest_at_its_centre_and_gone_beyond_its_edge() -
 	assert_float(absf(half_alpha - centre_alpha)).is_less(0.001)
 	assert_float(centre_alpha).is_greater(shoulder_alpha)
 	assert_float(shoulder_alpha).is_greater(edge_alpha)
-	assert_float(centre_alpha).is_less_equal(Config.MINIMAP_CLOUD_MAX_ALPHA + 0.0001)
+	assert_float(centre_alpha).is_less_equal(HudConfig.MINIMAP_CLOUD_MAX_ALPHA + 0.0001)
 	assert_float(m.cloud_alpha_at(int(c.x + radius + 4.0), int(c.y))).is_equal(0.0)
 	assert_float(m.cloud_alpha_at(127, 127)).is_equal(0.0)
 
@@ -134,7 +134,7 @@ func test_the_clouds_are_recounted_about_twice_a_second_not_every_refresh() -> v
 	assert_bool(m.clouds_due()).is_false()
 	m.tick(0.25)
 	assert_bool(m.clouds_due()).is_true()
-	assert_float(Config.MINIMAP_CLOUD_SECONDS).is_equal(0.5)
+	assert_float(HudConfig.MINIMAP_CLOUD_SECONDS).is_equal(0.5)
 
 
 func test_the_picture_shows_the_cloud_on_the_ground_under_the_markers() -> void:
@@ -147,7 +147,7 @@ func test_the_picture_shows_the_cloud_on_the_ground_under_the_markers() -> void:
 	m._render()
 	var at: Vector2 = m.cloud_cells[0]["centre"]
 	var c := m._to_px(at)
-	var grey := Config.TD_MINIMAP_GREY_COLOUR
+	var grey := HudConfig.TD_MINIMAP_GREY_COLOUR
 	var on_cloud := m._image.get_pixel(int(c.x), int(c.y))
 	assert_bool(on_cloud.is_equal_approx(grey)).is_false()
 	# The picture is 8-bit, so the ground grey comes back within one level (1/255) of its constant.
@@ -167,7 +167,7 @@ func test_a_crowd_in_a_map_corner_is_drawn_at_the_rim_inside_the_circle() -> voi
 	m.refresh_clouds(_crowd(Vector2(-42, -42), 4))
 	assert_int(m.cloud_cells.size()).is_equal(1)
 	var at: Vector2 = m.cloud_cells[0]["centre"]
-	var rim := Config.TD_PLAZA_SIZE * 0.5 * Config.MINIMAP_CLOUD_RIM
+	var rim := Config.TD_PLAZA_SIZE * 0.5 * HudConfig.MINIMAP_CLOUD_RIM
 	assert_float(absf(at.length() - rim)).is_less(0.01)
 	assert_bool(at.x < 0.0 and at.y < 0.0).is_true()
 	assert_bool(m._in_circle(m._to_px(at))).is_true()
@@ -200,18 +200,18 @@ func test_a_cloud_fades_in_and_out_rather_than_popping() -> void:
 	assert_bool(m._cloud_shown.has(old_cell)).is_true()
 	var fading: float = m._cloud_shown[old_cell]["peak"]
 	assert_float(fading).is_greater(0.0)
-	assert_float(fading).is_less(Config.MINIMAP_CLOUD_MAX_ALPHA)
+	assert_float(fading).is_less(HudConfig.MINIMAP_CLOUD_MAX_ALPHA)
 	# A new crowd elsewhere (cell 18) fades in while the old cloud is still fading out.
 	m.refresh_clouds(_crowd(Vector2(20, 20), 12))
 	m.tick(0.1)
 	var new_cell := _cell(Vector2(20, 20))
 	var growing: float = m._cloud_shown[new_cell]["peak"]
 	assert_float(growing).is_greater(0.0)
-	assert_float(growing).is_less(Config.MINIMAP_CLOUD_MAX_ALPHA)
+	assert_float(growing).is_less(HudConfig.MINIMAP_CLOUD_MAX_ALPHA)
 	m.tick(5.0)
 	assert_bool(m._cloud_shown.has(old_cell)).is_false()
 	var settled_peak: float = m._cloud_shown[new_cell]["peak"]
-	assert_float(absf(settled_peak - Config.MINIMAP_CLOUD_MAX_ALPHA)).is_less(0.001)
+	assert_float(absf(settled_peak - HudConfig.MINIMAP_CLOUD_MAX_ALPHA)).is_less(0.001)
 
 
 # The cloud has to show against the grey ground at its strongest: a rough contrast ratio (on sRGB values) of at least 2.

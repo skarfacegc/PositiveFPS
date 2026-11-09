@@ -55,7 +55,7 @@ func test_the_mist_noise_uses_an_integer_hash_so_it_has_no_square_seams() -> voi
 	assert_bool(src.contains("sin(")).is_false()
 	assert_bool(src.contains("uint")).is_true()
 	assert_bool(src.contains("smoothstep(0.3, 0.8, n)")).is_true()
-	assert_float(Config.CP7_MIST_STRENGTH).is_less_equal(0.45)
+	assert_float(StyleConfig.CP7_MIST_STRENGTH).is_less_equal(0.45)
 
 
 func test_the_ground_noise_uses_the_integer_hash_so_puddles_and_grass_have_no_straight_edges() -> void:
@@ -80,11 +80,11 @@ func test_the_ground_material_is_dither_free_and_carries_the_living_ground_setti
 	var look := td.ground.look as GroundLookStyled
 	var mat: ShaderMaterial = look._mat
 	assert_object(mat.get_shader_parameter("dither_amt")).is_null()
-	assert_float(mat.get_shader_parameter("gloom_amt")).is_equal(Config.CP7_GROUND_GLOOM)
-	assert_float(mat.get_shader_parameter("life_amt")).is_equal(Config.CP7_GROUND_LIFE)
+	assert_float(mat.get_shader_parameter("gloom_amt")).is_equal(StyleConfig.CP7_GROUND_GLOOM)
+	assert_float(mat.get_shader_parameter("life_amt")).is_equal(StyleConfig.CP7_GROUND_LIFE)
 	# 0.3.1: the tufts, flowers and moss are drawn bigger and bolder so they read at play zoom.
-	assert_float(mat.get_shader_parameter("life_size")).is_equal(Config.L31_GROUND_SIZE)
-	assert_float(mat.get_shader_parameter("life_bold")).is_equal(Config.L31_GROUND_CONTRAST)
+	assert_float(mat.get_shader_parameter("life_size")).is_equal(StyleConfig.L31_GROUND_SIZE)
+	assert_float(mat.get_shader_parameter("life_bold")).is_equal(StyleConfig.L31_GROUND_CONTRAST)
 	assert_object(look.weights_texture()).is_not_null()
 	await _leave(s)
 
@@ -101,7 +101,7 @@ func test_the_styled_view_has_two_mist_layers_that_read_the_paint_weights() -> v
 	var look := td.ground.look as GroundLookStyled
 	for i: int in range(atm.mist_layer_count()):
 		assert_object(atm.mist_material(i).get_shader_parameter("weights")).is_same(look.weights_texture())
-	assert_float(atm.mist_material(0).get_shader_parameter("strength")).is_equal(Config.CP7_MIST_STRENGTH)
+	assert_float(atm.mist_material(0).get_shader_parameter("strength")).is_equal(StyleConfig.CP7_MIST_STRENGTH)
 	await _leave(s)
 
 
@@ -129,8 +129,8 @@ func test_an_unbuilt_atmosphere_does_nothing_on_sync() -> void:
 
 func test_the_sky_cools_toward_midnight_and_returns_by_first_light() -> void:
 	var dusk := StyleAtmosphere.sky_for(0.0)
-	var midnight := StyleAtmosphere.sky_for(0.5 * (1.0 - Config.FIRST_LIGHT_SECONDS / Config.NIGHT_LENGTH))
-	var before_dawn := StyleAtmosphere.sky_for(1.0 - Config.FIRST_LIGHT_SECONDS / Config.NIGHT_LENGTH)
+	var midnight := StyleAtmosphere.sky_for(0.5 * (1.0 - NightConfig.FIRST_LIGHT_SECONDS / NightConfig.NIGHT_LENGTH))
+	var before_dawn := StyleAtmosphere.sky_for(1.0 - NightConfig.FIRST_LIGHT_SECONDS / NightConfig.NIGHT_LENGTH)
 	assert_bool(dusk.is_equal_approx(ViewPipeline.STYLED_BACKGROUND)).is_true()
 	assert_float(midnight.v).is_less(dusk.v)
 	assert_bool(before_dawn.is_equal_approx(ViewPipeline.STYLED_BACKGROUND)).is_true()
@@ -140,11 +140,11 @@ func test_the_view_follows_the_night_clock_and_leaves_first_light_to_its_own_sky
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
-	td.night.elapsed = Config.NIGHT_LENGTH * 0.4
+	td.night.elapsed = NightConfig.NIGHT_LENGTH * 0.4
 	await runner.simulate_frames(3)
 	var want := StyleAtmosphere.sky_for(td.night.progress())
 	assert_bool(td.environment().background_color.is_equal_approx(want)).is_true()
-	td.night.elapsed = Config.NIGHT_LENGTH - Config.FIRST_LIGHT_SECONDS * 0.5
+	td.night.elapsed = NightConfig.NIGHT_LENGTH - NightConfig.FIRST_LIGHT_SECONDS * 0.5
 	assert_bool(td.night.first_light_active()).is_true()
 	var marker := Color(0.9, 0.1, 0.2)
 	td.environment().background_color = marker
@@ -161,9 +161,9 @@ func test_a_skyline_sector_lights_up_when_its_landmark_is_held_and_goes_grey_whe
 	var td: TopDownMain = s["td"]
 	var atm := td.pipeline._atmosphere
 	assert_float(atm.skyline_lit(1)).is_equal(0.0)
-	assert_int(atm.skyline_roof_count(1)).is_equal(Config.CP7_SKYLINE_ROOFS)
+	assert_int(atm.skyline_roof_count(1)).is_equal(StyleConfig.CP7_SKYLINE_ROOFS)
 	var lm: Landmark = td.landmarks.items[1]
-	lm.hold = Config.BORDER_LANDMARK_HOLD
+	lm.hold = LandmarkConfig.BORDER_LANDMARK_HOLD
 	atm.sync(0.5)
 	assert_float(atm.skyline_lit(1)).is_between(0.1, 0.9)
 	assert_float(atm.skyline_lit(0)).is_equal(0.0)

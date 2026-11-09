@@ -18,7 +18,7 @@ func _border_level(count: int = 16, r: float = 6.0) -> Dictionary:
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * r, 0.0, sin(a) * r), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
-	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
+	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 	await runner.simulate_frames(600)
 	# Checkpoint 5: the rescues above spilled spirit past a full meter; that pool would warm the faltering members
 	# these tests set up, so it is emptied (this suite is about the markers, not spare spirit).
@@ -44,7 +44,7 @@ func _falter(m: Person, share: float = 0.6) -> void:
 
 # Round 26: snaps the line at `m` (a gap is a break made by pushing): the dent there is past the limit.
 func _snap(td: TopDownMain, m: Person) -> void:
-	td.border.push.dent[td.border.push.sample_of(m.position)] = Config.PUSH_BREAK_DEPTH + 0.4
+	td.border.push.dent[td.border.push.sample_of(m.position)] = PushConfig.PUSH_BREAK_DEPTH + 0.4
 
 
 # A wistful person with a mood at `spot`.
@@ -148,7 +148,7 @@ func test_the_progress_ring_fills_as_the_player_rejoys_them_and_a_closed_flash_f
 	assert_int(td.feedback.closes.size()).is_greater(0)
 	var left: float = td.feedback.closes[0]["left"]
 	assert_float(left).is_greater(0.0)
-	await runner.simulate_frames(int(Config.FALTER_CLOSED_SECONDS * 60.0) + 10)
+	await runner.simulate_frames(int(HudConfig.FALTER_CLOSED_SECONDS * 60.0) + 10)
 	assert_int(td.feedback.closes.size()).is_equal(0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -170,7 +170,7 @@ func test_gloom_leaks_in_from_an_open_gap_and_stops_when_it_closes() -> void:
 	var to_centre := Vector3(td.border.centre.x - pos.x, 0.0, td.border.centre.z - pos.z)
 	assert_float(vel.dot(to_centre)).is_greater(0.0)
 	m.receive_joy(m.affinity, Config.JOY_MAX * 0.01, 0.0)  # Joy at the broken end mends the break (nobody is near it).
-	await runner.simulate_frames(int((Config.LEAK_LIFE_SECONDS * 1.2 + 0.5) * 60.0))
+	await runner.simulate_frames(int((BorderConfig.LEAK_LIFE_SECONDS * 1.2 + 0.5) * 60.0))
 	assert_int(td.border.gap_count()).is_equal(0)
 	assert_int(td.feedback.motes.size()).is_equal(0)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -219,12 +219,14 @@ func test_the_spirit_meter_is_wide_and_has_ticks_at_the_burst_cost_and_the_dim_e
 	var td: TopDownMain = s["td"]
 	await runner.simulate_frames(3)
 	var meter: SpiritMeter = td.spirit_meter
-	assert_float(meter.size.x).is_equal_approx(Config.SPIRIT_METER_WIDTH, 0.5)
+	assert_float(meter.size.x).is_equal_approx(HudConfig.SPIRIT_METER_WIDTH, 0.5)
 	assert_float(meter.burst_tick_x()).is_equal_approx(
-		meter.size.x * Config.BURST_SPIRIT_COST / Config.SPIRIT_MAX, 0.01
+		meter.size.x * SpiritConfig.BURST_SPIRIT_COST / SpiritConfig.SPIRIT_MAX, 0.01
 	)
-	assert_float(meter.dim_tick_x()).is_equal_approx(meter.size.x * Config.DIM_EXIT_SPIRIT / Config.SPIRIT_MAX, 0.01)
-	assert_float(meter.tick_x(Config.SPIRIT_MAX)).is_equal_approx(meter.size.x, 0.01)
+	assert_float(meter.dim_tick_x()).is_equal_approx(
+		meter.size.x * SpiritConfig.DIM_EXIT_SPIRIT / SpiritConfig.SPIRIT_MAX, 0.01
+	)
+	assert_float(meter.tick_x(SpiritConfig.SPIRIT_MAX)).is_equal_approx(meter.size.x, 0.01)
 	# It sits at the bottom centre of the window.
 	var rect := meter.get_global_rect()
 	assert_float(rect.get_center().x).is_equal_approx(640.0, 1.0)
@@ -254,12 +256,12 @@ func test_a_rescue_flashes_the_meter_with_a_plus_number_and_pulses_the_player() 
 	assert_int(meter.popups.size()).is_greater(0)
 	var popup: Dictionary = meter.popups[meter.popups.size() - 1]
 	assert_str(popup["text"]).is_equal("+20")
-	assert_object(popup["colour"]).is_equal(Config.SPIRIT_GAIN_COLOUR)
+	assert_object(popup["colour"]).is_equal(HudConfig.SPIRIT_GAIN_COLOUR)
 	assert_float(meter.flash).is_greater(0.3)
 	assert_int(td.feedback.player_pulses.size()).is_greater(0)
 	assert_int(td.feedback.player_pulses[0]["kind"]).is_equal(SpiritMeter.Moment.GAIN)
 	# The moment fades away.
-	await runner.simulate_frames(int((Config.SPIRIT_MOMENT_SECONDS + 0.3) * 60.0))
+	await runner.simulate_frames(int((HudConfig.SPIRIT_MOMENT_SECONDS + 0.3) * 60.0))
 	assert_int(meter.popups.size()).is_equal(0)
 	assert_float(meter.flash).is_equal(0.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -272,13 +274,13 @@ func test_the_burst_key_spends_spirit_with_a_minus_number() -> void:
 	td.player.spirit = 80.0
 	runner.simulate_key_pressed(KEY_G)
 	await runner.simulate_frames(2)
-	assert_float(td.player.spirit).is_equal_approx(80.0 - Config.BURST_SPIRIT_COST, 0.01)
+	assert_float(td.player.spirit).is_equal_approx(80.0 - SpiritConfig.BURST_SPIRIT_COST, 0.01)
 	var meter: SpiritMeter = td.spirit_meter
 	assert_int(meter.popups.size()).is_greater(0)
 	var popup: Dictionary = meter.popups[meter.popups.size() - 1]
 	assert_str(popup["text"]).contains("30")
 	assert_bool(str(popup["text"]).begins_with("+")).is_false()
-	assert_object(popup["colour"]).is_equal(Config.SPIRIT_SPEND_COLOUR)
+	assert_object(popup["colour"]).is_equal(HudConfig.SPIRIT_SPEND_COLOUR)
 	assert_int(td.feedback.player_pulses[0]["kind"]).is_equal(SpiritMeter.Moment.SPEND)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -293,13 +295,13 @@ func test_a_grab_that_lands_shows_a_loss_moment() -> void:
 	while td.player.spirit > 79.0 and frames < 300:
 		await runner.simulate_frames(1)
 		frames += 1
-	assert_float(td.player.spirit).is_equal_approx(80.0 - Config.GRAB_SPIRIT_DRAIN, 0.01)
+	assert_float(td.player.spirit).is_equal_approx(80.0 - SpiritConfig.GRAB_SPIRIT_DRAIN, 0.01)
 	await runner.simulate_frames(1)
 	var meter: SpiritMeter = td.spirit_meter
 	assert_int(meter.popups.size()).is_greater(0)
 	var popup: Dictionary = meter.popups[meter.popups.size() - 1]
 	assert_str(popup["text"]).contains("25")
-	assert_object(popup["colour"]).is_equal(Config.SPIRIT_LOSS_COLOUR)
+	assert_object(popup["colour"]).is_equal(HudConfig.SPIRIT_LOSS_COLOUR)
 	assert_int(td.feedback.player_pulses[td.feedback.player_pulses.size() - 1]["kind"]).is_equal(
 		SpiritMeter.Moment.LOSS
 	)
@@ -369,23 +371,23 @@ func test_a_tether_joins_the_dimmed_person_to_who_they_shelter_and_snaps_when_th
 	var td: TopDownMain = s["td"]
 	var wistful := _mooded(td, 0, Vector3(0, 0, -8), Person.Mood.NONE)
 	var dimmed := td.people[1]
-	TopDownTestUtil.place(dimmed, Vector3(Config.SHELTER_RADIUS + 0.6, 0, -8), 1, 0.95)
+	TopDownTestUtil.place(dimmed, Vector3(MoodConfig.SHELTER_RADIUS + 0.6, 0, -8), 1, 0.95)
 	await runner.simulate_frames(4)
 	assert_bool(wistful.sheltered).is_false()
 	assert_int(td.feedback.tethers.size()).is_equal(0)
 	assert_bool(_icon_for(td, wistful, MoodIcons.Kind.UMBRELLA).is_empty()).is_true()
-	TopDownTestUtil.place(dimmed, Vector3(Config.SHELTER_RADIUS - 0.4, 0, -8), 1, 0.95)
+	TopDownTestUtil.place(dimmed, Vector3(MoodConfig.SHELTER_RADIUS - 0.4, 0, -8), 1, 0.95)
 	await runner.simulate_frames(4)
 	assert_bool(wistful.sheltered).is_true()
 	assert_int(td.feedback.tethers.size()).is_equal(1)
 	assert_bool(_icon_for(td, wistful, MoodIcons.Kind.UMBRELLA).is_empty()).is_false()
 	assert_int(td.feedback.snaps.size()).is_equal(0)
 	# The dimmed person is led away: the tether breaks with a snap effect that then fades.
-	TopDownTestUtil.place(dimmed, Vector3(Config.SHELTER_RADIUS + 1.5, 0, -8), 1, 0.95)
+	TopDownTestUtil.place(dimmed, Vector3(MoodConfig.SHELTER_RADIUS + 1.5, 0, -8), 1, 0.95)
 	await runner.simulate_frames(3)
 	assert_int(td.feedback.tethers.size()).is_equal(0)
 	assert_int(td.feedback.snaps.size()).is_equal(1)
-	await runner.simulate_frames(int(Config.TETHER_SNAP_SECONDS * 60.0) + 10)
+	await runner.simulate_frames(int(MoodConfig.TETHER_SNAP_SECONDS * 60.0) + 10)
 	assert_int(td.feedback.snaps.size()).is_equal(0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -413,7 +415,7 @@ func test_joy_shot_at_a_guarded_back_bounces_off_with_a_spark_and_the_shield_fla
 	# The flash and the spark fade.
 	guarded.joy = 0.0
 	td.player.active = false
-	await runner.simulate_frames(int((Config.BLOCK_FLASH_SECONDS + 1.5) * 60.0))
+	await runner.simulate_frames(int((MoodConfig.BLOCK_FLASH_SECONDS + 1.5) * 60.0))
 	assert_float(td.feedback.flash_of(guarded)).is_equal(0.0)
 	assert_int(td.feedback.sparks.size()).is_equal(0)
 	await TopDownTestUtil.leave_loaded_scene(td)

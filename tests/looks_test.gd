@@ -104,7 +104,7 @@ func test_the_pixel_view_is_small_and_the_camera_lives_in_it() -> void:
 	assert_int(size.x).is_equal(640)
 	assert_vector(td.pipeline.view_scale()).is_equal_approx(Vector2(2.0, 2.0), Vector2(0.01, 0.01))
 	assert_bool(td.camera.get_parent() is SubViewport).is_true()
-	assert_float(td.camera.size).is_equal_approx(Config.TD_CAMERA_ORTHO_SIZE, 0.0001)
+	assert_float(td.camera.size).is_equal_approx(PlayerConfig.TD_CAMERA_ORTHO_SIZE, 0.0001)
 	var there := td.pipeline.window_to_view(Vector2(640.0, 360.0))
 	assert_vector(there).is_equal_approx(Vector2(320.0, 180.0), Vector2(0.01, 0.01))
 	assert_vector(td.pipeline.view_to_window(there)).is_equal_approx(Vector2(640.0, 360.0), Vector2(0.01, 0.01))
@@ -227,7 +227,7 @@ func test_styled_people_build_the_body_for_each_state() -> void:
 	grey.joy = 600.0
 	grey._update_visuals()
 	assert_float(gl.frac).is_greater(0.2)
-	joy.joy = joy.joy_needed() * Config.WARN_FRACTION * 0.5
+	joy.joy = joy.joy_needed() * PeopleConfig.WARN_FRACTION * 0.5
 	joy.look.wave = -1.0
 	joy._update_visuals()
 	jl.wave = -1.0
@@ -361,7 +361,7 @@ func test_the_landmark_ring_grows_in_the_styled_look() -> void:
 	var look := lm.look as LandmarkLookStyled
 	assert_bool(look._glow.visible).is_false()
 	assert_str(look._label.text).is_equal("Bandstand")
-	lm.update(Config.BORDER_LANDMARK_HOLD * 0.5, true)
+	lm.update(LandmarkConfig.BORDER_LANDMARK_HOLD * 0.5, true)
 	assert_bool(look._glow.visible).is_true()
 	assert_str(look._label.text).contains("50%")
 
@@ -405,7 +405,7 @@ func test_the_styled_minimap_shows_warm_territory_like_the_placeholder_one() -> 
 			var p_col := placeholder.ground_colour(td.ground, Vector2(at.x, at.z), 3, 5)
 			var s_col := styled.ground_colour(td.ground, Vector2(at.x, at.z), 3, 5)
 			var styled_warm := s_col.r > s_col.b
-			var grey_col := Config.GROUND_GREY
+			var grey_col := GroundConfig.GROUND_GREY
 			var placeholder_warm := (
 				absf(p_col.r - grey_col.r) + absf(p_col.g - grey_col.g) + absf(p_col.b - grey_col.b) > 0.03
 			)

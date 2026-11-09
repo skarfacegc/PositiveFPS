@@ -78,7 +78,7 @@ func progress_of(p: Person) -> float:
 	if not entries.has(p):
 		return 0.0
 	var e: Entry = entries[p]
-	return clampf(e.progress / Config.EMBRACE_STEP_SECONDS, 0.0, 1.0)
+	return clampf(e.progress / EmbraceConfig.EMBRACE_STEP_SECONDS, 0.0, 1.0)
 
 
 # One frame: gathers or fades each person's step, lifts or rescues, strains the nearest members, moves the cues.
@@ -117,18 +117,18 @@ func _advance(p: Person, e: Entry, inside: bool, delta: float) -> void:
 	e.age += delta
 	if inside:
 		e.progress += delta
-		p.calm_left = maxf(p.calm_left, Config.EMBRACE_CALM)
-		if e.progress >= Config.EMBRACE_STEP_SECONDS:
-			e.progress -= Config.EMBRACE_STEP_SECONDS
+		p.calm_left = maxf(p.calm_left, EmbraceConfig.EMBRACE_CALM)
+		if e.progress >= EmbraceConfig.EMBRACE_STEP_SECONDS:
+			e.progress -= EmbraceConfig.EMBRACE_STEP_SECONDS
 			_finish_step(p, e)
 			if p.is_rescued:
 				return
 	else:
-		e.progress = maxf(0.0, e.progress - Config.EMBRACE_DECAY_RATE * delta)
+		e.progress = maxf(0.0, e.progress - EmbraceConfig.EMBRACE_DECAY_RATE * delta)
 		if e.progress <= 0.0:
 			_drop(p)
 			return
-	e.cue.show_progress(e.progress / Config.EMBRACE_STEP_SECONDS, inside, _clock)
+	e.cue.show_progress(e.progress / EmbraceConfig.EMBRACE_STEP_SECONDS, inside, _clock)
 
 
 # One step is complete: a stage lifts, or (at wistful) the person is rescued.
@@ -138,7 +138,7 @@ func _finish_step(p: Person, e: Entry) -> void:
 		var to_level := from_level - 1
 		var lo := 0.0 if to_level == 0 else Config.GLOOM_LEVEL_STEPS[to_level - 1]
 		p.gloom = minf(p.gloom, (lo + Config.GLOOM_LEVEL_STEPS[to_level]) * 0.5)
-		p.joy = minf(p.joy, p.joy_needed() * Config.EMBRACE_JOY_CAP)
+		p.joy = minf(p.joy, p.joy_needed() * EmbraceConfig.EMBRACE_JOY_CAP)
 		lift_count += 1
 		lifted.emit(p, from_level, to_level)
 		return
@@ -161,12 +161,12 @@ func _drop(p: Person) -> void:
 
 # The nearest EMBRACE_STRAIN_COUNT border members to each embraced person share a small extra drain.
 func _strain(delta: float) -> void:
-	var amount := Config.EMBRACE_STRAIN_RATE * delta
+	var amount := EmbraceConfig.EMBRACE_STRAIN_RATE * delta
 	var hit: Dictionary = {}
 	for p: Person in entries:
 		if not (entries[p] as Entry).inside:
 			continue
-		for m: Person in nearest_members(p, Config.EMBRACE_STRAIN_COUNT):
+		for m: Person in nearest_members(p, EmbraceConfig.EMBRACE_STRAIN_COUNT):
 			hit[m] = true
 	for m: Person in hit:
 		m.drain_joy(amount)
@@ -192,7 +192,7 @@ func nearest_members(p: Person, count: int) -> Array[Person]:
 
 
 func _on_relapsed(p: Person) -> void:
-	_pause[p] = Config.EMBRACE_RELAPSE_PAUSE
+	_pause[p] = EmbraceConfig.EMBRACE_RELAPSE_PAUSE
 	_drop(p)
 
 

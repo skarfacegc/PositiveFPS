@@ -27,8 +27,8 @@ func test_a_round_18_style_quick_push_with_one_landmark_gets_two_lights_not_thre
 
 
 func test_three_lights_need_75_percent_of_the_people_and_two_landmarks() -> void:
-	assert_float(Config.DAWN_PEOPLE_HIGH).is_equal(0.75)
-	assert_int(Config.DAWN_LANDMARKS_HIGH).is_equal(2)
+	assert_float(LandmarkConfig.DAWN_PEOPLE_HIGH).is_equal(0.75)
+	assert_int(LandmarkConfig.DAWN_LANDMARKS_HIGH).is_equal(2)
 	assert_int(DawnRating.rate(45, 60, 0.3, 2)["lights"]).is_equal(3)  # exactly 75%
 	assert_int(DawnRating.rate(60, 60, 0.6, 3)["lights"]).is_equal(3)
 	# Just under 75%, one landmark only, or no landmark: two lights.
@@ -67,7 +67,7 @@ func test_dawn_ends_the_level_with_one_light_for_an_empty_night() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
-	td.night.elapsed = Config.NIGHT_LENGTH - 0.05
+	td.night.elapsed = NightConfig.NIGHT_LENGTH - 0.05
 	await runner.simulate_frames(10)
 	assert_bool(td.running).is_false()
 	assert_str(td.hud.end_label.text).contains("Dawn: 1 of 3 dawn lights")
@@ -82,7 +82,7 @@ func test_dawn_rates_what_is_held_thirty_people_and_a_landmark_make_two_lights()
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
-	var bandstand := Config.LANDMARK_POSITIONS[Landmarks.BANDSTAND]
+	var bandstand := LandmarkConfig.LANDMARK_POSITIONS[Landmarks.BANDSTAND]
 	for i: int in range(30):
 		var a := TAU * float(i) / 30.0
 		var p: Person = td.people[i]
@@ -95,7 +95,7 @@ func test_dawn_rates_what_is_held_thirty_people_and_a_landmark_make_two_lights()
 	assert_bool(td.landmarks.is_held(Landmarks.BANDSTAND)).is_true()
 	# Holding the landmark did not end the level.
 	assert_bool(td.running).is_true()
-	td.night.elapsed = Config.NIGHT_LENGTH - 0.05
+	td.night.elapsed = NightConfig.NIGHT_LENGTH - 0.05
 	await runner.simulate_frames(10)
 	assert_bool(td.running).is_false()
 	assert_str(td.hud.end_label.text).contains("Dawn: 2 of 3 dawn lights")

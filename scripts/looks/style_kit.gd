@@ -37,7 +37,7 @@ static func mat(
 	m.set_shader_parameter("emit", emit)
 	m.set_shader_parameter("pat", pat)
 	m.set_shader_parameter("vary", vary)
-	m.set_shader_parameter("band_soft", Config.CP7_TOON_SOFT)
+	m.set_shader_parameter("band_soft", StyleConfig.CP7_TOON_SOFT)
 	_cache[key] = m
 	return m
 

@@ -56,7 +56,7 @@ var segment_gap: Array[bool] = []
 var buildings: Array[Building] = []
 # The block footprints as a flat list (BorderShape.footprints), for the walks; read it through boxes().
 var zone_boxes := PackedFloat32Array()
-# Round 19: the landmark blocks, in registration order (the order of Config.LANDMARK_NAMES).
+# Round 19: the landmark blocks, in registration order (the order of LandmarkConfig.LANDMARK_NAMES).
 var landmark_buildings: Array[Building] = []
 # Round 12a: how much faster the border loses ground (1 normally, DIM_LOSS_MULT while the player is dim), and whether
 # the line should flicker to show it. Set by set_player_dim().
@@ -115,8 +115,8 @@ func setup(ground: PaintedGround) -> void:
 	_ground = ground
 	_raw_radii.clear()
 	_pushed_at.clear()
-	for i: int in range(Config.BORDER_SAMPLES):
-		_raw_radii.append(Config.BORDER_MIN_RADIUS)
+	for i: int in range(RoundLoopConfig.BORDER_SAMPLES):
+		_raw_radii.append(RoundLoopConfig.BORDER_MIN_RADIUS)
 		_pushed_at.append(-1.0e9)
 	_make_look()
 
@@ -172,7 +172,7 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 	_apply_pending_pushes()
 	_update_falter(rescued, delta)
 	var n := rescued.size()
-	active = n >= Config.BORDER_MIN_PEOPLE
+	active = n >= BorderConfig.BORDER_MIN_PEOPLE
 	if active:
 		formed = true
 		_raw_radii = BorderShape.relax_radii(_raw_radii, _sealed, delta)
@@ -212,16 +212,16 @@ func _apply_pending_pushes() -> void:
 		if to.length() < 0.05:
 			waiting.append(p)
 			continue
-		_push_at(atan2(to.y, to.x), Config.BORDER_PUSH)
+		_push_at(atan2(to.y, to.x), RoundLoopConfig.BORDER_PUSH)
 	_pending_pushes = waiting
 
 
 # Adds a Gaussian bump of `amount` metres to the raw radius at angle `ang` (the same bump for a rescue and a shove).
 func _push_at(ang: float, amount: float) -> void:
-	for i: int in range(Config.BORDER_SAMPLES):
-		var a := TAU * float(i) / float(Config.BORDER_SAMPLES)
+	for i: int in range(RoundLoopConfig.BORDER_SAMPLES):
+		var a := TAU * float(i) / float(RoundLoopConfig.BORDER_SAMPLES)
 		var d := wrapf(a - ang, -PI, PI)
-		var bump := exp(-d * d / (2.0 * Config.BORDER_PUSH_WIDTH * Config.BORDER_PUSH_WIDTH))
+		var bump := exp(-d * d / (2.0 * RoundLoopConfig.BORDER_PUSH_WIDTH * RoundLoopConfig.BORDER_PUSH_WIDTH))
 		_raw_radii[i] += amount * bump
 		if bump >= 0.5 and i < _pushed_at.size():
 			_pushed_at[i] = _time
@@ -232,7 +232,7 @@ func on_relapse(p: Person) -> void:
 	var out := Vector3(p.position.x - centre.x, 0.0, p.position.z - centre.z)
 	if out.length() < 0.01:
 		out = Vector3.RIGHT
-	p.position += out.normalized() * Config.BORDER_OUTWARD_STEP
+	p.position += out.normalized() * BorderConfig.BORDER_OUTWARD_STEP
 
 
 # How protected a person at `pos` is by the border: 0 outside and on the line, 1 BORDER_EDGE_BAND metres inside.
@@ -242,7 +242,7 @@ func cover_at(pos: Vector3) -> float:
 	var p2 := Vector2(pos.x, pos.z)
 	if not Geometry2D.is_point_in_polygon(p2, polygon):
 		return 0.0
-	return clampf(BorderShape.distance_to_line(polygon, p2) / Config.BORDER_EDGE_BAND, 0.0, 1.0)
+	return clampf(BorderShape.distance_to_line(polygon, p2) / BorderConfig.BORDER_EDGE_BAND, 0.0, 1.0)
 
 
 # The first crossing (closest to `a2`) between the move a2 -> b2 and an intact stretch of the loop, or null.
@@ -279,8 +279,8 @@ func clip_move(from: Vector3, to: Vector3) -> Vector3:
 # The colour of polygon segment `j` right now: intact gold, or a flickering grey and red when it is a gap.
 func segment_colour(j: int) -> Color:
 	if segment_is_gap(j):
-		return Config.BORDER_GAP_COLOUR
-	return Config.BORDER_INTACT_COLOUR
+		return BorderConfig.BORDER_GAP_COLOUR
+	return BorderConfig.BORDER_INTACT_COLOUR
 
 
 # Round 24: the outline alpha of segment `j` (1 except along an arm that is pulling in; see BorderCentre.outline_alpha).
@@ -325,7 +325,7 @@ func gap_urgencies() -> Array[float]:
 # Urgency (0 to 1) of a faltering rescued person: how long they have faltered, over GAP_URGENCY_SECONDS.
 func falter_urgency(p: Person) -> float:
 	var age: float = _falter_age.get(p, 0.0)
-	return clampf(age / Config.GAP_URGENCY_SECONDS, 0.0, 1.0)
+	return clampf(age / BorderConfig.GAP_URGENCY_SECONDS, 0.0, 1.0)
 
 
 # The gap pulse right now (see gap_pulse).
@@ -336,21 +336,21 @@ func pulse() -> float:
 # Round 12a: a dim player makes the troupe lose heart. The border loses ground DIM_LOSS_MULT times faster and flickers.
 func set_player_dim(dim: bool) -> void:
 	player_dim = dim
-	loss_mult = Config.DIM_LOSS_MULT if dim else 1.0
+	loss_mult = SpiritConfig.DIM_LOSS_MULT if dim else 1.0
 
 
 # How bright the line and haze are drawn: 1 normally, pulsing between DIM_FLICKER_MIN and 1 while the player is dim.
 func flicker() -> float:
 	if not player_dim:
 		return 1.0
-	var wave := 0.5 + 0.5 * sin(TAU * _time / Config.DIM_FLICKER_SECONDS)
-	return lerpf(Config.DIM_FLICKER_MIN, 1.0, wave)
+	var wave := 0.5 + 0.5 * sin(TAU * _time / SpiritConfig.DIM_FLICKER_SECONDS)
+	return lerpf(SpiritConfig.DIM_FLICKER_MIN, 1.0, wave)
 
 
 # The gap pulse at time `t`: 0 at its trough, 1 at its peak, once every BORDER_GAP_PULSE_SECONDS. It is a cosine, so
 # it is soft at both ends and never a hard edge.
 static func gap_pulse(t: float) -> float:
-	return 0.5 - 0.5 * cos(TAU * t / Config.BORDER_GAP_PULSE_SECONDS)
+	return 0.5 - 0.5 * cos(TAU * t / BorderConfig.BORDER_GAP_PULSE_SECONDS)
 
 
 # Round 12b: how much a dimmed person wants to press at the border member standing at `pos`, 0 to 1. It mixes how
@@ -362,13 +362,13 @@ func edge_pressure(pos: Vector3) -> float:
 	var n := _raw_radii.size()
 	var to := Vector2(pos.x - centre.x, pos.z - centre.z)
 	var i := posmod(roundi(atan2(to.y, to.x) / TAU * float(n)), n)
-	var recency := clampf(1.0 - (_time - _pushed_at[i]) / Config.EDGE_RECENT_SECONDS, 0.0, 1.0)
+	var recency := clampf(1.0 - (_time - _pushed_at[i]) / BorderConfig.EDGE_RECENT_SECONDS, 0.0, 1.0)
 	var lo: float = _raw_radii.min()
 	var hi: float = _raw_radii.max()
 	var outer := 0.5
 	if hi - lo > 0.01:
 		outer = (_raw_radii[i] - lo) / (hi - lo)
-	return Config.EDGE_RECENCY_WEIGHT * recency + (1.0 - Config.EDGE_RECENCY_WEIGHT) * outer
+	return BorderConfig.EDGE_RECENCY_WEIGHT * recency + (1.0 - BorderConfig.EDGE_RECENCY_WEIGHT) * outer
 
 
 # How many separate gaps the loop has: runs of neighbouring gap segments count once (a whole open loop counts as one).
@@ -396,7 +396,7 @@ func gap_count() -> int:
 	return n
 
 
-# True while landmark block number `index` (Config.LANDMARK_NAMES order) is beautified.
+# True while landmark block number `index` (LandmarkConfig.LANDMARK_NAMES order) is beautified.
 func landmark_beautified(index: int = 0) -> bool:
 	return index < landmark_buildings.size() and landmark_buildings[index].beautified
 
@@ -445,7 +445,7 @@ func debug_summary() -> String:
 # sample jumps to just beyond the far side of the block, so buildings end up inside the loop.
 func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 	var smooth: Array[float] = BorderShape.smoothed_radii(_raw_radii)
-	var count := Config.BORDER_SAMPLES
+	var count := RoundLoopConfig.BORDER_SAMPLES
 	var radii: Array[float] = []
 	var extra: Array[float] = []
 	var body := 0.0
@@ -469,8 +469,8 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	for i: int in range(count):
 		var lift := 0.0
-		for off: int in range(-Config.BORDER_WRAP_TENT, Config.BORDER_WRAP_TENT + 1):
-			var share := 1.0 - float(absi(off)) / float(Config.BORDER_WRAP_TENT + 1)
+		for off: int in range(-RoundLoopConfig.BORDER_WRAP_TENT, RoundLoopConfig.BORDER_WRAP_TENT + 1):
+			var share := 1.0 - float(absi(off)) / float(RoundLoopConfig.BORDER_WRAP_TENT + 1)
 			lift = maxf(lift, extra[posmod(i + off, count)] * share)
 		var a := TAU * float(i) / float(count)
 		pts.append(c2 + Vector2(cos(a), sin(a)) * (radii[i] + lift))
@@ -478,28 +478,28 @@ func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
 	# points on the same edge is sealed: it counts as closed border, so nobody stands on it and the loop's size is
 	# measured by its open length only (the loop grows elsewhere to make up for it).
 	_sealed = BorderShape.clamp_to_map(pts)
-	BorderShape.drop_short_seals(pts, _sealed, Config.BORDER_MIN_SEAL_RUN)
+	BorderShape.drop_short_seals(pts, _sealed, RoundLoopConfig.BORDER_MIN_SEAL_RUN)
 	# Soft normalisation: ease the size so the open perimeter moves toward n x spacing (never below the smallest circle).
 	var raw := BorderShape.open_perimeter_of(pts, _sealed)
-	var circle := BorderShape.circle_polygon(c2, Config.BORDER_MIN_RADIUS, Config.BORDER_SAMPLES)
+	var circle := BorderShape.circle_polygon(c2, RoundLoopConfig.BORDER_MIN_RADIUS, RoundLoopConfig.BORDER_SAMPLES)
 	var smallest := BorderShape.perimeter_of(circle)
-	var target := maxf(float(n) * Config.BORDER_TARGET_SPACING, smallest)
+	var target := maxf(float(n) * BorderConfig.BORDER_TARGET_SPACING, smallest)
 	if raw > 0.001:
 		var desired := clampf(_scale * target / raw, BorderShape.SCALE_FLOOR, 5.0)
 		if _centre_ctl.has_arms() or _centre_ctl.stretching:
 			# Round 22: the body never squeezes below BEACON_BODY_MIN of the plain radius. When the arms still make the loop
 			# too long at that size (people were lost) they retreat (BorderCentre.pull_in); otherwise a pull-in is over.
-			var min_scale := Config.BEACON_BODY_MIN * BorderCentre.circle_radius(n) * _scale / maxf(body, 0.001)
+			var min_scale := BeaconConfig.BEACON_BODY_MIN * BorderCentre.circle_radius(n) * _scale / maxf(body, 0.001)
 			desired = maxf(desired, min_scale)
 			# Round 23: the scale never goes under its floor (0.2), so for a small head count min_scale lies below it and
 			# the old test (scale <= min_scale x 1.03) was never true: nothing pulled in. The test is now against the
 			# floor the scale can really reach, with room for the lag of the ease.
-			var squeezed := maxf(min_scale, BorderShape.SCALE_FLOOR) * Config.BEACON_PULL_IN_SQUEEZE
-			if raw > target * (1.0 + Config.BEACON_PULL_IN_TOLERANCE) and _scale <= squeezed:
+			var squeezed := maxf(min_scale, BorderShape.SCALE_FLOOR) * BeaconConfig.BEACON_PULL_IN_SQUEEZE
+			if raw > target * (1.0 + BeaconConfig.BEACON_PULL_IN_TOLERANCE) and _scale <= squeezed:
 				_centre_ctl.pull_in(delta, body, raw / target)
 			else:
 				_centre_ctl.settled()
-		_scale = lerpf(_scale, desired, clampf(delta / Config.BORDER_NORMALISE_SECONDS, 0.0, 1.0))
+		_scale = lerpf(_scale, desired, clampf(delta / RoundLoopConfig.BORDER_NORMALISE_SECONDS, 0.0, 1.0))
 	# Round 26: the push bows the line inward where it is shoved (after the size is worked out, so the size factor does not
 	# grow the loop back out to cancel the dent).
 	for i: int in range(mini(count, pts.size())):
@@ -570,21 +570,21 @@ func _update_falter(rescued: Array[Person], delta: float) -> void:
 # The members the loop needs now: the slots its perimeter holds, less BORDER_POST_WORTH for each post.
 func required_members() -> int:
 	var slots := slot_count if slot_count > 0 else BorderShape.slot_count_for(perimeter)
-	return maxi(0, slots - Config.BORDER_POST_WORTH * post_count)
+	return maxi(0, slots - BeaconConfig.BORDER_POST_WORTH * post_count)
 
 
 # The beautified buildings the loop passes within BORDER_POST_REACH of. Each entry has the building and the arc length
 # of the nearest loop point. At most as many as leave BORDER_MIN_PEOPLE slots for people.
 func _find_posts(slots_total: int, held: Array[Building] = []) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	var cap := (slots_total - Config.BORDER_MIN_PEOPLE) / Config.BORDER_POST_WORTH
+	var cap := (slots_total - BorderConfig.BORDER_MIN_PEOPLE) / BeaconConfig.BORDER_POST_WORTH
 	for b: Building in buildings:
 		if not b.beautified or out.size() >= cap:
 			continue
 		var near := _nearest_loop_point_to_box(b)
 		# Round 18: a block that was a post last frame stays one out to BORDER_POST_HOLD x the reach, so a loop edge that sits
 		# right at the reach does not flip the post on and off (each flip re-slots the whole ring).
-		var reach := Config.BORDER_POST_REACH * (Config.BORDER_POST_HOLD if held.has(b) else 1.0)
+		var reach := BeaconConfig.BORDER_POST_REACH * (BeaconConfig.BORDER_POST_HOLD if held.has(b) else 1.0)
 		if near.x <= reach:
 			out.append({"building": b, "arc": near.y})
 	return out
@@ -640,7 +640,7 @@ func _open_of_arc(a: float) -> float:
 
 func _mean_radius() -> float:
 	if polygon.is_empty():
-		return Config.BORDER_MIN_RADIUS
+		return RoundLoopConfig.BORDER_MIN_RADIUS
 	var c2 := Vector2(centre.x, centre.z)
 	var total := 0.0
 	for p2: Vector2 in polygon:
@@ -657,8 +657,8 @@ func boxes() -> PackedFloat32Array:
 
 # Walks every rescued person toward their target at BORDER_WALK_SPEED.
 func _move_members(delta: float) -> void:
-	var step := Config.BORDER_WALK_SPEED * delta
-	var arrive := Config.BORDER_ARRIVE_GAIN * delta
+	var step := BorderConfig.BORDER_WALK_SPEED * delta
+	var arrive := BorderConfig.BORDER_ARRIVE_GAIN * delta
 	var everyone: Array[Person] = []
 	everyone.append_array(members)
 	everyone.append_array(inner)
@@ -682,13 +682,13 @@ func _move_members(delta: float) -> void:
 				Vector2(p.position.x, p.position.z),
 				Vector2(target.x, target.z),
 				go,
-				Config.ZONE_BLOCK_CLEAR,
+				BorderConfig.ZONE_BLOCK_CLEAR,
 				way
 			)
 			var at: Vector2 = res["pos"]
 			p.position = Vector3(at.x, p.position.y, at.y)
 			way = res["waypoint"]
-			if way == Vector2.INF or d <= Config.ZONE_DETOUR_ARRIVE:
+			if way == Vector2.INF or d <= BorderConfig.ZONE_DETOUR_ARRIVE:
 				_detour.erase(p)
 			else:
 				_detour[p] = way
@@ -721,7 +721,7 @@ func _update_buildings(delta: float) -> void:
 func _press_gloom(people: Array[Person], delta: float, strength: float) -> void:
 	if not active:
 		return
-	var rate := Config.SPREAD_DRAIN_RATE * Config.TD_DRAIN_MULTIPLIER * strength * delta * loss_mult
+	var rate := PeopleConfig.SPREAD_DRAIN_RATE * PeopleConfig.TD_DRAIN_MULTIPLIER * strength * delta * loss_mult
 	for p: Person in people:
 		if p.is_rescued or not GloomSim.is_dimmed(p):
 			continue
@@ -730,7 +730,7 @@ func _press_gloom(people: Array[Person], delta: float, strength: float) -> void:
 			continue
 		var near := _nearest_on_loop(p2)
 		var dist: float = near["dist"]
-		if dist > Config.BORDER_PRESS_RANGE:
+		if dist > BorderConfig.BORDER_PRESS_RANGE:
 			continue
 		var seg: int = near["seg"]
 		if is_sealed(seg):
@@ -748,9 +748,9 @@ func _press_gloom(people: Array[Person], delta: float, strength: float) -> void:
 				continue
 			var best_intact := _nearest_member(p.position)
 			if best_intact != null:
-				best_intact.drain_joy(rate * Config.BORDER_INTACT_DRAIN_FRACTION)
-			var move := out.normalized() * Config.BORDER_PUSHBACK_SPEED * delta
-			var lim := Config.BORDER_MAP_LIMIT
+				best_intact.drain_joy(rate * BorderConfig.BORDER_INTACT_DRAIN_FRACTION)
+			var move := out.normalized() * BorderConfig.BORDER_PUSHBACK_SPEED * delta
+			var lim := RoundLoopConfig.BORDER_MAP_LIMIT
 			p.position = Vector3(
 				clampf(p.position.x + move.x, -lim, lim), p.position.y, clampf(p.position.z + move.y, -lim, lim)
 			)
@@ -791,12 +791,12 @@ func shove(at: Vector3) -> void:
 	var p2 := Vector2(at.x, at.z)
 	var near := _nearest_on_loop(p2)
 	var dist: float = near["dist"]
-	if dist > Config.BORDER_SHOVE_RANGE:
+	if dist > RoundLoopConfig.BORDER_SHOVE_RANGE:
 		return
 	var to := p2 - Vector2(centre.x, centre.z)
 	if to.length() < 0.001:
 		return
-	_push_at(atan2(to.y, to.x), Config.BORDER_SHOVE_AMOUNT / maxf(_scale, 0.01))
+	_push_at(atan2(to.y, to.x), RoundLoopConfig.BORDER_SHOVE_AMOUNT / maxf(_scale, 0.01))
 
 
 # The ground inside the loop is painted by the region (paint edge uses its own painted region instead).

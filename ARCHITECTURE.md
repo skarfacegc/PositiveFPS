@@ -27,7 +27,7 @@ functions with line numbers) and Read only those lines.
 - `painted_ground.gd`: 1 m paint grid; `joy_projectile.gd`, `bloom.gd`: shots; `floor_effects.gd`: floor overlay registry/cap
 - `hud.gd`, `hud_safe_area.gd`, `minimap.gd`, `gap_arrows.gd`, `wobble_alert.gd`, `landmark_pointers.gd`: HUD, minimap, edge pointers (`HudSafeArea` is the one safe rectangle they share)
 - `feedback_layer.gd`, `spirit_meter.gd`, `mood_icons.gd`, `intro.gd`, `prompt_bar.gd`: screen-space cues, prompts and `Intro.notice(id, words)`
-- `recorder.gd`: gameplay recorder; `config_base.gd` + `config.gd`: all tuning (see Tuning)
+- `recorder.gd`: gameplay recorder; `config.gd` + `*_config.gd`: all tuning, one config script per system (see Tuning)
 
 ## Areas (where to start; tests are `tests/<name>.gd`)
 - **Border / territory:** `border.gd`, `border_slots.gd`, `border_shape.gd`, `border_push.gd`, `edge_ribbon.gd`, `building.gd`, `painted_ground.gd`; tests `border_*_test` (`border_push_test` for the push), `push_defence_test`, `edge_ribbon_test`, `edge_pressure_test`, `cover_test`; config `BORDER_*`, `PUSH_*`. Slots are spaced along the open length; the map-edge stretch is sealed (no slots, never a gap). A break is a gap made by pushing (`BorderPush`): `Border.update` calls `push.update`, applies `push.dent` to the sampled loop AFTER the size is normalised, and `BorderSlots` marks the broken segments as gap (a faltering member no longer steps back or opens one). Pushers are dimmed people within `PUSH_LEAN_RANGE` outside the line and the tide's wave (`GloomTide` calls `push.set_wave`).
@@ -80,11 +80,22 @@ functions with line numbers) and Read only those lines.
   itself; output in `design/renders/checkpoint_NN/`; look at the PNGs and write `NOTES.md` there). If it hangs, a script has a
   parse error or the class cache is stale: run `python tools/run_tests.py --suites looks_checkpoint5_test` first, or run the scene with `--timeout 90` and read the output.
 
-## Tuning (`scripts/config.gd`, `scripts/config_base.gd`)
-- `Config extends ConfigBase`, so `Config.X` reaches everything. **New constants go in `config.gd` as a "<Target>: <part>"
-  block just above the first helper function (`intro_on`).** A constant in `ConfigBase` cannot read one in `Config`.
-  Keep each file under the 1000-line lint cap. No magic numbers in other scripts.
-- Search both files for block names ("Territory game", "Round 9: the living border", "Round 19: beacon", "Checkpoint 6" ...).
+## Tuning (`scripts/config.gd` and `scripts/*_config.gd`)
+- **One config script per system**, constants filed by system, not by round. `Config` (`config.gd`) keeps only the shared
+  core: `WORLD_SCALE`, the elements and joy matchups, plaza size, people count, `RNG_SEED`, and the pure helpers
+  (`multiplier`, `falloff`, `gloom_level`, `intro_on`, `tides_on`, `is_automated_test`). The rest is read as
+  `<System>Config.X`: `BorderConfig` (members, slots, gaps, ribbon, edge pressure, zone control), `PushConfig`,
+  `NightConfig` (night curve, dimmed arrivals, first light, tides), `PeopleConfig` (gloom, relapse, wobble, wandering,
+  spawn, grace, reactions), `MoodConfig` (moods, shelter, shield readability), `GroundConfig` (paint, cover, contagion,
+  erosion), `ProjectileConfig`, `PlayerConfig` (camera, zoom, targeting, hover, player marker), `SpiritConfig` (spirit,
+  dim, grabs, burst, spare spirit), `EmbraceConfig`, `LandmarkConfig` (landmarks, dawn rating), `TownConfig` (streets,
+  lamps, landmark distances), `HudConfig` (HUD, minimap, notices, intro, cue panel, edge pointers), `RecorderConfig`,
+  `StyleConfig` (styled-look numbers; the rules never read them). `BeaconConfig` (beacon, arms, reach guide, posts) and
+  `RoundLoopConfig` (the round border loop: samples, centre, size ease, map-edge seals) hold their constants as they were,
+  untidied: pass 2 of 0.4 deletes those two files whole.
+- **New constants go in the config of the system they tune** (a new file if it is a new system). A constant that reads
+  another config's value names it (`BorderConfig.X`); configs must not depend on each other in a cycle. Keep each file
+  under the 1000-line lint cap. No magic numbers in other scripts. Find a constant by name: search `scripts/*_config.gd`.
 - **World scale:** `Config.WORLD_SCALE` (100/70) scales TERRITORY constants (plaza, blocks, spawn, border spacing/gap/radii,
   cover, paint, search reach); INTERACTION and BODY constants (sizes, projectile ranges and speeds, `GRAB_*`, `SHELTER_RADIUS`,
   hit radii) are not; per-metre rates are divided by it. New distances: decide which kind and write `* WORLD_SCALE` if territory. Test: `world_scale_test`.
@@ -147,7 +158,7 @@ in a `_poll_*`) and call `emit_event("name", {...})`; keep it cheap (nothing per
 - **Pre-commit hook = `gate.py --hook`:** lint + the fast tier (`run_tests.py --tier fast`: every test under 5 s, plus the
   slow tests that the changed functions of staged `scripts/*.gd` can reach per the saved per-unit coverage map, plus the
   whole suite of a changed `tests/*_test.gd`; `tools/fast_tier.py` prints what it chose; anything it cannot map, such as
-  `config.gd`, scenes, `project.godot`, the test tooling or a missing/old map, runs everything). `--full` when
+  `config.gd` or any `*_config.gd`, scenes, `project.godot`, the test tooling or a missing/old map, runs everything). `--full` when
   `coverage_baseline.json` is staged. A commit that cannot change a Godot test (docs, tools other than
   run_tests/gate/coverage/godot_run/godot_path/fast_tier) runs lint + that tool's `tools/test_*.py` only. A fast pass
   never answers a plain or `--full` request in the gate cache.

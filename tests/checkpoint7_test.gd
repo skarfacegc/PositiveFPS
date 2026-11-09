@@ -116,14 +116,14 @@ func test_the_styled_fog_is_a_storm_cloud_of_soft_puffs_and_the_figures_are_pixe
 	assert_bool(src.contains("FRAGCOORD")).is_false()
 	assert_bool(src.contains("bayer")).is_false()
 	var mat := mmi.material_override as ShaderMaterial
-	assert_float(mat.get_shader_parameter("alpha_max")).is_equal(Config.L31_FOG_ALPHA)
-	assert_float(mat.get_shader_parameter("churn")).is_equal(Config.L31_FOG_CHURN)
-	assert_float(mat.get_shader_parameter("puff_ref")).is_equal(Config.L31_FOG_PUFF)
-	assert_int(mat.render_priority).is_equal(Config.L31_SOFT_PRIORITY + 1)
+	assert_float(mat.get_shader_parameter("alpha_max")).is_equal(StyleConfig.L31_FOG_ALPHA)
+	assert_float(mat.get_shader_parameter("churn")).is_equal(StyleConfig.L31_FOG_CHURN)
+	assert_float(mat.get_shader_parameter("puff_ref")).is_equal(StyleConfig.L31_FOG_PUFF)
+	assert_int(mat.render_priority).is_equal(StyleConfig.L31_SOFT_PRIORITY + 1)
 	# 0.3.1 fix pass: a fuller body (opaque out to 0.38 of the radius), more rows, bigger puffs.
 	assert_bool(src.contains("smoothstep(0.38, 1.0, r)")).is_true()
-	assert_int(Config.L31_FOG_ROWS).is_greater_equal(4)
-	assert_float(Config.L31_FOG_PUFF).is_greater_equal(6.0)
+	assert_int(StyleConfig.L31_FOG_ROWS).is_greater_equal(4)
+	assert_float(StyleConfig.L31_FOG_PUFF).is_greater_equal(6.0)
 	var fig := StylePush.build_figure(root)
 	assert_int(fig.get_child_count()).is_equal(2)
 	assert_bool(fig.get_parent() == root).is_true()
@@ -131,27 +131,27 @@ func test_the_styled_fog_is_a_storm_cloud_of_soft_puffs_and_the_figures_are_pixe
 
 func test_the_cloud_is_as_long_as_the_stretch_pushed_and_its_core_is_darker() -> void:
 	var root: Node3D = auto_free(Node3D.new())
-	var fog := StylePush.build_fog(root, Config.TIDE_FOG_WIDTH, Config.TIDE_FOG_DEPTH)
+	var fog := StylePush.build_fog(root, NightConfig.TIDE_FOG_WIDTH, NightConfig.TIDE_FOG_DEPTH)
 	# The pushed stretch is TIDE_HALF_WIDTH either side of the wave's direction: its chord, kept inside the limits.
-	var chord := 2.0 * 30.0 * sin(Config.TIDE_HALF_WIDTH)
-	assert_float(StylePush.fog_length(30.0)).is_equal_approx(minf(chord, Config.TIDE_FOG_WIDTH), 0.001)
-	assert_float(StylePush.fog_length(0.0)).is_equal(Config.L31_FOG_MIN_LENGTH)
-	assert_float(StylePush.fog_length(1000.0)).is_equal(Config.TIDE_FOG_WIDTH)
+	var chord := 2.0 * 30.0 * sin(NightConfig.TIDE_HALF_WIDTH)
+	assert_float(StylePush.fog_length(30.0)).is_equal_approx(minf(chord, NightConfig.TIDE_FOG_WIDTH), 0.001)
+	assert_float(StylePush.fog_length(0.0)).is_equal(StyleConfig.L31_FOG_MIN_LENGTH)
+	assert_float(StylePush.fog_length(1000.0)).is_equal(NightConfig.TIDE_FOG_WIDTH)
 	StylePush.set_length(fog, 12.0)
 	var short := StylePush.puff_count(fog)
 	assert_float(StylePush.current_length(fog)).is_equal(12.0)
 	StylePush.set_length(fog, 40.0)
 	var long := StylePush.puff_count(fog)
 	assert_bool(long > short).is_true()
-	assert_bool(long <= StylePush.max_puffs(Config.TIDE_FOG_WIDTH)).is_true()
+	assert_bool(long <= StylePush.max_puffs(NightConfig.TIDE_FOG_WIDTH)).is_true()
 	# A puff never stands beyond the cloud's own length (give or take its jitter and half its size).
-	var puffs := StylePush.layout_puffs(40.0, Config.TIDE_FOG_DEPTH)
+	var puffs := StylePush.layout_puffs(40.0, NightConfig.TIDE_FOG_DEPTH)
 	assert_int(puffs.size()).is_equal(long)
 	var darkest := 1.0
 	var palest := 0.0
 	for p: Dictionary in puffs:
 		var at: Vector3 = p["pos"]
-		assert_float(absf(at.x)).is_less(20.0 + Config.L31_FOG_SPACING)
+		assert_float(absf(at.x)).is_less(20.0 + StyleConfig.L31_FOG_SPACING)
 		var c: Color = p["colour"]
 		darkest = minf(darkest, c.v)
 		palest = maxf(palest, c.v)
@@ -160,7 +160,7 @@ func test_the_cloud_is_as_long_as_the_stretch_pushed_and_its_core_is_darker() ->
 	StylePush.set_length(fog, 40.1)
 	assert_float(StylePush.current_length(fog)).is_equal(40.0)
 	# One row only is fine too.
-	var rows := Config.L31_FOG_ROWS
+	var rows := StyleConfig.L31_FOG_ROWS
 	assert_bool(rows >= 1).is_true()
 
 
@@ -175,7 +175,7 @@ func test_the_styled_tide_shows_its_fog_only_in_the_styled_look_and_moves_its_fi
 	await runner.simulate_frames(2)
 	assert_bool(tide.styled_fog.visible).is_true()
 	assert_bool(tide.fog.visible).is_false()
-	assert_int(tide.styled_figures.size()).is_equal(Config.TIDE_FIGURES)
+	assert_int(tide.styled_figures.size()).is_equal(NightConfig.TIDE_FIGURES)
 	var a := tide.styled_figures[0].position
 	_at(td, start + 1.3)
 	assert_bool(tide.styled_figures[0].position.is_equal_approx(a)).is_false()
@@ -184,7 +184,7 @@ func test_the_styled_tide_shows_its_fog_only_in_the_styled_look_and_moves_its_fi
 	assert_bool(tide.styled_fog.position.is_equal_approx(tide.fog.position)).is_true()
 	# 0.3.1: the cloud is laid out for the stretch being pushed, and the placeholder fog plane is not a fallback in the
 	# styled look (the storm cloud covers it).
-	var dist := tide.front_distance(0) + Config.TIDE_FOG_DEPTH * 0.5
+	var dist := tide.front_distance(0) + NightConfig.TIDE_FOG_DEPTH * 0.5
 	assert_float(StylePush.current_length(tide.styled_fog)).is_equal_approx(StylePush.fog_length(dist), 0.3)
 	assert_str(Looks.fallback_summary()).not_contains("tide_fog")
 	# Back to the placeholder look: the plane shows and the banks hide.
@@ -205,11 +205,11 @@ func test_a_pusher_leans_into_the_line_and_a_still_person_does_not() -> void:
 	assert_bool(PersonLookStyled.brace_lean(Vector3(1, 0, 0), 0.0, identity) == Vector2.ZERO).is_true()
 	# Pushing from the front (+z in the body's frame) tips the top forward (positive x rotation).
 	var front := PersonLookStyled.brace_lean(Vector3(0, 0, 1), 1.0, identity)
-	assert_float(front.x).is_equal_approx(Config.PUSH_BRACE_LEAN, 0.0001)
+	assert_float(front.x).is_equal_approx(PushConfig.PUSH_BRACE_LEAN, 0.0001)
 	assert_float(front.y).is_equal_approx(0.0, 0.0001)
 	# Pushing from +x tips the top toward +x: a negative z rotation.
 	var side := PersonLookStyled.brace_lean(Vector3(1, 0, 0), 1.0, identity)
-	assert_float(side.y).is_equal_approx(-Config.PUSH_BRACE_LEAN, 0.0001)
+	assert_float(side.y).is_equal_approx(-PushConfig.PUSH_BRACE_LEAN, 0.0001)
 
 
 func test_a_styled_pusher_runs_the_lean_in_the_level() -> void:

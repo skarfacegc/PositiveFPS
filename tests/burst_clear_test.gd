@@ -11,7 +11,7 @@ func _border(radius: float) -> Border:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, radius, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, radius, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	return border
 
@@ -29,7 +29,7 @@ func _dimmed_at(pos: Vector3) -> Person:
 func test_a_dimmed_person_on_the_border_centre_is_pushed_along_plus_x() -> void:
 	# A 2 m circle: the centre is inside the loop and about 2 m from the line, well within the 3.5 m band.
 	var border := _border(2.0)
-	assert_float(BurstClear.distance_to_line(border, Vector3.ZERO)).is_less_equal(Config.BURST_BORDER_BAND)
+	assert_float(BurstClear.distance_to_line(border, Vector3.ZERO)).is_less_equal(SpiritConfig.BURST_BORDER_BAND)
 	var centre := _dimmed_at(Vector3.ZERO)
 	assert_bool(BurstClear.is_at_border(border, centre.global_position)).is_true()
 	var people: Array[Person] = [centre]
@@ -40,7 +40,7 @@ func test_a_dimmed_person_on_the_border_centre_is_pushed_along_plus_x() -> void:
 	# Along +X only, and out past the line: the push distance plus the depth inside the 2 m loop (about 2 m).
 	assert_float(to.z).is_equal_approx(0.0, 0.001)
 	assert_float(to.x).is_greater(0.0)
-	assert_float(to.x).is_equal_approx(Config.BURST_PUSH_DISTANCE + 2.0, 0.05)
+	assert_float(to.x).is_equal_approx(SpiritConfig.BURST_PUSH_DISTANCE + 2.0, 0.05)
 	assert_vector(centre.global_position).is_equal_approx(to, Vector3(0.001, 0.001, 0.001))
 	# And lifted like any other target: no longer dimmed.
 	assert_bool(GloomSim.is_dimmed(centre)).is_false()

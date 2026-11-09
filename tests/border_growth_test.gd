@@ -45,7 +45,7 @@ func _ring_people(n: int, r: float) -> Array[Person]:
 
 func test_a_beautified_building_on_the_line_is_a_post_that_needs_one_fewer_member() -> void:
 	var border := _organic_border()
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	var rescued := _ring_people(20, 6.0 * Config.WORLD_SCALE)
 	_block(border, Vector2(5.5 * Config.WORLD_SCALE, 0.0), Vector2(0.5, 0.5), false)
@@ -58,7 +58,7 @@ func test_a_beautified_building_on_the_line_is_a_post_that_needs_one_fewer_membe
 	border.buildings[0].beautified = true
 	border._assign_members(rescued)
 	assert_int(border.post_count).is_equal(1)
-	assert_int(Config.BORDER_POST_WORTH).is_equal(1)
+	assert_int(BeaconConfig.BORDER_POST_WORTH).is_equal(1)
 	assert_int(border.required_members()).is_equal(14)
 	assert_int(border.member_count).is_equal(14)
 	# With the post standing, the segments beside it (and the whole loop, with enough people) are not gaps.
@@ -68,7 +68,7 @@ func test_a_beautified_building_on_the_line_is_a_post_that_needs_one_fewer_membe
 
 func test_a_block_far_from_the_line_is_not_a_post() -> void:
 	var border := _organic_border()
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	_block(border, Vector2(0.0, 0.0), Vector2(0.5, 0.5), true)
 	border._assign_members(_ring_people(20, 6.0 * Config.WORLD_SCALE))
@@ -77,7 +77,7 @@ func test_a_block_far_from_the_line_is_not_a_post() -> void:
 
 func test_the_landmark_counts_as_a_post_once_beautified() -> void:
 	var border := _organic_border()
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	_block(border, Vector2(5.5 * Config.WORLD_SCALE, 0.0), Vector2(0.5, 0.5), true, true)
 	border._assign_members(_ring_people(20, 6.0 * Config.WORLD_SCALE))
@@ -94,7 +94,7 @@ func test_a_dimmed_person_pressing_an_intact_line_is_pushed_out_and_drains_a_qua
 	# Round 11: the intact push-back is slower (0.35) and the nearest member loses BORDER_INTACT_DRAIN_FRACTION of the
 	# gap drain rate (round 10 drained nobody here).
 	var border := _organic_border()
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	var ring := _ring_people(14, 5.0)
 	border._assign_members(ring)
@@ -107,18 +107,18 @@ func test_a_dimmed_person_pressing_an_intact_line_is_pushed_out_and_drains_a_qua
 	var people: Array[Person] = [dimmed]
 	var before_x := dimmed.position.x
 	border._press_gloom(people, 1.0, 1.0)
-	assert_float(dimmed.position.x - before_x).is_equal_approx(Config.BORDER_PUSHBACK_SPEED, 0.02)
+	assert_float(dimmed.position.x - before_x).is_equal_approx(BorderConfig.BORDER_PUSHBACK_SPEED, 0.02)
 	var lost := 0.0
 	for m: Person in border.members:
 		lost += 900.0 - m.joy
-	var gap_rate := Config.SPREAD_DRAIN_RATE * Config.TD_DRAIN_MULTIPLIER * 1.0 * 1.0
-	assert_float(lost).is_equal_approx(gap_rate * Config.BORDER_INTACT_DRAIN_FRACTION, 0.01)
+	var gap_rate := PeopleConfig.SPREAD_DRAIN_RATE * PeopleConfig.TD_DRAIN_MULTIPLIER * 1.0 * 1.0
+	assert_float(lost).is_equal_approx(gap_rate * BorderConfig.BORDER_INTACT_DRAIN_FRACTION, 0.01)
 	assert_float(lost).is_equal_approx(6.0, 0.01)
 
 
 func test_a_dimmed_person_pressing_a_gap_drains_the_nearest_member() -> void:
 	var border := _organic_border()
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	# Three members on a radius 5 loop are 10.5 m apart: every stretch is a gap.
 	var ring: Array[Person] = []
@@ -141,29 +141,29 @@ func test_a_dimmed_person_pressing_a_gap_drains_the_nearest_member() -> void:
 	var lost := 0.0
 	for m: Person in border.members:
 		lost += 900.0 - m.joy
-	assert_float(lost).is_equal_approx(Config.SPREAD_DRAIN_RATE * Config.TD_DRAIN_MULTIPLIER, 0.01)
+	assert_float(lost).is_equal_approx(PeopleConfig.SPREAD_DRAIN_RATE * PeopleConfig.TD_DRAIN_MULTIPLIER, 0.01)
 
 
 func test_shove_bulges_the_line_toward_a_player_within_range_and_ignores_one_far_away() -> void:
 	var border := _organic_border()
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	var before: float = border._raw_radii[0]
 	border.shove(Vector3(7.0, 0.0, 0.0))
-	assert_float(border._raw_radii[0]).is_equal_approx(before + Config.BORDER_SHOVE_AMOUNT, 0.001)
+	assert_float(border._raw_radii[0]).is_equal_approx(before + RoundLoopConfig.BORDER_SHOVE_AMOUNT, 0.001)
 	# Standing on the centre has no direction to shove in.
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 3.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 3.0, RoundLoopConfig.BORDER_SAMPLES)
 	border.shove(Vector3.ZERO)
-	assert_float(border._raw_radii[0]).is_equal_approx(before + Config.BORDER_SHOVE_AMOUNT, 0.001)
+	assert_float(border._raw_radii[0]).is_equal_approx(before + RoundLoopConfig.BORDER_SHOVE_AMOUNT, 0.001)
 	# Twenty metres away is out of range.
 	border.shove(Vector3(20.0, 0.0, 0.0))
-	assert_float(border._raw_radii[0]).is_equal_approx(before + Config.BORDER_SHOVE_AMOUNT, 0.001)
+	assert_float(border._raw_radii[0]).is_equal_approx(before + RoundLoopConfig.BORDER_SHOVE_AMOUNT, 0.001)
 
 
 # A post takes BORDER_POST_WORTH (1) slots in a row; a slot is free when it and the worth-1 slots after it are untaken.
 func test_a_run_of_free_slots_has_no_taken_slot_in_it() -> void:
 	var taken: Array[bool] = [false, false, true, false, false, false, false, true]
-	assert_int(Config.BORDER_POST_WORTH).is_equal(1)
+	assert_int(BeaconConfig.BORDER_POST_WORTH).is_equal(1)
 	assert_bool(BorderSlots.run_free(taken, 1)).is_true()
 	assert_bool(BorderSlots.run_free(taken, 2)).is_false()  # slot 2 is taken
 	assert_bool(BorderSlots.run_free(taken, 3)).is_true()
@@ -174,7 +174,7 @@ func test_a_run_of_free_slots_has_no_taken_slot_in_it() -> void:
 func test_every_post_gets_its_slot_and_the_lone_member_takes_the_one_left() -> void:
 	var border := _organic_border()
 	var r := 6.0 * Config.WORLD_SCALE
-	var n := Config.BORDER_SAMPLES
+	var n := RoundLoopConfig.BORDER_SAMPLES
 	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, r, n)
 	border.active = true
 	# Three beautified blocks on the line, at loop points 5, 29 and 15 of 48, and one rescued person at point 0: four
@@ -208,7 +208,7 @@ func test_the_loop_keeps_the_perimeter_at_two_point_six_metres_per_person_once_i
 # push falls back to "away from the centre"; on the line AND on the centre there is no direction, and nothing is pushed.
 func test_a_presser_on_the_line_is_pushed_from_the_centre_and_one_on_the_centre_too_is_left_alone() -> void:
 	var border := _organic_border()
-	var loop := BorderShape.circle_polygon(Vector2(5.0, 0.0), 5.0, Config.BORDER_SAMPLES)
+	var loop := BorderShape.circle_polygon(Vector2(5.0, 0.0), 5.0, RoundLoopConfig.BORDER_SAMPLES)
 	loop[0] = Vector2(0.0, 0.0)  # A vertex of the loop sits on the world origin.
 	border.polygon = loop
 	border.active = true

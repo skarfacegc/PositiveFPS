@@ -30,7 +30,7 @@ func sync() -> void:
 	if aff == _last_affinity:
 		return
 	_last_affinity = aff
-	var col := Config.TD_NO_TARGET_COLOR if aff < 0 else Config.ELEMENT_COLORS[aff]
+	var col := PlayerConfig.TD_NO_TARGET_COLOR if aff < 0 else Config.ELEMENT_COLORS[aff]
 	_ring.material_override = StyleKit.mat(col, 0, 0.0, 0.8)
 
 
@@ -74,7 +74,7 @@ func _pose_gait() -> void:
 		return
 	var was := _last_step
 	_last_step = step
-	if was >= 0 and gait.run >= Config.JOG_DUST_MIN_RUN and gait.move > 0.5:
+	if was >= 0 and gait.run >= StyleConfig.JOG_DUST_MIN_RUN and gait.move > 0.5:
 		_dust(step)
 
 
@@ -84,7 +84,7 @@ func _dust(step: int) -> void:
 	if parent == null:
 		return
 	var side := 1.0 if step == 0 else -1.0
-	var at := subject.global_position + subject.global_transform.basis.x * Config.JOG_DUST_SIDE * side
+	var at := subject.global_position + subject.global_transform.basis.x * StyleConfig.JOG_DUST_SIDE * side
 	var puff := StyleFight.ring_node(parent, 0.0, DUST_FILL, DUST_RIM, DUST_DENSITY)
 	StyleFight.set_ring(puff, DUST_FILL, DUST_DENSITY, DUST_RIM_WIDTH)
 	puff.visible = true
@@ -94,8 +94,8 @@ func _dust(step: int) -> void:
 	var set_fade := func(v: float) -> void: mat.set_shader_parameter("fade", v)
 	var t := puff.create_tween()
 	t.set_parallel(true)
-	var reach := Config.JOG_DUST_RADIUS
-	t.tween_property(puff, "scale", Vector3(reach, 1.0, reach), Config.JOG_DUST_SECONDS)
-	t.tween_method(set_fade, 1.0, 0.0, Config.JOG_DUST_SECONDS)
+	var reach := StyleConfig.JOG_DUST_RADIUS
+	t.tween_property(puff, "scale", Vector3(reach, 1.0, reach), StyleConfig.JOG_DUST_SECONDS)
+	t.tween_method(set_fade, 1.0, 0.0, StyleConfig.JOG_DUST_SECONDS)
 	t.chain().tween_callback(puff.queue_free)
 	puffs_started += 1

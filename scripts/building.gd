@@ -48,13 +48,13 @@ func set_post(on: bool) -> void:
 
 # `inside_fraction` is the share of the footprint (0..1) inside the border this frame.
 func update(delta: float, inside_fraction: float) -> void:
-	if inside_fraction >= Config.BORDER_BUILDING_INSIDE:
+	if inside_fraction >= BorderConfig.BORDER_BUILDING_INSIDE:
 		inside_time += delta
 	else:
 		inside_time = 0.0
-	beautified = inside_time >= Config.BORDER_BUILDING_SECONDS
+	beautified = inside_time >= BorderConfig.BORDER_BUILDING_SECONDS
 	var target := 1.0 if beautified else 0.0
-	tint = move_toward(tint, target, delta / Config.BORDER_TINT_SECONDS)
+	tint = move_toward(tint, target, delta / BorderConfig.BORDER_TINT_SECONDS)
 	if look != null:
 		look.sync(delta)
 

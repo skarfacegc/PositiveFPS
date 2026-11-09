@@ -20,7 +20,7 @@ signal dim_changed(is_dim: bool)
 # Checkpoint 5: a gain that did not fit (the meter was full): `amount` is the spirit that would have been added.
 signal spirit_spilled(amount: float)
 
-var targeting_mode: int = Config.TD_TARGETING_MODE
+var targeting_mode: int = PlayerConfig.TD_TARGETING_MODE
 # The person being shot at, or null. Kept between frames in lock-on and hover modes.
 var target: Person = null
 var active: bool = true
@@ -32,7 +32,7 @@ var camera: Camera3D
 # Seconds left before the joy burst can be used again. topdown_main.gd shows this on the HUD.
 var burst_cooldown: float = 0.0
 # Round 12a: spirit (0..SPIRIT_MAX) and the dim state (spirit hit 0; it ends at DIM_EXIT_SPIRIT).
-var spirit: float = Config.SPIRIT_START
+var spirit: float = SpiritConfig.SPIRIT_START
 var is_dim: bool = false
 
 # The look: draws the body and the ring under the feet from this state (see scripts/looks/player_look.gd).
@@ -115,9 +115,9 @@ func _physics_process(delta: float) -> void:
 
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var dir := Vector3(input_dir.x, 0.0, input_dir.y)
-	var speed: float = Config.TD_RUN_SPEED if Input.is_action_pressed("run") else Config.TD_MOVE_SPEED
+	var speed: float = PlayerConfig.TD_RUN_SPEED if Input.is_action_pressed("run") else PlayerConfig.TD_MOVE_SPEED
 	if is_dim:
-		speed *= Config.DIM_MOVE_MULT
+		speed *= SpiritConfig.DIM_MOVE_MULT
 	velocity.x = dir.x * speed
 	velocity.z = dir.z * speed
 	move_and_slide()
@@ -157,7 +157,7 @@ func _face_aim() -> void:
 
 # F2: move to the next targeting mode. The current target is dropped so every mode starts clean.
 func _cycle_targeting() -> void:
-	targeting_mode = (targeting_mode + 1) % Config.TD_TARGETING_NAMES.size()
+	targeting_mode = (targeting_mode + 1) % PlayerConfig.TD_TARGETING_NAMES.size()
 	_set_target(null)
 	targeting_changed.emit(targeting_mode)
 
@@ -167,7 +167,7 @@ func _click_lock() -> void:
 	_update_aim()
 	if not _has_aim:
 		return
-	_set_target(_nearest_valid(_aim_point, Config.TD_CLICK_RADIUS))
+	_set_target(_nearest_valid(_aim_point, PlayerConfig.TD_CLICK_RADIUS))
 
 
 # Keeps the target in step with the mode, and drops it when it is no longer valid.
@@ -185,18 +185,21 @@ func _update_target(delta: float) -> void:
 
 # Round 17, hover: the target follows the pointer. The person the cursor is over or nearest to (the hover pick) takes
 # over at once if there is no target yet, or if the cursor is directly over them. Otherwise the held target is kept for
-# at most Config.HOVER_STICK_SECONDS after the cursor stops being over or nearest to it; then the pick takes over (or
+# at most HOVER_STICK_SECONDS after the cursor stops being over or nearest to it; then the pick takes over (or
 # the target clears when nobody is under the cursor). Wobbling off and back within that time keeps the target.
 func _update_hover_target(delta: float) -> void:
-	var pick := _nearest_hover(_aim_point, Config.TD_AIM_ASSIST_RADIUS)
+	var pick := _nearest_hover(_aim_point, PlayerConfig.TD_AIM_ASSIST_RADIUS)
 	if pick == target:
 		_hover_away = 0.0
 		return
-	if target == null or (pick != null and _flat_dist(_aim_point, pick.global_position) <= Config.HOVER_DIRECT_RADIUS):
+	if (
+		target == null
+		or (pick != null and _flat_dist(_aim_point, pick.global_position) <= PlayerConfig.HOVER_DIRECT_RADIUS)
+	):
 		_set_target(pick)
 		return
 	_hover_away += delta
-	if _hover_away >= Config.HOVER_STICK_SECONDS:
+	if _hover_away >= PlayerConfig.HOVER_STICK_SECONDS:
 		_set_target(pick)
 
 
@@ -224,7 +227,12 @@ func _try_fire() -> void:
 		return
 	# Round 7: the fire rate depends on the target's element (music fast, art slow). Joy per second is the same.
 	_fire_cooldown = (
-		1.0 / (Config.TD_SHOTS_PER_SECOND * Config.TD_ELEMENT_FIRE_RATE_MULT[target.affinity] * fire_rate_mult())
+		1.0
+		/ (
+			PlayerConfig.TD_SHOTS_PER_SECOND
+			* ProjectileConfig.TD_ELEMENT_FIRE_RATE_MULT[target.affinity]
+			* fire_rate_mult()
+		)
 	)
 	var start := global_position + Vector3(0, 1.2, 0)
 	var pr := JoyProjectile.new()
@@ -249,7 +257,7 @@ func _set_target(p: Person) -> void:
 # True when a person can still gain joy: unrescued, or rescued but losing joy (about to relapse). Round 26: also a
 # rescued person braced against a push (joy makes them push back).
 func _is_eligible(p: Person) -> bool:
-	return not p.is_rescued or p.is_warning() or p.brace >= Config.PUSH_BRACE_TARGET
+	return not p.is_rescued or p.is_warning() or p.brace >= PushConfig.PUSH_BRACE_TARGET
 
 
 # A valid target: eligible and within auto range of the player.
@@ -258,12 +266,12 @@ func _is_valid_target(p: Person) -> bool:
 
 
 func _in_auto_range(p: Person) -> bool:
-	return _flat_dist(global_position, p.global_position) <= Config.TD_AUTO_RANGE
+	return _flat_dist(global_position, p.global_position) <= PlayerConfig.TD_AUTO_RANGE
 
 
 # A held target stays while it is eligible and inside the lock break range.
 func _can_keep(p: Person) -> bool:
-	return _is_eligible(p) and _flat_dist(global_position, p.global_position) <= Config.TD_LOCK_BREAK_RANGE
+	return _is_eligible(p) and _flat_dist(global_position, p.global_position) <= PlayerConfig.TD_LOCK_BREAK_RANGE
 
 
 # The valid person nearest `point` within `radius` metres of it, or null.
@@ -311,10 +319,10 @@ func _more_urgent(a: Person, b: Person) -> bool:
 # The joy fire rate factor from spirit: 1 at SPIRIT_FULL_FIRE_FRACTION of spirit or more, then linearly down to
 # SPIRIT_MIN_FIRE_FRACTION at (just above) zero.
 func fire_rate_mult() -> float:
-	var frac := spirit / Config.SPIRIT_MAX
-	if frac >= Config.SPIRIT_FULL_FIRE_FRACTION:
+	var frac := spirit / SpiritConfig.SPIRIT_MAX
+	if frac >= SpiritConfig.SPIRIT_FULL_FIRE_FRACTION:
 		return 1.0
-	return lerpf(Config.SPIRIT_MIN_FIRE_FRACTION, 1.0, frac / Config.SPIRIT_FULL_FIRE_FRACTION)
+	return lerpf(SpiritConfig.SPIRIT_MIN_FIRE_FRACTION, 1.0, frac / SpiritConfig.SPIRIT_FULL_FIRE_FRACTION)
 
 
 # True when the burst is ready, the player is not dim and spirit covers its cost.
@@ -324,7 +332,7 @@ func can_burst() -> bool:
 
 # True when spirit covers the burst (and the player is not dim).
 func has_burst_spirit() -> bool:
-	return not is_dim and spirit >= Config.BURST_SPIRIT_COST
+	return not is_dim and spirit >= SpiritConfig.BURST_SPIRIT_COST
 
 
 # Round 19: the ground point under the cursor as of the last physics frame (valid only when `has_aim()`).
@@ -337,7 +345,7 @@ func has_aim() -> bool:
 
 
 func add_spirit(amount: float) -> void:
-	var spill := spirit + amount - Config.SPIRIT_MAX
+	var spill := spirit + amount - SpiritConfig.SPIRIT_MAX
 	_set_spirit(spirit + amount)
 	if spill > 0.0 and amount > 0.0:
 		spirit_spilled.emit(minf(spill, amount))
@@ -351,16 +359,16 @@ func lose_spirit(amount: float) -> void:
 func dim_level() -> float:
 	if not is_dim:
 		return 0.0
-	return 1.0 - clampf(spirit / Config.DIM_EXIT_SPIRIT, 0.0, 1.0)
+	return 1.0 - clampf(spirit / SpiritConfig.DIM_EXIT_SPIRIT, 0.0, 1.0)
 
 
 # Sets spirit (clamped) and updates the dim state: dim at 0, back to normal at DIM_EXIT_SPIRIT.
 func _set_spirit(value: float) -> void:
-	spirit = clampf(value, 0.0, Config.SPIRIT_MAX)
+	spirit = clampf(value, 0.0, SpiritConfig.SPIRIT_MAX)
 	var was_dim := is_dim
 	if spirit <= 0.0:
 		is_dim = true
-	elif is_dim and spirit >= Config.DIM_EXIT_SPIRIT:
+	elif is_dim and spirit >= SpiritConfig.DIM_EXIT_SPIRIT:
 		is_dim = false
 	if is_dim != was_dim:
 		dim_changed.emit(is_dim)
@@ -370,8 +378,8 @@ func _set_spirit(value: float) -> void:
 
 # Joy burst: everyone close by gets a best-match hit, then a ring expands from the player's feet. It costs spirit.
 func _burst() -> void:
-	burst_cooldown = Config.TD_BURST_COOLDOWN
-	lose_spirit(Config.BURST_SPIRIT_COST)
+	burst_cooldown = SpiritConfig.TD_BURST_COOLDOWN
+	lose_spirit(SpiritConfig.BURST_SPIRIT_COST)
 	var report := BurstClear.run(people, global_position, border)
 	_spawn_burst_ring()
 	burst_fired.emit(global_position)
@@ -379,7 +387,7 @@ func _burst() -> void:
 
 
 func _spawn_burst_ring() -> void:
-	look.play_burst(Config.BURST_CLEAR_RADIUS, Config.TD_BURST_TIME)
+	look.play_burst(SpiritConfig.BURST_CLEAR_RADIUS, SpiritConfig.TD_BURST_TIME)
 
 
 # Distance between two points, ignoring height.

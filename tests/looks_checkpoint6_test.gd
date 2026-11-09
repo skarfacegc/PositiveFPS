@@ -24,15 +24,15 @@ func _level() -> Dictionary:
 
 
 func test_the_stipple_is_cut_to_about_half() -> void:
-	assert_float(Config.STYLED_DITHER_LIGHT).is_equal_approx(0.08, 0.0001)
+	assert_float(StyleConfig.STYLED_DITHER_LIGHT).is_equal_approx(0.08, 0.0001)
 
 
 # Checkpoint 7: the toon light and the glows no longer dither; the toon materials get the soft band width instead.
 func test_the_toon_materials_receive_the_soft_band_width() -> void:
 	var toon := StyleKit.mat(Color(0.5, 0.5, 0.5))
-	assert_float(toon.get_shader_parameter("band_soft")).is_equal(Config.CP7_TOON_SOFT)
+	assert_float(toon.get_shader_parameter("band_soft")).is_equal(StyleConfig.CP7_TOON_SOFT)
 	var own := StyleKit.unique_mat(Color(0.5, 0.5, 0.5), 0.2)
-	assert_float(own.get_shader_parameter("band_soft")).is_equal(Config.CP7_TOON_SOFT)
+	assert_float(own.get_shader_parameter("band_soft")).is_equal(StyleConfig.CP7_TOON_SOFT)
 
 
 func test_the_glow_halos_keep_their_strength() -> void:
@@ -92,8 +92,8 @@ func _measure(mode: int, speed: float, frames: int) -> Dictionary:
 
 func test_the_player_jog_is_clearly_different_from_the_walk_in_both_looks() -> void:
 	for mode: int in [Looks.Mode.PLACEHOLDER, Looks.Mode.STYLED]:
-		var walk := _measure(mode, Config.TD_MOVE_SPEED, 180)
-		var run := _measure(mode, Config.TD_RUN_SPEED, 180)
+		var walk := _measure(mode, PlayerConfig.TD_MOVE_SPEED, 180)
+		var run := _measure(mode, PlayerConfig.TD_RUN_SPEED, 180)
 		var walk_bob: float = walk["bob"]
 		var run_bob: float = run["bob"]
 		var walk_lean: float = walk["lean"]
@@ -110,17 +110,17 @@ func test_the_player_jog_is_clearly_different_from_the_walk_in_both_looks() -> v
 
 
 func test_the_styled_jog_swings_the_legs_wider_than_the_walk() -> void:
-	var walk := _measure(Looks.Mode.STYLED, Config.TD_MOVE_SPEED, 180)
-	var run := _measure(Looks.Mode.STYLED, Config.TD_RUN_SPEED, 180)
+	var walk := _measure(Looks.Mode.STYLED, PlayerConfig.TD_MOVE_SPEED, 180)
+	var run := _measure(Looks.Mode.STYLED, PlayerConfig.TD_RUN_SPEED, 180)
 	var walk_swing: float = walk["swing"]
 	var run_swing: float = run["swing"]
 	assert_float(run_swing).is_greater(walk_swing + 0.15)
-	assert_float(run_swing).is_less_equal(Config.JOG_SWING_ANGLE + 0.01)
+	assert_float(run_swing).is_less_equal(StyleConfig.JOG_SWING_ANGLE + 0.01)
 
 
 func test_a_styled_run_raises_a_dust_puff_at_each_footfall_and_a_walk_raises_none() -> void:
-	var walk := _measure(Looks.Mode.STYLED, Config.TD_MOVE_SPEED, 180)
-	var run := _measure(Looks.Mode.STYLED, Config.TD_RUN_SPEED, 180)
+	var walk := _measure(Looks.Mode.STYLED, PlayerConfig.TD_MOVE_SPEED, 180)
+	var run := _measure(Looks.Mode.STYLED, PlayerConfig.TD_RUN_SPEED, 180)
 	var walk_puffs: int = walk["puffs"]
 	var run_puffs: int = run["puffs"]
 	var run_steps: int = run["steps"]
@@ -137,7 +137,7 @@ func test_people_keep_their_walk_and_run() -> void:
 	var z := 0.0
 	var lean := 0.0
 	for i: int in range(180):
-		z -= Config.TD_RUN_SPEED * DT
+		z -= PlayerConfig.TD_RUN_SPEED * DT
 		g.advance(Vector3(0.0, 0.0, z), DT, Basis.IDENTITY)
 		lean = maxf(lean, g.pitch)
 	assert_float(lean).is_less(0.12)

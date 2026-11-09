@@ -12,7 +12,7 @@ const CENTRE := Vector3(-11.7, 0.0, -6.5)
 
 
 func _radius() -> float:
-	return float(PEOPLE) * Config.BORDER_TARGET_SPACING / TAU
+	return float(PEOPLE) * BorderConfig.BORDER_TARGET_SPACING / TAU
 
 
 # A level with a settled border of 24 people round CENTRE at midnight, full spirit, and the dimmed people at `dimmed`
@@ -101,16 +101,16 @@ func test_a_stretch_stops_short_of_a_dimmed_person_and_the_guide_has_no_words_un
 	await _aim(runner, td, CENTRE + Vector3(0, 0, 26))
 	await runner.simulate_frames(2)
 	var hover_plan: Dictionary = td.border.plan_stretch(td.player.aim_point())
-	assert_str(hover_plan["reason"]).is_equal(Config.BEACON_DIM_TEXT)
+	assert_str(hover_plan["reason"]).is_equal(BeaconConfig.BEACON_DIM_TEXT)
 	assert_bool(td.reach_guide._label == null or not td.reach_guide._label.visible).is_true()
 	await _aim(runner, td, CENTRE + Vector3(0, 0, 26))
 	var plan: Dictionary = td.border.plan_stretch(td.player.aim_point())
 	var why: String = plan["reason"]
-	assert_str(why).is_equal(Config.BEACON_DIM_TEXT)
+	assert_str(why).is_equal(BeaconConfig.BEACON_DIM_TEXT)
 	assert_bool(plan["refused"]).is_false()
 	var reach: float = plan["reach"]
-	assert_float(reach).is_less(22.0 - Config.BEACON_DIM_CLEARANCE + 0.5)
-	assert_float(reach).is_greater(_radius() + Config.BEACON_MIN_GAIN)
+	assert_float(reach).is_less(22.0 - BeaconConfig.BEACON_DIM_CLEARANCE + 0.5)
+	assert_float(reach).is_greater(_radius() + BeaconConfig.BEACON_MIN_GAIN)
 	await _press_e(runner)
 	assert_bool(td.border.has_beacon()).is_true()
 	var worst_inside := 0
@@ -126,7 +126,7 @@ func test_a_stretch_stops_short_of_a_dimmed_person_and_the_guide_has_no_words_un
 		var tip: Vector3 = td.border.stretch_info()["tip"]
 		farthest = maxf(farthest, GloomSim.flat_dist(tip, CENTRE))
 	assert_int(worst_inside).is_equal(0)
-	assert_float(farthest).is_less(22.0 - Config.BEACON_DIM_CLEARANCE + 1.5)
+	assert_float(farthest).is_less(22.0 - BeaconConfig.BEACON_DIM_CLEARANCE + 1.5)
 	assert_int(td.rescued_count).is_greater_equal(PEOPLE - 2)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -169,7 +169,7 @@ func test_losing_people_walks_the_tip_back_and_the_arm_lands_where_the_tip_is() 
 	assert_float(limit).is_less(far0 + 4.0)
 	# One frame later the tip has not jumped: it moves at no more than the pull speed.
 	var tip1: Vector3 = td.border.stretch_info()["tip"]
-	assert_float(GloomSim.flat_dist(tip0, tip1)).is_less(Config.BEACON_PULL_SPEED / 60.0 * 4.0 + 0.01)
+	assert_float(GloomSim.flat_dist(tip0, tip1)).is_less(BeaconConfig.BEACON_PULL_SPEED / 60.0 * 4.0 + 0.01)
 	await runner.simulate_frames(1500)
 	if not landed.is_empty():
 		assert_float(GloomSim.flat_dist(landed[0], CENTRE)).is_less_equal(limit + 0.5)
@@ -180,7 +180,7 @@ func test_the_outline_is_a_teardrop_the_length_of_the_circle() -> void:
 	var r := _radius()
 	var c := Vector2(3.0, -4.0)
 	var short := BorderCentre.outline(c, r, r * 0.8, 0.0)
-	assert_int(short.size()).is_equal(Config.BORDER_SAMPLES)
+	assert_int(short.size()).is_equal(RoundLoopConfig.BORDER_SAMPLES)
 	for pt: Vector2 in short:
 		assert_float(pt.distance_to(c)).is_equal_approx(r, 0.01)
 	for reach: float in [r + 4.0, r + 8.0, BorderCentre.feasible_distance(r)]:
@@ -193,7 +193,7 @@ func test_the_outline_is_a_teardrop_the_length_of_the_circle() -> void:
 			near = minf(near, pt.distance_to(c))
 		# The tip reaches (to the sampling), the body does not shrink below the minimum, the length stays the circle's.
 		assert_float(far).is_equal_approx(reach, reach * 0.04)
-		assert_float(near).is_greater_equal(r * Config.BEACON_BODY_MIN - 0.01)
+		assert_float(near).is_greater_equal(r * BeaconConfig.BEACON_BODY_MIN - 0.01)
 		assert_float(BorderShape.perimeter_of(out)).is_equal_approx(TAU * r, TAU * r * 0.04)
 
 
@@ -278,14 +278,14 @@ func test_the_plan_is_reused_the_guide_draws_nothing_without_aim_and_an_impossib
 	var away: Dictionary = td.border.plan_stretch(CENTRE + Vector3(0, 0, -20))
 	assert_str(away["reason"]).is_equal("")
 	assert_bool(away["refused"]).is_false()
-	assert_float(away["reach"]).is_greater(_radius() + Config.BEACON_MIN_GAIN)
+	assert_float(away["reach"]).is_greater(_radius() + BeaconConfig.BEACON_MIN_GAIN)
 	td.border.place_beacon(CENTRE + Vector3(0, 0, 25))
 	await runner.simulate_frames(10)
 	assert_bool(td.border.stretch_info()["on"]).is_false()
 	assert_bool(td.border.has_beacon()).is_false()
 	assert_int(snaps[0]).is_equal(0)
 	assert_int(reasons.size()).is_equal(1)
-	assert_str(reasons[0]).is_equal(Config.BEACON_DIM_TEXT)
+	assert_str(reasons[0]).is_equal(BeaconConfig.BEACON_DIM_TEXT)
 	assert_int(td.intro.current).is_equal(Intro.Prompt.BEACON_FELL_BACK)
 	assert_float(GloomSim.flat_dist(td.border.centre, c0)).is_less(0.01)
 	await TopDownTestUtil.leave_loaded_scene(td)

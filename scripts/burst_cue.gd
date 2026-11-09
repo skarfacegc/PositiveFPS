@@ -34,7 +34,7 @@ static func attach(level: TopDownMain) -> BurstCue:
 
 func _build_label() -> void:
 	cue_label = Label.new()
-	cue_label.add_theme_font_size_override("font_size", Config.CUE_FONT_SIZE)
+	cue_label.add_theme_font_size_override("font_size", HudConfig.CUE_FONT_SIZE)
 	cue_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	cue_label.add_theme_constant_override("outline_size", 4)
 	# Round 24: a small panel on the HUD beside the spirit meter; its border pulses while the cue is ready.
@@ -58,9 +58,9 @@ func _build_label() -> void:
 func _process(delta: float) -> void:
 	_timer -= delta
 	if _timer <= 0.0:
-		_timer = Config.BORDER_WARN_INTERVAL
+		_timer = BorderConfig.BORDER_WARN_INTERVAL
 		burst_targets = BurstClear.count_targets(main.people, main.player.global_position, main.border)
-		EdgeDim.update(main.border, main.people, Config.BORDER_WARN_INTERVAL)
+		EdgeDim.update(main.border, main.people, BorderConfig.BORDER_WARN_INTERVAL)
 	fx.sync(delta)
 	_update_label()
 
@@ -71,7 +71,7 @@ func cue_text() -> String:
 	cue_ready = false
 	if burst_targets > 0 and main.player.can_burst():
 		cue_ready = true
-		return Config.CUE_BURST_TEXT % burst_targets
+		return HudConfig.CUE_BURST_TEXT % burst_targets
 	return ""
 
 
@@ -84,23 +84,23 @@ func _update_label() -> void:
 		return
 	var screen := main.get_viewport().get_visible_rect().size
 	var at := Vector2(
-		screen.x * 0.5 + Config.SPIRIT_METER_WIDTH * 0.5 + Config.CUE_HUD_GAP, screen.y + Config.CUE_HUD_Y
+		screen.x * 0.5 + HudConfig.SPIRIT_METER_WIDTH * 0.5 + HudConfig.CUE_HUD_GAP, screen.y + HudConfig.CUE_HUD_Y
 	)
 	if styled:
 		var size := StyleDawn.cue_size(text)
 		cue_panel.size = size
 		cue_panel.position = Vector2(at.x, at.y - (size.y - 34.0) * 0.5)
-		var beat := int(float(Engine.get_process_frames()) / 60.0 * Config.CUE_PULSE_HZ * 4.0) % 4
+		var beat := int(float(Engine.get_process_frames()) / 60.0 * HudConfig.CUE_PULSE_HZ * 4.0) % 4
 		cue_panel.set_cue(text, cue_ready, beat)
 		return
 	cue_label.text = text
 	cue_label.position = at
-	var pulse := 0.5 + 0.5 * sin(float(Engine.get_process_frames()) / 60.0 * TAU * Config.CUE_PULSE_HZ)
-	var edge := Config.CUE_READY_COLOUR
+	var pulse := 0.5 + 0.5 * sin(float(Engine.get_process_frames()) / 60.0 * TAU * HudConfig.CUE_PULSE_HZ)
+	var edge := HudConfig.CUE_READY_COLOUR
 	edge.a = 0.55 + 0.45 * pulse
 	_cue_style.border_color = edge
 	_cue_style.bg_color = Color(0.2, 0.17, 0.05, 0.85)
-	cue_label.add_theme_color_override("font_color", Config.CUE_READY_COLOUR)
+	cue_label.add_theme_color_override("font_color", HudConfig.CUE_READY_COLOUR)
 
 
 # The player's burst happened: draw the clearing, let the line near it spring back and tell the recorder what it did.
@@ -109,7 +109,7 @@ func _on_burst_cleared(report: Dictionary) -> void:
 	fx.add_burst(cleared)
 	fx.add_lift_result(cleared)
 	for c: Dictionary in cleared:  # Round 24: each lifted person perks up.
-		(c["person"] as Person).react(Person.React.LIFT, Config.REACT_LIFT_SECONDS)
+		(c["person"] as Person).react(Person.React.LIFT, PeopleConfig.REACT_LIFT_SECONDS)
 	if main.recorder != null:
 		var ids: Array = []
 		for c: Dictionary in cleared:

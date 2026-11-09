@@ -42,7 +42,7 @@ static func draw_spirit(m: SpiritMeter) -> void:
 
 # The spirit fill: a light top row, a dark bottom pair of rows, and a solid head (no chequer) at its tip.
 static func _fill(m: SpiritMeter, c: float, h: float) -> void:
-	var cells_wide := floori(m.size.x * clampf(m.spirit / Config.SPIRIT_MAX, 0.0, 1.0) / c)
+	var cells_wide := floori(m.size.x * clampf(m.spirit / SpiritConfig.SPIRIT_MAX, 0.0, 1.0) / c)
 	if cells_wide < 1:
 		return
 	var light := StyleUi.GOLD_LIGHT
@@ -65,7 +65,7 @@ static func _fill(m: SpiritMeter, c: float, h: float) -> void:
 # The burst-cost tick with a pixel sunburst above it and the dim-exit tick with a pixel moon below it.
 static func _ticks(m: SpiritMeter, c: float, h: float) -> void:
 	var bx := floorf(m.burst_tick_x() / c)
-	var can := not m.is_dim and m.spirit >= Config.BURST_SPIRIT_COST
+	var can := not m.is_dim and m.spirit >= SpiritConfig.BURST_SPIRIT_COST
 	var burst_col := Color(1.0, 0.95, 0.75) if can else Color(0.9, 0.5, 0.45)
 	var top := floori(-5.0 / c)
 	StyleUi.run(m, Vector2i(int(bx), top), floori((h + 7.0) / c) + 1, true, c, StyleUi.INK)
@@ -93,7 +93,7 @@ static func _popups(m: SpiritMeter, c: float) -> void:
 	var font := ThemeDB.fallback_font
 	for p: Dictionary in m.popups:
 		var left: float = p["left"]
-		var t := 1.0 - left / Config.SPIRIT_MOMENT_SECONDS
+		var t := 1.0 - left / HudConfig.SPIRIT_MOMENT_SECONDS
 		var shown_text: String = p["text"]
 		var col: Color = p["colour"]
 		col.a = clampf(left / 0.4, 0.0, 1.0)
@@ -120,12 +120,12 @@ static func draw_night(ci: Control, progress: float, text: String) -> void:
 	var size := ci.size
 	StyleUi.panel(ci, Rect2(Vector2.ZERO, size), c, StyleUi.PARCHMENT)
 	var font := ThemeDB.fallback_font
-	var fs := Config.CP7_NIGHT_FONT
+	var fs := HudConfig.CP7_NIGHT_FONT
 	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-	var at := Vector2((size.x - width) * 0.5, Config.CP7_NIGHT_TEXT_Y)
+	var at := Vector2((size.x - width) * 0.5, HudConfig.CP7_NIGHT_TEXT_Y)
 	ci.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, StyleUi.INK)
-	var inset := Config.CP7_NIGHT_BAR_INSET
-	var bar_h := Config.CP7_NIGHT_BAR_HEIGHT
+	var inset := HudConfig.CP7_NIGHT_BAR_INSET
+	var bar_h := HudConfig.CP7_NIGHT_BAR_HEIGHT
 	var bar := Rect2(inset, size.y - inset - bar_h, size.x - 2.0 * inset, bar_h)
 	StyleUi.rect(ci, bar.grow(c), c, StyleUi.INK)
 	StyleUi.rect(ci, bar, c, StyleUi.NIGHT)
@@ -154,9 +154,9 @@ static func draw_tag(ci: Control, text: String, dim: bool) -> void:
 	StyleUi.sparkle(ci, Vector2(14.0, mid), 2, c, StyleUi.INK)
 	StyleUi.sparkle(ci, Vector2(14.0, mid), 1, c, badge)
 	var font := ThemeDB.fallback_font
-	var fs := Config.CP7_TAG_FONT
+	var fs := HudConfig.CP7_TAG_FONT
 	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-	var at := Vector2((size.x - width) * 0.5 + 8.0, Config.CP7_TAG_TEXT_Y)
+	var at := Vector2((size.x - width) * 0.5 + 8.0, HudConfig.CP7_TAG_TEXT_Y)
 	ci.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, StyleUi.INK)
 
 

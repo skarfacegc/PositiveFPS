@@ -133,7 +133,7 @@ func test_lock_breaks_when_the_player_moves_beyond_break_range() -> void:
 				. length()
 			)
 		)
-		. is_greater(Config.TD_LOCK_BREAK_RANGE)
+		. is_greater(PlayerConfig.TD_LOCK_BREAK_RANGE)
 	)
 
 
@@ -258,7 +258,9 @@ func test_shots_use_the_target_element_and_the_ring_matches() -> void:
 	await runner.simulate_frames(2)
 	(
 		assert_bool(
-			(td.player.look as PlayerLookPlaceholder)._ring_mat.albedo_color.is_equal_approx(Config.TD_NO_TARGET_COLOR)
+			(td.player.look as PlayerLookPlaceholder)._ring_mat.albedo_color.is_equal_approx(
+				PlayerConfig.TD_NO_TARGET_COLOR
+			)
 		)
 		. is_true()
 	)

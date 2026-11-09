@@ -75,5 +75,5 @@ func sync(pos: Vector3, delta: float, from: Vector3 = Vector3.INF) -> void:
 func _unshaded() -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Config.BEACON_COLOUR
+	mat.albedo_color = BeaconConfig.BEACON_COLOUR
 	return mat

@@ -129,7 +129,7 @@ func test_a_styled_landmark_pulses_on_a_claim_and_on_a_loss() -> void:
 	var lm: Landmark = auto_free(Landmark.new())
 	lm.index = Landmarks.BANDSTAND
 	add_child(lm)
-	lm.update(Config.BORDER_LANDMARK_HOLD, true)
+	lm.update(LandmarkConfig.BORDER_LANDMARK_HOLD, true)
 	assert_int(get_tree().get_nodes_in_group("landmark_pulse").size()).is_equal(1)
 	var claim: MeshInstance3D = get_tree().get_nodes_in_group("landmark_pulse")[0]
 	assert_float(claim.scale.x).is_equal_approx(1.5, 0.01)
@@ -148,9 +148,9 @@ func test_the_styled_alert_is_a_banner_and_the_label_hides() -> void:
 	hud.rebuild_look()
 	assert_bool(hud.alert_label.visible).is_false()
 	assert_bool(hud.alert_panel.visible).is_true()
-	hud.show_alert("Claimed the Bandstand", Config.LANDMARK_CLAIM_COLOUR)
+	hud.show_alert("Claimed the Bandstand", LandmarkConfig.LANDMARK_CLAIM_COLOUR)
 	assert_str(hud.alert_panel.alert_text).is_equal("Claimed the Bandstand")
-	assert_bool(hud.alert_panel.alert_colour.is_equal_approx(Config.LANDMARK_CLAIM_COLOUR)).is_true()
+	assert_bool(hud.alert_panel.alert_colour.is_equal_approx(LandmarkConfig.LANDMARK_CLAIM_COLOUR)).is_true()
 	assert_float(hud.alert_panel.modulate.a).is_equal(1.0)
 	hud.alert_panel._draw()
 	Looks.set_mode(Looks.Mode.PLACEHOLDER)

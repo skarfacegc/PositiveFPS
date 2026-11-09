@@ -67,17 +67,17 @@ static func build(border: Border) -> Array[EdgeStrip]:
 # Width of a ribbon point: full when healthy, EDGE_RIBBON_THIN of it at full strain.
 static func width_for(strain: float) -> float:
 	var t := smoothstep(0.45, 1.0, strain)
-	return Config.EDGE_RIBBON_WIDTH * lerpf(1.0, Config.EDGE_RIBBON_THIN, t)
+	return BorderConfig.EDGE_RIBBON_WIDTH * lerpf(1.0, BorderConfig.EDGE_RIBBON_THIN, t)
 
 
 # Colour of a ribbon point: gold, amber from about half strain, coral at full; a sealed stretch tends to honey.
 static func colour_for(strain: float, seal: float = 0.0) -> Color:
-	var c := Config.EDGE_RIBBON_GOLD
+	var c := BorderConfig.EDGE_RIBBON_GOLD
 	if strain < 0.5:
-		c = c.lerp(Config.EDGE_RIBBON_AMBER, smoothstep(0.1, 0.5, strain))
+		c = c.lerp(BorderConfig.EDGE_RIBBON_AMBER, smoothstep(0.1, 0.5, strain))
 	else:
-		c = Config.EDGE_RIBBON_AMBER.lerp(Config.EDGE_RIBBON_CORAL, smoothstep(0.5, 0.95, strain))
-	return c.lerp(Config.EDGE_RIBBON_HONEY, seal * (1.0 - strain))
+		c = BorderConfig.EDGE_RIBBON_AMBER.lerp(BorderConfig.EDGE_RIBBON_CORAL, smoothstep(0.5, 0.95, strain))
+	return c.lerp(BorderConfig.EDGE_RIBBON_HONEY, seal * (1.0 - strain))
 
 
 # Triangles for a set of strips as mesh arrays (Mesh.ARRAY_*), flat at height `y`, `alpha` on every colour. `halo`
@@ -160,7 +160,7 @@ static func _cap(i: int, m: int) -> float:
 	var span := mini(i, m - 1 - i)
 	if span >= 2:
 		return 1.0
-	return lerpf(Config.EDGE_RIBBON_CAP, 1.0, float(span) / 2.0)
+	return lerpf(BorderConfig.EDGE_RIBBON_CAP, 1.0, float(span) / 2.0)
 
 
 # The members that stand on the loop, in order round the centre.
@@ -243,7 +243,7 @@ static func _densify(s: EdgeStrip) -> void:
 	var segs := m if s.closed else m - 1
 	for i: int in range(segs):
 		var j := (i + 1) % m
-		var parts := maxi(1, ceili(s.pts[i].distance_to(s.pts[j]) / Config.EDGE_RIBBON_STEP))
+		var parts := maxi(1, ceili(s.pts[i].distance_to(s.pts[j]) / BorderConfig.EDGE_RIBBON_STEP))
 		for q: int in range(parts):
 			var t := float(q) / float(parts)
 			out.add(

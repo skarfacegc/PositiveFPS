@@ -38,8 +38,8 @@ func sync() -> void:
 	_disc.scale = Vector3(frac, 1.0, frac)
 	var name_text := subject.landmark_name()
 	var held := subject.is_held()
-	_pillar_mat.albedo_color = Config.BORDER_BEACON_COLOUR if held else UNHELD_COLOUR
-	_shape_mat.albedo_color = Config.LANDMARK_COLOURS[subject.index] if held else UNHELD_COLOUR
+	_pillar_mat.albedo_color = BeaconConfig.BORDER_BEACON_COLOUR if held else UNHELD_COLOUR
+	_shape_mat.albedo_color = LandmarkConfig.LANDMARK_COLOURS[subject.index] if held else UNHELD_COLOUR
 	if held:
 		_label.text = "%s HELD: %s" % [name_text, subject.boost_text()]
 	elif subject.beautified or subject.hold > 0.0:
@@ -49,7 +49,7 @@ func sync() -> void:
 
 
 func _build() -> void:
-	var height := Config.LANDMARK_SIZES[subject.index].y
+	var height := LandmarkConfig.LANDMARK_SIZES[subject.index].y
 	_pillar_mat = _unshaded(UNHELD_COLOUR)
 	_pillar = MeshInstance3D.new()
 	var pillar := CylinderMesh.new()
@@ -74,7 +74,7 @@ func _build() -> void:
 	torus.outer_radius = RING_OUTER
 	ring.mesh = torus
 	ring.position = Vector3(0, 0.05, 0)
-	ring.material_override = _unshaded(Config.BORDER_INTACT_COLOUR)
+	ring.material_override = _unshaded(BorderConfig.BORDER_INTACT_COLOUR)
 	add_child(ring)
 
 	_disc = MeshInstance3D.new()
@@ -84,7 +84,7 @@ func _build() -> void:
 	disc.height = 0.03
 	_disc.mesh = disc
 	_disc.position = Vector3(0, 0.04, 0)
-	_disc.material_override = _unshaded(Config.BORDER_BEACON_COLOUR)
+	_disc.material_override = _unshaded(BeaconConfig.BORDER_BEACON_COLOUR)
 	add_child(_disc)
 
 	_label = Label3D.new()

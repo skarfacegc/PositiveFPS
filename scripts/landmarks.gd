@@ -1,7 +1,7 @@
 class_name Landmarks
 extends Node3D
 
-# Round 19: the level's landmarks and what they give. Owns the Landmark nodes (`items`, in Config.LANDMARK_NAMES
+# Round 19: the level's landmarks and what they give. Owns the Landmark nodes (`items`, in LandmarkConfig.LANDMARK_NAMES
 # order: bandstand, garden, bell tower, gallery), updates their holds from the border, applies the boosts to the people
 # and makes the lines of the HUD panel. (0.3.3: the gallery can be placed and claimed but gives nothing yet.)
 #   Bandstand: music joy x LANDMARK_MUSIC_MULT.   Garden: nature joy x LANDMARK_NATURE_MULT.
@@ -18,7 +18,7 @@ var items: Array[Landmark] = []
 
 # Creates the landmark nodes (call once, after adding this node to the level).
 func build() -> void:
-	for i: int in range(Config.LANDMARK_NAMES.size()):
+	for i: int in range(LandmarkConfig.LANDMARK_NAMES.size()):
 		var lm := Landmark.new()
 		lm.index = i
 		add_child(lm)
@@ -51,15 +51,17 @@ func held_count() -> int:
 
 # Sets the boosts on everyone: the joy multiplier of each element and the bell tower's loss multiplier.
 func apply_boosts(people: Array[Person], border: Border) -> void:
-	var music := Config.LANDMARK_MUSIC_MULT if is_held(BANDSTAND) else 1.0
-	var nature := Config.LANDMARK_NATURE_MULT if is_held(GARDEN) else 1.0
+	var music := LandmarkConfig.LANDMARK_MUSIC_MULT if is_held(BANDSTAND) else 1.0
+	var nature := LandmarkConfig.LANDMARK_NATURE_MULT if is_held(GARDEN) else 1.0
 	var bell := is_held(BELL_TOWER)
-	var bell_at := Config.LANDMARK_POSITIONS[BELL_TOWER]
+	var bell_at := LandmarkConfig.LANDMARK_POSITIONS[BELL_TOWER]
 	for p: Person in people:
 		p.joy_boost[Config.Element.MUSIC] = music
 		p.joy_boost[Config.Element.NATURE] = nature
-		var covered := bell and border.members.has(p) and _flat(p.position, bell_at) <= Config.LANDMARK_BELL_RADIUS
-		p.loss_mult = Config.LANDMARK_BELL_LOSS_MULT if covered else 1.0
+		var covered := (
+			bell and border.members.has(p) and _flat(p.position, bell_at) <= LandmarkConfig.LANDMARK_BELL_RADIUS
+		)
+		p.loss_mult = LandmarkConfig.LANDMARK_BELL_LOSS_MULT if covered else 1.0
 
 
 # Which landmarks are held, in order (for the minimap).
@@ -81,7 +83,7 @@ func held_lines() -> Array[String]:
 
 # True when `pos` is within `radius` of any landmark.
 static func near_any(pos: Vector3, radius: float) -> bool:
-	for at: Vector3 in Config.LANDMARK_POSITIONS:
+	for at: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
 		if _flat(pos, at) <= radius:
 			return true
 	return false

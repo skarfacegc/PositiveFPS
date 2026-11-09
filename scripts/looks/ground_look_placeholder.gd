@@ -26,7 +26,7 @@ func _build() -> void:
 		for iz: int in range(grid_size):
 			var c := Vector3(-half + 0.5 + ix, 0.01, -half + 0.5 + iz)
 			mm.set_instance_transform(i, Transform3D(Basis(), c))
-			mm.set_instance_color(i, Config.GROUND_GREY)
+			mm.set_instance_color(i, GroundConfig.GROUND_GREY)
 			i += 1
 	_multimesh = mm
 

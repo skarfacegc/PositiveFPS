@@ -60,7 +60,7 @@ func test_the_windup_is_visible_then_the_grab_drains_spirit_if_the_player_stays(
 
 	# The wind-up lasts 0.7 s and the lunge 0.15 s: the grab lands and costs 25 spirit.
 	await runner.simulate_frames(40)
-	assert_float(td.player.spirit).is_equal_approx(80.0 - Config.GRAB_SPIRIT_DRAIN, 0.01)
+	assert_float(td.player.spirit).is_equal_approx(80.0 - SpiritConfig.GRAB_SPIRIT_DRAIN, 0.01)
 	assert_int(_landed).is_equal(1)
 	assert_str(td.hud.alert_label.text).contains("Grabbed")
 	assert_bool(td.grabs.is_winding_up(grabber)).is_false()
@@ -71,10 +71,10 @@ func test_the_windup_is_visible_then_the_grab_drains_spirit_if_the_player_stays(
 	assert_bool(grabber.look.grab_ring.visible).is_false()
 	assert_float(td.grabs.cooldown_left(grabber)).is_greater(1.0)
 	await runner.simulate_frames(90)
-	assert_float(td.player.spirit).is_equal_approx(80.0 - Config.GRAB_SPIRIT_DRAIN, 0.01)
+	assert_float(td.player.spirit).is_equal_approx(80.0 - SpiritConfig.GRAB_SPIRIT_DRAIN, 0.01)
 	# After the cooldown (2.5 s) another wind-up and lunge: another 25.
 	await runner.simulate_frames(180)
-	assert_float(td.player.spirit).is_equal_approx(80.0 - 2.0 * Config.GRAB_SPIRIT_DRAIN, 0.01)
+	assert_float(td.player.spirit).is_equal_approx(80.0 - 2.0 * SpiritConfig.GRAB_SPIRIT_DRAIN, 0.01)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -122,7 +122,7 @@ func test_stepping_away_after_a_landed_grab_does_not_refund_it() -> void:
 	runner.simulate_key_press(KEY_W)
 	await runner.simulate_frames(10)
 	runner.simulate_key_release(KEY_W)
-	assert_float(td.player.spirit).is_equal_approx(80.0 - Config.GRAB_SPIRIT_DRAIN, 0.01)
+	assert_float(td.player.spirit).is_equal_approx(80.0 - SpiritConfig.GRAB_SPIRIT_DRAIN, 0.01)
 	assert_int(_avoided).is_equal(0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -213,14 +213,14 @@ func test_a_lunge_that_ends_in_reach_lands_and_one_that_ends_out_of_reach_is_avo
 	grabs._resolve(person, player)
 	assert_int(_landed).is_equal(1)
 	assert_int(_avoided).is_equal(0)
-	assert_float(player.spirit).is_equal(Config.SPIRIT_START - Config.GRAB_SPIRIT_DRAIN)
+	assert_float(player.spirit).is_equal(SpiritConfig.SPIRIT_START - SpiritConfig.GRAB_SPIRIT_DRAIN)
 
 	# The player has stepped out of reach by the time the lunge ends: the grab misses and costs nothing.
 	player.global_position = Vector3(0, 0, 6.0)
 	grabs._resolve(person, player)
 	assert_int(_landed).is_equal(1)
 	assert_int(_avoided).is_equal(1)
-	assert_float(player.spirit).is_equal(Config.SPIRIT_START - Config.GRAB_SPIRIT_DRAIN)
+	assert_float(player.spirit).is_equal(SpiritConfig.SPIRIT_START - SpiritConfig.GRAB_SPIRIT_DRAIN)
 
 
 func test_aiming_at_a_player_on_the_same_spot_changes_nothing() -> void:

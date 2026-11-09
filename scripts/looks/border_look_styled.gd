@@ -26,7 +26,7 @@ func is_styled() -> bool:
 func refresh() -> void:
 	var live := subject.active and subject.polygon.size() >= 3
 	# Round 12a: a dim player makes the border flicker; the ribbon drops out in the dark half of the flicker.
-	var lit := subject.flicker() > 0.5 * (1.0 + Config.DIM_FLICKER_MIN)
+	var lit := subject.flicker() > 0.5 * (1.0 + SpiritConfig.DIM_FLICKER_MIN)
 	_ribbon.visible = live and lit
 	_gold_motes.visible = live and lit
 	if not live:
@@ -34,11 +34,11 @@ func refresh() -> void:
 		_last_frame = -100000
 		return
 	var now := Engine.get_process_frames()
-	if now - _last_frame >= Config.EDGE_RIBBON_REBUILD_FRAMES:
+	if now - _last_frame >= BorderConfig.EDGE_RIBBON_REBUILD_FRAMES:
 		_last_frame = now
 		_rebuild_strips()
 		_mesh.clear_surfaces()
-		var arrays := EdgeRibbon.mesh_arrays(strips, RIBBON_Y, 1.0, Config.EDGE_RIBBON_HALO)
+		var arrays := EdgeRibbon.mesh_arrays(strips, RIBBON_Y, 1.0, BorderConfig.EDGE_RIBBON_HALO)
 		if not arrays.is_empty():
 			_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 		_place_motes()

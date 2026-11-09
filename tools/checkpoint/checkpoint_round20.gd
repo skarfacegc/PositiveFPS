@@ -57,7 +57,7 @@ func _r20_new_level() -> void:
 			p.gloom = 0.25
 			p.joy = 0.0
 	main.player.global_position = ring_centre + Vector3(0.5, 0.0, 1.5)
-	main.night.elapsed = Config.NIGHT_LENGTH * 0.25
+	main.night.elapsed = NightConfig.NIGHT_LENGTH * 0.25
 	for i: int in range(settle_frames):
 		main._process(1.0 / 60.0)
 	main.player.spirit = 90.0
@@ -129,7 +129,7 @@ func _r20_reach_shots(label: String) -> void:
 	var held: Array[bool] = [true, false, true]
 	for i: int in range(held.size()):
 		var lm := main.landmarks.items[i]
-		lm.hold = Config.BORDER_LANDMARK_HOLD if held[i] else 0.0
+		lm.hold = LandmarkConfig.BORDER_LANDMARK_HOLD if held[i] else 0.0
 		lm.update(0.0, held[i])
 	await _settle(30)
 	main.minimap.refresh_clouds(main.people)
@@ -171,12 +171,12 @@ func _r20_world_view(at: Vector3, w: int, h: int, k: int) -> Dictionary:
 # The claim and loss of the bandstand: the pulse ring and the notice, a moment after each.
 func _r20_landmark_pulses(label: String) -> void:
 	var lm := main.landmarks.items[0]
-	var at: Vector3 = Config.LANDMARK_POSITIONS[0]
+	var at: Vector3 = LandmarkConfig.LANDMARK_POSITIONS[0]
 	main.player.global_position = at + Vector3(7.0, 0.0, -1.0)
 	lm.hold = 0.0
 	lm.update(0.0, false)
 	await _settle(200)
-	lm.hold = Config.BORDER_LANDMARK_HOLD - 0.01
+	lm.hold = LandmarkConfig.BORDER_LANDMARK_HOLD - 0.01
 	lm.update(0.02, true)
 	await _settle(14)
 	var view := _r20_world_view(Vector3(at.x, 3.0, at.z), 480, 300, 2)
@@ -188,7 +188,7 @@ func _r20_landmark_pulses(label: String) -> void:
 	await _r20_snap("landmark_lost", label, view, at)
 	await _r20_snap("alert_lost", label, {"rect": Rect2i(320, 170, 640, 90), "scale": 2}, at)
 	await _settle(120)
-	lm.hold = Config.BORDER_LANDMARK_HOLD
+	lm.hold = LandmarkConfig.BORDER_LANDMARK_HOLD
 	lm.update(0.0, true)
 	await _settle(60)
 
@@ -229,7 +229,7 @@ func _r20_walk_shots(label: String) -> void:
 	var player := main.player
 	player.global_position = Vector3(2.0, 0.0, 14.0)
 	var gaits: Array[Dictionary] = [
-		{"name": "walk_player", "speed": Config.TD_MOVE_SPEED}, {"name": "run_player", "speed": Config.TD_RUN_SPEED}
+		{"name": "walk_player", "speed": PlayerConfig.TD_MOVE_SPEED}, {"name": "run_player", "speed": PlayerConfig.TD_RUN_SPEED}
 	]
 	for gait_row: Dictionary in gaits:
 		var gait_speed: float = gait_row["speed"]
@@ -238,7 +238,7 @@ func _r20_walk_shots(label: String) -> void:
 		player.rotation.y = -PI * 0.5
 		var gait_frames := await _r20_walk_frames(player, gait_speed, 50, 3)
 		_r20_save_strip(gait_name, label, gait_frames)
-	await _set_zoom(Config.TD_CAMERA_ORTHO_SIZE)
+	await _set_zoom(PlayerConfig.TD_CAMERA_ORTHO_SIZE)
 	await _r20_crowd(label)
 
 

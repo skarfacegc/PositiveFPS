@@ -44,7 +44,7 @@ func add_burst(cleared: Array) -> void:
 		spots.append(to)
 	_replace_near(_bursts, spots, "to")
 	for c: Dictionary in cleared:
-		_bursts.append({"from": c["from"], "to": c["to"], "left": Config.BURST_FX_SECONDS})
+		_bursts.append({"from": c["from"], "to": c["to"], "left": SpiritConfig.BURST_FX_SECONDS})
 
 
 # Round 23: a halo on each person the burst lifted, and one small count where they now stand. Round 25: earlier halos
@@ -63,15 +63,15 @@ func add_lift_result(cleared: Array) -> void:
 	_replace_near(_halos, spots, "pos")
 	_replace_near(_texts, [middle], "pos")
 	for c: Dictionary in cleared:
-		_halos.append({"pos": c["to"], "left": Config.FX_HALO_SECONDS})
+		_halos.append({"pos": c["to"], "left": SpiritConfig.FX_HALO_SECONDS})
 	(
 		_texts
 		. append(
 			{
 				"pos": middle,
-				"text": Config.FX_LIFT_TEXT % cleared.size(),
-				"left": Config.FX_TEXT_SECONDS,
-				"colour": Config.BURST_FX_COLOUR,
+				"text": SpiritConfig.FX_LIFT_TEXT % cleared.size(),
+				"left": SpiritConfig.FX_TEXT_SECONDS,
+				"colour": SpiritConfig.BURST_FX_COLOUR,
 			}
 		)
 	)
@@ -94,7 +94,7 @@ func _replace_near(list: Array[Dictionary], spots: Array, key: String) -> void:
 	for i: int in range(list.size() - 1, -1, -1):
 		var at: Vector3 = list[i][key]
 		for spot: Vector3 in spots:
-			if Vector2(at.x - spot.x, at.z - spot.z).length() <= Config.EDGE_FX_MERGE:
+			if Vector2(at.x - spot.x, at.z - spot.z).length() <= BorderConfig.EDGE_FX_MERGE:
 				list.remove_at(i)
 				break
 
@@ -135,7 +135,7 @@ func _sync_bursts(delta: float) -> void:
 		var from: Vector3 = _bursts[i]["from"]
 		var to: Vector3 = _bursts[i]["to"]
 		var left: float = _bursts[i]["left"]
-		var frac := left / Config.BURST_FX_SECONDS
+		var frac := left / SpiritConfig.BURST_FX_SECONDS
 		var mid := (from + to) * 0.5
 		var span := Vector2(to.x - from.x, to.z - from.z)
 		m.position = Vector3(mid.x, 0.5, mid.z)
@@ -145,7 +145,7 @@ func _sync_bursts(delta: float) -> void:
 			m.scale = Vector3(maxf(span.length(), 0.1), 1.0, maxf(0.08, frac))
 			continue
 		m.scale = Vector3(maxf(span.length(), 0.1), 1.0, 1.0)
-		var col := Config.BURST_FX_COLOUR
+		var col := SpiritConfig.BURST_FX_COLOUR
 		_set_colour(m, Color(col.r, col.g, col.b, 0.85 * frac))
 
 
@@ -160,11 +160,11 @@ func _sync_results(delta: float) -> void:
 		if not lbl.visible:
 			continue
 		var left: float = _texts[i]["left"]
-		var frac := left / Config.FX_TEXT_SECONDS
+		var frac := left / SpiritConfig.FX_TEXT_SECONDS
 		var at: Vector3 = _texts[i]["pos"]
 		var col: Color = _texts[i]["colour"]
 		lbl.text = _texts[i]["text"]
-		lbl.position = Vector3(at.x, 1.6 + Config.FX_TEXT_RISE * (1.0 - frac), at.z)
+		lbl.position = Vector3(at.x, 1.6 + SpiritConfig.FX_TEXT_RISE * (1.0 - frac), at.z)
 		lbl.modulate = Color(col.r, col.g, col.b, minf(1.0, frac * 2.0))
 	_sync_halos()
 
@@ -182,9 +182,9 @@ func _sync_halos() -> void:
 		if not m.visible:
 			continue
 		var left2: float = _halos[i]["left"]
-		var frac2 := left2 / Config.FX_HALO_SECONDS
+		var frac2 := left2 / SpiritConfig.FX_HALO_SECONDS
 		var at2: Vector3 = _halos[i]["pos"]
-		var col2 := Config.BURST_FX_COLOUR
+		var col2 := SpiritConfig.BURST_FX_COLOUR
 		m.position = Vector3(at2.x, GOLD_PLANE_Y, at2.z)
 		if _built_styled:
 			var grow := 1.0 + 0.6 * (1.0 - frac2)
@@ -205,7 +205,7 @@ func _age(list: Array[Dictionary], delta: float) -> void:
 
 func _make_text() -> Label3D:
 	var l := Label3D.new()
-	l.pixel_size = Config.FX_TEXT_SIZE
+	l.pixel_size = SpiritConfig.FX_TEXT_SIZE
 	l.font_size = 48
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.no_depth_test = true
@@ -215,7 +215,7 @@ func _make_text() -> Label3D:
 	if _built_styled:
 		# Chunky: a bigger glyph with a thick ink edge reads in the 640x360 pass.
 		l.font_size = 64
-		l.pixel_size = Config.FX_TEXT_SIZE * 1.15
+		l.pixel_size = SpiritConfig.FX_TEXT_SIZE * 1.15
 		l.outline_size = 16
 		l.outline_modulate = StyleFight.INK
 	else:

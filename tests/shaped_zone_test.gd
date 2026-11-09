@@ -131,15 +131,17 @@ func test_the_head_count_limits_the_border_and_the_limited_preview_is_a_red_outl
 	# Limited too: still no words (the reason shows only as a notice when E is pressed on a refused spot).
 	if td.reach_guide._label != null:
 		assert_bool(td.reach_guide._label.visible).is_false()
-	assert_float(Config.BEACON_LIMITED_OUTLINE_WIDTH).is_greater(Config.BEACON_GUIDE_OUTLINE_WIDTH)
-	assert_float(absf(Config.BEACON_LIMITED_COLOUR.r - Config.BEACON_GUIDE_PREVIEW_COLOUR.r)).is_greater(0.3)
+	assert_float(BeaconConfig.BEACON_LIMITED_OUTLINE_WIDTH).is_greater(BeaconConfig.BEACON_GUIDE_OUTLINE_WIDTH)
+	assert_float(absf(BeaconConfig.BEACON_LIMITED_COLOUR.r - BeaconConfig.BEACON_GUIDE_PREVIEW_COLOUR.r)).is_greater(
+		0.3
+	)
 	await runner.simulate_frames(20)
 	var limited: Dictionary = td.border.plan_stretch(CENTRE + Vector3(-60, 0, 0))
 	var f_reach: float = fresh["reach"]
 	var l_reach: float = limited["reach"]
 	print("PROBE reach west: fresh %.1f m, after an arm east %.1f m (%s)" % [f_reach, l_reach, limited["reason"]])
 	assert_float(l_reach).is_less(f_reach - 1.0)
-	assert_str(limited["reason"]).is_equal(Config.BEACON_FULL_TEXT)
+	assert_str(limited["reason"]).is_equal(BeaconConfig.BEACON_FULL_TEXT)
 	# The loop the plan shows is never longer than the people can hold.
 	var out: PackedVector2Array = limited["outline"]
 	assert_float(BorderShape.perimeter_of(out)).is_less_equal(BorderCentre.budget_of(_radius()) * 1.01)
@@ -163,13 +165,13 @@ func test_a_stretch_inside_the_zone_is_refused_with_a_reason_and_nothing_is_spen
 	var runner: GdUnitSceneRunner = s["runner"]
 	var plan: Dictionary = td.border.plan_stretch(CENTRE + Vector3(3, 0, 3))
 	assert_bool(plan["refused"]).is_true()
-	assert_str(plan["reason"]).is_equal(Config.BEACON_INSIDE_TEXT)
+	assert_str(plan["reason"]).is_equal(BeaconConfig.BEACON_INSIDE_TEXT)
 	td.player._aim_point = CENTRE + Vector3(3, 0, 3)
 	var before := td.player.spirit
 	assert_bool(td.try_place_beacon()).is_false()
 	assert_float(td.player.spirit).is_equal(before)
 	assert_int(td.intro.current).is_equal(Intro.Prompt.BEACON_BLOCKED)
-	assert_str(td.intro.current_text()).is_equal(Config.BEACON_INSIDE_TEXT)
+	assert_str(td.intro.current_text()).is_equal(BeaconConfig.BEACON_INSIDE_TEXT)
 	assert_float(td.intro.time_left).is_greater_equal(3.5)
 	assert_bool(td.intro.big).is_true()
 	await runner.simulate_frames(2)
@@ -223,7 +225,7 @@ func test_losing_people_pulls_the_arms_in_without_collapsing_the_zone() -> void:
 	assert_float(area1).is_greater(area0 * 0.25)
 	assert_float(area1).is_less(area0)
 	# The border stays held: the loop is within its length (so no gaps from overextension).
-	assert_float(perimeter).is_less_equal(budget * (1.0 + Config.BEACON_PULL_IN_TOLERANCE + 0.05))
+	assert_float(perimeter).is_less_equal(budget * (1.0 + BeaconConfig.BEACON_PULL_IN_TOLERANCE + 0.05))
 	assert_int(shrunk.size()).is_greater_equal(1)
 	assert_float(shrunk[0]).is_greater(0.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -264,14 +266,14 @@ func test_the_profile_helpers_keep_the_loop_length() -> void:
 	var r := 10.0
 	var none: Array[Vector2] = []
 	var circle := BorderCentre.profile(r, none, 0.0, 0.0)
-	assert_int(circle.size()).is_equal(Config.BORDER_SAMPLES)
+	assert_int(circle.size()).is_equal(RoundLoopConfig.BORDER_SAMPLES)
 	assert_float(BorderCentre.profile_perimeter(circle)).is_equal_approx(BorderCentre.budget_of(r), 0.001)
 	var arms: Array[Vector2] = [Vector2(0.0, 20.0)]
 	var body := BorderCentre.body_for_arms(r, arms, 0.0, PI)
 	assert_float(body).is_less_equal(r)
-	assert_float(body).is_greater_equal(r * Config.BEACON_BODY_MIN)
+	assert_float(body).is_greater_equal(r * BeaconConfig.BEACON_BODY_MIN)
 	var squeezed := BorderCentre.profile(body, arms, 0.0, PI)
-	if body > r * Config.BEACON_BODY_MIN + 0.01:
+	if body > r * BeaconConfig.BEACON_BODY_MIN + 0.01:
 		assert_float(BorderCentre.profile_perimeter(squeezed)).is_equal_approx(BorderCentre.budget_of(r), 0.2)
 	# New ground counts only what lies outside the old zone.
 	var before: Array[float] = [10.0, 10.0, 10.0, 10.0]
@@ -286,9 +288,9 @@ func test_refusals_last_long_enough_to_read_and_ordinary_prompts_do_not() -> voi
 	var intro := Intro.new(null, false)
 	intro.notice(Intro.Prompt.BEACON_SPIRIT)
 	assert_float(intro.time_left).is_greater_equal(3.5)
-	assert_float(Config.NOTICE_SECONDS).is_greater_equal(3.5)
+	assert_float(HudConfig.NOTICE_SECONDS).is_greater_equal(3.5)
 	assert_bool(intro.coral).is_true()
-	assert_str(intro.current_text()).is_equal(Config.BEACON_NO_SPIRIT_TEXT)
+	assert_str(intro.current_text()).is_equal(BeaconConfig.BEACON_NO_SPIRIT_TEXT)
 	intro.update(3.4)
 	assert_int(intro.current).is_equal(Intro.Prompt.BEACON_SPIRIT)
 	intro.update(0.7)
@@ -297,9 +299,9 @@ func test_refusals_last_long_enough_to_read_and_ordinary_prompts_do_not() -> voi
 	# An ordinary prompt keeps PROMPT_SECONDS and the small bar.
 	var lesson := Intro.new(null, true)
 	lesson.request(Intro.Prompt.DIM_HELP)
-	assert_float(lesson.time_left).is_equal(Config.PROMPT_SECONDS)
+	assert_float(lesson.time_left).is_equal(HudConfig.PROMPT_SECONDS)
 	assert_bool(lesson.coral).is_false()
-	assert_str(lesson.current_text()).is_equal(Config.DIM_HELP_TEXT)
+	assert_str(lesson.current_text()).is_equal(PeopleConfig.DIM_HELP_TEXT)
 	# Words of its own.
 	intro.notice(Intro.Prompt.BEACON_BLOCKED, "Because")
 	assert_str(intro.current_text()).is_equal("Because")
@@ -310,13 +312,13 @@ func test_a_notice_is_a_slim_banner_centred_in_the_top_half_of_the_screen() -> v
 	var s: Dictionary = await _setup()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
-	td.intro.notice(Intro.Prompt.BEACON_BLOCKED, Config.BEACON_FULL_TEXT)
+	td.intro.notice(Intro.Prompt.BEACON_BLOCKED, BeaconConfig.BEACON_FULL_TEXT)
 	await runner.simulate_frames(30)
 	var bar: PromptBar = td.prompts
 	var screen := td.get_viewport().get_visible_rect()
 	assert_bool(bar.big).is_true()
-	assert_str(bar.text).is_equal(Config.BEACON_FULL_TEXT)
-	assert_float(bar._rect.size.y).is_equal(Config.NOTICE_HEIGHT)
+	assert_str(bar.text).is_equal(BeaconConfig.BEACON_FULL_TEXT)
+	assert_float(bar._rect.size.y).is_equal(HudConfig.NOTICE_HEIGHT)
 	assert_float(bar._rect.get_center().x).is_equal_approx(screen.size.x * 0.5, 2.0)
 	assert_float(bar._rect.position.y).is_less(screen.size.y * 0.5)
 	assert_float(bar.alpha).is_greater(0.9)
@@ -344,9 +346,9 @@ func test_gaining_ground_pulses_along_the_new_arm_and_says_how_much() -> void:
 	assert_float(guide._pulse_left).is_greater(0.0)
 	assert_object(guide._gain_label).is_not_null()
 	assert_bool(guide._gain_label.visible).is_true()
-	assert_str(guide._gain_label.text).is_equal(Config.BEACON_GAIN_TEXT % int(roundf(grown[0])))
+	assert_str(guide._gain_label.text).is_equal(BeaconConfig.BEACON_GAIN_TEXT % int(roundf(grown[0])))
 	assert_int(guide._mesh.get_surface_count()).is_greater_equal(1)
-	await runner.simulate_frames(int(Config.BEACON_PULSE_SECONDS * 60.0) + 30)
+	await runner.simulate_frames(int(BeaconConfig.BEACON_PULSE_SECONDS * 60.0) + 30)
 	assert_float(guide._pulse_left).is_equal(0.0)
 	assert_bool(guide._gain_label.visible).is_false()
 	await TopDownTestUtil.leave_loaded_scene(td)

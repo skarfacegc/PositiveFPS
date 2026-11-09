@@ -39,7 +39,7 @@ func _colour_is(node: Node, col: Color) -> bool:
 
 
 func _is_petal_colour(node: Node) -> bool:
-	for col: Color in Config.TD_PETAL_COLORS:
+	for col: Color in ProjectileConfig.TD_PETAL_COLORS:
 		if _colour_is(node, col):
 			return true
 	return false
@@ -63,9 +63,9 @@ func test_locked_shots_of_each_element_leave_their_own_trail_colour() -> void:
 		assert_int(pieces.size()).is_greater(0)
 		for node: Node in pieces:
 			if affinity == Config.Element.MUSIC:
-				assert_bool(_colour_is(node, Config.TD_TRAIL_COLOR)).is_true()
+				assert_bool(_colour_is(node, ProjectileConfig.TD_TRAIL_COLOR)).is_true()
 			elif affinity == Config.Element.ART:
-				assert_bool(_colour_is(node, Config.TD_DRIP_COLOR)).is_true()
+				assert_bool(_colour_is(node, ProjectileConfig.TD_DRIP_COLOR)).is_true()
 			else:
 				assert_bool(_is_petal_colour(node)).is_true()
 
@@ -88,7 +88,7 @@ func test_music_trail_pieces_free_themselves_after_their_lifetime() -> void:
 		frames += 1
 	assert_int(TopDownTestUtil.projectiles(td).size()).is_equal(0)
 	# Their trail is still there, but each piece lives only TD_TRAIL_SECONDS. Give them that long, plus a margin.
-	await runner.simulate_frames(int((Config.TD_TRAIL_SECONDS + 0.2) * 60.0))
+	await runner.simulate_frames(int((ProjectileConfig.TD_TRAIL_SECONDS + 0.2) * 60.0))
 	assert_int(_trail_pieces(td, Config.Element.MUSIC).size()).is_equal(0)
 
 
@@ -107,11 +107,11 @@ func test_each_projectile_leaves_at_most_the_trail_cap() -> void:
 
 	await runner.simulate_frames(60)
 	assert_bool(is_instance_valid(flower)).is_true()
-	assert_int(flower.trail_pieces).is_equal(Config.TD_TRAIL_MAX_PIECES)
+	assert_int(flower.trail_pieces).is_equal(ProjectileConfig.TD_TRAIL_MAX_PIECES)
 	# The cap holds: more flight does not leave more pieces.
 	await runner.simulate_frames(20)
 	assert_bool(is_instance_valid(flower)).is_true()
-	assert_int(flower.trail_pieces).is_equal(Config.TD_TRAIL_MAX_PIECES)
+	assert_int(flower.trail_pieces).is_equal(ProjectileConfig.TD_TRAIL_MAX_PIECES)
 
 
 func test_projectiles_are_drawn_bigger_in_top_down() -> void:
@@ -124,5 +124,5 @@ func test_projectiles_are_drawn_bigger_in_top_down() -> void:
 	note.global_position = Vector3(0, 5, 0)
 	await runner.simulate_frames(1)
 	# Music is the smallest element (round 7): the base visual scale times the music size.
-	var music_size: float = Config.TD_ELEMENT_VISUAL_SCALE[Config.Element.MUSIC]
-	assert_float(note.scale.x).is_equal_approx(Config.TD_PROJECTILE_VISUAL_SCALE * music_size, 0.001)
+	var music_size: float = ProjectileConfig.TD_ELEMENT_VISUAL_SCALE[Config.Element.MUSIC]
+	assert_float(note.scale.x).is_equal_approx(ProjectileConfig.TD_PROJECTILE_VISUAL_SCALE * music_size, 0.001)

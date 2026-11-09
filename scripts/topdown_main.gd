@@ -105,7 +105,7 @@ var _look_frame: int = -1
 # Seconds since the intro last checked for its one-time prompts.
 # Round 14: the wheel zoom. The ortho size the camera is easing toward, and the frame the last zoom step was taken (the
 # key press can arrive twice in one frame, see Known gotchas).
-var _zoom_target: float = Config.TD_CAMERA_ORTHO_SIZE
+var _zoom_target: float = PlayerConfig.TD_CAMERA_ORTHO_SIZE
 var _zoom_frame: int = -1
 # The ortho size the label scales were last set for (they are only rewritten when the zoom moves).
 var _scaled_for_size: float = -1.0
@@ -128,7 +128,7 @@ func _ready() -> void:
 
 	ground = PaintedGround.new()
 	add_child(ground)
-	ground.setup(Config.TD_PLAZA_SIZE, Config.TD_GROUND_SPREAD_SPEED, Config.TD_GROUND_FADE_SPEED, true)
+	ground.setup(Config.TD_PLAZA_SIZE, GroundConfig.TD_GROUND_SPREAD_SPEED, GroundConfig.TD_GROUND_FADE_SPEED, true)
 
 	border = Border.new()
 	add_child(border)
@@ -136,8 +136,8 @@ func _ready() -> void:
 	for body: StaticBody3D in _obstacles:
 		var lm_index := _landmark_bodies.find(body)
 		var is_landmark := lm_index >= 0
-		var size := Config.LANDMARK_SIZES[lm_index] if is_landmark else BLOCK_SIZE
-		var colour := Config.LANDMARK_COLOURS[lm_index] if is_landmark else BLOCK_COLOUR
+		var size := LandmarkConfig.LANDMARK_SIZES[lm_index] if is_landmark else BLOCK_SIZE
+		var colour := LandmarkConfig.LANDMARK_COLOURS[lm_index] if is_landmark else BLOCK_COLOUR
 		border.register_building(body, Vector2(BLOCK_SIZE.x, BLOCK_SIZE.z) * 0.5, is_landmark, size, colour)
 
 	landmarks = Landmarks.new()
@@ -152,7 +152,7 @@ func _ready() -> void:
 	add_child(reach_guide)
 	border.stretch_ended.connect(
 		func(why: String) -> void:
-			intro.notice(Intro.Prompt.BEACON_FELL_BACK, Config.BEACON_FELL_BACK_TEXT + ": " + why)
+			intro.notice(Intro.Prompt.BEACON_FELL_BACK, BeaconConfig.BEACON_FELL_BACK_TEXT + ": " + why)
 	)
 	border.zone_pulling_in.connect(func() -> void: intro.notice(Intro.Prompt.ZONE_PULLED_IN))
 
@@ -170,7 +170,7 @@ func _ready() -> void:
 
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = Config.TD_CAMERA_ORTHO_SIZE
+	camera.size = PlayerConfig.TD_CAMERA_ORTHO_SIZE
 	camera.current = true
 	add_child(camera)
 	player.camera = camera
@@ -185,10 +185,10 @@ func _ready() -> void:
 	# Round 10: the minimap (top-left circle, a fifth of the screen width) and the off-screen gap arrows, both on the HUD.
 	var screen_w := get_viewport().get_visible_rect().size.x
 	minimap = Minimap.new()
-	minimap.size = Vector2.ONE * floorf(Config.TD_MINIMAP_WIDTH_FRACTION * screen_w)
+	minimap.size = Vector2.ONE * floorf(HudConfig.TD_MINIMAP_WIDTH_FRACTION * screen_w)
 	minimap.position = Vector2(16, 16)
 	hud.add_child(minimap)
-	hud.place_rescued_below(minimap.position.y + minimap.size.y + Config.RESCUED_BELOW_MINIMAP_GAP)
+	hud.place_rescued_below(minimap.position.y + minimap.size.y + HudConfig.RESCUED_BELOW_MINIMAP_GAP)
 	landmark_pointers = LandmarkPointers.new()
 	hud.add_child(landmark_pointers)
 	landmark_pointers.setup(hud, minimap)
@@ -238,7 +238,7 @@ func _process(delta: float) -> void:
 	moods.update(people, player, delta)
 	_update_cover(delta)
 	_update_dim(delta)
-	GloomSim.update(people, delta, Config.TD_DRAIN_MULTIPLIER * border.loss_mult, strength, border)
+	GloomSim.update(people, delta, PeopleConfig.TD_DRAIN_MULTIPLIER * border.loss_mult, strength, border)
 	_hold_back_dimmed(delta)
 	_relapse_wave.advance(delta)
 	grabs.update(people, player, delta)
@@ -247,7 +247,7 @@ func _process(delta: float) -> void:
 	ground.update_paint(people, delta)
 	landmarks.update(delta, border)
 	landmarks.apply_boosts(people, border)
-	hud.set_landmarks(landmarks.held_lines(), Config.LANDMARK_NAMES.size(), landmarks.held_flags())
+	hud.set_landmarks(landmarks.held_lines(), LandmarkConfig.LANDMARK_NAMES.size(), landmarks.held_flags())
 	beacon_marker.sync(border.beacon_pos(), delta, border.centre)
 	reach_guide.sync(border, player)
 	_update_spirit_hud()
@@ -288,8 +288,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		var frame := Engine.get_process_frames()
 		if frame != _zoom_frame:
 			_zoom_frame = frame
-			var step := -Config.TD_ZOOM_STEP if event.is_action_pressed("zoom_in") else Config.TD_ZOOM_STEP
-			_zoom_target = clampf(_zoom_target + step, Config.TD_ZOOM_MIN, Config.TD_ZOOM_MAX)
+			var step := -PlayerConfig.TD_ZOOM_STEP if event.is_action_pressed("zoom_in") else PlayerConfig.TD_ZOOM_STEP
+			_zoom_target = clampf(_zoom_target + step, PlayerConfig.TD_ZOOM_MIN, PlayerConfig.TD_ZOOM_MAX)
 
 
 # Round 19: E. See BeaconPlacement.
@@ -387,7 +387,7 @@ func _update_debug_hint() -> void:
 # rescued person's cover leaves out their own paint, so only other people's paint protects them.
 func _update_cover(delta: float) -> void:
 	_cover_timer += delta
-	if _cover_timer < Config.GROUND_UPDATE_INTERVAL:
+	if _cover_timer < GroundConfig.GROUND_UPDATE_INTERVAL:
 		return
 	_cover_timer = 0.0
 	for p: Person in people:
@@ -395,10 +395,10 @@ func _update_cover(delta: float) -> void:
 			p.cover = border.cover_at(p.global_position)
 			p.protection = p.cover
 		elif p.is_rescued:
-			p.cover = ground.average_weight_excluding(p.global_position, Config.TD_COVER_RADIUS, p)
+			p.cover = ground.average_weight_excluding(p.global_position, GroundConfig.TD_COVER_RADIUS, p)
 			p.protection = GloomSim.protection_for(p.cover)
 		else:
-			p.cover = ground.average_weight(p.global_position, Config.TD_COVER_RADIUS)
+			p.cover = ground.average_weight(p.global_position, GroundConfig.TD_COVER_RADIUS)
 			p.protection = GloomSim.protection_for(p.cover)
 
 
@@ -420,9 +420,9 @@ func dim_recovery_rate() -> float:
 		if not BorderShape.is_inside(border.polygon, Vector2(pos.x, pos.z)):
 			return 0.0
 		var depth := border.cover_at(pos)
-		return Config.DIM_RECOVER_RATE * (Config.DIM_RECOVER_BASE + Config.DIM_RECOVER_DEPTH * depth)
-	if Landmarks.near_any(pos, Config.LANDMARK_RECOVER_RADIUS):
-		return Config.DIM_RECOVER_RATE
+		return SpiritConfig.DIM_RECOVER_RATE * (SpiritConfig.DIM_RECOVER_BASE + SpiritConfig.DIM_RECOVER_DEPTH * depth)
+	if Landmarks.near_any(pos, SpiritConfig.LANDMARK_RECOVER_RADIUS):
+		return SpiritConfig.DIM_RECOVER_RATE
 	return 0.0
 
 
@@ -486,7 +486,7 @@ func _on_joy_landed(p: Person) -> void:
 
 
 func _on_burst_fired(_at: Vector3) -> void:
-	spirit_meter.moment(-Config.BURST_SPIRIT_COST, SpiritMeter.Moment.SPEND)
+	spirit_meter.moment(-SpiritConfig.BURST_SPIRIT_COST, SpiritMeter.Moment.SPEND)
 	feedback.pulse_player(SpiritMeter.Moment.SPEND)
 
 
@@ -506,8 +506,8 @@ func _hold_back_dimmed(delta: float) -> void:
 	_dim_clock += delta
 	if not intro.dimmed_allowed():
 		for p: Person in people:
-			if not p.is_rescued and p.gloom > Config.INTRO_DIM_CAP:
-				p.gloom = Config.INTRO_DIM_CAP
+			if not p.is_rescued and p.gloom > HudConfig.INTRO_DIM_CAP:
+				p.gloom = HudConfig.INTRO_DIM_CAP
 
 
 # Round 14, the midnight stagger: asked by a person who would sink to dimmed (Person._check_level), in the order the
@@ -529,8 +529,8 @@ func _on_player_dim_changed(dim: bool) -> void:
 
 
 func _on_grab_landed(_p: Person) -> void:
-	hud.show_alert("Grabbed! -%d spirit" % roundi(Config.GRAB_SPIRIT_DRAIN))
-	spirit_meter.moment(-Config.GRAB_SPIRIT_DRAIN, SpiritMeter.Moment.LOSS)
+	hud.show_alert("Grabbed! -%d spirit" % roundi(SpiritConfig.GRAB_SPIRIT_DRAIN))
+	spirit_meter.moment(-SpiritConfig.GRAB_SPIRIT_DRAIN, SpiritMeter.Moment.LOSS)
 	feedback.pulse_player(SpiritMeter.Moment.LOSS)
 
 
@@ -538,17 +538,17 @@ func _on_grab_landed(_p: Person) -> void:
 # TD_CAMERA_PITCH_DEG degrees, so the player sits a little below the centre of the screen). Round 14: the ortho size
 # eases toward the wheel's target, and the labels and the look offset scale with it (so they look the same on screen).
 func _update_camera(delta: float) -> void:
-	var size := lerpf(camera.size, _zoom_target, 1.0 - exp(-Config.TD_ZOOM_EASE * delta))
+	var size := lerpf(camera.size, _zoom_target, 1.0 - exp(-PlayerConfig.TD_ZOOM_EASE * delta))
 	if size != camera.size:
 		camera.size = size
 	if camera.size != _scaled_for_size:
 		_scaled_for_size = camera.size
-		var zoom := camera.size / Config.TD_CAMERA_ORTHO_SIZE
+		var zoom := camera.size / PlayerConfig.TD_CAMERA_ORTHO_SIZE
 		for p: Person in people:
-			p.set_ui_scale(Config.TD_UI_SCALE * zoom)
+			p.set_ui_scale(PlayerConfig.TD_UI_SCALE * zoom)
 	var target := _view_centre()
-	var pitch := deg_to_rad(Config.TD_CAMERA_PITCH_DEG)
-	var d := Config.TD_CAMERA_DISTANCE
+	var pitch := deg_to_rad(PlayerConfig.TD_CAMERA_PITCH_DEG)
+	var d := PlayerConfig.TD_CAMERA_DISTANCE
 	camera.global_position = target + Vector3(0, d * sin(pitch), d * cos(pitch))
 	camera.look_at(target, Vector3.UP)
 
@@ -556,7 +556,9 @@ func _update_camera(delta: float) -> void:
 # The point the camera looks at: the player plus TD_CAMERA_LOOK_OFFSET, scaled with the zoom (the player keeps the same
 # place on screen at every zoom).
 func _view_centre() -> Vector3:
-	return player.global_position + Config.TD_CAMERA_LOOK_OFFSET * (camera.size / Config.TD_CAMERA_ORTHO_SIZE)
+	return (
+		player.global_position + PlayerConfig.TD_CAMERA_LOOK_OFFSET * (camera.size / PlayerConfig.TD_CAMERA_ORTHO_SIZE)
+	)
 
 
 # The half size of the camera's view on the ground, in metres: x across the screen, z along the ground (the view is
@@ -564,7 +566,7 @@ func _view_centre() -> Vector3:
 func view_half_extents() -> Vector2:
 	var screen := get_viewport().get_visible_rect().size
 	var aspect := screen.x / screen.y
-	var pitch := deg_to_rad(Config.TD_CAMERA_PITCH_DEG)
+	var pitch := deg_to_rad(PlayerConfig.TD_CAMERA_PITCH_DEG)
 	return Vector2(camera.size * aspect * 0.5, camera.size * 0.5 / sin(pitch))
 
 
@@ -607,14 +609,14 @@ func _apply_highlight_look() -> void:
 		StyleTarget.build(highlight)
 		return
 	var mesh := CylinderMesh.new()
-	mesh.top_radius = Config.TD_HIGHLIGHT_RADIUS
-	mesh.bottom_radius = Config.TD_HIGHLIGHT_RADIUS
+	mesh.top_radius = PlayerConfig.TD_HIGHLIGHT_RADIUS
+	mesh.bottom_radius = PlayerConfig.TD_HIGHLIGHT_RADIUS
 	mesh.height = 0.02
 	highlight.mesh = mesh
 	_highlight_mat = StandardMaterial3D.new()
 	_highlight_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_highlight_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_highlight_mat.albedo_color = Config.TD_HIGHLIGHT_COLOR
+	_highlight_mat.albedo_color = PlayerConfig.TD_HIGHLIGHT_COLOR
 	highlight.material_override = _highlight_mat
 	highlight.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
@@ -628,7 +630,7 @@ func _update_highlight(delta: float) -> void:
 	var t: Person = player.target
 	highlight.visible = true
 	highlight.global_position = Vector3(t.global_position.x, 0.03, t.global_position.z)
-	var s := 1.0 + Config.TD_HIGHLIGHT_PULSE * sin(_pulse_time * Config.TD_HIGHLIGHT_PULSE_SPEED)
+	var s := 1.0 + PlayerConfig.TD_HIGHLIGHT_PULSE * sin(_pulse_time * PlayerConfig.TD_HIGHLIGHT_PULSE_SPEED)
 	if Looks.is_styled():
 		StyleTarget.sync(highlight, Config.ELEMENT_COLORS[t.affinity], s)
 		return
@@ -681,9 +683,9 @@ func _build_level() -> void:
 		_obstacles.append(block)
 
 	# The landmarks (round 19: three): blocks of their own height, far from the start.
-	for k: int in range(Config.LANDMARK_NAMES.size()):
-		var at := Config.LANDMARK_POSITIONS[k]
-		var lm_size := Config.LANDMARK_SIZES[k]
+	for k: int in range(LandmarkConfig.LANDMARK_NAMES.size()):
+		var at := LandmarkConfig.LANDMARK_POSITIONS[k]
+		var lm_size := LandmarkConfig.LANDMARK_SIZES[k]
 		var lm_body := _make_body(lm_size, Vector3(at.x, lm_size.y / 2.0, at.z))
 		add_child(lm_body)
 		_obstacles.append(lm_body)
@@ -718,10 +720,10 @@ func _spawn_people() -> void:
 		var p: Person = Person.new()
 		p.affinity = i % 3
 		p.look_seed = i
-		p.gloom = _rng.randf_range(Config.GLOOM_START_MIN, Config.GLOOM_START_MAX)
+		p.gloom = _rng.randf_range(PeopleConfig.GLOOM_START_MIN, PeopleConfig.GLOOM_START_MAX)
 		p.position = pos
-		p.ui_scale = Config.TD_UI_SCALE
-		p.grace_seconds = Config.TD_RESCUE_GRACE_SECONDS
+		p.ui_scale = PlayerConfig.TD_UI_SCALE
+		p.grace_seconds = PeopleConfig.TD_RESCUE_GRACE_SECONDS
 		add_child(p)
 		p.rescued.connect(_on_person_rescued.bind(p))
 		p.relapsed.connect(_on_person_relapsed.bind(p))
@@ -734,7 +736,7 @@ func _spawn_people() -> void:
 # Tries up to 200 random spots inside the plaza and returns the first that is clear of the
 # centre, the blocks and the other people. If none is found, returns the last try.
 func _find_spot(placed: Array[Vector3]) -> Vector3:
-	var limit := Config.TD_PLAZA_SIZE / 2.0 - Config.TD_SPAWN_EDGE
+	var limit := Config.TD_PLAZA_SIZE / 2.0 - PeopleConfig.TD_SPAWN_EDGE
 	var candidate := Vector3.ZERO
 	for attempt: int in range(200):
 		candidate = Vector3(_rng.randf_range(-limit, limit), 0.0, _rng.randf_range(-limit, limit))
@@ -744,12 +746,12 @@ func _find_spot(placed: Array[Vector3]) -> Vector3:
 
 
 func _spot_ok(p: Vector3, placed: Array[Vector3]) -> bool:
-	if _flat_dist(p, Vector3.ZERO) < Config.TD_SPAWN_CENTRE_CLEAR:
+	if _flat_dist(p, Vector3.ZERO) < PeopleConfig.TD_SPAWN_CENTRE_CLEAR:
 		return false
-	if _near_block(p, Config.TD_BLOCK_CLEARANCE):
+	if _near_block(p, PeopleConfig.TD_BLOCK_CLEARANCE):
 		return false
 	for other: Vector3 in placed:
-		if _flat_dist(p, other) < Config.TD_SPAWN_SPACING:
+		if _flat_dist(p, other) < PeopleConfig.TD_SPAWN_SPACING:
 			return false
 	return true
 
@@ -760,7 +762,7 @@ func _near_block(p: Vector3, margin: float) -> bool:
 	for block: Vector3 in BLOCK_POSITIONS:
 		if absf(p.x - block.x) < reach and absf(p.z - block.z) < reach:
 			return true
-	for lm: Vector3 in Config.LANDMARK_POSITIONS:
+	for lm: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
 		if absf(p.x - lm.x) < reach and absf(p.z - lm.z) < reach:
 			return true
 	return false
@@ -791,8 +793,8 @@ func _on_person_rescued(p: Person) -> void:
 	rescued_count += 1
 	border.on_rescue(p)
 	hud.set_rescued(rescued_count, Config.TD_PEOPLE_COUNT)
-	player.add_spirit(Config.SPIRIT_PER_RESCUE)
-	spirit_meter.moment(Config.SPIRIT_PER_RESCUE, SpiritMeter.Moment.GAIN)
+	player.add_spirit(SpiritConfig.SPIRIT_PER_RESCUE)
+	spirit_meter.moment(SpiritConfig.SPIRIT_PER_RESCUE, SpiritMeter.Moment.GAIN)
 	feedback.pulse_player(SpiritMeter.Moment.GAIN)
 
 
@@ -806,16 +808,16 @@ func _on_person_relapsed(p: Person) -> void:
 
 # Round 20: a landmark was claimed (its boost is on) or lost (its boost is off): a notice across the top.
 func _on_landmark_claimed(lm: Landmark) -> void:
-	hud.show_alert(lm.claim_text(), Config.LANDMARK_CLAIM_COLOUR)
+	hud.show_alert(lm.claim_text(), LandmarkConfig.LANDMARK_CLAIM_COLOUR)
 
 
 func _on_landmark_lost(lm: Landmark) -> void:
-	hud.show_alert(lm.loss_text(), Config.LANDMARK_LOSS_COLOUR, Config.LANDMARK_LOSS_SECONDS)
+	hud.show_alert(lm.loss_text(), LandmarkConfig.LANDMARK_LOSS_COLOUR, LandmarkConfig.LANDMARK_LOSS_SECONDS)
 
 
 # The end conditions, in order: the border falling loses, and dawn ends the level (a win, rated in dawn lights).
 func _check_end() -> void:
-	if border.formed and rescued_count < Config.BORDER_MIN_PEOPLE:
+	if border.formed and rescued_count < BorderConfig.BORDER_MIN_PEOPLE:
 		_end_round("The border fell")
 	elif night.is_over():
 		rating = _current_rating()

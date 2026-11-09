@@ -36,7 +36,7 @@ func update(flags: Array[bool], mids: Array[Vector3], delta: float) -> void:
 			age = _nearest_old_age(mids[n], taken, delta)
 		slot_age[k] = age
 		new_ages.append(age)
-		urgent.append(clampf(age / Config.GAP_URGENCY_SECONDS, 0.0, 1.0))
+		urgent.append(clampf(age / BorderConfig.GAP_URGENCY_SECONDS, 0.0, 1.0))
 		n += 1
 	_slot_age = slot_age
 	ages = new_ages
@@ -47,7 +47,7 @@ func update(flags: Array[bool], mids: Array[Vector3], delta: float) -> void:
 # The age (plus `delta`) of the old gap nearest to `mid` within GAP_TRACK_RADIUS that is not `taken` yet, else 0.
 func _nearest_old_age(mid: Vector3, taken: Dictionary, delta: float) -> float:
 	var best := -1
-	var best_d := Config.GAP_TRACK_RADIUS
+	var best_d := BorderConfig.GAP_TRACK_RADIUS
 	for i: int in range(positions.size()):
 		if taken.has(i):
 			continue

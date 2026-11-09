@@ -88,7 +88,7 @@ var shooter_pos := Vector3.INF
 # (music, art, nature), and drain_joy by loss_mult (the bell tower's x0.6 for border members near it).
 var joy_boost: Array[float] = [1.0, 1.0, 1.0]
 # Round 26, physical push: how hard a dimmed person leans on the border (1 full; each joy landing takes
-# Config.PUSH_JOY_WEAKEN off, and it comes back slowly), how many joy hits this person has had (the border reads the
+# PushConfig.PUSH_JOY_WEAKEN off, and it comes back slowly), how many joy hits this person has had (the border reads the
 # count to see a bending member being helped), and how hard they are braced (0 to 1) toward `brace_dir` (a flat unit
 # vector): a border member braces against the push, a pusher leans into the line. The look draws the lean.
 var push_mult: float = 1.0
@@ -157,18 +157,18 @@ func set_ui_scale(value: float) -> void:
 
 # The joy this person needs to be rescued. Dimmer levels need more.
 func joy_needed() -> float:
-	return Config.JOY_MAX * Config.LEVEL_JOY_MULT[Config.gloom_level(gloom)]
+	return Config.JOY_MAX * PeopleConfig.LEVEL_JOY_MULT[Config.gloom_level(gloom)]
 
 
 # True when a rescued person is losing joy and close to relapsing (they flicker and show "!").
 func is_warning() -> bool:
-	return is_rescued and joy < joy_needed() * Config.WARN_FRACTION
+	return is_rescued and joy < joy_needed() * PeopleConfig.WARN_FRACTION
 
 
 # Round 12b: a rescued person drained below MEMBER_FALTER_FRACTION of their joy needed (they show the "!" cue and give
 # way more under a push). Round 26: a faltering member no longer steps back or opens a gap.
 func is_faltering() -> bool:
-	return is_rescued and joy < joy_needed() * Config.MEMBER_FALTER_FRACTION
+	return is_rescued and joy < joy_needed() * BorderConfig.MEMBER_FALTER_FRACTION
 
 
 # Where a joy projectile should land: a little above the feet, at chest height.
@@ -207,7 +207,7 @@ func is_open_to(from: Vector3) -> bool:
 	to.y = 0.0
 	if to.length() < 0.01:
 		return true
-	return rad_to_deg(facing_dir().angle_to(to.normalized())) <= Config.GUARDED_ARC_DEG
+	return rad_to_deg(facing_dir().angle_to(to.normalized())) <= MoodConfig.GUARDED_ARC_DEG
 
 
 # Called when a joy projectile (or a burst) hits this person. Works on rescued people too (top-up). `from` is where the
@@ -224,28 +224,29 @@ func receive_joy(
 	if not is_rescued:
 		if sheltered:
 			if wears_shield:
-				_glance(Config.SHELTER_COLOUR)
+				_glance(MoodConfig.SHELTER_COLOUR)
 				joy_blocked.emit(Block.SHELTERED)
 				if shielder != null:
 					shielder.wear_shield()
-			amount *= Config.SHELTER_LEAK
+			amount *= MoodConfig.SHELTER_LEAK
 		elif active_mood() == Mood.GUARDED and from != Vector3.INF and not is_open_to(from):
-			_glance(Config.GLANCE_COLOUR)
+			_glance(MoodConfig.GLANCE_COLOUR)
 			joy_blocked.emit(Block.GUARDED)
 			return
 		if active_mood() == Mood.GLUM and glum_up:
-			amount *= Config.GLUM_LOOKUP_MULT
+			amount *= MoodConfig.GLUM_LOOKUP_MULT
 	var mult := Config.multiplier(element, affinity)
 	var gain := amount * mult * Config.falloff(distance) * joy_boost[clampi(element, 0, 2)]
-	if not is_rescued and Config.gloom_level(gloom) >= Config.SPREAD_LEVEL:
-		gain *= Config.DIMMED_JOY_MULT  # Round 24: joy wins a dimmed person back faster.
+	if not is_rescued and Config.gloom_level(gloom) >= PeopleConfig.SPREAD_LEVEL:
+		gain *= PeopleConfig.DIMMED_JOY_MULT  # Round 24: joy wins a dimmed person back faster.
 	joy = minf(joy + gain, joy_needed())
 	_since_hit = 0.0
 	joy_hits += 1
 	if not is_rescued:
 		joy_landed.emit()
-		if wears_shield and Config.gloom_level(gloom) >= Config.SPREAD_LEVEL:
-			push_mult = maxf(Config.PUSH_WEAKEN_MIN, push_mult - Config.PUSH_JOY_WEAKEN)  # Round 26: joy weakens a pusher.
+		if wears_shield and Config.gloom_level(gloom) >= PeopleConfig.SPREAD_LEVEL:
+			# Round 26: joy weakens a pusher.
+			push_mult = maxf(PushConfig.PUSH_WEAKEN_MIN, push_mult - PushConfig.PUSH_JOY_WEAKEN)
 	elif wobbling and gain > 0.0:
 		_save()
 	if Config.NUMBERS_ENABLED and look != null:
@@ -260,7 +261,7 @@ func receive_joy(
 
 # Round 15: the share of this dimmed person's shield left: 1 when fresh, 0.25 after three hits, and so on.
 func shield_left_frac() -> float:
-	return 1.0 - float(shield_hits) / float(Config.SHELTER_HITS)
+	return 1.0 - float(shield_hits) / float(MoodConfig.SHELTER_HITS)
 
 
 # Round 15: one joy landing on the person this dimmed person shelters wears the shield. On the SHELTER_HITS-th it pops:
@@ -268,16 +269,16 @@ func shield_left_frac() -> float:
 # hit count starts again from zero. Returns true when it popped.
 func wear_shield() -> bool:
 	shield_hits += 1
-	if shield_hits < Config.SHELTER_HITS:
+	if shield_hits < MoodConfig.SHELTER_HITS:
 		return false
 	shield_hits = 0
-	shield_down_left = Config.SHELTER_REGROW
+	shield_down_left = MoodConfig.SHELTER_REGROW
 	var at := global_position + Vector3(0, 3.0, 0)
 	if shelter_ward != null:
 		at = shelter_ward.global_position + Vector3(0, 3.0, 0)
 		shelter_ward.sheltered = false
 		shelter_ward.shielder = null
-		shelter_ward._fx_puff(Config.SHELTER_COLOUR, Config.SHELTER_POP_PUFF)
+		shelter_ward._fx_puff(MoodConfig.SHELTER_COLOUR, MoodConfig.SHELTER_POP_PUFF)
 	shelter_ward = null
 	shield_popped.emit(at)
 	return true
@@ -304,13 +305,13 @@ func tick(delta: float) -> void:
 	if wobbling:
 		_tick_wobble(delta)
 	if not is_rescued:
-		push_mult = minf(1.0, push_mult + Config.PUSH_WEAKEN_RECOVER * delta)
-		if _since_hit > Config.JOY_FADE_DELAY:
+		push_mult = minf(1.0, push_mult + PushConfig.PUSH_WEAKEN_RECOVER * delta)
+		if _since_hit > PeopleConfig.JOY_FADE_DELAY:
 			# Partial joy does not fade deep inside painted ground (protection 1).
 			var exposure := 1.0 - protection
-			var fade := Config.JOY_FADE_RATE * delta * exposure
-			if Config.gloom_level(gloom) >= Config.SPREAD_LEVEL:
-				fade *= Config.DIMMED_FADE_MULT  # Round 24: a dimmed person's progress holds longer.
+			var fade := PeopleConfig.JOY_FADE_RATE * delta * exposure
+			if Config.gloom_level(gloom) >= PeopleConfig.SPREAD_LEVEL:
+				fade *= PeopleConfig.DIMMED_FADE_MULT  # Round 24: a dimmed person's progress holds longer.
 			joy = maxf(0.0, joy - fade)
 		if joy >= joy_needed():
 			_rescue()
@@ -354,7 +355,7 @@ func drain_joy(amount: float) -> void:
 	if not is_rescued or grace_left > 0.0 or dawn_lit:
 		return
 	joy -= amount * loss_mult
-	if joy < joy_needed() * Config.RELAPSE_FRACTION:
+	if joy < joy_needed() * PeopleConfig.RELAPSE_FRACTION:
 		# Round 24: not at once. A wobble comes first, long enough for a joy hit to save them.
 		joy = maxf(joy, 0.0)
 		if not wobbling:
@@ -366,7 +367,7 @@ func drain_joy(amount: float) -> void:
 # how many wobbles they have had (a fixed hash, so no wall clock and a replay matches).
 func next_wobble_seconds() -> float:
 	var u := fposmod(sin(float(look_seed) * 12.9898 + float(wobble_count) * 78.233) * 43758.5453, 1.0)
-	return Config.WOBBLE_SECONDS * (1.0 + Config.WOBBLE_JITTER * (u * 2.0 - 1.0))
+	return PeopleConfig.WOBBLE_SECONDS * (1.0 + PeopleConfig.WOBBLE_JITTER * (u * 2.0 - 1.0))
 
 
 # 0 at the start of the wobble, 1 when it has run out (0 when not wobbling). The look greys by it.
@@ -393,10 +394,10 @@ func _tick_wobble(delta: float) -> void:
 		# First light has passed them: the wobble ends quietly (no relapse, no save mark), joy back above the line.
 		wobbling = false
 		wobble_left = 0.0
-		joy = maxf(joy, joy_needed() * (Config.RELAPSE_FRACTION + Config.WOBBLE_SAVE_JOY))
+		joy = maxf(joy, joy_needed() * (PeopleConfig.RELAPSE_FRACTION + PeopleConfig.WOBBLE_SAVE_JOY))
 		_update_visuals()
 		return
-	if joy >= joy_needed() * Config.RELAPSE_FRACTION:
+	if joy >= joy_needed() * PeopleConfig.RELAPSE_FRACTION:
 		_save()
 		return
 	wobble_left = maxf(0.0, wobble_left - delta)
@@ -408,9 +409,9 @@ func _tick_wobble(delta: float) -> void:
 func _save() -> void:
 	wobbling = false
 	wobble_left = 0.0
-	joy = maxf(joy, joy_needed() * (Config.RELAPSE_FRACTION + Config.WOBBLE_SAVE_JOY))
-	grace_left = maxf(grace_left, Config.WOBBLE_SAVE_GRACE)
-	_fx_puff(Config.STAGE_LIFT_COLOUR, Config.STAGE_PUFF_COUNT)
+	joy = maxf(joy, joy_needed() * (PeopleConfig.RELAPSE_FRACTION + PeopleConfig.WOBBLE_SAVE_JOY))
+	grace_left = maxf(grace_left, PeopleConfig.WOBBLE_SAVE_GRACE)
+	_fx_puff(PeopleConfig.STAGE_LIFT_COLOUR, PeopleConfig.STAGE_PUFF_COUNT)
 	_update_visuals()
 	saved.emit()
 
@@ -453,7 +454,7 @@ func _check_level() -> void:
 	# Round 14: sinking to dimmed needs the midnight gate (see TopDownMain._try_dim_sink). Refused, the person waits at the
 	# top of the gloomy band (gloomy, just under the dimmed threshold) and asks again on the next frame.
 	if new_level >= 2 and level < 2 and dim_gate.is_valid() and not dim_gate.call():
-		gloom = Config.DIM_WAIT_GLOOM
+		gloom = NightConfig.DIM_WAIT_GLOOM
 		new_level = 1
 	if new_level == level:
 		return
@@ -462,11 +463,11 @@ func _check_level() -> void:
 	# Round 12b: a clear moment. Sinking is a grey-violet puff and ripple (not icy), lifting is a warm one.
 	if new_level > old_level:
 		_fx_slump(0.8, 0.35)
-		_fx_puff(Config.STAGE_SINK_COLOUR, Config.STAGE_PUFF_COUNT)
-		_fx_ripple(Config.STAGE_SINK_COLOUR)
+		_fx_puff(PeopleConfig.STAGE_SINK_COLOUR, PeopleConfig.STAGE_PUFF_COUNT)
+		_fx_ripple(PeopleConfig.STAGE_SINK_COLOUR)
 	else:
-		_fx_puff(Config.STAGE_LIFT_COLOUR, Config.STAGE_PUFF_COUNT)
-		_fx_ripple(Config.STAGE_LIFT_COLOUR)
+		_fx_puff(PeopleConfig.STAGE_LIFT_COLOUR, PeopleConfig.STAGE_PUFF_COUNT)
+		_fx_ripple(PeopleConfig.STAGE_LIFT_COLOUR)
 	stage_changed.emit(old_level, new_level)
 
 
@@ -495,12 +496,12 @@ func _update_visuals() -> void:
 # Shows or hides the cover and protection labels above this person (the F3 debug overlay).
 func set_debug_visible(on: bool) -> void:
 	if debug_label == null and on:
-		# Sized in metres (not ui_scale), so it reads at the top-down camera distance (see Config.TD_DEBUG_FONT_SIZE).
+		# Sized in metres (not ui_scale), so it reads at the top-down camera distance (see HudConfig.TD_DEBUG_FONT_SIZE).
 		debug_label = Label3D.new()
-		debug_label.position = Vector3(0, Config.TD_DEBUG_LABEL_HEIGHT, 0)
+		debug_label.position = Vector3(0, HudConfig.TD_DEBUG_LABEL_HEIGHT, 0)
 		debug_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		debug_label.font_size = Config.TD_DEBUG_FONT_SIZE
-		debug_label.pixel_size = Config.TD_DEBUG_PIXEL_SIZE
+		debug_label.font_size = HudConfig.TD_DEBUG_FONT_SIZE
+		debug_label.pixel_size = HudConfig.TD_DEBUG_PIXEL_SIZE
 		debug_label.no_depth_test = true
 		debug_label.outline_size = 12
 		add_child(debug_label)

@@ -65,7 +65,7 @@ func _tick(p: Person, seconds: float) -> void:
 
 # Drains a rescued person just below the relapse line so they begin to wobble.
 func _start_wobble(p: Person) -> void:
-	p.drain_joy(p.joy - p.joy_needed() * Config.RELAPSE_FRACTION + 1.0)
+	p.drain_joy(p.joy - p.joy_needed() * PeopleConfig.RELAPSE_FRACTION + 1.0)
 
 
 func _start(on: bool = false) -> Dictionary:
@@ -94,24 +94,24 @@ func _events(td: TopDownMain, type: String) -> Array[Dictionary]:
 
 func test_the_burst_lifts_every_dimmed_person_in_the_radius_wherever_they_stand() -> void:
 	var at := Vector3.ZERO
-	var near := _person(Vector3(Config.BURST_LIFT_RADIUS - 1.0, 0, 0), 0.95, false)
-	var middle := _person(Vector3(0, 0, -(Config.BURST_CLEAR_RADIUS + 3.0)), 1.0, false)
-	var far := _person(Vector3(Config.BURST_LIFT_RADIUS + 2.0, 0, 0), 0.95, false)
+	var near := _person(Vector3(SpiritConfig.BURST_LIFT_RADIUS - 1.0, 0, 0), 0.95, false)
+	var middle := _person(Vector3(0, 0, -(SpiritConfig.BURST_CLEAR_RADIUS + 3.0)), 1.0, false)
+	var far := _person(Vector3(SpiritConfig.BURST_LIFT_RADIUS + 2.0, 0, 0), 0.95, false)
 	var gloomy := _person(Vector3(2, 0, 2), 0.5, false)
 	var people: Array[Person] = [near, middle, far, gloomy]
 	near.joy = 300.0
 	var report := BurstClear.run(people, at, null)
 	assert_int(report["lifted"]).is_equal(2)
 	for p: Person in [near, middle]:
-		assert_float(p.gloom).is_equal(Config.BURST_LIFT_GLOOM)
+		assert_float(p.gloom).is_equal(SpiritConfig.BURST_LIFT_GLOOM)
 		assert_float(p.joy).is_equal(0.0)
-		assert_float(p.calm_left).is_equal(Config.BURST_CALM_SECONDS)
+		assert_float(p.calm_left).is_equal(SpiritConfig.BURST_CALM_SECONDS)
 		assert_bool(GloomSim.is_dimmed(p)).is_false()
 	assert_float(far.gloom).is_equal(0.95)
 	assert_bool(BurstClear.is_target(far, at)).is_false()
 	assert_int(BurstClear.count_targets(people, at)).is_equal(0)  # Lifted: nobody left to lift.
 	# Away from the border nobody is pushed: they are lifted where they stand.
-	assert_vector(near.global_position).is_equal(Vector3(Config.BURST_LIFT_RADIUS - 1.0, 0, 0))
+	assert_vector(near.global_position).is_equal(Vector3(SpiritConfig.BURST_LIFT_RADIUS - 1.0, 0, 0))
 
 
 func test_the_burst_counts_the_dimmed_people_it_would_lift() -> void:
@@ -131,7 +131,7 @@ func test_a_real_burst_lifts_a_dimmed_person_standing_far_from_the_border() -> v
 	TopDownTestUtil.open_dim_gate(td)
 	td.player.global_position = Vector3.ZERO
 	var d: Person = td.people[3]
-	TopDownTestUtil.place(d, Vector3(Config.BURST_LIFT_RADIUS - 2.0, 0, 0), 1, 0.95)
+	TopDownTestUtil.place(d, Vector3(SpiritConfig.BURST_LIFT_RADIUS - 2.0, 0, 0), 1, 0.95)
 	await runner.simulate_frames(2)
 	d.gloom = 0.95
 	assert_bool(GloomSim.is_dimmed(d)).is_true()
@@ -149,13 +149,13 @@ func test_a_real_burst_lifts_a_dimmed_person_standing_far_from_the_border() -> v
 func test_joy_lands_harder_on_a_dimmed_person_and_they_need_fewer_shots() -> void:
 	var dimmed := _person(Vector3.ZERO, 1.0, false)
 	var gloomy := _person(Vector3(5, 0, 0), 0.5, false)
-	dimmed.receive_joy(0, Config.TD_JOY_PER_SHOT, 0.0)
-	gloomy.receive_joy(0, Config.TD_JOY_PER_SHOT, 0.0)
+	dimmed.receive_joy(0, ProjectileConfig.TD_JOY_PER_SHOT, 0.0)
+	gloomy.receive_joy(0, ProjectileConfig.TD_JOY_PER_SHOT, 0.0)
 	var base := gloomy.joy
-	assert_float(dimmed.joy).is_equal_approx(base * Config.DIMMED_JOY_MULT, 0.01)
+	assert_float(dimmed.joy).is_equal_approx(base * PeopleConfig.DIMMED_JOY_MULT, 0.01)
 	var shots := 1
 	while not dimmed.is_rescued and shots < 30:
-		dimmed.receive_joy(0, Config.TD_JOY_PER_SHOT, 0.0)
+		dimmed.receive_joy(0, ProjectileConfig.TD_JOY_PER_SHOT, 0.0)
 		shots += 1
 	assert_bool(dimmed.is_rescued).is_true()
 	assert_int(shots).is_less_equal(6)  # Round 23: about 10 matching shots.
@@ -167,14 +167,14 @@ func test_a_dimmed_person_keeps_their_progress_longer_than_a_gloomy_one() -> voi
 	dimmed.joy = 600.0
 	gloomy.joy = 600.0
 	# Past the fade delay, three seconds of fading.
-	dimmed._since_hit = Config.JOY_FADE_DELAY + 1.0
-	gloomy._since_hit = Config.JOY_FADE_DELAY + 1.0
+	dimmed._since_hit = PeopleConfig.JOY_FADE_DELAY + 1.0
+	gloomy._since_hit = PeopleConfig.JOY_FADE_DELAY + 1.0
 	_tick(dimmed, 3.0)
 	_tick(gloomy, 3.0)
 	var lost_dimmed := 600.0 - dimmed.joy
 	var lost_gloomy := 600.0 - gloomy.joy
 	assert_float(lost_gloomy).is_greater(0.0)
-	assert_float(lost_dimmed).is_equal_approx(lost_gloomy * Config.DIMMED_FADE_MULT, 2.0)
+	assert_float(lost_dimmed).is_equal_approx(lost_gloomy * PeopleConfig.DIMMED_FADE_MULT, 2.0)
 
 
 func test_a_dimmed_body_warms_to_their_colour_as_joy_builds() -> void:
@@ -201,12 +201,13 @@ func test_a_drained_person_wobbles_first_and_relapses_when_the_wobble_runs_out()
 			events[2] = seconds
 	)
 	p.relapsed.connect(func() -> void: events[1] += 1)
-	p.drain_joy(p.joy - p.joy_needed() * Config.RELAPSE_FRACTION + 1.0)
+	p.drain_joy(p.joy - p.joy_needed() * PeopleConfig.RELAPSE_FRACTION + 1.0)
 	assert_bool(p.wobbling).is_true()
 	assert_bool(p.is_rescued).is_true()
 	assert_int(events[0]).is_equal(1)
 	assert_float(events[2]).is_between(
-		Config.WOBBLE_SECONDS * (1.0 - Config.WOBBLE_JITTER), Config.WOBBLE_SECONDS * (1.0 + Config.WOBBLE_JITTER)
+		PeopleConfig.WOBBLE_SECONDS * (1.0 - PeopleConfig.WOBBLE_JITTER),
+		PeopleConfig.WOBBLE_SECONDS * (1.0 + PeopleConfig.WOBBLE_JITTER)
 	)
 	# More drain during the wobble does not start another one or relapse early.
 	p.drain_joy(10.0)
@@ -226,8 +227,8 @@ func test_the_wobble_length_varies_between_people_and_between_wobbles() -> void:
 		var p := _person(Vector3.ZERO, 0.0, true, i)
 		lengths[snappedf(p.next_wobble_seconds(), 0.001)] = true
 		assert_float(p.next_wobble_seconds()).is_between(
-			Config.WOBBLE_SECONDS * (1.0 - Config.WOBBLE_JITTER) - 0.001,
-			Config.WOBBLE_SECONDS * (1.0 + Config.WOBBLE_JITTER) + 0.001
+			PeopleConfig.WOBBLE_SECONDS * (1.0 - PeopleConfig.WOBBLE_JITTER) - 0.001,
+			PeopleConfig.WOBBLE_SECONDS * (1.0 + PeopleConfig.WOBBLE_JITTER) + 0.001
 		)
 	assert_int(lengths.size()).is_greater(5)
 	var q := _person(Vector3.ZERO, 0.0, true, 2)
@@ -247,13 +248,15 @@ func test_a_joy_hit_in_the_wobble_saves_the_person() -> void:
 	p.receive_joy(0, 1.0, 0.0)  # Even a tiny hit counts.
 	assert_bool(p.wobbling).is_false()
 	assert_int(saves[0]).is_equal(1)
-	assert_float(p.joy).is_greater_equal(p.joy_needed() * (Config.RELAPSE_FRACTION + Config.WOBBLE_SAVE_JOY) - 0.01)
+	assert_float(p.joy).is_greater_equal(
+		p.joy_needed() * (PeopleConfig.RELAPSE_FRACTION + PeopleConfig.WOBBLE_SAVE_JOY) - 0.01
+	)
 	assert_float(p.grace_left).is_greater(0.0)
 	# Drain skips them in the grace, and the old wobble never ends in a relapse.
 	var joy := p.joy
 	p.drain_joy(500.0)
 	assert_float(p.joy).is_equal(joy)
-	_tick(p, Config.WOBBLE_SECONDS * 2.0)
+	_tick(p, PeopleConfig.WOBBLE_SECONDS * 2.0)
 	assert_bool(p.is_rescued).is_true()
 	assert_int(saves[1]).is_equal(0)
 
@@ -261,14 +264,14 @@ func test_a_joy_hit_in_the_wobble_saves_the_person() -> void:
 func test_a_joy_hit_after_the_relapse_is_too_late() -> void:
 	var p := _person(Vector3.ZERO, 0.0, true, 1)
 	_start_wobble(p)
-	_tick(p, Config.WOBBLE_SECONDS * 1.3)
+	_tick(p, PeopleConfig.WOBBLE_SECONDS * 1.3)
 	assert_bool(p.is_rescued).is_false()
 
 
 func test_joy_back_above_the_line_ends_the_wobble_without_a_relapse() -> void:
 	var p := _person(Vector3.ZERO, 0.0, true, 5)
 	_start_wobble(p)
-	p.joy = p.joy_needed() * Config.RELAPSE_FRACTION + 50.0
+	p.joy = p.joy_needed() * PeopleConfig.RELAPSE_FRACTION + 50.0
 	_tick(p, 0.1)
 	assert_bool(p.wobbling).is_false()
 	assert_bool(p.is_rescued).is_true()
@@ -284,7 +287,7 @@ func test_the_wobble_is_seen_in_the_placeholder_look_as_greying_and_sway() -> vo
 	p.wobble_left = p.wobble_total * 0.05
 	p.look.sync()
 	var late := look.body_mat.albedo_color
-	var grey: Color = Config.LEVEL_COLORS[1]
+	var grey: Color = PeopleConfig.LEVEL_COLORS[1]
 	assert_float(_dist(late, grey)).is_less(_dist(early, grey))
 	assert_float(look.wobble_prog).is_greater(0.9)
 	# The body sways: over a few readings the wave is not zero.
@@ -308,9 +311,9 @@ func test_the_relapse_gate_lets_one_person_through_per_gap() -> void:
 	var gate := RelapseWave.new()
 	assert_bool(gate.allow()).is_true()
 	assert_bool(gate.allow()).is_false()
-	gate.advance(Config.RELAPSE_GATE_GAP * 0.5)
+	gate.advance(PeopleConfig.RELAPSE_GATE_GAP * 0.5)
 	assert_bool(gate.allow()).is_false()
-	gate.advance(Config.RELAPSE_GATE_GAP * 0.6)
+	gate.advance(PeopleConfig.RELAPSE_GATE_GAP * 0.6)
 	assert_bool(gate.allow()).is_true()
 
 
@@ -334,7 +337,7 @@ func test_a_group_near_a_dimmed_person_no_longer_relapses_on_one_frame() -> void
 		relapse_frame.append(-1)
 	for frame: int in range(60 * 45):
 		wave.advance(1.0 / 60.0)
-		GloomSim.update(everyone, 1.0 / 60.0, Config.TD_DRAIN_MULTIPLIER, 1.44)
+		GloomSim.update(everyone, 1.0 / 60.0, PeopleConfig.TD_DRAIN_MULTIPLIER, 1.44)
 		for p: Person in cohort:
 			p.tick(1.0 / 60.0)
 		for i: int in range(cohort.size()):
@@ -347,7 +350,9 @@ func test_a_group_near_a_dimmed_person_no_longer_relapses_on_one_frame() -> void
 		assert_int(relapse_frame[i]).is_greater(wobble_frame[i])
 		# Each one wobbled for at least the shortest wobble before relapsing.
 		var wobbled_for := float(relapse_frame[i] - wobble_frame[i]) / 60.0
-		assert_float(wobbled_for).is_greater_equal(Config.WOBBLE_SECONDS * (1.0 - Config.WOBBLE_JITTER) - 0.1)
+		assert_float(wobbled_for).is_greater_equal(
+			PeopleConfig.WOBBLE_SECONDS * (1.0 - PeopleConfig.WOBBLE_JITTER) - 0.1
+		)
 	# No two on the same frame, and the first to last spread is several seconds.
 	var seen := {}
 	for f: int in relapse_frame:
@@ -355,7 +360,7 @@ func test_a_group_near_a_dimmed_person_no_longer_relapses_on_one_frame() -> void
 		seen[f] = true
 	var first: int = relapse_frame.min()
 	var last: int = relapse_frame.max()
-	assert_float(float(last - first) / 60.0).is_greater_equal(Config.RELAPSE_GATE_GAP * 7.0 - 0.1)
+	assert_float(float(last - first) / 60.0).is_greater_equal(PeopleConfig.RELAPSE_GATE_GAP * 7.0 - 0.1)
 
 
 func test_a_group_drained_together_wobbles_with_varied_lengths_even_without_the_gate() -> void:
@@ -386,7 +391,7 @@ func test_a_burst_saves_the_wobbling_people_in_reach() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
+	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 	td.player.global_position = Vector3.ZERO
 	var a: Person = td.people[0]
 	var b: Person = td.people[1]
@@ -417,7 +422,9 @@ func test_the_recorder_logs_a_wobble_and_a_save() -> void:
 	var wobbles := _events(td, "wobble")
 	assert_int(wobbles.size()).is_equal(1)
 	assert_float(wobbles[0]["id"]).is_equal(5.0)
-	assert_float(wobbles[0]["seconds"]).is_greater(Config.WOBBLE_SECONDS * (1.0 - Config.WOBBLE_JITTER) - 0.01)
+	assert_float(wobbles[0]["seconds"]).is_greater(
+		PeopleConfig.WOBBLE_SECONDS * (1.0 - PeopleConfig.WOBBLE_JITTER) - 0.01
+	)
 	p.receive_joy(0, 50.0, 0.0)
 	var saves := _events(td, "save")
 	assert_int(saves.size()).is_equal(1)

@@ -20,16 +20,16 @@ func _ring_level(count: int, r: float) -> Dictionary:
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * r, 0.0, sin(a) * r), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
-	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
+	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 	await runner.simulate_frames(600)
 	return {"runner": runner, "td": td}
 
 
 func _distance_from_ground(col: Color) -> float:
 	return (
-		absf(col.r - Config.EDGE_OUT_GROUND.r)
-		+ absf(col.g - Config.EDGE_OUT_GROUND.g)
-		+ absf(col.b - Config.EDGE_OUT_GROUND.b)
+		absf(col.r - BorderConfig.EDGE_OUT_GROUND.r)
+		+ absf(col.g - BorderConfig.EDGE_OUT_GROUND.g)
+		+ absf(col.b - BorderConfig.EDGE_OUT_GROUND.b)
 	)
 
 
@@ -61,13 +61,13 @@ func test_the_fade_comes_in_over_its_seconds_and_goes_when_they_cross_the_line()
 	var outside: Person = td.people[20]
 	TopDownTestUtil.place(outside, Vector3(14.0, 0.0, 0.0), 1, 0.95)
 	var look := outside.look as PersonLookPlaceholder
-	EdgeDim.update(td.border, td.people, Config.EDGE_OUT_FADE_SECONDS * 2.0)
+	EdgeDim.update(td.border, td.people, BorderConfig.EDGE_OUT_FADE_SECONDS * 2.0)
 	assert_float(look.outside_fade).is_equal(1.0)
 	look.outside_fade = 0.0
-	EdgeDim.update(td.border, td.people, Config.EDGE_OUT_FADE_SECONDS * 0.5)
+	EdgeDim.update(td.border, td.people, BorderConfig.EDGE_OUT_FADE_SECONDS * 0.5)
 	assert_float(look.outside_fade).is_equal_approx(0.5, 0.01)
 	TopDownTestUtil.place(outside, Vector3(1.0, 0.0, 1.0), 1, 0.95)
-	EdgeDim.update(td.border, td.people, Config.EDGE_OUT_FADE_SECONDS * 2.0)
+	EdgeDim.update(td.border, td.people, BorderConfig.EDGE_OUT_FADE_SECONDS * 2.0)
 	assert_float(look.outside_fade).is_equal(0.0)
 	await runner.simulate_frames(1)
 	await TopDownTestUtil.leave_loaded_scene(td)

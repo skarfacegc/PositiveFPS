@@ -9,7 +9,7 @@ extends RefCounted
 # contagion.
 
 
-# `drain_multiplier` scales how fast dimmed people drain rescued joy (Config.TD_DRAIN_MULTIPLIER in the level).
+# `drain_multiplier` scales how fast dimmed people drain rescued joy (PeopleConfig.TD_DRAIN_MULTIPLIER in the level).
 # `strength` is the night strength (see NightCycle): it scales gloom growth, spread and drain. Gloom does not spread
 # across an intact stretch of the border (`border`, when it has a loop).
 static func update(
@@ -23,28 +23,28 @@ static func update(
 	for p: Person in people:
 		if p.is_rescued:
 			continue
-		var nearest := Config.NO_ZONE_DISTANCE
+		var nearest := PeopleConfig.NO_ZONE_DISTANCE
 		if not zones.is_empty():
 			nearest = nearest_distance(p.global_position, zones)
 		_update_covered(p, nearest, delta, strength)
 		p.gloom = clampf(p.gloom, 0.0, 1.0)
 
 	for p: Person in people:
-		if p.is_rescued or Config.gloom_level(p.gloom) < Config.SPREAD_LEVEL:
+		if p.is_rescued or Config.gloom_level(p.gloom) < PeopleConfig.SPREAD_LEVEL:
 			continue
 		for q: Person in people:
 			if q == p:
 				continue
-			if flat_dist(p.global_position, q.global_position) > Config.SPREAD_RADIUS:
+			if flat_dist(p.global_position, q.global_position) > PeopleConfig.SPREAD_RADIUS:
 				continue
 			if border != null and border.line_blocks(p.global_position, q.global_position):
 				continue
 			# A person's own protection scales what reaches them (1 deep inside painted ground, 0 at edges).
 			var exposure := 1.0 - q.protection
 			if q.is_rescued:
-				q.drain_joy(Config.SPREAD_DRAIN_RATE * delta * drain_multiplier * strength * exposure)
+				q.drain_joy(PeopleConfig.SPREAD_DRAIN_RATE * delta * drain_multiplier * strength * exposure)
 			elif q.calm_left <= 0.0:
-				q.gloom = clampf(q.gloom + Config.SPREAD_GLOOM_RATE * delta * strength * exposure, 0.0, 1.0)
+				q.gloom = clampf(q.gloom + PeopleConfig.SPREAD_GLOOM_RATE * delta * strength * exposure, 0.0, 1.0)
 
 
 # Cover rules for one unrescued person. Growth is scaled by (1 - protection), so it only happens at the edges.
@@ -52,23 +52,23 @@ static func update(
 static func _update_covered(p: Person, nearest: float, delta: float, strength: float) -> void:
 	if p.calm_left > 0.0:  # Round 22: a burst calmed them; no growth for a while.
 		return
-	var growth := Config.GLOOM_GROWTH + Config.GLOOM_GROWTH_PER_METER * nearest
+	var growth := PeopleConfig.GLOOM_GROWTH + PeopleConfig.GLOOM_GROWTH_PER_METER * nearest
 	# Round 11: the grey -> dimmed step (level 1) is slower. Light grey -> grey is not changed.
 	if Config.gloom_level(p.gloom) == 1:
-		growth *= Config.GLOOM_DIMMED_STEP_MULT
+		growth *= PeopleConfig.GLOOM_DIMMED_STEP_MULT
 	p.gloom += growth * delta * strength * (1.0 - p.protection)
-	if p.cover >= Config.TD_CONTAGION_THRESHOLD:
-		p.gloom -= Config.TD_CONTAGION_RATE * delta * p.protection
+	if p.cover >= GroundConfig.TD_CONTAGION_THRESHOLD:
+		p.gloom -= GroundConfig.TD_CONTAGION_RATE * delta * p.protection
 
 
 # True for an unrescued person at the dimmed level: they spread gloom, drain nearby joy and erode paint.
 static func is_dimmed(p: Person) -> bool:
-	return not p.is_rescued and Config.gloom_level(p.gloom) >= Config.SPREAD_LEVEL
+	return not p.is_rescued and Config.gloom_level(p.gloom) >= PeopleConfig.SPREAD_LEVEL
 
 
 # Protection for a cover value (0..1): 0 at the edge of painted ground, 1 well inside it. Smooth between the two.
 static func protection_for(cover: float) -> float:
-	return smoothstep(Config.TD_COVER_EDGE, Config.TD_COVER_FULL, cover)
+	return smoothstep(GroundConfig.TD_COVER_EDGE, GroundConfig.TD_COVER_FULL, cover)
 
 
 # Distance between two points, ignoring height.

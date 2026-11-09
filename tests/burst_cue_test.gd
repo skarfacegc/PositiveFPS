@@ -16,7 +16,7 @@ func _border_level(count: int, r: float) -> Dictionary:
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * r, 0.0, sin(a) * r), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
-	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
+	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 	await runner.simulate_frames(600)
 	return {"runner": runner, "td": td}
 
@@ -45,7 +45,7 @@ func test_the_burst_pushes_back_and_lifts_dimmed_people_at_the_border() -> void:
 	TopDownTestUtil.place(near, m.position + out * 1.2, 1, 0.95)
 	# Out of the lift radius (dimmed people anywhere inside it are lifted), so not a target.
 	td.player.global_position = m.position - out * 2.0
-	TopDownTestUtil.place(far, td.player.global_position + out * (Config.BURST_LIFT_RADIUS + 2.0), 2, 0.95)
+	TopDownTestUtil.place(far, td.player.global_position + out * (SpiritConfig.BURST_LIFT_RADIUS + 2.0), 2, 0.95)
 	await runner.simulate_frames(2)
 	near.gloom = 0.95
 	far.gloom = 0.95
@@ -56,9 +56,9 @@ func test_the_burst_pushes_back_and_lifts_dimmed_people_at_the_border() -> void:
 	var start := near.global_position
 	runner.simulate_key_pressed(KEY_G)
 	await runner.simulate_frames(3)
-	assert_float(td.player.spirit).is_equal_approx(spirit - Config.BURST_SPIRIT_COST, 1.0)
+	assert_float(td.player.spirit).is_equal_approx(spirit - SpiritConfig.BURST_SPIRIT_COST, 1.0)
 	# Pushed away from the line and lifted a stage; the streak shows.
-	assert_float(near.global_position.distance_to(start)).is_greater(Config.BURST_PUSH_DISTANCE - 0.5)
+	assert_float(near.global_position.distance_to(start)).is_greater(SpiritConfig.BURST_PUSH_DISTANCE - 0.5)
 	assert_float(near.global_position.length()).is_greater(start.length() + 2.0)
 	assert_int(Config.gloom_level(near.gloom)).is_equal(1)
 	assert_bool(GloomSim.is_dimmed(near)).is_false()
@@ -84,7 +84,7 @@ func test_the_hud_says_how_many_dimmed_people_the_burst_would_clear() -> void:
 	TopDownTestUtil.place(td.people[20], m.position + out * 1.2, 1, 0.95)
 	await runner.simulate_frames(20)
 	assert_int(td.burst_cue.burst_targets).is_equal(1)
-	assert_str(td.burst_cue.cue_text()).is_equal(Config.CUE_BURST_TEXT % 1)
+	assert_str(td.burst_cue.cue_text()).is_equal(HudConfig.CUE_BURST_TEXT % 1)
 	assert_str(td.hud.burst_label.text).contains("1")
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -102,5 +102,5 @@ func test_a_burst_near_a_bent_line_lets_it_spring_back() -> void:
 	runner.simulate_key_pressed(KEY_G)
 	await runner.simulate_frames(30)
 	# Half a second on: it has sprung back by more than the plain spring would have taken (0.9 m/s).
-	assert_float(td.border.push.dent[i]).is_less(1.5 - Config.PUSH_SPRING_SPEED * 0.5 - 0.1)
+	assert_float(td.border.push.dent[i]).is_less(1.5 - PushConfig.PUSH_SPRING_SPEED * 0.5 - 0.1)
 	await TopDownTestUtil.leave_loaded_scene(td)

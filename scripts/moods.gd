@@ -121,7 +121,7 @@ func _assign_wards(dimmed: Array[Person], people: Array[Person]) -> void:
 # null. A strictly nearer person wins, so ties keep the earlier one in array order.
 func _nearest_ward(q: Person, people: Array[Person], claimed: Dictionary) -> Person:
 	var best: Person = null
-	var best_d := Config.SHELTER_RADIUS
+	var best_d := MoodConfig.SHELTER_RADIUS
 	for p: Person in people:
 		if p == q or p.is_rescued or Config.gloom_level(p.gloom) >= 2 or claimed.has(p):
 			continue
@@ -141,7 +141,7 @@ func _turn_away(p: Person, player: TopDownPlayer, delta: float) -> void:
 	# A look_at-style yaw: rotation.y = atan2(-x, -z) makes local forward (-Z) point along (x, z).
 	var want := atan2(-away.x, -away.z)
 	var diff := angle_difference(p.rotation.y, want)
-	var step := clampf(diff, -Config.GUARDED_TURN_SPEED * delta, Config.GUARDED_TURN_SPEED * delta)
+	var step := clampf(diff, -MoodConfig.GUARDED_TURN_SPEED * delta, MoodConfig.GUARDED_TURN_SPEED * delta)
 	p.rotation.y += step
 
 
@@ -154,22 +154,22 @@ func _scare(p: Person, player: TopDownPlayer, delta: float) -> void:
 		p.flee_left = maxf(0.0, p.flee_left - delta)
 		p.flee_from = player.global_position
 		return
-	if dist > Config.SKITTISH_RADIUS or dist < 0.01:
+	if dist > MoodConfig.SKITTISH_RADIUS or dist < 0.01:
 		return
 	var vel := Vector3(player.velocity.x, 0.0, player.velocity.z)
 	var speed := vel.length()
-	if speed <= Config.SKITTISH_SPEED_LIMIT:
+	if speed <= MoodConfig.SKITTISH_SPEED_LIMIT:
 		return
 	if vel.dot(to_p / dist) <= 0.0:
 		return  # Running away or past, not at them.
-	p.flee_left = Config.SKITTISH_FLEE_SECONDS
+	p.flee_left = MoodConfig.SKITTISH_FLEE_SECONDS
 	p.flee_from = player.global_position
 
 
 # Glum: count down to the next look-up, hold it for GLUM_LOOKUP_WINDOW.
 func _look_up(p: Person, delta: float) -> void:
 	if not _next_lookup.has(p):
-		_next_lookup[p] = _rng.randf_range(0.0, Config.GLUM_LOOKUP_INTERVAL)
+		_next_lookup[p] = _rng.randf_range(0.0, MoodConfig.GLUM_LOOKUP_INTERVAL)
 		_lookup_left[p] = 0.0
 	var window: float = _lookup_left[p]
 	if window > 0.0:
@@ -178,12 +178,13 @@ func _look_up(p: Person, delta: float) -> void:
 		p.glum_up = window > 0.0
 		if window <= 0.0:
 			_next_lookup[p] = (
-				Config.GLUM_LOOKUP_INTERVAL + _rng.randf_range(-Config.GLUM_LOOKUP_JITTER, Config.GLUM_LOOKUP_JITTER)
+				MoodConfig.GLUM_LOOKUP_INTERVAL
+				+ _rng.randf_range(-MoodConfig.GLUM_LOOKUP_JITTER, MoodConfig.GLUM_LOOKUP_JITTER)
 			)
 		return
 	var next: float = _next_lookup[p] - delta
 	_next_lookup[p] = next
 	p.glum_up = false
 	if next <= 0.0:
-		_lookup_left[p] = Config.GLUM_LOOKUP_WINDOW
+		_lookup_left[p] = MoodConfig.GLUM_LOOKUP_WINDOW
 		p.glum_up = true

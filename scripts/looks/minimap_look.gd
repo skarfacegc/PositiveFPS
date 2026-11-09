@@ -68,9 +68,9 @@ func unheld_landmark_ring_colour() -> Color:
 # it; alpha 0 means none, which is the base look).
 func first_light(part: String, col: Color, _px: int, _py: int) -> Color:
 	if part == "ground":
-		return col.lerp(Config.FIRST_LIGHT_MINIMAP_COLOUR, Config.FIRST_LIGHT_MINIMAP_TINT)
+		return col.lerp(NightConfig.FIRST_LIGHT_MINIMAP_COLOUR, NightConfig.FIRST_LIGHT_MINIMAP_TINT)
 	if part == "line":
-		return Config.FIRST_LIGHT_MINIMAP_COLOUR
+		return NightConfig.FIRST_LIGHT_MINIMAP_COLOUR
 	return Color(0, 0, 0, 0)
 
 
@@ -81,7 +81,7 @@ func cloud_colour() -> Color:
 
 # Round 19: the colour of the spirit beacon's marker (the same pale blue in both looks until the styled one).
 func beacon_colour() -> Color:
-	return Config.BEACON_COLOUR
+	return BeaconConfig.BEACON_COLOUR
 
 
 func player_colour() -> Color:

@@ -11,7 +11,7 @@ func _start() -> Dictionary:
 	var td: TopDownMain = runner.scene()
 	TopDownTestUtil.send_everyone_away(td)
 	td.player.global_position = Vector3.ZERO
-	td.night.elapsed = Config.NIGHT_LENGTH * 0.5
+	td.night.elapsed = NightConfig.NIGHT_LENGTH * 0.5
 	return {"runner": runner, "td": td}
 
 
@@ -20,7 +20,7 @@ func test_many_people_ready_to_sink_at_midnight_enter_dimmed_at_least_nine_secon
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	# Round 17: the gap is 9 s (was 6 s). Six people sink at 0, 9, 18, 27, 36 and 45 s, so the wait is a minute.
-	assert_float(Config.DIM_ARRIVAL_MIN_GAP).is_equal(9.0)
+	assert_float(NightConfig.DIM_ARRIVAL_MIN_GAP).is_equal(9.0)
 	# Six people ready to sink, spread across the plaza and far from the player (so nothing else happens to them).
 	var ready: Array[Person] = []
 	for i: int in range(6):
@@ -45,7 +45,7 @@ func test_many_people_ready_to_sink_at_midnight_enter_dimmed_at_least_nine_secon
 	assert_float(times[0]).is_less(0.2)
 	# Every later one came at least DIM_ARRIVAL_MIN_GAP (9 s, round 17) after the one before (one frame of slack).
 	for k: int in range(1, times.size()):
-		assert_float(times[k] - times[k - 1]).is_greater_equal(Config.DIM_ARRIVAL_MIN_GAP - 1.0 / 60.0)
+		assert_float(times[k] - times[k - 1]).is_greater_equal(NightConfig.DIM_ARRIVAL_MIN_GAP - 1.0 / 60.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -64,12 +64,12 @@ func test_the_ones_who_wait_stay_gloomy_at_the_top_of_the_band_and_sink_in_array
 	assert_int(first.level).is_equal(2)
 	# They are held in the top of the gloomy band: just under the dimmed line (and still gloomy).
 	assert_int(second.level).is_equal(1)
-	assert_float(second.gloom).is_greater_equal(Config.INTRO_DIM_CAP - 0.0001)
+	assert_float(second.gloom).is_greater_equal(HudConfig.INTRO_DIM_CAP - 0.0001)
 	assert_float(second.gloom).is_less(Config.GLOOM_LEVEL_STEPS[1])
 	assert_int(third.level).is_equal(1)
 	assert_float(third.gloom).is_less(Config.GLOOM_LEVEL_STEPS[1])
 	# Waiting people never sink while the gate is shut.
-	await runner.simulate_frames(int(Config.DIM_ARRIVAL_MIN_GAP * 60.0) - 30)
+	await runner.simulate_frames(int(NightConfig.DIM_ARRIVAL_MIN_GAP * 60.0) - 30)
 	assert_int(second.level).is_equal(1)
 	# When the gate opens, the next in array order goes.
 	await runner.simulate_frames(60)

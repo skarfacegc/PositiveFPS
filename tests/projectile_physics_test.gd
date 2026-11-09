@@ -83,7 +83,7 @@ func test_bloom_gives_joy_to_people_standing_in_it_then_frees_itself() -> void:
 	assert_bool(is_instance_valid(bloom)).is_true()
 
 	# The bloom lasts TD_BLOOM_SECONDS, then frees itself.
-	await runner.simulate_frames(int((Config.TD_BLOOM_SECONDS + 0.5) * 60.0))
+	await runner.simulate_frames(int((ProjectileConfig.TD_BLOOM_SECONDS + 0.5) * 60.0))
 	assert_bool(is_instance_valid(bloom)).is_false()
 
 

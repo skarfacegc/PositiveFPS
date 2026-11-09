@@ -10,7 +10,7 @@ extends Node3D
 signal claimed
 signal lost
 
-# Which landmark this is: an index into Config.LANDMARK_NAMES / _POSITIONS / _BOOST_TEXT. Set before add_child.
+# Which landmark this is: an index into LandmarkConfig.LANDMARK_NAMES / _POSITIONS / _BOOST_TEXT. Set before add_child.
 var index: int = 0
 # Seconds the landmark has been held (beautified and inside the border). Resets when it is lost.
 var hold: float = 0.0
@@ -21,7 +21,7 @@ var _was_held: bool = false
 
 
 func _ready() -> void:
-	position = Config.LANDMARK_POSITIONS[index]
+	position = LandmarkConfig.LANDMARK_POSITIONS[index]
 	_make_look()
 
 
@@ -34,12 +34,12 @@ func rebuild_look() -> void:
 
 
 func landmark_name() -> String:
-	return Config.LANDMARK_NAMES[index]
+	return LandmarkConfig.LANDMARK_NAMES[index]
 
 
 # What holding it gives, such as "music joy x2".
 func boost_text() -> String:
-	return Config.LANDMARK_BOOST_TEXT[index]
+	return LandmarkConfig.LANDMARK_BOOST_TEXT[index]
 
 
 # Round 20: the notice when it is claimed, and when the border drops it (names the boost that is gained or lost).
@@ -56,7 +56,7 @@ func loss_text() -> String:
 func update(delta: float, is_beautified: bool) -> void:
 	beautified = is_beautified
 	if is_beautified:
-		hold = minf(hold + delta, Config.BORDER_LANDMARK_HOLD)
+		hold = minf(hold + delta, LandmarkConfig.BORDER_LANDMARK_HOLD)
 	else:
 		hold = 0.0
 	var held := is_held()
@@ -74,12 +74,12 @@ func update(delta: float, is_beautified: bool) -> void:
 
 # How much of the hold is done, 0 to 1.
 func progress() -> float:
-	return hold / Config.BORDER_LANDMARK_HOLD
+	return hold / LandmarkConfig.BORDER_LANDMARK_HOLD
 
 
 # True once the landmark has been held for BORDER_LANDMARK_HOLD seconds.
 func is_held() -> bool:
-	return hold >= Config.BORDER_LANDMARK_HOLD
+	return hold >= LandmarkConfig.BORDER_LANDMARK_HOLD
 
 
 func _make_look() -> void:

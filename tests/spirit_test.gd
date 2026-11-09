@@ -30,7 +30,7 @@ func _rescue(p: Person, spot: Vector3) -> void:
 
 # Makes the player dim by draining all their spirit.
 func _go_dim(td: TopDownMain) -> void:
-	td.player.lose_spirit(Config.SPIRIT_MAX * 2.0)
+	td.player.lose_spirit(SpiritConfig.SPIRIT_MAX * 2.0)
 
 
 # --- Spirit gain, burst cost, fire rate -----------------------------------------------------------------------
@@ -50,7 +50,7 @@ func test_a_rescue_made_by_hover_fire_adds_spirit() -> void:
 		await runner.simulate_frames(1)
 		frames += 1
 	assert_bool(target.is_rescued).is_true()
-	assert_float(td.player.spirit).is_equal_approx(10.0 + Config.SPIRIT_PER_RESCUE, 0.01)
+	assert_float(td.player.spirit).is_equal_approx(10.0 + SpiritConfig.SPIRIT_PER_RESCUE, 0.01)
 	await runner.simulate_frames(2)
 	assert_str(td.hud.spirit_label.text).contains("30")
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -59,8 +59,8 @@ func test_a_rescue_made_by_hover_fire_adds_spirit() -> void:
 func test_spirit_is_capped_at_the_maximum() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
-	td.player.add_spirit(Config.SPIRIT_MAX * 3.0)
-	assert_float(td.player.spirit).is_equal(Config.SPIRIT_MAX)
+	td.player.add_spirit(SpiritConfig.SPIRIT_MAX * 3.0)
+	assert_float(td.player.spirit).is_equal(SpiritConfig.SPIRIT_MAX)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -72,8 +72,8 @@ func test_the_burst_spends_spirit_and_is_blocked_when_short() -> void:
 	player.spirit = 80.0
 	runner.simulate_key_pressed(KEY_G)
 	await runner.simulate_frames(2)
-	assert_float(player.spirit).is_equal_approx(80.0 - Config.BURST_SPIRIT_COST, 0.01)
-	assert_float(player.burst_cooldown).is_greater(Config.TD_BURST_COOLDOWN - 0.5)
+	assert_float(player.spirit).is_equal_approx(80.0 - SpiritConfig.BURST_SPIRIT_COST, 0.01)
+	assert_float(player.burst_cooldown).is_greater(SpiritConfig.TD_BURST_COOLDOWN - 0.5)
 
 	# Ready again with 50 left: it works and leaves 20.
 	player.burst_cooldown = 0.0
@@ -96,14 +96,14 @@ func test_the_fire_rate_scales_with_spirit() -> void:
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	var player: TopDownPlayer = td.player
-	player.spirit = Config.SPIRIT_MAX
+	player.spirit = SpiritConfig.SPIRIT_MAX
 	assert_float(player.fire_rate_mult()).is_equal(1.0)
 	player.spirit = 50.0
 	assert_float(player.fire_rate_mult()).is_equal(1.0)
 	player.spirit = 25.0
 	assert_float(player.fire_rate_mult()).is_equal_approx(0.7, 0.001)
 	player.spirit = 0.01
-	assert_float(player.fire_rate_mult()).is_equal_approx(Config.SPIRIT_MIN_FIRE_FRACTION, 0.01)
+	assert_float(player.fire_rate_mult()).is_equal_approx(SpiritConfig.SPIRIT_MIN_FIRE_FRACTION, 0.01)
 
 	# With real hover fire: shots in a second at full spirit against shots at 10 spirit.
 	td.child_entered_tree.connect(_on_child)
@@ -111,7 +111,7 @@ func test_the_fire_rate_scales_with_spirit() -> void:
 	TopDownTestUtil.place(target, Vector3(0, 0, -8), 2, 1.0)
 	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.HOVER_STICKY)
 	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, target.global_position))
-	player.spirit = Config.SPIRIT_MAX
+	player.spirit = SpiritConfig.SPIRIT_MAX
 	await runner.simulate_frames(2)
 	_shots = 0
 	await runner.simulate_frames(66)
@@ -148,10 +148,10 @@ func test_at_zero_spirit_the_player_goes_dim_and_walks_at_half_speed() -> void:
 	await runner.simulate_frames(60)
 	runner.simulate_key_release(KEY_W)
 	var walked := start.distance_to(player.global_position)
-	assert_float(walked).is_equal_approx(Config.TD_MOVE_SPEED * Config.DIM_MOVE_MULT, 0.25)
+	assert_float(walked).is_equal_approx(PlayerConfig.TD_MOVE_SPEED * SpiritConfig.DIM_MOVE_MULT, 0.25)
 	# The body has drained to grey.
 	var body: StandardMaterial3D = (player.look as PlayerLookPlaceholder).body_mat
-	assert_bool(body.albedo_color.is_equal_approx(Config.DIM_PLAYER_GREY)).is_true()
+	assert_bool(body.albedo_color.is_equal_approx(SpiritConfig.DIM_PLAYER_GREY)).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -220,15 +220,17 @@ func test_recovery_grows_with_depth_stops_outside_and_a_dim_player_deep_inside_l
 	var centre := td.border.centre
 	td.player.global_position = Vector3(centre.x, 0.0, centre.z)
 	var deep := td.dim_recovery_rate()
-	assert_float(deep).is_equal_approx(Config.DIM_RECOVER_RATE, 0.01)
+	assert_float(deep).is_equal_approx(SpiritConfig.DIM_RECOVER_RATE, 0.01)
 
 	# Half the edge band inside the line: depth protection 0.5 (round 13a: the band is 1 m x WORLD_SCALE).
 	var edge := Vector2(td.border.polygon[0].x, td.border.polygon[0].y)
 	var inward := (Vector2(centre.x, centre.z) - edge).normalized()
-	var shallow_pt := edge + inward * (0.5 * Config.BORDER_EDGE_BAND)
+	var shallow_pt := edge + inward * (0.5 * BorderConfig.BORDER_EDGE_BAND)
 	td.player.global_position = Vector3(shallow_pt.x, 0.0, shallow_pt.y)
 	var shallow := td.dim_recovery_rate()
-	var expected := Config.DIM_RECOVER_RATE * (Config.DIM_RECOVER_BASE + Config.DIM_RECOVER_DEPTH * 0.5)
+	var expected := (
+		SpiritConfig.DIM_RECOVER_RATE * (SpiritConfig.DIM_RECOVER_BASE + SpiritConfig.DIM_RECOVER_DEPTH * 0.5)
+	)
 	assert_float(shallow).is_equal_approx(expected, 0.4)
 	assert_float(shallow).is_less(deep)
 
@@ -241,11 +243,11 @@ func test_recovery_grows_with_depth_stops_outside_and_a_dim_player_deep_inside_l
 	player.lose_spirit(1.0)
 	assert_bool(player.is_dim).is_true()
 	await runner.simulate_frames(60)
-	assert_float(player.spirit).is_equal_approx(Config.DIM_RECOVER_RATE, 1.5)
+	assert_float(player.spirit).is_equal_approx(SpiritConfig.DIM_RECOVER_RATE, 1.5)
 	assert_bool(player.is_dim).is_true()
 	# Past 30 spirit (about three seconds in all) the player is back to normal.
 	await runner.simulate_frames(150)
-	assert_float(player.spirit).is_greater_equal(Config.DIM_EXIT_SPIRIT)
+	assert_float(player.spirit).is_greater_equal(SpiritConfig.DIM_EXIT_SPIRIT)
 	assert_bool(player.is_dim).is_false()
 	assert_float(player.dim_level()).is_equal(0.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -270,13 +272,13 @@ func test_before_a_border_a_dim_player_recovers_only_near_the_landmark() -> void
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	var player: TopDownPlayer = td.player
-	var landmark := Config.LANDMARK_POSITIONS[0]
+	var landmark := LandmarkConfig.LANDMARK_POSITIONS[0]
 	player.global_position = Vector3(landmark.x, 0.0, landmark.z + 5.0)
 	_go_dim(td)
 	assert_bool(td.border.active).is_false()
-	assert_float(td.dim_recovery_rate()).is_equal(Config.DIM_RECOVER_RATE)
+	assert_float(td.dim_recovery_rate()).is_equal(SpiritConfig.DIM_RECOVER_RATE)
 	await runner.simulate_frames(60)
-	assert_float(player.spirit).is_equal_approx(Config.DIM_RECOVER_RATE, 1.5)
+	assert_float(player.spirit).is_equal_approx(SpiritConfig.DIM_RECOVER_RATE, 1.5)
 
 	player.global_position = Vector3(landmark.x, 0.0, landmark.z + 12.0)
 	var before := player.spirit
@@ -299,8 +301,8 @@ func test_a_dim_player_makes_the_border_dim_and_lose_ground_faster() -> void:
 	assert_float(td.border.flicker()).is_equal(1.0)
 	_go_dim(td)
 	await runner.simulate_frames(2)
-	assert_float(td.border.loss_mult).is_equal(Config.DIM_LOSS_MULT)
-	assert_float(td.ground.loss_mult).is_equal(Config.DIM_LOSS_MULT)
+	assert_float(td.border.loss_mult).is_equal(SpiritConfig.DIM_LOSS_MULT)
+	assert_float(td.ground.loss_mult).is_equal(SpiritConfig.DIM_LOSS_MULT)
 	# The line flickers: its brightness swings between the minimum and full over the flicker period.
 	var lo := INF
 	var hi := -INF
@@ -318,7 +320,7 @@ func _press_loss(dim: bool) -> float:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	var rescued: Array[Person] = []
 	for i: int in range(14):
@@ -351,20 +353,20 @@ func test_the_border_drains_one_and_a_half_times_faster_while_the_player_is_dim(
 	var normal := _press_loss(false)
 	var dim := _press_loss(true)
 	assert_float(normal).is_greater(1.0)
-	assert_float(dim / normal).is_equal_approx(Config.DIM_LOSS_MULT, 0.001)
+	assert_float(dim / normal).is_equal_approx(SpiritConfig.DIM_LOSS_MULT, 0.001)
 
 
 func _erosion_after(mult: float) -> float:
 	var g: PaintedGround = auto_free(PaintedGround.new())
 	add_child(g)
-	g.setup(40, Config.TD_GROUND_SPREAD_SPEED, Config.TD_GROUND_FADE_SPEED, true)
+	g.setup(40, GroundConfig.TD_GROUND_SPREAD_SPEED, GroundConfig.TD_GROUND_FADE_SPEED, true)
 	var lone: Person = auto_free(Person.new())
 	add_child(lone)
 	lone.global_position = Vector3.ZERO
 	lone.receive_joy(0, Config.JOY_MAX, 0.0)
 	var people: Array = [lone]
 	for i: int in range(100):
-		g.update_paint(people, Config.GROUND_UPDATE_INTERVAL)
+		g.update_paint(people, GroundConfig.GROUND_UPDATE_INTERVAL)
 	var dimmed: Person = auto_free(Person.new())
 	add_child(dimmed)
 	dimmed.gloom = 0.9
@@ -373,12 +375,12 @@ func _erosion_after(mult: float) -> float:
 	var before := g.paint_weight_at(Vector3(4.5, 0.0, 0.5))
 	g.loss_mult = mult
 	for i: int in range(4):
-		g.update_paint(people, Config.GROUND_UPDATE_INTERVAL)
+		g.update_paint(people, GroundConfig.GROUND_UPDATE_INTERVAL)
 	return before - g.paint_weight_at(Vector3(4.5, 0.0, 0.5))
 
 
 func test_paint_erodes_one_and_a_half_times_faster_while_the_player_is_dim() -> void:
 	var normal := _erosion_after(1.0)
-	var dim := _erosion_after(Config.DIM_LOSS_MULT)
+	var dim := _erosion_after(SpiritConfig.DIM_LOSS_MULT)
 	assert_float(normal).is_greater(0.05)
 	assert_float(dim / normal).is_greater(1.35)

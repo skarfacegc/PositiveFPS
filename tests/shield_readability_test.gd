@@ -99,19 +99,19 @@ func test_pips_count_the_hits_left_through_four_hits_and_the_pop() -> void:
 	_count_landings(ward, landed)
 	await _hover(runner, td, ward)
 	assert_object(td.player.target).is_same(ward)
-	for hit: int in range(1, Config.SHELTER_HITS):
+	for hit: int in range(1, MoodConfig.SHELTER_HITS):
 		await _fire_until_landed(runner, landed, hit)
 		# The icon is rebuilt every other frame: give it a couple of frames.
 		await runner.simulate_frames(2)
 		var icon := _icon_for(td, ward, MoodIcons.Kind.UMBRELLA)
 		assert_bool(icon.is_empty()).is_false()
-		var left := Config.SHELTER_HITS - hit
+		var left := MoodConfig.SHELTER_HITS - hit
 		assert_int(icon["pips"]).is_equal(left)
 		var shown: int = icon["pips"]
 		assert_int(_filled(FeedbackLayer.pip_states(shown))).is_equal(left)
 	assert_int(td.feedback.pop_count).is_equal(0)
 	# The fourth landing pops the shield: no umbrella and no pips over the ward, one pop recorded.
-	await _fire_until_landed(runner, landed, Config.SHELTER_HITS)
+	await _fire_until_landed(runner, landed, MoodConfig.SHELTER_HITS)
 	await runner.simulate_frames(2)
 	assert_float(dimmed.shield_down_left).is_greater(0.0)
 	assert_bool(_icon_for(td, ward, MoodIcons.Kind.UMBRELLA).is_empty()).is_true()
@@ -129,13 +129,13 @@ func test_pips_match_the_shields_hits_taken_for_each_hit_by_the_rule() -> void:
 	await runner.simulate_frames(3)
 	var dimmed := td.people[0]
 	var ward := td.people[1]
-	for _step: int in range(Config.SHELTER_HITS):
+	for _step: int in range(MoodConfig.SHELTER_HITS):
 		await runner.simulate_frames(2)
 		var icon := _icon_for(td, ward, MoodIcons.Kind.UMBRELLA)
-		assert_int(icon["pips"]).is_equal(Config.SHELTER_HITS - dimmed.shield_hits)
+		assert_int(icon["pips"]).is_equal(MoodConfig.SHELTER_HITS - dimmed.shield_hits)
 		_hit(ward, 1)
 	assert_int(td.feedback.pop_count).is_equal(1)
-	assert_int(FeedbackLayer.pip_states(0).size()).is_equal(Config.SHELTER_HITS)
+	assert_int(FeedbackLayer.pip_states(0).size()).is_equal(MoodConfig.SHELTER_HITS)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -144,13 +144,13 @@ func test_pips_match_the_shields_hits_taken_for_each_hit_by_the_rule() -> void:
 
 # The placeholder umbrella never fades below UMBRELLA_MIN_ALPHA, at any wear from fresh to about to pop.
 func test_the_umbrella_icon_never_fades_below_the_minimum_alpha() -> void:
-	assert_float(Config.UMBRELLA_MIN_ALPHA).is_greater_equal(0.85)
+	assert_float(MoodConfig.UMBRELLA_MIN_ALPHA).is_greater_equal(0.85)
 	var wear := 0.0
 	while wear <= 1.0001:
-		assert_float(FeedbackLayer.umbrella_alpha(wear, false)).is_greater_equal(Config.UMBRELLA_MIN_ALPHA)
+		assert_float(FeedbackLayer.umbrella_alpha(wear, false)).is_greater_equal(MoodConfig.UMBRELLA_MIN_ALPHA)
 		wear += 0.05
 	assert_float(FeedbackLayer.umbrella_alpha(1.0, false)).is_equal(1.0)
-	assert_float(FeedbackLayer.umbrella_alpha(0.25, false)).is_greater_equal(Config.UMBRELLA_MIN_ALPHA)
+	assert_float(FeedbackLayer.umbrella_alpha(0.25, false)).is_greater_equal(MoodConfig.UMBRELLA_MIN_ALPHA)
 
 
 # Live: the real umbrella icon's wear at every hit (1, 0.75, 0.5, 0.25) keeps the placeholder alpha above the minimum.
@@ -161,12 +161,12 @@ func test_the_live_umbrella_stays_above_the_minimum_alpha_at_every_hit() -> void
 	_arrange(td)
 	await runner.simulate_frames(3)
 	var ward := td.people[1]
-	for hit: int in range(Config.SHELTER_HITS):
+	for hit: int in range(MoodConfig.SHELTER_HITS):
 		await runner.simulate_frames(2)
 		var icon := _icon_for(td, ward, MoodIcons.Kind.UMBRELLA)
 		assert_bool(icon.is_empty()).is_false()
 		var wear: float = icon["wear"]
-		assert_float(FeedbackLayer.umbrella_alpha(wear, false)).is_greater_equal(Config.UMBRELLA_MIN_ALPHA)
+		assert_float(FeedbackLayer.umbrella_alpha(wear, false)).is_greater_equal(MoodConfig.UMBRELLA_MIN_ALPHA)
 		_hit(ward, 1)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -195,7 +195,7 @@ func test_the_tether_is_there_exactly_while_sheltered_and_joins_the_right_pair()
 	assert_float(b.distance_to(ward.chest_position())).is_less(0.5)
 	assert_bool(control.sheltered).is_false()
 	# The shield pops: the ward is no longer sheltered, so no tether.
-	_hit(ward, Config.SHELTER_HITS)
+	_hit(ward, MoodConfig.SHELTER_HITS)
 	await runner.simulate_frames(2)
 	assert_bool(ward.sheltered).is_false()
 	assert_int(td.feedback.tethers.size()).is_equal(0)
@@ -204,13 +204,13 @@ func test_the_tether_is_there_exactly_while_sheltered_and_joins_the_right_pair()
 
 # The live tether is drawn thicker than the old one and in the umbrella's colour, with full steadiness (no fade).
 func test_the_live_tether_is_thicker_and_in_the_umbrella_colour() -> void:
-	assert_float(Config.SHELTER_TETHER_WIDTH).is_greater(2.0)
-	assert_float(Config.SHELTER_TETHER_COLOUR.a).is_greater_equal(0.8)
-	assert_float(Config.SHELTER_TETHER_COLOUR.r).is_equal_approx(
-		Config.MOOD_ICON_COLOURS[MoodIcons.Kind.UMBRELLA].r, 0.0001
+	assert_float(MoodConfig.SHELTER_TETHER_WIDTH).is_greater(2.0)
+	assert_float(MoodConfig.SHELTER_TETHER_COLOUR.a).is_greater_equal(0.8)
+	assert_float(MoodConfig.SHELTER_TETHER_COLOUR.r).is_equal_approx(
+		MoodConfig.MOOD_ICON_COLOURS[MoodIcons.Kind.UMBRELLA].r, 0.0001
 	)
-	assert_float(Config.SHELTER_TETHER_COLOUR.b).is_equal_approx(
-		Config.MOOD_ICON_COLOURS[MoodIcons.Kind.UMBRELLA].b, 0.0001
+	assert_float(MoodConfig.SHELTER_TETHER_COLOUR.b).is_equal_approx(
+		MoodConfig.MOOD_ICON_COLOURS[MoodIcons.Kind.UMBRELLA].b, 0.0001
 	)
 
 
@@ -225,7 +225,7 @@ func test_a_pop_fires_its_feedback_once() -> void:
 	_arrange(td)
 	await runner.simulate_frames(3)
 	var ward := td.people[1]
-	_hit(ward, Config.SHELTER_HITS - 1)
+	_hit(ward, MoodConfig.SHELTER_HITS - 1)
 	await runner.simulate_frames(2)
 	assert_int(td.feedback.pop_count).is_equal(0)
 	assert_int(td.feedback.pops.size()).is_equal(0)
@@ -237,7 +237,7 @@ func test_a_pop_fires_its_feedback_once() -> void:
 	await runner.simulate_frames(3)
 	assert_int(td.feedback.pop_count).is_equal(1)
 	# The burst is short: it is gone after SHELTER_POP_SECONDS.
-	await runner.simulate_frames(int(Config.SHELTER_POP_SECONDS * 60.0) + 15)
+	await runner.simulate_frames(int(MoodConfig.SHELTER_POP_SECONDS * 60.0) + 15)
 	assert_int(td.feedback.pops.size()).is_equal(0)
 	assert_int(td.feedback.pop_count).is_equal(1)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -257,7 +257,7 @@ func test_the_regrow_ring_shows_only_during_the_cooldown() -> void:
 	var dimmed := td.people[0]
 	var ward := td.people[1]
 	assert_int(td.feedback.regrow_rings.size()).is_equal(0)
-	_hit(ward, Config.SHELTER_HITS)
+	_hit(ward, MoodConfig.SHELTER_HITS)
 	await runner.simulate_frames(3)
 	assert_float(dimmed.shield_down_left).is_greater(0.0)
 	assert_int(td.feedback.regrow_rings.size()).is_equal(1)

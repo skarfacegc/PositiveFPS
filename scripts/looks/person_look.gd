@@ -16,7 +16,7 @@ const RUN_FROM := 3.0
 const RUN_FULL := 4.2
 
 var subject: Person
-# The drawn parts of the person, scaled by Config.PERSON_VISUAL_SCALE. The collision and hit radius are not scaled.
+# The drawn parts of the person, scaled by PERSON_VISUAL_SCALE. The collision and hit radius are not scaled.
 var visual: Node3D
 var label: Label3D
 # The warm ring on the ground shown during the grace period.
@@ -81,14 +81,14 @@ func rescale() -> void:
 func setup(person: Person) -> void:
 	subject = person
 	visual = Node3D.new()
-	visual.scale = Vector3.ONE * Config.PERSON_VISUAL_SCALE
+	visual.scale = Vector3.ONE * PeopleConfig.PERSON_VISUAL_SCALE
 	add_child(visual)
-	gait.configure(subject.look_seed, LEG_LENGTH, Config.PERSON_VISUAL_SCALE, RUN_FROM, RUN_FULL)
+	gait.configure(subject.look_seed, LEG_LENGTH, PeopleConfig.PERSON_VISUAL_SCALE, RUN_FROM, RUN_FULL)
 	_build_body()
 
 	# Shows the joy percentage, a warning, or a smiley.
 	label = Label3D.new()
-	label.position = Vector3(0, Config.PERSON_LABEL_HEIGHT, 0)
+	label.position = Vector3(0, PeopleConfig.PERSON_LABEL_HEIGHT, 0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.font_size = 48
 	label.pixel_size = 0.005 * subject.ui_scale
@@ -99,15 +99,15 @@ func setup(person: Person) -> void:
 	# The grace ring: a bright warm disc on the ground under the person, hidden unless in grace.
 	grace_ring = MeshInstance3D.new()
 	var ring_mesh := CylinderMesh.new()
-	ring_mesh.top_radius = Config.GRACE_RING_RADIUS
-	ring_mesh.bottom_radius = Config.GRACE_RING_RADIUS
+	ring_mesh.top_radius = PeopleConfig.GRACE_RING_RADIUS
+	ring_mesh.bottom_radius = PeopleConfig.GRACE_RING_RADIUS
 	ring_mesh.height = 0.03
 	grace_ring.mesh = ring_mesh
 	grace_ring.position = Vector3(0, 0.04, 0)
 	_grace_mat = StandardMaterial3D.new()
 	_grace_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_grace_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_grace_mat.albedo_color = Config.GRACE_RING_COLOR
+	_grace_mat.albedo_color = PeopleConfig.GRACE_RING_COLOR
 	grace_ring.material_override = _grace_mat
 	grace_ring.visible = false
 	add_child(grace_ring)
@@ -160,17 +160,17 @@ func _update_react() -> void:
 	_reacting = true
 	var env := sin(PI * p)
 	if subject.react_kind == Person.React.LIFT:
-		_react_pose(env * Config.REACT_LIFT_HOP_HEIGHT, 0.0)
-		_set_react_glow(Config.BURST_FX_COLOUR, env)
+		_react_pose(env * PeopleConfig.REACT_LIFT_HOP_HEIGHT, 0.0)
+		_set_react_glow(SpiritConfig.BURST_FX_COLOUR, env)
 		return
-	var hop := absf(sin(p * PI * Config.REACT_PATCH_HOPS)) * Config.REACT_PATCH_HOP_HEIGHT * (1.0 - 0.4 * p)
+	var hop := absf(sin(p * PI * PeopleConfig.REACT_PATCH_HOPS)) * PeopleConfig.REACT_PATCH_HOP_HEIGHT * (1.0 - 0.4 * p)
 	var turn := 0.0
 	if subject.react_toward != Vector3.INF:
 		var local := subject.global_transform.basis.inverse() * (subject.react_toward - subject.global_position)
 		if Vector2(local.x, local.z).length() > 0.05:
 			turn = atan2(-local.x, -local.z) * clampf(env * 2.0, 0.0, 1.0)
 	_react_pose(hop, turn)
-	_set_react_glow(Config.PATCH_COLOUR, env)
+	_set_react_glow(PeopleConfig.PATCH_COLOUR, env)
 
 
 # Round 24: the reaction's pose: the body lifted `hop` metres and turned `turn` radians about its own up. The
@@ -207,10 +207,10 @@ func sync() -> void:
 	wobble_prog = 0.0
 	if subject.is_rescued:
 		kind = Kind.JOYFUL
-		var warn_line := need * Config.WARN_FRACTION
+		var warn_line := need * PeopleConfig.WARN_FRACTION
 		if subject.joy < warn_line:
 			# Losing joy: flicker faster the closer they are to relapsing, and show "!".
-			var relapse_line := need * Config.RELAPSE_FRACTION
+			var relapse_line := need * PeopleConfig.RELAPSE_FRACTION
 			warning = true
 			danger = clampf((warn_line - subject.joy) / (warn_line - relapse_line), 0.0, 1.0)
 			wave = sin(clock * lerpf(4.0, 14.0, danger))
@@ -219,7 +219,7 @@ func sync() -> void:
 				wobbling = true
 				wobble_prog = subject.wobble_progress()
 				danger = 1.0
-				wave = sin(clock * Config.WOBBLE_RATE)
+				wave = sin(clock * PeopleConfig.WOBBLE_RATE)
 			label.text = "!"
 			label.modulate = Color(1, 0.6, 0.1)
 			label.font_size = 72
@@ -262,7 +262,7 @@ func play_puff(color: Color, count: int) -> void:
 	p.initial_velocity_min = 1.5
 	p.initial_velocity_max = 3.0
 	p.gravity = Vector3(0, -2, 0)
-	p.position = Vector3(0, 0.9 * Config.PERSON_VISUAL_SCALE, 0)
+	p.position = Vector3(0, 0.9 * PeopleConfig.PERSON_VISUAL_SCALE, 0)
 	var m := SphereMesh.new()
 	m.radius = 0.06
 	m.height = 0.12
@@ -359,15 +359,15 @@ func has_aura() -> bool:
 func _build_aura() -> void:
 	aura = MeshInstance3D.new()
 	var mesh := CylinderMesh.new()
-	mesh.top_radius = Config.DIM_AURA_RADIUS
-	mesh.bottom_radius = Config.DIM_AURA_RADIUS
+	mesh.top_radius = PeopleConfig.DIM_AURA_RADIUS
+	mesh.bottom_radius = PeopleConfig.DIM_AURA_RADIUS
 	mesh.height = 0.01
 	aura.mesh = mesh
 	aura.position = Vector3(0, 0.025, 0)
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Config.DIM_AURA_COLOUR
+	mat.albedo_color = PeopleConfig.DIM_AURA_COLOUR
 	aura.material_override = mat
 	aura.visible = false
 	add_child(aura)
@@ -383,7 +383,7 @@ func _build_grab_ring() -> void:
 	_grab_mat = StandardMaterial3D.new()
 	_grab_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_grab_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_grab_mat.albedo_color = Config.GRAB_RING_COLOUR
+	_grab_mat.albedo_color = SpiritConfig.GRAB_RING_COLOUR
 	grab_ring.material_override = _grab_mat
 	grab_ring.visible = false
 	add_child(grab_ring)
@@ -412,7 +412,7 @@ func _style_guard_wedge() -> void:
 
 # Sets the wedge's colour for this frame: brighter while a shot from the player would land (`open`).
 func _show_wedge(open: bool) -> void:
-	wedge_mat.albedo_color = Config.GUARDED_WEDGE_OPEN_COLOUR if open else Config.GUARDED_WEDGE_COLOUR
+	wedge_mat.albedo_color = MoodConfig.GUARDED_WEDGE_OPEN_COLOUR if open else MoodConfig.GUARDED_WEDGE_COLOUR
 
 
 # The grab cue (round 12a): during the wind-up the body leans back and a red ring grows at the feet toward the player;
@@ -422,19 +422,19 @@ func _update_grab_cue() -> void:
 	grab_ring.visible = grabbing
 	var lean := 0.0
 	if subject.grab_lunging:
-		lean = -Config.GRAB_LEAN
+		lean = -SpiritConfig.GRAB_LEAN
 	elif subject.grab_frac > 0.0:
-		lean = Config.GRAB_LEAN * subject.grab_frac
+		lean = SpiritConfig.GRAB_LEAN * subject.grab_frac
 	visual.rotation.x = lean * _lean_sign
 	if not grabbing:
 		return
 	var frac := 1.0 if subject.grab_lunging else subject.grab_frac
-	var radius := lerpf(0.2, Config.GRAB_HIT_RANGE, frac)
+	var radius := lerpf(0.2, SpiritConfig.GRAB_HIT_RANGE, frac)
 	grab_ring.scale = Vector3(radius, 1.0, radius)
 	# The ring is placed in the person's own frame, which is turned to face the player, so "toward" is local forward.
 	var local := subject.global_transform.basis.inverse() * subject.grab_toward
-	grab_ring.position = Vector3(local.x, 0.05, local.z) * (Config.GRAB_HIT_RANGE * 0.5 * frac)
-	var col := Config.GRAB_RING_COLOUR
+	grab_ring.position = Vector3(local.x, 0.05, local.z) * (SpiritConfig.GRAB_HIT_RANGE * 0.5 * frac)
+	var col := SpiritConfig.GRAB_RING_COLOUR
 	col.a = lerpf(0.25, 0.7, frac)
 	_show_grab(col, frac, radius)
 
@@ -446,7 +446,7 @@ func _update_mood_cue() -> void:
 	var mood := subject.active_mood()
 	glint.visible = mood == Person.Mood.GLUM and subject.glum_up
 	if mood == Person.Mood.SKITTISH:
-		visual.position.x = sin(subject.mood_phase * 38.0) * Config.SKITTISH_JITTER
+		visual.position.x = sin(subject.mood_phase * 38.0) * MoodConfig.SKITTISH_JITTER
 	else:
 		visual.position.x = 0.0
 	if mood == Person.Mood.GLUM:
@@ -462,7 +462,7 @@ func _build_mood_parts() -> void:
 	glint.position = Vector3(0, 2.7, 0)
 	var glint_mat := StandardMaterial3D.new()
 	glint_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	glint_mat.albedo_color = Config.GLUM_GLINT_COLOUR
+	glint_mat.albedo_color = MoodConfig.GLUM_GLINT_COLOUR
 	glint.material_override = glint_mat
 	glint.visible = false
 	visual.add_child(glint)
@@ -499,13 +499,15 @@ static func wedge_mesh(radius: float, half_deg: float, segments: int) -> ArrayMe
 # facing: the same arc Person.is_open_to uses.
 func _build_guard_wedge() -> void:
 	guard_wedge = MeshInstance3D.new()
-	guard_wedge.mesh = wedge_mesh(Config.GUARDED_WEDGE_RADIUS, Config.GUARDED_ARC_DEG, Config.GUARDED_WEDGE_SEGMENTS)
+	guard_wedge.mesh = wedge_mesh(
+		MoodConfig.GUARDED_WEDGE_RADIUS, MoodConfig.GUARDED_ARC_DEG, MoodConfig.GUARDED_WEDGE_SEGMENTS
+	)
 	guard_wedge.position = Vector3(0, 0.06, 0)
 	wedge_mat = StandardMaterial3D.new()
 	wedge_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	wedge_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	wedge_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	wedge_mat.albedo_color = Config.GUARDED_WEDGE_COLOUR
+	wedge_mat.albedo_color = MoodConfig.GUARDED_WEDGE_COLOUR
 	guard_wedge.material_override = wedge_mat
 	guard_wedge.visible = false
 	add_child(guard_wedge)
@@ -539,8 +541,8 @@ func play_ripple(color: Color) -> void:
 	add_child(ring)
 	var t := create_tween()
 	t.set_parallel(true)
-	t.tween_property(ring, "scale", Vector3.ONE * Config.STAGE_RIPPLE_RADIUS, Config.STAGE_RIPPLE_SECONDS)
-	t.tween_property(mat, "albedo_color:a", 0.0, Config.STAGE_RIPPLE_SECONDS)
+	t.tween_property(ring, "scale", Vector3.ONE * PeopleConfig.STAGE_RIPPLE_RADIUS, PeopleConfig.STAGE_RIPPLE_SECONDS)
+	t.tween_property(mat, "albedo_color:a", 0.0, PeopleConfig.STAGE_RIPPLE_SECONDS)
 	t.chain().tween_callback(ring.queue_free)
 
 
@@ -566,10 +568,10 @@ func _update_grace_cue() -> void:
 	if not grace_ring.visible:
 		_set_glow(0.0)
 		return
-	var fade := clampf(subject.grace_left / Config.GRACE_FADE_SECONDS, 0.0, 1.0)
-	var pulse := sin(subject.grace_time * TAU * Config.GRACE_RING_PULSE_HZ)
-	var size := Config.GRACE_RING_SCALE_MID + Config.GRACE_RING_PULSE_AMPLITUDE * pulse
+	var fade := clampf(subject.grace_left / PeopleConfig.GRACE_FADE_SECONDS, 0.0, 1.0)
+	var pulse := sin(subject.grace_time * TAU * PeopleConfig.GRACE_RING_PULSE_HZ)
+	var size := PeopleConfig.GRACE_RING_SCALE_MID + PeopleConfig.GRACE_RING_PULSE_AMPLITUDE * pulse
 	grace_ring.scale = Vector3(size, 1.0, size)
-	var col := Config.GRACE_RING_COLOR
+	var col := PeopleConfig.GRACE_RING_COLOR
 	_grace_mat.albedo_color = Color(col.r, col.g, col.b, col.a * fade)
 	_set_glow(fade)

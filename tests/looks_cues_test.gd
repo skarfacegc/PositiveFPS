@@ -75,8 +75,8 @@ func test_the_styled_guarded_wedge_follows_the_rule_and_hides() -> void:
 	assert_float(open_density).is_greater(closed_density)
 	var half: float = mat.get_shader_parameter("half_angle")
 	var radius: float = mat.get_shader_parameter("radius")
-	assert_float(half).is_equal_approx(deg_to_rad(Config.GUARDED_ARC_DEG), 0.001)
-	assert_float(radius).is_equal_approx(Config.GUARDED_WEDGE_RADIUS, 0.001)
+	assert_float(half).is_equal_approx(deg_to_rad(MoodConfig.GUARDED_ARC_DEG), 0.001)
+	assert_float(radius).is_equal_approx(MoodConfig.GUARDED_WEDGE_RADIUS, 0.001)
 	# Not guarded: gone. And it is no longer listed as a placeholder.
 	p.mood = Person.Mood.GLUM
 	p._update_visuals()
@@ -110,7 +110,7 @@ func test_styled_grab_ring_glint_and_ripple() -> void:
 	assert_object(look.glint.mesh).is_null()
 	assert_int(look.glint.get_child_count()).is_equal(2)
 	# The stage ripple is a flat ring that spreads and frees itself.
-	look.play_ripple(Config.STAGE_SINK_COLOUR)
+	look.play_ripple(PeopleConfig.STAGE_SINK_COLOUR)
 	var ripples := get_tree().get_nodes_in_group("stage_ripple")
 	assert_int(ripples.size()).is_greater(0)
 	var node := ripples[0] as MeshInstance3D
@@ -189,8 +189,10 @@ func test_the_styled_drawing_helpers_run() -> void:
 		StyleUi.poly(ci, PackedVector2Array([Vector2(5, 5), Vector2(60, 20), Vector2(20, 60)]), c, Color.WHITE)
 		StyleUi.sparkle(ci, Vector2(30, 30), 2, c, Color.WHITE)
 		for kind: int in range(0, 6):
-			MoodIcons.draw(ci, kind, Vector2(200, 100), Config.MOOD_ICON_SIZE, Color(0.6, 0.7, 1.0), 0.3)
-		MoodIcons.draw(ci, MoodIcons.Kind.UMBRELLA, Vector2(250, 100), Config.MOOD_ICON_SIZE * 1.8, Color.WHITE, 0.3)
+			MoodIcons.draw(ci, kind, Vector2(200, 100), MoodConfig.MOOD_ICON_SIZE, Color(0.6, 0.7, 1.0), 0.3)
+		MoodIcons.draw(
+			ci, MoodIcons.Kind.UMBRELLA, Vector2(250, 100), MoodConfig.MOOD_ICON_SIZE * 1.8, Color.WHITE, 0.3
+		)
 	var probe := _probe(fn)
 	await get_tree().process_frame
 	await get_tree().process_frame

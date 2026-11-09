@@ -96,7 +96,7 @@ func test_releasing_e_places_the_beacon_and_costs_what_a_press_did() -> void:
 	assert_bool(td.border.has_beacon()).is_true()
 	assert_float(td.border.beacon_pos().x).is_equal_approx(8.0, 0.6)
 	assert_float(td.border.beacon_pos().z).is_equal_approx(6.0, 0.6)
-	assert_float(before - td.player.spirit).is_equal_approx(Config.BEACON_SPIRIT_COST, 0.5)
+	assert_float(before - td.player.spirit).is_equal_approx(BeaconConfig.BEACON_SPIRIT_COST, 0.5)
 	assert_bool(td.reach_guide.held).is_false()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -115,7 +115,7 @@ func test_a_second_release_places_nothing() -> void:
 	runner.simulate_key_release(KEY_E)
 	await runner.simulate_frames(2)
 	assert_float(td.player.spirit).is_equal(after)
-	assert_float(before - after).is_equal_approx(Config.BEACON_SPIRIT_COST, 0.5)
+	assert_float(before - after).is_equal_approx(BeaconConfig.BEACON_SPIRIT_COST, 0.5)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -123,7 +123,7 @@ func test_a_refused_release_shows_the_same_notice_and_spends_nothing() -> void:
 	var s: Dictionary = await _formed()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
-	td.player.lose_spirit(td.player.spirit - (Config.BEACON_SPIRIT_COST - 5.0))
+	td.player.lose_spirit(td.player.spirit - (BeaconConfig.BEACON_SPIRIT_COST - 5.0))
 	var before := td.player.spirit
 	runner.simulate_key_press(KEY_E)
 	await _aim(runner, td, Vector3(8, 0, 6))

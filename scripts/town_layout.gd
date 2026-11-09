@@ -10,7 +10,7 @@ extends RefCounted
 
 # The two streets as ground rectangles (x, z; the second is the cross street).
 static func street_rects() -> Array[Rect2]:
-	var w := Config.TOWN_STREET_HALF_WIDTH
+	var w := TownConfig.TOWN_STREET_HALF_WIDTH
 	var half := float(Config.TD_PLAZA_SIZE) * 0.5
 	return [Rect2(-half, -w, half * 2.0, w * 2.0), Rect2(-w, -half, w * 2.0, half * 2.0)]
 
@@ -25,7 +25,7 @@ static func on_street(at: Vector3, margin: float = 0.0) -> bool:
 
 # True when `at` is on the small square: the crossing and the four corners round it where the stalls stand.
 static func on_square(at: Vector3) -> bool:
-	var reach := Config.TOWN_STALL_OFFSET + 2.0
+	var reach := TownConfig.TOWN_STALL_OFFSET + 2.0
 	return absf(at.x) <= reach and absf(at.z) <= reach
 
 
@@ -45,20 +45,20 @@ static func yaw_toward(dir: Vector3) -> float:
 # crossing and none within TOWN_EDGE_CLEAR of the plaza's edge.
 static func lamp_spots() -> Array[Vector3]:
 	var out: Array[Vector3] = []
-	var reach := float(Config.TD_PLAZA_SIZE) * 0.5 - Config.TOWN_EDGE_CLEAR
-	var k := Config.TOWN_LAMP_FIRST
+	var reach := float(Config.TD_PLAZA_SIZE) * 0.5 - TownConfig.TOWN_EDGE_CLEAR
+	var k := TownConfig.TOWN_LAMP_FIRST
 	while k <= reach:
 		for s: float in [-1.0, 1.0]:
 			for side: float in [-1.0, 1.0]:
-				out.append(Vector3(s * k, 0.0, side * Config.TOWN_KERB_OFFSET))  # main street
-				out.append(Vector3(side * Config.TOWN_KERB_OFFSET, 0.0, s * k))  # cross street
-		k += Config.TOWN_LAMP_SPACING
+				out.append(Vector3(s * k, 0.0, side * TownConfig.TOWN_KERB_OFFSET))  # main street
+				out.append(Vector3(side * TownConfig.TOWN_KERB_OFFSET, 0.0, s * k))  # cross street
+		k += TownConfig.TOWN_LAMP_SPACING
 	return out
 
 
 # The stall spots on the small square: its four corners, each turned toward the start.
 static func stall_spots() -> Array[Vector3]:
-	var d := Config.TOWN_STALL_OFFSET
+	var d := TownConfig.TOWN_STALL_OFFSET
 	return [Vector3(d, 0.0, d), Vector3(-d, 0.0, d), Vector3(d, 0.0, -d), Vector3(-d, 0.0, -d)]
 
 
@@ -69,7 +69,7 @@ static func block_front(block: Vector3) -> Dictionary:
 	var f := facing(block)
 	var side := Vector3(f.z, 0.0, -f.x)
 	return {
-		"bench": c + f * Config.TOWN_BENCH_OFFSET,
-		"planter": c + f * Config.TOWN_PLANTER_OFFSET.x + side * -Config.TOWN_PLANTER_OFFSET.y,
+		"bench": c + f * TownConfig.TOWN_BENCH_OFFSET,
+		"planter": c + f * TownConfig.TOWN_PLANTER_OFFSET.x + side * -TownConfig.TOWN_PLANTER_OFFSET.y,
 		"yaw": yaw_toward(f),
 	}

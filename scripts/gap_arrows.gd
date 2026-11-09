@@ -54,7 +54,7 @@ static func off_screen_arrows(
 	var out: Array[Dictionary] = []
 	# Checkpoint 6: with a safe rectangle (HudSafeArea) the badge sits where the ray from the screen centre leaves it,
 	# shrunk by CP6_GAP_ARROW_REACH so the whole arrow stays inside; the minimap is already outside it.
-	var tips := safe.grow(-Config.CP6_GAP_ARROW_REACH)
+	var tips := safe.grow(-HudConfig.CP6_GAP_ARROW_REACH)
 	if safe.has_area() and tips.has_area():
 		for gi: int in range(gaps.size()):
 			var sp := camera.unproject_position(gaps[gi]) * view_scale
@@ -65,11 +65,11 @@ static func off_screen_arrows(
 			var urgency := urgencies[gi] if gi < urgencies.size() else 0.0
 			out.append({"pos": placed["tip"], "angle": dir.angle(), "urgency": urgency})
 		return out
-	var inner := screen.grow(-Config.OFFSCREEN_ARROW_MARGIN)
+	var inner := screen.grow(-HudConfig.OFFSCREEN_ARROW_MARGIN)
 	var centre := inner.get_center()
 	var half := inner.size * 0.5
 	var mm_centre := minimap_rect.get_center()
-	var mm_clear := minimap_rect.size.x * 0.5 + Config.OFFSCREEN_ARROW_PAD
+	var mm_clear := minimap_rect.size.x * 0.5 + HudConfig.OFFSCREEN_ARROW_PAD
 	for gi: int in range(gaps.size()):
 		var g: Vector3 = gaps[gi]
 		var urgency := urgencies[gi] if gi < urgencies.size() else 0.0
@@ -106,11 +106,11 @@ func _draw() -> void:
 		var col := arrow_colour(urgency, _clock, _alpha)
 		# Graphics checkpoint 2: the styled arrow is a pixel pointer with an ink edge (see StyleHud).
 		if Looks.is_styled():
-			StyleHud.draw_arrow(self, pos, angle, Config.OFFSCREEN_ARROW_SIZE * (1.0 + 0.6 * urgency), col)
+			StyleHud.draw_arrow(self, pos, angle, HudConfig.OFFSCREEN_ARROW_SIZE * (1.0 + 0.6 * urgency), col)
 			continue
 		var fwd := Vector2(cos(angle), sin(angle))
 		var side := Vector2(-fwd.y, fwd.x)
-		var k := Config.OFFSCREEN_ARROW_SIZE * (1.0 + 0.6 * urgency)
+		var k := HudConfig.OFFSCREEN_ARROW_SIZE * (1.0 + 0.6 * urgency)
 		var tip := pos + fwd * k
 		var a := pos - fwd * k * 0.5 + side * k * 0.6
 		var b := pos - fwd * k * 0.5 - side * k * 0.6
@@ -120,7 +120,7 @@ func _draw() -> void:
 # The colour of an arrow at `urgency` (0 to 1) at clock time `t`: the coral gap colour, pulsing faster and brighter
 # (toward a hot white-coral) as the gap stays open. `base_alpha` is the slow gap pulse used at urgency 0.
 static func arrow_colour(urgency: float, t: float, base_alpha: float) -> Color:
-	var col := Config.BORDER_GAP_COLOUR.lerp(Color(1.0, 0.82, 0.74), urgency * 0.7)
+	var col := BorderConfig.BORDER_GAP_COLOUR.lerp(Color(1.0, 0.82, 0.74), urgency * 0.7)
 	if urgency <= 0.0:
 		col.a = base_alpha
 		return col

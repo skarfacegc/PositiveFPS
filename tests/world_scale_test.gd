@@ -12,7 +12,7 @@ func _rescue_ring(td: TopDownMain, count: int, r: float) -> void:
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * r, 0.0, sin(a) * r), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
-	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
+	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 
 
 func _organic_border() -> Border:
@@ -74,13 +74,13 @@ func test_the_plaza_is_a_hundred_metres_and_the_ground_grid_matches() -> void:
 		assert_float(absf(pos.x)).is_less(half - 6.0)
 		assert_float(absf(pos.z)).is_less(half - 6.0)
 		assert_float(Vector2(pos.x, pos.z).length()).is_greater(12.0)
-	for lm: Vector3 in Config.LANDMARK_POSITIONS:
+	for lm: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
 		assert_float(Vector2(lm.x, lm.z).length()).is_greater(12.0)
 	for p: Person in td.people:
 		assert_float(absf(p.global_position.x)).is_less(half)
 		assert_float(absf(p.global_position.z)).is_less(half)
 		assert_float(Vector2(p.global_position.x, p.global_position.z).length()).is_greater(
-			Config.TD_SPAWN_CENTRE_CLEAR - 0.01
+			PeopleConfig.TD_SPAWN_CENTRE_CLEAR - 0.01
 		)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -89,25 +89,25 @@ func test_territory_constants_scale_and_interaction_constants_do_not() -> void:
 	var s := Config.WORLD_SCALE
 	# Territory: the old (round 12) value times WORLD_SCALE.
 	var territory: Dictionary = {
-		"BORDER_TARGET_SPACING": [Config.BORDER_TARGET_SPACING, 2.6],
-		"BORDER_MAX_GAP": [Config.BORDER_MAX_GAP, 3.5],
-		"BORDER_PUSH": [Config.BORDER_PUSH, 2.4],
-		"BORDER_MIN_RADIUS": [Config.BORDER_MIN_RADIUS, 3.0],
-		"BORDER_POST_REACH": [Config.BORDER_POST_REACH, 2.0],
-		"BORDER_EDGE_BAND": [Config.BORDER_EDGE_BAND, 1.0],
-		"BORDER_OUTWARD_STEP": [Config.BORDER_OUTWARD_STEP, 1.0],
-		"BORDER_INNER_SPACING": [Config.BORDER_INNER_SPACING, 0.7],
-		"BORDER_SHOVE_AMOUNT": [Config.BORDER_SHOVE_AMOUNT, 1.5],
-		"TD_COVER_RADIUS": [Config.TD_COVER_RADIUS, 3.0],
-		"TD_ERODE_RADIUS": [Config.TD_ERODE_RADIUS, 2.0],
-		"ZONE_RADIUS": [Config.ZONE_RADIUS, 6.0],
-		"SPREAD_RADIUS": [Config.SPREAD_RADIUS, 6.0],
-		"NO_ZONE_DISTANCE": [Config.NO_ZONE_DISTANCE, 20.0],
-		"TD_SPAWN_EDGE": [Config.TD_SPAWN_EDGE, 3.0],
-		"TD_SPAWN_CENTRE_CLEAR": [Config.TD_SPAWN_CENTRE_CLEAR, 5.0],
-		"TD_SPAWN_SPACING": [Config.TD_SPAWN_SPACING, 2.5],
-		"TD_PURSUIT_SEARCH_RADIUS": [Config.TD_PURSUIT_SEARCH_RADIUS, 25.0],
-		"EDGE_PRESSURE_REACH": [Config.EDGE_PRESSURE_REACH, 12.0],
+		"BORDER_TARGET_SPACING": [BorderConfig.BORDER_TARGET_SPACING, 2.6],
+		"BORDER_MAX_GAP": [BorderConfig.BORDER_MAX_GAP, 3.5],
+		"BORDER_PUSH": [RoundLoopConfig.BORDER_PUSH, 2.4],
+		"BORDER_MIN_RADIUS": [RoundLoopConfig.BORDER_MIN_RADIUS, 3.0],
+		"BORDER_POST_REACH": [BeaconConfig.BORDER_POST_REACH, 2.0],
+		"BORDER_EDGE_BAND": [BorderConfig.BORDER_EDGE_BAND, 1.0],
+		"BORDER_OUTWARD_STEP": [BorderConfig.BORDER_OUTWARD_STEP, 1.0],
+		"BORDER_INNER_SPACING": [BorderConfig.BORDER_INNER_SPACING, 0.7],
+		"BORDER_SHOVE_AMOUNT": [RoundLoopConfig.BORDER_SHOVE_AMOUNT, 1.5],
+		"TD_COVER_RADIUS": [GroundConfig.TD_COVER_RADIUS, 3.0],
+		"TD_ERODE_RADIUS": [GroundConfig.TD_ERODE_RADIUS, 2.0],
+		"ZONE_RADIUS": [PeopleConfig.ZONE_RADIUS, 6.0],
+		"SPREAD_RADIUS": [PeopleConfig.SPREAD_RADIUS, 6.0],
+		"NO_ZONE_DISTANCE": [PeopleConfig.NO_ZONE_DISTANCE, 20.0],
+		"TD_SPAWN_EDGE": [PeopleConfig.TD_SPAWN_EDGE, 3.0],
+		"TD_SPAWN_CENTRE_CLEAR": [PeopleConfig.TD_SPAWN_CENTRE_CLEAR, 5.0],
+		"TD_SPAWN_SPACING": [PeopleConfig.TD_SPAWN_SPACING, 2.5],
+		"TD_PURSUIT_SEARCH_RADIUS": [PeopleConfig.TD_PURSUIT_SEARCH_RADIUS, 25.0],
+		"EDGE_PRESSURE_REACH": [BorderConfig.EDGE_PRESSURE_REACH, 12.0],
 	}
 	for key: String in territory.keys():
 		var pair: Array = territory[key]
@@ -115,38 +115,38 @@ func test_territory_constants_scale_and_interaction_constants_do_not() -> void:
 		var old: float = pair[1]
 		assert_float(now / (old * s)).override_failure_message(key).is_equal_approx(1.0, 0.001)
 	# 0.3.3: the landmarks and blocks are placed in metres on the street plan (not scaled), 18 to 32 m from the start.
-	assert_float(Config.LANDMARK_POSITIONS[0].x).is_equal_approx(30.0, 0.0001)
-	assert_float(Config.LANDMARK_POSITIONS[0].z).is_equal_approx(0.0, 0.0001)
+	assert_float(LandmarkConfig.LANDMARK_POSITIONS[0].x).is_equal_approx(30.0, 0.0001)
+	assert_float(LandmarkConfig.LANDMARK_POSITIONS[0].z).is_equal_approx(0.0, 0.0001)
 	# A per-metre rate shrinks by the same factor, so the same fraction of the way gives the same rate.
-	assert_float(Config.GLOOM_GROWTH_PER_METER * s).is_equal_approx(0.0008, 0.000001)
+	assert_float(PeopleConfig.GLOOM_GROWTH_PER_METER * s).is_equal_approx(0.0008, 0.000001)
 	# Round numbers from the brief.
-	assert_float(Config.BORDER_TARGET_SPACING).is_equal_approx(3.71, 0.01)
-	assert_float(Config.BORDER_MAX_GAP).is_equal_approx(5.0, 0.01)
-	assert_float(Config.BORDER_PUSH).is_equal_approx(3.43, 0.01)
+	assert_float(BorderConfig.BORDER_TARGET_SPACING).is_equal_approx(3.71, 0.01)
+	assert_float(BorderConfig.BORDER_MAX_GAP).is_equal_approx(5.0, 0.01)
+	assert_float(RoundLoopConfig.BORDER_PUSH).is_equal_approx(3.43, 0.01)
 
 	# Interaction and bodies: exactly the round 12 values.
-	assert_float(Config.TD_AUTO_RANGE).is_equal(10.0)
-	assert_float(Config.GRAB_RANGE).is_equal(2.0)
-	assert_float(Config.GRAB_HIT_RANGE).is_equal(1.3)
-	assert_float(Config.GRAB_NOTICE_RANGE).is_equal(7.0)
-	assert_float(Config.SHELTER_RADIUS).is_equal(2.0)
-	assert_float(Config.SKITTISH_RADIUS).is_equal(5.0)
-	assert_float(Config.TD_PROJECTILE_HIT_RADIUS).is_equal(0.7)
-	assert_float(Config.TD_NOTE_SPEED).is_equal(15.0)
-	assert_float(Config.TD_FLOWER_SPEED).is_equal(9.0)
-	assert_float(Config.TD_BURST_RADIUS).is_equal(5.5)
-	assert_float(Config.BORDER_PRESS_RANGE).is_equal(1.5)
-	assert_float(Config.BORDER_PUSH_WIDTH).is_equal(0.5)
-	assert_float(Config.BORDER_SHOVE_RANGE).is_equal(4.0)
-	assert_float(Config.TD_DIMMED_STOP_DISTANCE).is_equal(2.5)
+	assert_float(PlayerConfig.TD_AUTO_RANGE).is_equal(10.0)
+	assert_float(SpiritConfig.GRAB_RANGE).is_equal(2.0)
+	assert_float(SpiritConfig.GRAB_HIT_RANGE).is_equal(1.3)
+	assert_float(SpiritConfig.GRAB_NOTICE_RANGE).is_equal(7.0)
+	assert_float(MoodConfig.SHELTER_RADIUS).is_equal(2.0)
+	assert_float(MoodConfig.SKITTISH_RADIUS).is_equal(5.0)
+	assert_float(ProjectileConfig.TD_PROJECTILE_HIT_RADIUS).is_equal(0.7)
+	assert_float(ProjectileConfig.TD_NOTE_SPEED).is_equal(15.0)
+	assert_float(ProjectileConfig.TD_FLOWER_SPEED).is_equal(9.0)
+	assert_float(SpiritConfig.TD_BURST_RADIUS).is_equal(5.5)
+	assert_float(BorderConfig.BORDER_PRESS_RANGE).is_equal(1.5)
+	assert_float(RoundLoopConfig.BORDER_PUSH_WIDTH).is_equal(0.5)
+	assert_float(RoundLoopConfig.BORDER_SHOVE_RANGE).is_equal(4.0)
+	assert_float(PeopleConfig.TD_DIMMED_STOP_DISTANCE).is_equal(2.5)
 	assert_vector(TopDownMain.BLOCK_SIZE).is_equal(Vector3(4, 2, 4))
-	assert_vector(Config.BORDER_LANDMARK_SIZE).is_equal(Vector3(4, 3.5, 4))
+	assert_vector(LandmarkConfig.BORDER_LANDMARK_SIZE).is_equal(Vector3(4, 3.5, 4))
 
 	# Speeds: about 10% faster, not scaled by 1.43.
-	assert_float(Config.TD_MOVE_SPEED / 6.9).is_equal_approx(1.1, 0.01)
-	assert_float(Config.TD_RUN_SPEED / 10.9).is_equal_approx(1.1, 0.01)
-	assert_float(Config.TD_DIMMED_DRIFT_SPEED / 0.92).is_equal_approx(1.1, 0.01)
-	assert_float(Config.NIGHT_LENGTH).is_equal(180.0)
+	assert_float(PlayerConfig.TD_MOVE_SPEED / 6.9).is_equal_approx(1.1, 0.01)
+	assert_float(PlayerConfig.TD_RUN_SPEED / 10.9).is_equal_approx(1.1, 0.01)
+	assert_float(PeopleConfig.TD_DIMMED_DRIFT_SPEED / 0.92).is_equal_approx(1.1, 0.01)
+	assert_float(NightConfig.NIGHT_LENGTH).is_equal(180.0)
 
 
 # Round 14: the default zoom is 19.5 m tall (was 18). The ring must still fit at the default zoom.
@@ -161,7 +161,7 @@ func test_the_camera_is_nineteen_and_a_half_metres_tall_and_the_ten_metre_ring_f
 	var centre := td.player.global_position
 	for i: int in range(24):
 		var a := TAU * float(i) / 24.0
-		var spot := centre + Vector3(cos(a) * Config.TD_AUTO_RANGE, 0, sin(a) * Config.TD_AUTO_RANGE)
+		var spot := centre + Vector3(cos(a) * PlayerConfig.TD_AUTO_RANGE, 0, sin(a) * PlayerConfig.TD_AUTO_RANGE)
 		assert_bool(rect.has_point(td.camera.unproject_position(spot))).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -268,11 +268,11 @@ func test_spawn_spots_keep_clear_of_the_centre_blocks_and_each_other() -> void:
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
 	var none: Array[Vector3] = []
-	assert_bool(td._spot_ok(Vector3(Config.TD_SPAWN_CENTRE_CLEAR - 0.5, 0, 0), none)).is_false()
+	assert_bool(td._spot_ok(Vector3(PeopleConfig.TD_SPAWN_CENTRE_CLEAR - 0.5, 0, 0), none)).is_false()
 	assert_bool(td._spot_ok(TopDownMain.BLOCK_POSITIONS[0] * Vector3(1, 0, 1), none)).is_false()
 	var near: Array[Vector3] = [Vector3(20, 0, 0)]
-	assert_bool(td._spot_ok(Vector3(20 + Config.TD_SPAWN_SPACING - 0.5, 0, 0), near)).is_false()
-	assert_bool(td._spot_ok(Vector3(20 + Config.TD_SPAWN_SPACING + 0.5, 0, 0), near)).is_true()
+	assert_bool(td._spot_ok(Vector3(20 + PeopleConfig.TD_SPAWN_SPACING - 0.5, 0, 0), near)).is_false()
+	assert_bool(td._spot_ok(Vector3(20 + PeopleConfig.TD_SPAWN_SPACING + 0.5, 0, 0), near)).is_true()
 	td._end_round("Test")
 	assert_bool(td.running).is_false()
 	td._end_round("Again")

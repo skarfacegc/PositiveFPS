@@ -67,7 +67,7 @@ func assign_members(rescued: Array[Person]) -> void:
 	if m < 1:
 		return
 	# The slot grid: m member slots plus BORDER_POST_WORTH slots per post, evenly spaced around the loop.
-	var k_total := m + Config.BORDER_POST_WORTH * b.post_count
+	var k_total := m + BeaconConfig.BORDER_POST_WORTH * b.post_count
 	b.spacing = b.perimeter / float(k_total)
 	var slot_taken: Array[bool] = []
 	var post_slot: Array[bool] = []
@@ -93,7 +93,7 @@ func assign_members(rescued: Array[Person]) -> void:
 		for off: int in range(k_total):
 			var s := posmod(c - 1 + off, k_total)
 			if run_free(slot_taken, s):
-				for t: int in range(Config.BORDER_POST_WORTH):
+				for t: int in range(BeaconConfig.BORDER_POST_WORTH):
 					slot_taken[posmod(s + t, k_total)] = true
 					post_slot[posmod(s + t, k_total)] = true
 				bld.set_post(true)
@@ -119,7 +119,7 @@ func assign_members(rescued: Array[Person]) -> void:
 		var best_k := chosen[i] if chosen.size() == border_list.size() else nearest_free_slot(here, slots, slot_taken)
 		slot_taken[best_k] = true
 		var slot_at := BorderShape.clear_of_blocks(
-			b.boxes(), slots[best_k], Config.ZONE_BLOCK_CLEAR, Vector2(b.centre.x, b.centre.z)
+			b.boxes(), slots[best_k], BorderConfig.ZONE_BLOCK_CLEAR, Vector2(b.centre.x, b.centre.z)
 		)
 		b._targets[p] = Vector3(slot_at.x, 0.0, slot_at.y)
 		b.members.append(p)
@@ -127,11 +127,11 @@ func assign_members(rescued: Array[Person]) -> void:
 	var spiral_cap := 0.6 * b._mean_radius()
 	for j: int in range(b.inner.size()):
 		var ang := float(j) * Border.GOLDEN_ANGLE
-		var r := minf(Config.BORDER_INNER_SPACING * sqrt(float(j) + 1.0), spiral_cap)
+		var r := minf(BorderConfig.BORDER_INNER_SPACING * sqrt(float(j) + 1.0), spiral_cap)
 		var rest := BorderShape.clear_of_blocks(
 			b.boxes(),
 			Vector2(b.centre.x + cos(ang) * r, b.centre.z + sin(ang) * r),
-			Config.ZONE_BLOCK_CLEAR,
+			BorderConfig.ZONE_BLOCK_CLEAR,
 			Vector2(b.centre.x, b.centre.z)
 		)
 		b._targets[b.inner[j]] = Vector3(rest.x, 0.0, rest.y)
@@ -237,7 +237,7 @@ func ordered_slots(
 	# Round 18, hysteresis: the offset that matches where everyone was heading last frame stays unless another offset
 	# saves more than BORDER_SLOT_HYSTERESIS of the walking, so small changes of the loop never swap people over.
 	var kept := _offset_matching(list, order, slots, free, prev_targets)
-	if kept >= 0 and costs[kept] <= best_cost * (1.0 + Config.BORDER_SLOT_HYSTERESIS):
+	if kept >= 0 and costs[kept] <= best_cost * (1.0 + BorderConfig.BORDER_SLOT_HYSTERESIS):
 		best_r = kept
 	out.resize(m)
 	for i: int in range(m):
@@ -289,7 +289,7 @@ func _take_outermost(list: Array[Person]) -> Person:
 # True when slot `s` and the BORDER_POST_WORTH slots after it are all free (see assign_members).
 static func run_free(taken: Array[bool], s: int) -> bool:
 	var k := taken.size()
-	for t: int in range(Config.BORDER_POST_WORTH):
+	for t: int in range(BeaconConfig.BORDER_POST_WORTH):
 		if taken[posmod(s + t, k)]:
 			return false
 	return true

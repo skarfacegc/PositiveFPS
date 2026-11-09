@@ -33,11 +33,11 @@ func hide_pointer() -> void:
 func _draw() -> void:
 	if not shown:
 		return
-	var col := Config.TIDE_POINTER_COLOUR
-	var centre := tip - dir * (Config.TIDE_POINTER_ARROW + Config.TIDE_POINTER_RING)
-	draw_circle(centre, Config.TIDE_POINTER_RING, Color(col.r, col.g, col.b, 0.2))
-	draw_arc(centre, Config.TIDE_POINTER_RING, 0.0, TAU, 24, col, 2.0, true)
+	var col := NightConfig.TIDE_POINTER_COLOUR
+	var centre := tip - dir * (NightConfig.TIDE_POINTER_ARROW + NightConfig.TIDE_POINTER_RING)
+	draw_circle(centre, NightConfig.TIDE_POINTER_RING, Color(col.r, col.g, col.b, 0.2))
+	draw_arc(centre, NightConfig.TIDE_POINTER_RING, 0.0, TAU, 24, col, 2.0, true)
 	var side := Vector2(-dir.y, dir.x)
-	var base := tip - dir * Config.TIDE_POINTER_ARROW
-	var a := Config.TIDE_POINTER_ARROW * 0.6
+	var base := tip - dir * NightConfig.TIDE_POINTER_ARROW
+	var a := NightConfig.TIDE_POINTER_ARROW * 0.6
 	draw_colored_polygon(PackedVector2Array([tip, base + side * a, base - side * a]), col)

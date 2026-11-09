@@ -2,11 +2,11 @@ class_name Recorder
 extends Node
 
 # Round 18: the gameplay recorder. While it is on, each game writes a session folder with `events.jsonl` (one JSON
-# object per line) and a screenshot every Config.RECORD_SHOT_SECONDS. tools/analyse_recording.py reads the folder.
+# object per line) and a screenshot every RECORD_SHOT_SECONDS. tools/analyse_recording.py reads the folder.
 #
 # It only LISTENS: it connects to signals the game already has and polls a few public fields; it never changes game
 # state, uses no random numbers and does no file I/O per frame (lines are buffered and written every
-# Config.RECORD_FLUSH_SECONDS, on the end of the round, and when the node leaves the tree or the window is closed).
+# RECORD_FLUSH_SECONDS, on the end of the round, and when the node leaves the tree or the window is closed).
 # To record a new event, call `emit_event("my_type", {"field": value})` from the code that knows about it, or connect
 # a
 # signal in `attach()`. Every line gets `t`, `night_phase`, `night` (seconds since dusk) and `type` for free.
@@ -82,7 +82,7 @@ static func save_setting_to(path: String) -> void:
 
 # The night phase name for a night progress 0..1 (the calm opening, then thirds up to dawn).
 static func phase_for(progress: float) -> String:
-	if progress < Config.NIGHT_CALM_FRACTION:
+	if progress < NightConfig.NIGHT_CALM_FRACTION:
 		return PHASE_NAMES[0]
 	if progress < 0.5:
 		return PHASE_NAMES[1]
@@ -139,7 +139,7 @@ func attach(main: TopDownMain) -> bool:
 			"targeting_mode": Config.TargetingMode.find_key(main.player.targeting_mode),
 			"zoom": snappedf(main.camera.size, 0.01),
 			"people": main.people.size(),
-			"night_length": Config.NIGHT_LENGTH,
+			"night_length": NightConfig.NIGHT_LENGTH,
 			"headless": _headless(),
 		}
 	)
@@ -223,20 +223,20 @@ func _process(delta: float) -> void:
 		_last_target = target
 		emit_event("target_change", _target_fields())
 	_poll_timer += delta
-	if _poll_timer >= Config.RECORD_POLL_SECONDS:
+	if _poll_timer >= RecorderConfig.RECORD_POLL_SECONDS:
 		_poll_timer = 0.0
 		_poll_gaps()
 		_poll_shields()
 	_sample_timer += delta
-	if _sample_timer >= Config.RECORD_SAMPLE_SECONDS:
-		_sample_timer -= Config.RECORD_SAMPLE_SECONDS
+	if _sample_timer >= RecorderConfig.RECORD_SAMPLE_SECONDS:
+		_sample_timer -= RecorderConfig.RECORD_SAMPLE_SECONDS
 		_sample()
 	_shot_timer += delta
-	if _shot_timer >= Config.RECORD_SHOT_SECONDS:
+	if _shot_timer >= RecorderConfig.RECORD_SHOT_SECONDS:
 		_shot_timer = 0.0
 		_screenshot()
 	_flush_timer += delta
-	if _flush_timer >= Config.RECORD_FLUSH_SECONDS:
+	if _flush_timer >= RecorderConfig.RECORD_FLUSH_SECONDS:
 		_flush_timer = 0.0
 		_flush()
 
@@ -350,7 +350,7 @@ func _sample() -> void:
 	var assignments := _main.pursuit_assignments(_main.people)
 	for p: Person in assignments:
 		var ward: Person = assignments[p]
-		if _flat(p.global_position, ward.global_position) <= Config.RECORD_PRESS_RADIUS:
+		if _flat(p.global_position, ward.global_position) <= RecorderConfig.RECORD_PRESS_RADIUS:
 			pressers += 1
 	var open_len := 0.0
 	var sealed_len := 0.0
@@ -406,7 +406,7 @@ func _poll_gaps() -> void:
 	var new_opened: Array[float] = []
 	for mid: Vector3 in mids:
 		var best := -1
-		var best_d := Config.GAP_TRACK_RADIUS
+		var best_d := BorderConfig.GAP_TRACK_RADIUS
 		for i: int in range(_gap_pos.size()):
 			var d := _flat(mid, _gap_pos[i])
 			if d < best_d and not taken.has(i):
@@ -445,7 +445,7 @@ func _poll_shields() -> void:
 	for i: int in range(_main.people.size()):
 		var p: Person = _main.people[i]
 		var now: float = p.shield_down_left
-		if now > _shield_down[i] + 0.5 * Config.SHELTER_REGROW:
+		if now > _shield_down[i] + 0.5 * MoodConfig.SHELTER_REGROW:
 			emit_event("umbrella_pop", {"id": i, "pos": _pos(p.global_position)})
 		_shield_down[i] = now
 
@@ -608,9 +608,9 @@ func _record_shot(img: Image) -> void:
 
 
 static func _save_shot(img: Image, path: String) -> void:
-	if img.get_width() > Config.RECORD_SHOT_WIDTH:
-		var h := roundi(float(img.get_height()) * Config.RECORD_SHOT_WIDTH / float(img.get_width()))
-		img.resize(Config.RECORD_SHOT_WIDTH, h, Image.INTERPOLATE_BILINEAR)
+	if img.get_width() > RecorderConfig.RECORD_SHOT_WIDTH:
+		var h := roundi(float(img.get_height()) * RecorderConfig.RECORD_SHOT_WIDTH / float(img.get_width()))
+		img.resize(RecorderConfig.RECORD_SHOT_WIDTH, h, Image.INTERPOLATE_BILINEAR)
 	img.save_png(path)
 
 

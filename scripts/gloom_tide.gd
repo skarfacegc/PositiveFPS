@@ -101,13 +101,13 @@ func refresh_pointer() -> void:
 		return
 	var screen := main.get_viewport().get_visible_rect().size
 	var safe: Rect2 = HudSafeArea.current(main, screen)
-	var tips := safe.grow(-Config.WOBBLE_ALERT_REACH)
+	var tips := safe.grow(-HudConfig.WOBBLE_ALERT_REACH)
 	if tips.size.x <= 0.0 or tips.size.y <= 0.0:
 		pointer.hide_pointer()
 		return
 	var angle: float = tides[i]["angle"]
 	var dir := Vector2.from_angle(angle)
-	var far := main.border.centre + Vector3(dir.x, 0.0, dir.y) * Config.TIDE_POINTER_FAR
+	var far := main.border.centre + Vector3(dir.x, 0.0, dir.y) * NightConfig.TIDE_POINTER_FAR
 	var placed := WobbleAlert.tip_for(main.world_to_screen(far), screen, tips)
 	var at: Vector2 = placed["tip"]
 	var outward: Vector2 = placed["dir"]
@@ -119,7 +119,7 @@ static func faces(pos: Vector3, centre: Vector3, angle: float) -> bool:
 	var d := Vector2(pos.x - centre.x, pos.z - centre.z)
 	if d.length() < 0.001:
 		return false
-	return absf(angle_difference(d.angle(), angle)) <= Config.TIDE_HALF_WIDTH
+	return absf(angle_difference(d.angle(), angle)) <= NightConfig.TIDE_HALF_WIDTH
 
 
 # The compass name of a side (north is -z, as the camera sees it: north is up the screen).
@@ -132,9 +132,9 @@ static func side_name(angle: float) -> String:
 
 # Draws the two tides: a random angle and a start time inside each window, from the seed (RNG_SEED + TIDE_SEED_OFFSET).
 func _build_schedule() -> void:
-	_rng.seed = Config.RNG_SEED + Config.TIDE_SEED_OFFSET
-	_add_tide(Config.TIDE_RISING_FROM, Config.TIDE_RISING_TO)
-	_add_tide(Config.TIDE_MIDNIGHT_FROM, Config.TIDE_MIDNIGHT_TO)
+	_rng.seed = Config.RNG_SEED + NightConfig.TIDE_SEED_OFFSET
+	_add_tide(NightConfig.TIDE_RISING_FROM, NightConfig.TIDE_RISING_TO)
+	_add_tide(NightConfig.TIDE_MIDNIGHT_FROM, NightConfig.TIDE_MIDNIGHT_TO)
 
 
 func _add_tide(from: float, to: float) -> void:
@@ -144,7 +144,7 @@ func _add_tide(from: float, to: float) -> void:
 		tides
 		. append(
 			{
-				"start": progress * Config.NIGHT_LENGTH,
+				"start": progress * NightConfig.NIGHT_LENGTH,
 				"angle": angle,
 				"side": side_name(angle),
 				"warned": false,
@@ -163,9 +163,9 @@ func _advance() -> void:
 		var start: float = t["start"]
 		var side: String = t["side"]
 		var angle: float = t["angle"]
-		if not t["warned"] and now >= start - Config.TIDE_WARN_SECONDS:
+		if not t["warned"] and now >= start - NightConfig.TIDE_WARN_SECONDS:
 			t["warned"] = true
-			main.intro.notice(Intro.Prompt.TIDE, Config.TIDE_TEXT % side)
+			main.intro.notice(Intro.Prompt.TIDE, NightConfig.TIDE_TEXT % side)
 			tide_warned.emit(side, angle)
 			refresh_pointer()
 		if t["warned"] and not t["started"] and now >= start:
@@ -174,7 +174,7 @@ func _advance() -> void:
 			var facing: int = count_facing(angle)
 			t["members"] = facing
 			tide_started.emit(side, angle, facing)
-		if t["started"] and not t["ended"] and now >= start + Config.TIDE_SECONDS:
+		if t["started"] and not t["ended"] and now >= start + NightConfig.TIDE_SECONDS:
 			t["ended"] = true
 			var left: int = count_facing(angle)
 			tide_ended.emit(side, angle, left)
@@ -184,40 +184,40 @@ func _advance() -> void:
 # over the first TIDE_ARRIVE share of the passing and then holds just past the line, shoving it.
 func front_distance(idx: int) -> float:
 	var start: float = tides[idx]["start"]
-	var f := clampf((main.night.elapsed - start) / Config.TIDE_SECONDS, 0.0, 1.0)
-	var arrive := smoothstep(0.0, Config.TIDE_ARRIVE, f)
-	return lerpf(Config.TIDE_FOG_FAR - Config.TIDE_FOG_DEPTH * 0.5, _shove_front(), arrive)
+	var f := clampf((main.night.elapsed - start) / NightConfig.TIDE_SECONDS, 0.0, 1.0)
+	var arrive := smoothstep(0.0, NightConfig.TIDE_ARRIVE, f)
+	return lerpf(NightConfig.TIDE_FOG_FAR - NightConfig.TIDE_FOG_DEPTH * 0.5, _shove_front(), arrive)
 
 
 # The front's resting place: TIDE_SHOVE_DEPTH metres inside the border's mean radius.
 func _shove_front() -> float:
-	var r := Config.TIDE_FOG_NEAR
+	var r := NightConfig.TIDE_FOG_NEAR
 	if main.border != null and main.border.active:
 		r = main.border.body_radius
-	return r - Config.TIDE_SHOVE_DEPTH
+	return r - NightConfig.TIDE_SHOVE_DEPTH
 
 
 # The wave's shove on the line now: 0 until the front is within TIDE_PUSH_REACH of the line, TIDE_PUSH once it is
 # TIDE_SHOVE_DEPTH past it (a smooth ramp between), and eased off at the end of the passing.
 func shove_strength(idx: int) -> float:
 	var r := main.border.body_radius
-	var span := Config.TIDE_PUSH_REACH + Config.TIDE_SHOVE_DEPTH
-	var ramp := clampf((r + Config.TIDE_PUSH_REACH - front_distance(idx)) / span, 0.0, 1.0)
+	var span := NightConfig.TIDE_PUSH_REACH + NightConfig.TIDE_SHOVE_DEPTH
+	var ramp := clampf((r + NightConfig.TIDE_PUSH_REACH - front_distance(idx)) / span, 0.0, 1.0)
 	var start: float = tides[idx]["start"]
-	var f := clampf((main.night.elapsed - start) / Config.TIDE_SECONDS, 0.0, 1.0)
-	return ramp * clampf((1.0 - f) / Config.TIDE_FOG_FADE, 0.0, 1.0)
+	var f := clampf((main.night.elapsed - start) / NightConfig.TIDE_SECONDS, 0.0, 1.0)
+	return ramp * clampf((1.0 - f) / NightConfig.TIDE_FOG_FADE, 0.0, 1.0)
 
 
-# Sets (or clears) the wave's force on the border: Config.TIDE_PUSH over the side the passing tide comes from.
+# Sets (or clears) the wave's force on the border: NightConfig.TIDE_PUSH over the side the passing tide comes from.
 func _apply_push() -> void:
 	wave_force = 0.0
 	var i := passing_index()
 	if i < 0 or not main.border.active or not main.running:
 		main.border.push.clear_wave()
 		return
-	wave_force = Config.TIDE_PUSH * shove_strength(i)
+	wave_force = NightConfig.TIDE_PUSH * shove_strength(i)
 	var angle: float = tides[i]["angle"]
-	main.border.push.set_wave(angle, Config.TIDE_HALF_WIDTH, wave_force)
+	main.border.push.set_wave(angle, NightConfig.TIDE_HALF_WIDTH, wave_force)
 
 
 # The minimap's fog edge, the fog band and the pointer, from the tide on show.
@@ -239,7 +239,7 @@ func _show(delta: float) -> void:
 		if started:
 			_place_fog(idx)
 	_pointer_since += delta
-	if _pointer_since >= Config.TIDE_POINTER_REFRESH:
+	if _pointer_since >= NightConfig.TIDE_POINTER_REFRESH:
 		_pointer_since = 0.0
 		refresh_pointer()
 
@@ -249,20 +249,20 @@ func _show(delta: float) -> void:
 func _place_fog(idx: int) -> void:
 	var start: float = tides[idx]["start"]
 	var angle: float = tides[idx]["angle"]
-	var f := clampf((main.night.elapsed - start) / Config.TIDE_SECONDS, 0.0, 1.0)
-	var dist := front_distance(idx) + Config.TIDE_FOG_DEPTH * 0.5  # The band's middle (its front is the near edge).
+	var f := clampf((main.night.elapsed - start) / NightConfig.TIDE_SECONDS, 0.0, 1.0)
+	var dist := front_distance(idx) + NightConfig.TIDE_FOG_DEPTH * 0.5  # The band's middle (its front is the near edge).
 	var dir := Vector2.from_angle(angle)
 	var around := Vector3.ZERO
 	if main.border != null and main.border.active:
 		around = main.border.centre
-	fog.position = Vector3(around.x + dir.x * dist, Config.TIDE_FOG_Y, around.z + dir.y * dist)
+	fog.position = Vector3(around.x + dir.x * dist, NightConfig.TIDE_FOG_Y, around.z + dir.y * dist)
 	_sway_figures(f)
 	# The plane's long side runs along the tangent of the side (its local X axis turned to (-sin, 0, cos)).
 	fog.rotation.y = -angle - PI / 2.0
-	var fade := clampf(minf(f, 1.0 - f) / Config.TIDE_FOG_FADE, 0.0, 1.0)
+	var fade := clampf(minf(f, 1.0 - f) / NightConfig.TIDE_FOG_FADE, 0.0, 1.0)
 	var mat := fog.material_override as StandardMaterial3D
-	var c := Config.TIDE_FOG_COLOUR
-	mat.albedo_color = Color(c.r, c.g, c.b, Config.TIDE_FOG_ALPHA * fade)
+	var c := NightConfig.TIDE_FOG_COLOUR
+	mat.albedo_color = Color(c.r, c.g, c.b, NightConfig.TIDE_FOG_ALPHA * fade)
 	# Checkpoint 7: the styled fog follows the same place and rises and sinks with the same fade.
 	styled_fog.position = fog.position
 	styled_fog.rotation = fog.rotation
@@ -283,42 +283,42 @@ func _set_fog_shown(on: bool) -> void:
 func _sway_figures(f: float) -> void:
 	for i: int in range(figures.size()):
 		var fig := figures[i]
-		var phase := float(i) * 1.7 + f * Config.TIDE_SECONDS * 3.0
-		fig.position.y = Config.TIDE_FIGURE_HEIGHT * 0.5 - Config.TIDE_FOG_Y + absf(sin(phase)) * 0.18
+		var phase := float(i) * 1.7 + f * NightConfig.TIDE_SECONDS * 3.0
+		fig.position.y = NightConfig.TIDE_FIGURE_HEIGHT * 0.5 - NightConfig.TIDE_FOG_Y + absf(sin(phase)) * 0.18
 		fig.position.x = _figure_x(i) + sin(phase * 0.5) * 0.4
 	# Checkpoint 7: the styled figures stand on the ground (their origin is the base) and walk the same way.
 	for i: int in range(styled_figures.size()):
 		var fig := styled_figures[i]
-		var phase := float(i) * 1.7 + f * Config.TIDE_SECONDS * 3.0
-		fig.position.y = -Config.TIDE_FOG_Y + absf(sin(phase)) * 0.18
+		var phase := float(i) * 1.7 + f * NightConfig.TIDE_SECONDS * 3.0
+		fig.position.y = -NightConfig.TIDE_FOG_Y + absf(sin(phase)) * 0.18
 		fig.position.x = _styled_figure_x(i) + sin(phase * 0.5) * 0.4
 
 
 func _figure_x(i: int) -> float:
-	return lerpf(-1.0, 1.0, (float(i) + 0.5) / float(Config.TIDE_FIGURES)) * Config.TIDE_FIGURE_SPREAD
+	return lerpf(-1.0, 1.0, (float(i) + 0.5) / float(NightConfig.TIDE_FIGURES)) * NightConfig.TIDE_FIGURE_SPREAD
 
 
 # 0.3.1: the styled figures spread over the storm cloud's own length (never past TIDE_FIGURE_SPREAD).
 func _styled_figure_x(i: int) -> float:
 	var half := StylePush.current_length(styled_fog) * 0.5 - 1.5
-	var spread := clampf(half, 1.0, Config.TIDE_FIGURE_SPREAD)
-	return lerpf(-1.0, 1.0, (float(i) + 0.5) / float(Config.TIDE_FIGURES)) * spread
+	var spread := clampf(half, 1.0, NightConfig.TIDE_FIGURE_SPREAD)
+	return lerpf(-1.0, 1.0, (float(i) + 0.5) / float(NightConfig.TIDE_FIGURES)) * spread
 
 
 func _build_figures() -> void:
 	var mesh := CapsuleMesh.new()
 	mesh.radius = 0.36
-	mesh.height = Config.TIDE_FIGURE_HEIGHT
+	mesh.height = NightConfig.TIDE_FIGURE_HEIGHT
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Config.TIDE_FIGURE_COLOUR
-	for i: int in range(Config.TIDE_FIGURES):
+	mat.albedo_color = NightConfig.TIDE_FIGURE_COLOUR
+	for i: int in range(NightConfig.TIDE_FIGURES):
 		var fig := MeshInstance3D.new()
 		fig.mesh = mesh
 		fig.material_override = mat
 		# A fixed zig-zag in the band's depth, so they do not stand in a row.
 		var row := -0.3 if i % 2 == 0 else 0.3
-		fig.position = Vector3(_figure_x(i), 0.0, row * Config.TIDE_FOG_DEPTH)
+		fig.position = Vector3(_figure_x(i), 0.0, row * NightConfig.TIDE_FOG_DEPTH)
 		fog.add_child(fig)
 		figures.append(fig)
 
@@ -326,13 +326,13 @@ func _build_figures() -> void:
 func _build_fog() -> void:
 	fog = MeshInstance3D.new()
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(Config.TIDE_FOG_WIDTH, Config.TIDE_FOG_DEPTH)
+	plane.size = Vector2(NightConfig.TIDE_FOG_WIDTH, NightConfig.TIDE_FOG_DEPTH)
 	fog.mesh = plane
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.albedo_color = Config.TIDE_FOG_COLOUR
+	mat.albedo_color = NightConfig.TIDE_FOG_COLOUR
 	fog.material_override = mat
 	fog.visible = false
 	_build_figures()
@@ -340,10 +340,10 @@ func _build_fog() -> void:
 	# 0.3.1: the placeholder plane is not noted as a fallback: the styled storm cloud below covers it (it was listed on F3
 	# as "tide_fog" in the styled look although only the styled cloud shows there).
 	# Checkpoint 7: the styled fog (cloud and figures) under the same position; shown only in the styled look.
-	styled_fog = StylePush.build_fog(main, Config.TIDE_FOG_WIDTH, Config.TIDE_FOG_DEPTH)
+	styled_fog = StylePush.build_fog(main, NightConfig.TIDE_FOG_WIDTH, NightConfig.TIDE_FOG_DEPTH)
 	styled_fog.visible = false
-	for i: int in range(Config.TIDE_FIGURES):
+	for i: int in range(NightConfig.TIDE_FIGURES):
 		var fig := StylePush.build_figure(styled_fog)
 		var row := -0.3 if i % 2 == 0 else 0.3
-		fig.position = Vector3(_styled_figure_x(i), 0.0, row * Config.TIDE_FOG_DEPTH)
+		fig.position = Vector3(_styled_figure_x(i), 0.0, row * NightConfig.TIDE_FOG_DEPTH)
 		styled_figures.append(fig)

@@ -29,7 +29,7 @@ func _ring_level(count: int, r: float) -> Dictionary:
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * r, 0.0, sin(a) * r), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
-	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
+	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 	await runner.simulate_frames(600)
 	return s
 
@@ -66,16 +66,16 @@ func test_a_styled_person_glows_hops_and_opens_a_ring_in_a_reaction() -> void:
 	td.set_look(Looks.Mode.STYLED)
 	await runner.simulate_frames(3)
 	var look := m.look as PersonLookStyled
-	m.react(Person.React.LIFT, Config.REACT_LIFT_SECONDS)
+	m.react(Person.React.LIFT, PeopleConfig.REACT_LIFT_SECONDS)
 	var top := 0.0
 	var lit := false
 	var ringed := false
-	for _i: int in range(int(Config.REACT_LIFT_SECONDS * 60.0) - 2):
+	for _i: int in range(int(PeopleConfig.REACT_LIFT_SECONDS * 60.0) - 2):
 		await runner.simulate_frames(1)
 		top = maxf(top, look.visual.position.y)
 		lit = lit or look._react_amount > 0.2
 		ringed = ringed or (look._react_ring != null and look._react_ring.visible)
-	assert_float(top).is_greater(Config.REACT_LIFT_HOP_HEIGHT * 0.5)
+	assert_float(top).is_greater(PeopleConfig.REACT_LIFT_HOP_HEIGHT * 0.5)
 	assert_bool(lit).is_true()
 	assert_bool(ringed).is_true()
 	await runner.simulate_frames(20)
@@ -139,7 +139,7 @@ func test_styled_first_light_lights_the_ground_the_motes_and_the_sky() -> void:
 	var runner: GdUnitSceneRunner = s["runner"]
 	td.set_look(Looks.Mode.STYLED)
 	td.running = false
-	td.night.elapsed = Config.NIGHT_LENGTH - Config.FIRST_LIGHT_SECONDS * 0.5
+	td.night.elapsed = NightConfig.NIGHT_LENGTH - NightConfig.FIRST_LIGHT_SECONDS * 0.5
 	td.first_light.step(0.0)
 	var ground := td.ground.look as GroundLookStyled
 	assert_float(ground.dawn_front()).is_equal_approx(td.first_light.edge(), 0.001)
@@ -174,7 +174,7 @@ func test_the_styled_cue_is_a_panel_that_lights_when_ready() -> void:
 	assert_bool(td.burst_cue.cue_panel.visible).is_true()
 	assert_bool(td.burst_cue.cue_label.visible).is_false()
 	assert_bool(td.burst_cue.cue_panel.cue_ready).is_true()
-	assert_str(td.burst_cue.cue_panel.cue_text).is_equal(Config.CUE_BURST_TEXT % 3)
+	assert_str(td.burst_cue.cue_panel.cue_text).is_equal(HudConfig.CUE_BURST_TEXT % 3)
 	assert_float(td.burst_cue.cue_panel.size.x).is_greater(StyleDawn.cue_size("").x)
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	td.burst_cue._update_label()
@@ -196,8 +196,11 @@ func test_the_styled_minimap_warms_the_lit_ground() -> void:
 	var strong := styled.first_light("ground", base, 0, 0)
 	var weak := styled.first_light("ground", base, 1, 0)
 	assert_bool(strong.is_equal_approx(weak)).is_false()
-	assert_bool(plain.first_light("line", base, 0, 0).is_equal_approx(Config.FIRST_LIGHT_MINIMAP_COLOUR)).is_true()
-	assert_bool(styled.first_light("line", base, 0, 0).is_equal_approx(Config.FIRST_LIGHT_MINIMAP_COLOUR)).is_false()
+	assert_bool(plain.first_light("line", base, 0, 0).is_equal_approx(NightConfig.FIRST_LIGHT_MINIMAP_COLOUR)).is_true()
+	(
+		assert_bool(styled.first_light("line", base, 0, 0).is_equal_approx(NightConfig.FIRST_LIGHT_MINIMAP_COLOUR))
+		. is_false()
+	)
 
 
 func test_the_styled_minimap_draws_a_dark_line_just_ahead_of_the_dawn_front() -> void:
@@ -279,7 +282,7 @@ func test_the_styled_notice_and_the_burst_ring_are_built_without_the_placeholder
 	assert_float(td.prompts.alpha).is_greater(0.0)
 	# The styled burst is two flat rings in the level (the placeholder disc registers a "burst ring" fallback).
 	var before := Looks.placeholder_fallback_count()
-	td.player.look.play_burst(Config.BURST_CLEAR_RADIUS, Config.TD_BURST_TIME)
+	td.player.look.play_burst(SpiritConfig.BURST_CLEAR_RADIUS, SpiritConfig.TD_BURST_TIME)
 	assert_int(Looks.placeholder_fallback_count()).is_equal(before)
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	await TopDownTestUtil.leave_loaded_scene(td)

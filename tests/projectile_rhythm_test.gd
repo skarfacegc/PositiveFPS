@@ -128,7 +128,7 @@ func test_art_splat_is_bigger_than_before_and_frees_itself() -> void:
 	assert_int(_impacts(td, "splat").size()).is_greater(0)
 	var splat := _impacts(td, "splat")[0] as MeshInstance3D
 	var disc := splat.mesh as CylinderMesh
-	assert_float(disc.top_radius).is_equal_approx(Config.TD_SPLAT_RADIUS, 0.001)
+	assert_float(disc.top_radius).is_equal_approx(ProjectileConfig.TD_SPLAT_RADIUS, 0.001)
 	# Round 7: bigger than the round 6 splat (0.6 m).
 	assert_float(disc.top_radius).is_greater(0.4)
 
@@ -150,7 +150,7 @@ func test_nature_hit_bursts_petals_and_blooms_then_both_free_themselves() -> voi
 	while _impacts(td, "petals").is_empty() and frames < 240:
 		await runner.simulate_frames(1)
 		frames += 1
-	assert_int(_impacts(td, "petals").size()).is_greater_equal(Config.TD_PETAL_BURST_COUNT)
+	assert_int(_impacts(td, "petals").size()).is_greater_equal(ProjectileConfig.TD_PETAL_BURST_COUNT)
 	assert_int(TopDownTestUtil.blooms(td).size()).is_greater(0)
 
 	await _release(runner, td)

@@ -18,48 +18,48 @@ func _person(affinity: int = 0) -> Person:
 
 # Holds landmark `index` (its block beautified for the whole claim hold).
 func _hold(lms: Landmarks, index: int) -> void:
-	lms.items[index].update(Config.BORDER_LANDMARK_HOLD, true)
+	lms.items[index].update(LandmarkConfig.BORDER_LANDMARK_HOLD, true)
 
 
 # --- Where they stand -----------------------------------------------------------------------------------------------
 
 
 func test_there_are_four_landmarks_with_names_boosts_and_a_short_hold() -> void:
-	assert_int(Config.LANDMARK_NAMES.size()).is_equal(4)
-	assert_int(Config.LANDMARK_POSITIONS.size()).is_equal(4)
-	assert_int(Config.LANDMARK_SIZES.size()).is_equal(4)
-	assert_int(Config.LANDMARK_COLOURS.size()).is_equal(4)
-	assert_int(Config.LANDMARK_BOOST_TEXT.size()).is_equal(4)
-	assert_str(Config.LANDMARK_NAMES[Landmarks.GALLERY]).is_equal("Gallery")
-	assert_float(Config.BORDER_LANDMARK_HOLD).is_between(2.0, 4.0)
-	assert_float(Config.LANDMARK_MUSIC_MULT).is_equal(2.0)
-	assert_float(Config.LANDMARK_NATURE_MULT).is_equal(2.0)
-	assert_float(Config.LANDMARK_BELL_LOSS_MULT).is_equal(0.4)
+	assert_int(LandmarkConfig.LANDMARK_NAMES.size()).is_equal(4)
+	assert_int(LandmarkConfig.LANDMARK_POSITIONS.size()).is_equal(4)
+	assert_int(LandmarkConfig.LANDMARK_SIZES.size()).is_equal(4)
+	assert_int(LandmarkConfig.LANDMARK_COLOURS.size()).is_equal(4)
+	assert_int(LandmarkConfig.LANDMARK_BOOST_TEXT.size()).is_equal(4)
+	assert_str(LandmarkConfig.LANDMARK_NAMES[Landmarks.GALLERY]).is_equal("Gallery")
+	assert_float(LandmarkConfig.BORDER_LANDMARK_HOLD).is_between(2.0, 4.0)
+	assert_float(LandmarkConfig.LANDMARK_MUSIC_MULT).is_equal(2.0)
+	assert_float(LandmarkConfig.LANDMARK_NATURE_MULT).is_equal(2.0)
+	assert_float(LandmarkConfig.LANDMARK_BELL_LOSS_MULT).is_equal(0.4)
 
 
 func test_landmarks_are_inside_the_map_clear_of_blocks_and_each_other_and_near_the_start() -> void:
-	var lim := Config.BORDER_MAP_LIMIT
-	var count := Config.LANDMARK_POSITIONS.size()
+	var lim := RoundLoopConfig.BORDER_MAP_LIMIT
+	var count := LandmarkConfig.LANDMARK_POSITIONS.size()
 	for i: int in range(count):
-		var at := Config.LANDMARK_POSITIONS[i]
-		var half := Config.LANDMARK_SIZES[i].x * 0.5
+		var at := LandmarkConfig.LANDMARK_POSITIONS[i]
+		var half := LandmarkConfig.LANDMARK_SIZES[i].x * 0.5
 		# Inside the map, with the whole block on the floor.
 		assert_float(absf(at.x) + half).is_less(lim)
 		assert_float(absf(at.z) + half).is_less(lim)
 		# 0.3.3 (#17): every landmark is 18 to 32 m from the start, so reaching one takes a pull or two, not a trek.
 		var d := Vector2(at.x, at.z).length()
-		assert_float(d).is_between(Config.LANDMARK_NEAREST, Config.LANDMARK_FARTHEST)
+		assert_float(d).is_between(TownConfig.LANDMARK_NEAREST, TownConfig.LANDMARK_FARTHEST)
 		# Clear of every ordinary block (a block is 4 wide: keep a wide margin) and of each other.
 		for block: Vector3 in TopDownMain.BLOCK_POSITIONS:
 			assert_float(Vector2(at.x - block.x, at.z - block.z).length()).is_greater(8.0)
 		for j: int in range(i + 1, count):
-			var other := Config.LANDMARK_POSITIONS[j]
+			var other := LandmarkConfig.LANDMARK_POSITIONS[j]
 			assert_float(Vector2(at.x - other.x, at.z - other.z).length()).is_greater(20.0)
 
 
 func test_the_landmarks_stand_on_different_sides_of_the_start_on_the_streets() -> void:
 	var sides := {}
-	for at: Vector3 in Config.LANDMARK_POSITIONS:
+	for at: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
 		# One at the end of each arm of the two streets.
 		assert_bool(TownLayout.on_street(at, -2.0)).is_true()
 		sides[Vector2i(int(signf(at.x)), int(signf(at.z)))] = true
@@ -73,10 +73,10 @@ func test_the_level_builds_a_block_and_a_building_for_each_landmark() -> void:
 	assert_int(td.landmarks.items.size()).is_equal(4)
 	assert_int(td.border.landmark_buildings.size()).is_equal(4)
 	for i: int in range(4):
-		var at := Config.LANDMARK_POSITIONS[i]
+		var at := LandmarkConfig.LANDMARK_POSITIONS[i]
 		assert_vector(td.border.landmark_buildings[i].centre).is_equal(Vector2(at.x, at.z))
 		assert_vector(td.landmarks.items[i].position).is_equal(at)
-		assert_str(td.landmarks.items[i].landmark_name()).is_equal(Config.LANDMARK_NAMES[i])
+		assert_str(td.landmarks.items[i].landmark_name()).is_equal(LandmarkConfig.LANDMARK_NAMES[i])
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -90,7 +90,7 @@ func test_a_landmark_is_claimed_after_the_hold_and_lost_the_moment_the_border_dr
 		var log: Array[String] = []
 		lm.claimed.connect(func() -> void: log.append("claimed"))
 		lm.lost.connect(func() -> void: log.append("lost"))
-		lm.update(Config.BORDER_LANDMARK_HOLD - 0.1, true)
+		lm.update(LandmarkConfig.BORDER_LANDMARK_HOLD - 0.1, true)
 		assert_bool(lm.is_held()).is_false()
 		lm.update(0.2, true)
 		assert_bool(lm.is_held()).is_true()
@@ -160,12 +160,12 @@ func test_the_garden_boosts_nature_joy_only_while_held() -> void:
 func test_the_bell_tower_cuts_the_loss_of_border_members_near_it_only_while_held() -> void:
 	var lms := _landmarks()
 	var border: Border = auto_free(Border.new())
-	var bell := Config.LANDMARK_POSITIONS[Landmarks.BELL_TOWER]
+	var bell := LandmarkConfig.LANDMARK_POSITIONS[Landmarks.BELL_TOWER]
 	var near := _person()
 	var far := _person()
 	var outsider := _person()
-	near.position = bell + Vector3(Config.LANDMARK_BELL_RADIUS - 1.0, 0.0, 0.0)
-	far.position = bell + Vector3(Config.LANDMARK_BELL_RADIUS + 3.0, 0.0, 0.0)
+	near.position = bell + Vector3(LandmarkConfig.LANDMARK_BELL_RADIUS - 1.0, 0.0, 0.0)
+	far.position = bell + Vector3(LandmarkConfig.LANDMARK_BELL_RADIUS + 3.0, 0.0, 0.0)
 	outsider.position = bell
 	border.members = [near, far]
 	var people: Array[Person] = [near, far, outsider]
@@ -195,10 +195,10 @@ func test_a_dim_player_recovers_near_each_landmark_before_a_border_exists() -> v
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
-	for at: Vector3 in Config.LANDMARK_POSITIONS:
+	for at: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
 		td.player.global_position = Vector3(at.x, 0.0, at.z + 4.0)
-		assert_float(td.dim_recovery_rate()).is_equal(Config.DIM_RECOVER_RATE)
-		td.player.global_position = Vector3(at.x, 0.0, at.z + Config.LANDMARK_RECOVER_RADIUS + 6.0)
+		assert_float(td.dim_recovery_rate()).is_equal(SpiritConfig.DIM_RECOVER_RATE)
+		td.player.global_position = Vector3(at.x, 0.0, at.z + SpiritConfig.LANDMARK_RECOVER_RADIUS + 6.0)
 		assert_float(td.dim_recovery_rate()).is_equal(0.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -208,7 +208,7 @@ func test_a_ring_round_the_garden_claims_it_and_the_hud_panel_and_boost_follow()
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
 	TopDownTestUtil.send_everyone_away(td)
-	var garden := Config.LANDMARK_POSITIONS[Landmarks.GARDEN]
+	var garden := LandmarkConfig.LANDMARK_POSITIONS[Landmarks.GARDEN]
 	for i: int in range(3):
 		var a := TAU * float(i) / 3.0
 		var p: Person = td.people[i]

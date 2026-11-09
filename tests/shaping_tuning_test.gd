@@ -55,15 +55,15 @@ func test_reach_is_about_thirty_percent_further_than_round_22() -> void:
 
 
 func test_the_beacon_walks_about_fifty_percent_faster_than_round_22() -> void:
-	assert_float(Config.BEACON_PULL_SPEED).is_equal_approx(_round_22_pull_speed() * 1.5, 0.001)
+	assert_float(BeaconConfig.BEACON_PULL_SPEED).is_equal_approx(_round_22_pull_speed() * 1.5, 0.001)
 
 
 func test_notices_and_growth_text_are_smaller_and_quieter() -> void:
-	assert_int(Config.NOTICE_FONT_SIZE).is_less_equal(20)
-	assert_float(Config.NOTICE_HEIGHT).is_less(56.0)
-	assert_float(Config.BEACON_GUIDE_LABEL_SIZE).is_less_equal(0.03)
-	assert_float(Config.BEACON_GAIN_LABEL_SIZE).is_less(0.05)
-	assert_float(Config.BEACON_PULSE_COLOUR.a).is_less(0.95)
+	assert_int(HudConfig.NOTICE_FONT_SIZE).is_less_equal(20)
+	assert_float(HudConfig.NOTICE_HEIGHT).is_less(56.0)
+	assert_float(BeaconConfig.BEACON_GUIDE_LABEL_SIZE).is_less_equal(0.03)
+	assert_float(BeaconConfig.BEACON_GAIN_LABEL_SIZE).is_less(0.05)
+	assert_float(BeaconConfig.BEACON_PULSE_COLOUR.a).is_less(0.95)
 
 
 func test_a_far_aim_is_not_refused_and_the_stretch_goes_as_far_as_the_people_allow() -> void:
@@ -105,7 +105,7 @@ func test_the_tip_walks_at_the_new_pull_speed_on_a_long_stretch() -> void:
 	await runner.simulate_frames(60)
 	var tip1: Vector3 = td.border.stretch_info()["tip"]
 	assert_bool(td.border.stretch_info()["on"]).is_true()
-	assert_float(GloomSim.flat_dist(tip1, tip0)).is_equal_approx(Config.BEACON_PULL_SPEED, 0.05)
+	assert_float(GloomSim.flat_dist(tip1, tip0)).is_equal_approx(BeaconConfig.BEACON_PULL_SPEED, 0.05)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -129,5 +129,5 @@ func test_the_preview_of_a_far_aim_is_the_calm_preview_and_the_growth_text_is_sm
 		guard += 1
 	await runner.simulate_frames(5)
 	assert_object(td.reach_guide._gain_label).is_not_null()
-	assert_float(td.reach_guide._gain_label.pixel_size).is_equal_approx(Config.BEACON_GAIN_LABEL_SIZE, 0.0001)
+	assert_float(td.reach_guide._gain_label.pixel_size).is_equal_approx(BeaconConfig.BEACON_GAIN_LABEL_SIZE, 0.0001)
 	await TopDownTestUtil.leave_loaded_scene(td)

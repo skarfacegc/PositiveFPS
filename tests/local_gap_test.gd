@@ -17,7 +17,7 @@ func _border_level(count: int, r: float, settle_frames: int = 600) -> Dictionary
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * r, 0.0, sin(a) * r), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
-	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
+	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 	await runner.simulate_frames(settle_frames)
 	return {"runner": runner, "td": td}
 
@@ -42,7 +42,7 @@ func test_a_faltering_slot_makes_the_two_segments_beside_it_gaps_and_no_others()
 func test_a_loop_that_is_stretched_too_wide_is_still_one_big_gap_everywhere() -> void:
 	var filled: Array[bool] = [true, true, true]
 	var faltering: Array[bool] = [false, false, false]
-	var flags := BorderShape.gap_flags(Config.BORDER_MAX_GAP + 0.5, filled, [], faltering)
+	var flags := BorderShape.gap_flags(BorderConfig.BORDER_MAX_GAP + 0.5, filled, [], faltering)
 	assert_array(flags).is_equal([true, true, true])
 
 
@@ -60,9 +60,9 @@ func test_a_member_below_the_falter_fraction_of_their_joy_falters() -> void:
 	p.is_rescued = true
 	p.joy = Config.JOY_MAX
 	assert_bool(p.is_faltering()).is_false()
-	p.joy = Config.JOY_MAX * Config.MEMBER_FALTER_FRACTION + 1.0
+	p.joy = Config.JOY_MAX * BorderConfig.MEMBER_FALTER_FRACTION + 1.0
 	assert_bool(p.is_faltering()).is_false()
-	p.joy = Config.JOY_MAX * Config.MEMBER_FALTER_FRACTION - 1.0
+	p.joy = Config.JOY_MAX * BorderConfig.MEMBER_FALTER_FRACTION - 1.0
 	assert_bool(p.is_faltering()).is_true()
 	p.is_rescued = false
 	assert_bool(p.is_faltering()).is_false()
@@ -95,7 +95,7 @@ func test_dimmed_people_pick_the_newest_stretch_of_the_border() -> void:
 
 	# The east stretch advances (a rescue pushes outward there): the dimmed person goes east.
 	var east_angle := atan2(east.position.z - border.centre.z, east.position.x - border.centre.x)
-	border._push_at(east_angle, Config.BORDER_PUSH)
+	border._push_at(east_angle, RoundLoopConfig.BORDER_PUSH)
 	assert_float(border.edge_pressure(east.position)).is_greater(border.edge_pressure(west.position))
 	var pick: Dictionary = td.pursuit_assignments(td.people)
 	assert_object(pick[dimmed]).is_same(east)
@@ -104,7 +104,7 @@ func test_dimmed_people_pick_the_newest_stretch_of_the_border() -> void:
 	for i: int in range(border._pushed_at.size()):
 		border._pushed_at[i] = -1.0e9
 	var west_angle := atan2(west.position.z - border.centre.z, west.position.x - border.centre.x)
-	border._push_at(west_angle, Config.BORDER_PUSH)
+	border._push_at(west_angle, RoundLoopConfig.BORDER_PUSH)
 	pick = td.pursuit_assignments(td.people)
 	assert_object(pick[dimmed]).is_same(west)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -116,11 +116,11 @@ func test_how_recently_a_stretch_advanced_fades_over_time() -> void:
 	var border: Border = td.border
 	var m: Person = border.members[0]
 	var angle := atan2(m.position.z - border.centre.z, m.position.x - border.centre.x)
-	border._push_at(angle, Config.BORDER_PUSH)
+	border._push_at(angle, RoundLoopConfig.BORDER_PUSH)
 	var fresh := border.edge_pressure(m.position)
-	border._time += Config.EDGE_RECENT_SECONDS * 0.5
+	border._time += BorderConfig.EDGE_RECENT_SECONDS * 0.5
 	var older := border.edge_pressure(m.position)
-	border._time += Config.EDGE_RECENT_SECONDS
+	border._time += BorderConfig.EDGE_RECENT_SECONDS
 	var old := border.edge_pressure(m.position)
 	assert_float(older).is_less(fresh)
 	assert_float(old).is_less(older)
@@ -152,7 +152,7 @@ func test_a_dimmed_person_outside_the_border_walks_up_to_the_line_and_presses_it
 	await runner.simulate_frames(480)
 	var near: Dictionary = td.border._nearest_on_loop(Vector2(dimmed.position.x, dimmed.position.z))
 	var dist: float = near["dist"]
-	assert_float(dist).is_less(Config.BORDER_PRESS_RANGE)
+	assert_float(dist).is_less(BorderConfig.BORDER_PRESS_RANGE)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

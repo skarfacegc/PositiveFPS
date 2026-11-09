@@ -13,10 +13,10 @@ var _ring_mat: StandardMaterial3D
 
 func sync() -> void:
 	# Round 12a: a dim player's colour drains toward grey (see TopDownPlayer.dim_level).
-	body_mat.albedo_color = Config.TD_PLAYER_COLOUR.lerp(Config.DIM_PLAYER_GREY, subject.dim_level())
+	body_mat.albedo_color = PlayerConfig.TD_PLAYER_COLOUR.lerp(SpiritConfig.DIM_PLAYER_GREY, subject.dim_level())
 	# The ring under the player is the target's element colour, or cream with no target.
 	if subject.target == null:
-		_ring_mat.albedo_color = Config.TD_NO_TARGET_COLOR
+		_ring_mat.albedo_color = PlayerConfig.TD_NO_TARGET_COLOR
 	else:
 		_ring_mat.albedo_color = Config.ELEMENT_COLORS[subject.target.affinity]
 
@@ -39,7 +39,7 @@ func _build_body() -> void:
 	body.mesh = body_mesh
 	body.position = Vector3(0, 0.9, 0)
 	body_mat = StandardMaterial3D.new()
-	body_mat.albedo_color = Config.TD_PLAYER_COLOUR
+	body_mat.albedo_color = PlayerConfig.TD_PLAYER_COLOUR
 	body.material_override = body_mat
 	rig.add_child(body)
 
@@ -63,7 +63,7 @@ func _build_body() -> void:
 	ring.position = Vector3(0, 0.03, 0)
 	_ring_mat = StandardMaterial3D.new()
 	_ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_ring_mat.albedo_color = Config.TD_NO_TARGET_COLOR
+	_ring_mat.albedo_color = PlayerConfig.TD_NO_TARGET_COLOR
 	ring.material_override = _ring_mat
 	add_child(ring)
 	_build_marker()
@@ -71,24 +71,24 @@ func _build_body() -> void:
 
 # Round 10: the warm double ring on the ground and the soft glow under the player.
 func _build_marker() -> void:
-	for r: float in Config.TD_PLAYER_RING_RADII:
+	for r: float in PlayerConfig.TD_PLAYER_RING_RADII:
 		var ring := MeshInstance3D.new()
 		var torus := TorusMesh.new()
 		torus.inner_radius = r
-		torus.outer_radius = r + Config.TD_PLAYER_RING_WIDTH
+		torus.outer_radius = r + PlayerConfig.TD_PLAYER_RING_WIDTH
 		ring.mesh = torus
 		ring.position = Vector3(0, 0.035, 0)
-		ring.material_override = _warm_material(Config.TD_PLAYER_RING_COLOUR)
+		ring.material_override = _warm_material(PlayerConfig.TD_PLAYER_RING_COLOUR)
 		add_child(ring)
 	var glow := MeshInstance3D.new()
 	var disc := CylinderMesh.new()
-	disc.top_radius = Config.TD_PLAYER_GLOW_RADIUS
-	disc.bottom_radius = Config.TD_PLAYER_GLOW_RADIUS
+	disc.top_radius = PlayerConfig.TD_PLAYER_GLOW_RADIUS
+	disc.bottom_radius = PlayerConfig.TD_PLAYER_GLOW_RADIUS
 	disc.height = 0.01
 	glow.mesh = disc
 	glow.position = Vector3(0, 0.02, 0)
-	var glow_col := Config.TD_PLAYER_RING_COLOUR
-	glow_col.a = Config.TD_PLAYER_GLOW_ALPHA
+	var glow_col := PlayerConfig.TD_PLAYER_RING_COLOUR
+	glow_col.a = PlayerConfig.TD_PLAYER_GLOW_ALPHA
 	glow.material_override = _warm_material(glow_col)
 	add_child(glow)
 

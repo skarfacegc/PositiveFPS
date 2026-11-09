@@ -1,7 +1,7 @@
 extends GdUnitTestSuite
 
 # Round 17, hover targeting: input-driven (real mouse motion through the scene runner). A held target is kept for at
-# most Config.HOVER_STICK_SECONDS (0.2 s, 12 frames at 60 Hz) after the cursor stops being over or nearest to it. A
+# most HOVER_STICK_SECONDS (0.2 s, 12 frames at 60 Hz) after the cursor stops being over or nearest to it. A
 # person directly under the cursor takes over at once. The frame counts below leave one or two frames of slack.
 
 

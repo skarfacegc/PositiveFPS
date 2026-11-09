@@ -35,7 +35,7 @@ func test_the_pointer_hides_with_no_warning_and_when_the_window_is_too_small() -
 	td.gloom_tide.refresh_pointer()
 	assert_bool(td.gloom_tide.pointer.shown).is_false()
 	var start: float = td.gloom_tide.tides[0]["start"]
-	_at(td, start - Config.TIDE_WARN_SECONDS + 0.1)
+	_at(td, start - NightConfig.TIDE_WARN_SECONDS + 0.1)
 	assert_bool(td.gloom_tide.pointer.shown).is_true()
 	td.get_window().size = Vector2i(200, 150)
 	await runner.simulate_frames(3)
@@ -48,8 +48,8 @@ func test_the_pointer_is_worked_out_again_every_refresh_interval() -> void:
 	var parts := await _level()
 	var td: TopDownMain = parts[1]
 	var start: float = td.gloom_tide.tides[0]["start"]
-	_at(td, start - Config.TIDE_WARN_SECONDS + 0.1)
+	_at(td, start - NightConfig.TIDE_WARN_SECONDS + 0.1)
 	td.gloom_tide.pointer.hide_pointer()
-	td.gloom_tide._show(Config.TIDE_POINTER_REFRESH + 0.01)
+	td.gloom_tide._show(NightConfig.TIDE_POINTER_REFRESH + 0.01)
 	assert_bool(td.gloom_tide.pointer.shown).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)
