@@ -574,6 +574,14 @@ end 1 (was 0), and the smaller zone rescues fewer (34 to 36 against 42): look at
 the new rule (`border_growth_test`, `border_flicker_test`, `border_centre_edges_test`); nothing loosened. Gate OK (875
 tests, 99.9%), determinism OK. `border_slots.gd`'s unreachable fallback was folded into one ternary.
 
+## 0.3.3 Town layout, playtest 2 (2026-11-09) (#53, #54; #52, #51, #17 In review)
+
+Played commit 3adc5a6 (180 s, win, 52 rescued, 3 of 3 dawn lights, zone 2574 sq m, all four landmarks claimed; the Gallery
+was lost twice near the end). The user: the zone-control glitch "seems to have fixed it". **Accepted:** #53, #54 (Done),
+plus the tooling #5 to #8 and #20 and the code health #19 and #21, which the gate checks. **Still In review:** the town
+layout items #52, #51, #17 (not accepted yet; the user did not say). #23 (recorder gap_* to break_*) stays Ready, undecided.
+#9 (stale worktrees) is still the coordinator's. Nothing else came up.
+
 ## 0.4 Tug of war plan (2026-11-07)
 
 Planned as rounds 27 and 28 before the switch to targets; the content is unchanged. **Order:** first pass **Reorg**
