@@ -565,6 +565,15 @@ corner (`BorderShape.step_around`, `Border._detour`). After: 0 person-frames and
 Members used per rescued count is 22 at 42 versus 31 at 37 in the old layout. The fix is a rule change (for example a post
 worth 1 for a 4 m block) touching `border_growth_test`, `border_centre_edges_test` and `border_centre`.
 
+### Post worth, built (2026-11-09) (#54)
+
+Commit b97cae8. `BORDER_POST_WORTH` 3 to 1 (a flat 1 slot per post). Bot night (helper, 30 rescued, 180 s): members at
+120/150/180 s went from 13/22/22 (42 rescued) to 26/26/25 (34 rescued); at the end 31 of 36 staff the line (was 22 of 42),
+inner people about 4. Worth 2 was rejected (19 of 33). Difficulty shifted slightly: gap seconds 1.1 (was 0.5), dimmed at
+end 1 (was 0), and the smaller zone rescues fewer (34 to 36 against 42): look at this in the playtest. Tests updated to
+the new rule (`border_growth_test`, `border_flicker_test`, `border_centre_edges_test`); nothing loosened. Gate OK (875
+tests, 99.9%), determinism OK. `border_slots.gd`'s unreachable fallback was folded into one ternary.
+
 ## 0.4 Tug of war plan (2026-11-07)
 
 Planned as rounds 27 and 28 before the switch to targets; the content is unchanged. **Order:** first pass **Reorg**
