@@ -26,7 +26,7 @@ FIRST, before any edit: run `git merge --ff-only <local main hash>` in your work
 doesn't then show that hash, stop and report.                                   <- BASE CHECK, worktree agents only
 
 Scope: <files you may change>. Stay out of <files other parallel agents own>. Put new constants in their own block
-("<Target>: <part name>") in scripts/config.gd. <Other parts running in parallel and what they touch.>
+("<Target>: <part name>") in the system's config script (scripts/<system>_config.gd; ARCHITECTURE.md "Tuning" lists them). <Other parts running in parallel and what they touch.>
 
 Tests: add tests for new behaviour in tests/<name>_test.gd. Run only your own suites
 (`python tools/run_tests.py --suites <name>_test [<other>_test ...]`, `python tools/lint.py`), not the full gate,

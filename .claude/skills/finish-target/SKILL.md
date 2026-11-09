@@ -31,7 +31,7 @@ agents that started them. Run the gate only when the machine is quiet; if it is 
 ## 2. Merge
 
 Merge the part branches into `main` one at a time (`git merge --no-ff <branch>`); read each conflict. Expect them in
-`scripts/config.gd`, README.md, IDEAS.md, menu text and `tools/analyse_recording.py`. Keep both sides' constants blocks.
+the `scripts/*_config.gd` files, README.md, IDEAS.md, menu text and `tools/analyse_recording.py`. Keep both sides' constants blocks.
 Check `git status` is clean and `git log --oneline` shows each part.
 
 ## 3. Stale player-facing text

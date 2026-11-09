@@ -60,7 +60,7 @@ SOURCE_MAP.md (every script's public functions with line numbers, generated: reg
 
 - **Split independent parts.** When a pass has large parts that don't depend on each other, give each part its own
   agent with `isolation: "worktree"`, then merge the branches.
-  - Expect small conflicts in shared files (`scripts/config.gd`, README.md, IDEAS.md, menu text). The coordinator
+  - Expect small conflicts in shared files (the `scripts/*_config.gd` files, README.md, IDEAS.md, menu text). The coordinator
     resolves them at merge time.
   - Give each part its own constants block (for example "Walls and gates: Line") to keep conflicts small.
 - **Check the base first.** Worktree agents start from `origin/main`, not local main, and main is usually ahead

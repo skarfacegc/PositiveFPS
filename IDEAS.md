@@ -7,7 +7,7 @@ at its top, plus the map from old round numbers to versions). This file keeps th
 the current targets' plans. To find code use `SOURCE_MAP.md`
 (`python tools/source_map.py`); for where things live and how to brief an agent use `ARCHITECTURE.md`.
 
-## Current state (as of 2026-11-09, after 0.3.3 Town layout)
+## Current state (as of 2026-11-09, after 0.4 pass 1 Reorg)
 
 **What the game is.** A gentle top-down territory game in Godot 4.7 (GDScript, strict typing). Dimmed people slowly take
 over a plaza; the player rescues them with joy, and the rescued form a living border that holds the gloom back and paints
@@ -84,8 +84,8 @@ placeholder, `tide_pointer` still is.
 
 **Recorder:** breaks are logged as `break_open` / `break_close` (#23); the analyser still reads the old `gap_*` names.
 
-**Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Next target:
-**0.4 Walls and gates** (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
+**0.4 Walls and gates**, pass 1 Reorg built (In review); pass 2 Grid and Line next (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -175,30 +175,15 @@ so an agent tuning one system searches both.
    `coverage_baseline.json` gets the new file paths (never a lower total). Regenerate SOURCE_MAP.md and update
    ARCHITECTURE.md (script map, areas, tuning).
 
+**Built (2026-11-09, merged `ffe5e44`; In review, no playtest).** `config_base.gd` is gone: the 783 constants are in
+18 per-system scripts (`scripts/*_config.gd`, listed in ARCHITECTURE.md "Tuning"); `beacon_config.gd` and
+`round_loop_config.gd` hold what pass 2 deletes. `config.gd` keeps the shared core and helpers. `topdown_main.gd` is
+about 230 lines (was 860) and builds and calls ten new system scripts (`plaza`, `camera_rig`, `target_highlight`,
+`level_hud`, `level_events`, `level_end`, `dim_gate`, `cover_update`, `dim_recovery`, `look_switch`). After the merge:
+gate `--full` 875 tests in 279 s, determinism same 11178 lines, baseline total unchanged. Nothing loosened.
+
 **Not in Reorg:** sub-folders for `scripts/` (border/, gloom/, people/, hud/, fx/). Coverage, the baseline and the
 fast tier's map are keyed by file path, so it needs a remap tool first; low value for the risk.
-
-### Walls and gates: Quick wins, build speed and upkeep (#5 to #9)
-
-Moved to 0.3.3 Town layout (2026-11-09); the text stays here.
-
-1. **Stop Godot importing tool output** (#5). `.godot/` is 1.4 GB: Godot imports every gdUnit4 report under `reports/` (267
-   folders, one logo per report page; 15,395 paths in `reports/determinism-2` alone). `run_tests.py`'s freshness check
-   already skips these folders (`IMPORT_IGNORED_DIRS`), but Godot itself does not. Have the tools put a `.gdignore` in
-   each `IMPORT_IGNORED_DIRS` folder that holds no game assets (at least `reports/` and `coverage/`; check `design/`,
-   `recordings/` and `dist-builds/` are never loaded by the game first), keep only the last few report folders, then
-   clear `.godot/imported` once and reimport. Expect a much smaller cache, a faster `--import` (about 38 s today), and
-   faster coverage and determinism copies, which start from the repo's import cache. Record before and after in
-   `tools/BUILD_TIMINGS.md`.
-2. **Worktree agents start with the import cache** (#6) (only once 1 has shrunk it): list the needed parts of `.godot/`
-   in a `.worktreeinclude`, so a new agent worktree skips its first full import. Measure the copy against the import.
-3. **SOURCE_MAP.md never blocks a commit** (#7). Have `lint.py --fix` regenerate it (the hook still checks it), and say so
-   in the `brief-build-agent` skill, so agents stop losing a commit attempt to a stale map.
-4. **IDEAS.md stays short** (#8). The `finish-target` skill moves the finished build and plan sections to IDEAS_RESOLVED.md
-   (the round 26 build section is still here).
-5. **Coordinator, by hand** (#9): now that checkpoint 7 has merged, run `python tools/cleanup_worktrees.py` (three old scratchpad
-   copies and `agent-afd5…` are stale), and suggest `/fewer-permission-prompts` to the user to allowlist the common
-   tool commands.
 
 ### Walls and gates: Grid, Line and Defences (Grid #55, Line #56 and #10 to #14, Defences #15 and #16)
 
