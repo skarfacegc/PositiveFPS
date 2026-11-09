@@ -464,7 +464,9 @@ const NIGHT_CALM_STRENGTH := 0.2
 # A beautified building whose footprint is this close to the loop (metres) is a border post.
 const BORDER_POST_REACH := 2.0 * WORLD_SCALE
 # A post holds this many members' worth of perimeter, so the loop needs that many fewer people.
-const BORDER_POST_WORTH := 3
+# 1 since 0.3.3 (#54): at 3, the ~6 posts of the street town held half the
+# slots, leaving most rescued people inside instead of on the line.
+const BORDER_POST_WORTH := 1
 # Post visuals (placeholder): a warm lantern on the block, and a golden ring around its base.
 const BORDER_POST_LANTERN_COLOUR := Color(1.0, 0.8, 0.45)
 const BORDER_POST_RING_COLOUR := Color(1.0, 0.82, 0.3)

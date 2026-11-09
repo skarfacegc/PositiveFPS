@@ -85,11 +85,12 @@ func test_a_length_on_the_slot_step_does_not_blink_gaps() -> void:
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
 	var step := float(PEOPLE) * Config.BORDER_TARGET_SPACING
-	# Before the fix: 59 changes in 60 frames, and the border held 47 members every other frame (46 with the post).
+	# Before the fix: 59 changes in 60 frames, and the border held 47 members every other frame (46 with a post worth 3,
+	# 48 worth 1).
 	var out := await _blink(td, [step - 0.15, step + 0.15], 60)
 	assert_int(out["posts"]).is_equal(1)
 	assert_int(out["changes"]).is_equal(0)
-	assert_int(out["most"]).is_equal(46)
+	assert_int(out["most"]).is_equal(49 - Config.BORDER_POST_WORTH)
 	# The break is still a real gap: the fix does not hide it.
 	assert_int(out["gaps"]).is_greater(0)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -102,7 +103,7 @@ func test_a_real_change_of_length_still_changes_the_gaps_once() -> void:
 	# Well past the hold: one slot more is wanted, so the ring changes once and then stays.
 	var out := await _blink(td, [step + 0.8 * Config.BORDER_TARGET_SPACING], 60, step - 0.15)
 	assert_int(out["changes"]).is_between(1, 2)
-	assert_int(out["most"]).is_equal(47)
+	assert_int(out["most"]).is_equal(50 - Config.BORDER_POST_WORTH)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

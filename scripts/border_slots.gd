@@ -114,11 +114,9 @@ func assign_members(rescued: Array[Person]) -> void:
 	var chosen := ordered_slots(border_list, slots, slot_taken, prev_targets)
 	for i: int in range(border_list.size()):
 		var p: Person = border_list[i]
-		var best_k := -1
-		if chosen.size() == border_list.size():
-			best_k = chosen[i]
-		else:
-			best_k = nearest_free_slot(Vector2(p.position.x, p.position.z), slots, slot_taken)
+		# (With BORDER_POST_WORTH 1 every post is placed, so the fallback is a safety net only.)
+		var here := Vector2(p.position.x, p.position.z)
+		var best_k := chosen[i] if chosen.size() == border_list.size() else nearest_free_slot(here, slots, slot_taken)
 		slot_taken[best_k] = true
 		var slot_at := BorderShape.clear_of_blocks(
 			b.boxes(), slots[best_k], Config.ZONE_BLOCK_CLEAR, Vector2(b.centre.x, b.centre.z)

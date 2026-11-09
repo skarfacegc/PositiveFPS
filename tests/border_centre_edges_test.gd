@@ -101,7 +101,7 @@ func test_the_controller_edges_idle_walking_back_merging_arms_and_one_arm_too_ma
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_before_the_border_forms_a_post_pulls_the_centre_like_three_people() -> void:
+func test_before_the_border_forms_a_post_pulls_the_centre_like_its_worth_in_people() -> void:
 	var border: Border = auto_free(Border.new())
 	var ctl: BorderCentre = border._centre_ctl
 	var p: Person = auto_free(Person.new())
