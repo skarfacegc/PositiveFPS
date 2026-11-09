@@ -551,6 +551,20 @@ sequential:
 
 Then replay the same pass for the user's playtest 2.
 
+### Zone control around buildings, built (2026-11-09) (#53, #54)
+
+Commit 6d3927b. **Cause found** (180 s bot night, 30 rescued): blocks never stopped people, because `Border._move_members`
+sets position directly, so 2.8% of person-frames were spent inside a block and people walked straight through them
+(1.3% of targets inside one). Nobody stalled; the "snag" was people standing or walking inside buildings.
+**Fix:** slot and rest-place targets inside a footprint grown by `ZONE_BLOCK_CLEAR` (0.8 m) are pushed out along the ray from
+the loop centre (`BorderShape.clear_of_blocks`); a walker whose step would enter a footprint heads for the nearest reachable
+corner (`BorderShape.step_around`, `Border._detour`). After: 0 person-frames and 0 targets in a block. 6 new tests
+(`zone_control_test`), full gate OK (875 tests, 99.9%), determinism OK, nothing loosened.
+**Not fixed, needs a decision (#54, S, Backlog):** about 6 posts each hold `BORDER_POST_WORTH` = 3 slots, about half of the
+35.7 slots, so only 18 to 22 of 42 rescued are border members and about 18 are inner (the "bunched in the middle" part).
+Members used per rescued count is 22 at 42 versus 31 at 37 in the old layout. The fix is a rule change (for example a post
+worth 1 for a 4 m block) touching `border_growth_test`, `border_centre_edges_test` and `border_centre`.
+
 ## 0.4 Tug of war plan (2026-11-07)
 
 Planned as rounds 27 and 28 before the switch to targets; the content is unchanged. **Order:** first pass **Reorg**
