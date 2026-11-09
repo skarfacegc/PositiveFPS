@@ -115,8 +115,8 @@ func test_projectile_fired_at_a_target_behind_a_block_fizzles_on_the_block() -> 
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)
-	# The block at (-20, -18) x WORLD_SCALE is 4 m wide. The target stands just beyond it, to the north.
-	var block := Vector3(-20, 0, -18) * Config.WORLD_SCALE
+	# The first block (-38, -8) is 4 m wide. The target stands just beyond it, to the north.
+	var block := TopDownMain.BLOCK_POSITIONS[0] * Vector3(1, 0, 1)
 	var target: Person = td.people[0]
 	TopDownTestUtil.place(target, block + Vector3(0, 0, -3.5), 0, 0.0)
 	td.player.global_position = block + Vector3(0, 0, 4.0)

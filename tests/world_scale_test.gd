@@ -114,9 +114,9 @@ func test_territory_constants_scale_and_interaction_constants_do_not() -> void:
 		var now: float = pair[0]
 		var old: float = pair[1]
 		assert_float(now / (old * s)).override_failure_message(key).is_equal_approx(1.0, 0.001)
-	# Round 19: the landmarks are placed in round-12 metres and scaled like the blocks.
-	assert_float(Config.LANDMARK_POSITIONS[0].x).is_equal_approx(27.0 * s, 0.0001)
-	assert_float(Config.LANDMARK_POSITIONS[0].z).is_equal_approx(-21.0 * s, 0.0001)
+	# 0.3.3: the landmarks and blocks are placed in metres on the street plan (not scaled), 18 to 32 m from the start.
+	assert_float(Config.LANDMARK_POSITIONS[0].x).is_equal_approx(30.0, 0.0001)
+	assert_float(Config.LANDMARK_POSITIONS[0].z).is_equal_approx(0.0, 0.0001)
 	# A per-metre rate shrinks by the same factor, so the same fraction of the way gives the same rate.
 	assert_float(Config.GLOOM_GROWTH_PER_METER * s).is_equal_approx(0.0008, 0.000001)
 	# Round numbers from the brief.

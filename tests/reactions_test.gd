@@ -398,14 +398,15 @@ func test_the_placeholder_border_line_fades_along_the_retreating_arm() -> void:
 # --- A nearer landmark ----------------------------------------------------------------------------------------------
 
 
-func test_a_stretch_from_twelve_people_can_reach_the_near_landmark() -> void:
+func test_a_stretch_from_twelve_people_goes_most_of_the_way_to_the_nearest_landmark() -> void:
 	var s: Dictionary = await _border_level(12, BorderCentre.circle_radius(12))
 	var td: TopDownMain = s["td"]
-	var at := Config.LANDMARK_POSITIONS[Config.LANDMARK_NEAR_INDEX]
+	var at := Config.LANDMARK_POSITIONS[Landmarks.GARDEN]
 	td.border.buildings.clear()
 	var plan: Dictionary = td.border.plan_stretch(at)
 	var reach: float = plan["reach"]
 	var from_centre := GloomSim.flat_dist(td.border.centre, at)
 	assert_bool(plan["refused"]).is_false()
-	assert_float(reach).is_greater_equal(from_centre - Config.LANDMARK_SIZES[Config.LANDMARK_NEAR_INDEX].x * 0.5)
+	# 0.3.3: the Garden is 26 m away, so one pull from twelve people covers most of the way and a second one finishes it.
+	assert_float(reach).is_greater(from_centre * 0.6)
 	await TopDownTestUtil.leave_loaded_scene(td)

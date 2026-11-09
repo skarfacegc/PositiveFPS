@@ -134,7 +134,13 @@ func test_a_dimmed_person_outside_the_border_walks_up_to_the_line_and_presses_it
 	var s: Dictionary = await _border_level(16, 6.0)
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
+	# A member with open ground outside it (0.3.3: blocks stand in rows, so not every direction is clear).
 	var m: Person = td.border.members[3]
+	for cand: Person in td.border.members:
+		var o := _outward(td, cand)
+		if not td._near_block(cand.position + o * 2.0, 3.0) and not td._near_block(cand.position + o * 4.0, 3.0):
+			m = cand
+			break
 	var dimmed := td.people[20]
 	# Round 14: the midnight stagger lets one person sink at a time, and the others here would sink too (and take the
 	# gate). Everyone else starts light, and the gate is open for this one dimmed person.

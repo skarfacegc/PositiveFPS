@@ -94,7 +94,7 @@ func test_a_lamp_draws_a_cone_a_pool_and_a_head_glow_at_every_bloom() -> void:
 	assert_float(pool.basis.x.length()).is_equal_approx(cone.basis.x.length(), 0.001)
 	assert_float(pool.basis.x.length()).is_equal_approx(Config.L32_POOL_RADIUS * 2.0, 0.001)
 	# A full pool of the light does not run past a lamp's neighbours on the plaza lattice.
-	assert_float(Config.L32_POOL_RADIUS).is_less(Config.L31_PLAZA_SPACING * 0.5)
+	assert_float(Config.L32_POOL_RADIUS).is_less(Config.TOWN_LAMP_SPACING * 0.5)
 	_free(s)
 
 

@@ -9,7 +9,7 @@ const RADIUS := 7.0
 const HORIZON_FRAMES := 2400
 
 
-# Builds the ring at midnight and puts two dimmed pushers outside member 7.
+# Builds the ring at midnight and puts two dimmed pushers outside the member nearest the +x axis.
 func _scenario() -> Dictionary:
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(10)
@@ -28,7 +28,11 @@ func _scenario() -> Dictionary:
 		if not p.is_rescued:
 			p.gloom = 0.0
 	TopDownTestUtil.open_dim_gate(td)
-	var target: Person = td.border.members[7]
+	# The member nearest the +x axis: the main street runs that way, so no block stands between it and the pushers.
+	var target: Person = td.border.members[0]
+	for cand: Person in td.border.members:
+		if cand.position.x - td.border.centre.x > target.position.x - td.border.centre.x:
+			target = cand
 	var out := Vector3(target.position.x - td.border.centre.x, 0.0, target.position.z - td.border.centre.z).normalized()
 	var side := Vector3(-out.z, 0.0, out.x)
 	TopDownTestUtil.place(td.people[20], target.position + out * 1.2, 1, 0.95)

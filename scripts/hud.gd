@@ -157,7 +157,7 @@ func _ready() -> void:
 	landmark_label.offset_left = -360
 	landmark_label.offset_right = -20
 	landmark_label.offset_top = 90
-	landmark_label.offset_bottom = 194  # Round 20: room for the header and three held lines (about 88 px).
+	landmark_label.offset_bottom = 216  # Room for the header and four held lines (about 110 px; 0.3.3: the Gallery).
 	landmark_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(landmark_label)
 	landmark_panel = StyledPanel.new()
@@ -166,7 +166,7 @@ func _ready() -> void:
 	landmark_panel.offset_left = -270
 	landmark_panel.offset_right = -20
 	landmark_panel.offset_top = 90
-	landmark_panel.offset_bottom = 90 + 164
+	landmark_panel.offset_bottom = 90 + 44 + 40 * Config.LANDMARK_NAMES.size()  # The header and 40 px a landmark.
 	add_child(landmark_panel)
 
 	# Rescued counter. The level places it under the minimap (see place_rescued_below).

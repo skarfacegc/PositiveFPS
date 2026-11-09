@@ -10,20 +10,32 @@ extends Node3D
 # Round 19: a spirit beacon was placed (where, its cost, and the spirit left).
 signal beacon_placed(pos: Vector3, cost: float, spirit_after: float)
 
-# Obstacle blocks are 4 x 2 x 4. Their centres are fixed (round 13a: the round 12 spots times Config.WORLD_SCALE,
-# within +-36), and the middle stays clear.
+# Obstacle blocks are 4 x 2 x 4. Their centres are fixed (0.3.3, #52: twenty blocks in rows along a main street
+# (z = 0) and a cross street (x = 0), both 10 m wide, see TownLayout), and the middle (the start) stays clear.
+# Main street, north row, then south row (x = -38, -22, -14, 14, 22, 38); then the cross street, west and east rows
+# (z = -22, -15, 15, 22).
 const BLOCK_SIZE := Vector3(4, 2, 4)
 const BLOCK_POSITIONS: Array[Vector3] = [
-	Vector3(-20, 0, -18) * Config.WORLD_SCALE + Vector3(0, 1, 0),
-	Vector3(-6, 0, -22) * Config.WORLD_SCALE + Vector3(0, 1, 0),
-	Vector3(12, 0, -20) * Config.WORLD_SCALE + Vector3(0, 1, 0),
-	Vector3(22, 0, -12) * Config.WORLD_SCALE + Vector3(0, 1, 0),
-	Vector3(-22, 0, -2) * Config.WORLD_SCALE + Vector3(0, 1, 0),
-	Vector3(20, 0, 4) * Config.WORLD_SCALE + Vector3(0, 1, 0),
-	Vector3(-14, 0, 12) * Config.WORLD_SCALE + Vector3(0, 1, 0),
-	Vector3(4, 0, 14) * Config.WORLD_SCALE + Vector3(0, 1, 0),
-	Vector3(18, 0, 20) * Config.WORLD_SCALE + Vector3(0, 1, 0),
-	Vector3(-6, 0, 24) * Config.WORLD_SCALE + Vector3(0, 1, 0),
+	Vector3(-38, 1, -8),
+	Vector3(-22, 1, -8),
+	Vector3(-14, 1, -8),
+	Vector3(14, 1, -8),
+	Vector3(22, 1, -8),
+	Vector3(38, 1, -8),
+	Vector3(-38, 1, 8),
+	Vector3(-22, 1, 8),
+	Vector3(-14, 1, 8),
+	Vector3(14, 1, 8),
+	Vector3(22, 1, 8),
+	Vector3(38, 1, 8),
+	Vector3(-8, 1, -22),
+	Vector3(-8, 1, -15),
+	Vector3(-8, 1, 15),
+	Vector3(-8, 1, 22),
+	Vector3(8, 1, -22),
+	Vector3(8, 1, -15),
+	Vector3(8, 1, 15),
+	Vector3(8, 1, 22),
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
 const HINT_PLAY := (

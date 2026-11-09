@@ -63,8 +63,8 @@ func test_the_minimap_model_shows_the_border_gaps_members_landmark_and_player() 
 	assert_int(mm.border_pts.size()).is_equal(td.border.polygon.size())
 	assert_bool(mm.gap_flags.has(true)).is_true()
 	assert_int(mm.member_pts.size()).is_equal(td.border.member_count)
-	assert_int(mm.landmark_pts.size()).is_equal(3)
-	for k: int in range(3):
+	assert_int(mm.landmark_pts.size()).is_equal(4)
+	for k: int in range(4):
 		var at := Config.LANDMARK_POSITIONS[k]
 		assert_vector(mm.landmark_pts[k]).is_equal(Vector2(at.x, at.z))
 	assert_vector(mm.player_pos).is_equal(Vector2(td.player.global_position.x, td.player.global_position.z))

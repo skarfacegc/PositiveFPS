@@ -15,7 +15,9 @@ func _landmark(index: int) -> Landmark:
 
 
 func test_the_boost_lines_say_what_each_boost_does_in_short_words() -> void:
-	assert_array(Config.LANDMARK_BOOST_TEXT).is_equal(["music x2", "nature x2", "gloom slowed x0.4 nearby"])
+	assert_array(Config.LANDMARK_BOOST_TEXT).is_equal(
+		["music x2", "nature x2", "gloom slowed x0.4 nearby", "art (no boost yet)"]
+	)
 	for text: String in Config.LANDMARK_BOOST_TEXT:
 		assert_int(text.length()).is_less_equal(26)
 

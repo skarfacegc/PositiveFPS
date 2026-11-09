@@ -18,13 +18,13 @@ func _start(styled: bool = false) -> Dictionary:
 	return {"runner": runner, "td": runner.scene()}
 
 
-# Rescues the first `count` people on a ring of radius 4 round (12, -12), and lets the border form.
+# Rescues the first `count` people on a ring of radius 4 round the start (the crossing), and lets the border form.
 func _rescue_ring(runner: GdUnitSceneRunner, td: TopDownMain, count: int) -> void:
 	TopDownTestUtil.send_everyone_away(td)
 	for i: int in range(count):
 		var a := TAU * float(i) / float(count)
 		var p := td.people[i]
-		TopDownTestUtil.place(p, Vector3(12.0 + cos(a) * 4.0, 0.0, -12.0 + sin(a) * 4.0), p.affinity, 0.0)
+		TopDownTestUtil.place(p, Vector3(cos(a) * 4.0, 0.0, sin(a) * 4.0), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX * 2.0, 0.0)
 	await runner.simulate_frames(240)
 

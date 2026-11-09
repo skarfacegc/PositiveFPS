@@ -1,6 +1,6 @@
 extends GdUnitTestSuite
 
-# Graphics checkpoint 3: the styled look of the round 19 pieces (the spirit beacon, the three landmarks, the landmark
+# Graphics checkpoint 3: the styled look of the round 19 pieces (the spirit beacon, the four landmarks, the landmark
 # panel and the dawn rating screen). Headless uses a dummy renderer, so these check that everything builds, shows the
 # right state and draws without errors; the screenshots (tools/checkpoint_shots.py --set round19) check the look.
 

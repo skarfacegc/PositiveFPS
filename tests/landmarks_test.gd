@@ -1,6 +1,6 @@
 extends GdUnitTestSuite
 
-# Round 19: the three landmarks (bandstand, garden, bell tower) and the boosts they give while held.
+# Round 19: the landmarks (bandstand, garden, bell tower; 0.3.3: and the gallery) and the boosts they give while held.
 
 
 func _landmarks() -> Landmarks:
@@ -24,19 +24,20 @@ func _hold(lms: Landmarks, index: int) -> void:
 # --- Where they stand -----------------------------------------------------------------------------------------------
 
 
-func test_there_are_three_landmarks_with_names_boosts_and_a_short_hold() -> void:
-	assert_int(Config.LANDMARK_NAMES.size()).is_equal(3)
-	assert_int(Config.LANDMARK_POSITIONS.size()).is_equal(3)
-	assert_int(Config.LANDMARK_SIZES.size()).is_equal(3)
-	assert_int(Config.LANDMARK_COLOURS.size()).is_equal(3)
-	assert_int(Config.LANDMARK_BOOST_TEXT.size()).is_equal(3)
+func test_there_are_four_landmarks_with_names_boosts_and_a_short_hold() -> void:
+	assert_int(Config.LANDMARK_NAMES.size()).is_equal(4)
+	assert_int(Config.LANDMARK_POSITIONS.size()).is_equal(4)
+	assert_int(Config.LANDMARK_SIZES.size()).is_equal(4)
+	assert_int(Config.LANDMARK_COLOURS.size()).is_equal(4)
+	assert_int(Config.LANDMARK_BOOST_TEXT.size()).is_equal(4)
+	assert_str(Config.LANDMARK_NAMES[Landmarks.GALLERY]).is_equal("Gallery")
 	assert_float(Config.BORDER_LANDMARK_HOLD).is_between(2.0, 4.0)
 	assert_float(Config.LANDMARK_MUSIC_MULT).is_equal(2.0)
 	assert_float(Config.LANDMARK_NATURE_MULT).is_equal(2.0)
 	assert_float(Config.LANDMARK_BELL_LOSS_MULT).is_equal(0.4)
 
 
-func test_landmarks_are_inside_the_map_clear_of_blocks_and_each_other_and_beyond_the_starting_ring() -> void:
+func test_landmarks_are_inside_the_map_clear_of_blocks_and_each_other_and_near_the_start() -> void:
 	var lim := Config.BORDER_MAP_LIMIT
 	var count := Config.LANDMARK_POSITIONS.size()
 	for i: int in range(count):
@@ -45,10 +46,9 @@ func test_landmarks_are_inside_the_map_clear_of_blocks_and_each_other_and_beyond
 		# Inside the map, with the whole block on the floor.
 		assert_float(absf(at.x) + half).is_less(lim)
 		assert_float(absf(at.z) + half).is_less(lim)
-		# Beyond what the natural ring can reach from the start: beacons are needed. Round 24: the near landmark (the
-		# Garden) is the exception: it lies within the first arm's reach of the start (see the next test).
-		if i != Config.LANDMARK_NEAR_INDEX:
-			assert_float(Vector2(at.x, at.z).length() - half).is_greater(Config.LANDMARK_START_REACH)
+		# 0.3.3 (#17): every landmark is 18 to 32 m from the start, so reaching one takes a pull or two, not a trek.
+		var d := Vector2(at.x, at.z).length()
+		assert_float(d).is_between(Config.LANDMARK_NEAREST, Config.LANDMARK_FARTHEST)
 		# Clear of every ordinary block (a block is 4 wide: keep a wide margin) and of each other.
 		for block: Vector3 in TopDownMain.BLOCK_POSITIONS:
 			assert_float(Vector2(at.x - block.x, at.z - block.z).length()).is_greater(8.0)
@@ -57,31 +57,22 @@ func test_landmarks_are_inside_the_map_clear_of_blocks_and_each_other_and_beyond
 			assert_float(Vector2(at.x - other.x, at.z - other.z).length()).is_greater(20.0)
 
 
-func test_one_landmark_is_within_the_first_arms_reach_but_outside_the_starting_ring() -> void:
-	# Round 24: about 15 m from the start at 12 people. The first arm goes circle_radius + reach_beyond past the middle.
-	var at := Config.LANDMARK_POSITIONS[Config.LANDMARK_NEAR_INDEX]
-	var half := Config.LANDMARK_SIZES[Config.LANDMARK_NEAR_INDEX].x * 0.5
-	var d := Vector2(at.x, at.z).length()
-	var ring := BorderCentre.circle_radius(12)
-	var first_arm := minf(ring + BorderCentre.reach_beyond(12), BorderCentre.feasible_distance(ring))
-	assert_float(d).is_between(12.0, 16.0)
-	assert_float(d - half).is_greater(ring)
-	assert_float(d + half).is_less(first_arm)
-	# Clear of the start, so nobody spawns on it, and the other two are still far.
-	assert_float(d).is_greater(Config.TD_SPAWN_CENTRE_CLEAR)
-	for i: int in range(Config.LANDMARK_POSITIONS.size()):
-		if i != Config.LANDMARK_NEAR_INDEX:
-			var other := Config.LANDMARK_POSITIONS[i]
-			assert_float(Vector2(other.x, other.z).length()).is_greater(Config.LANDMARK_START_REACH)
+func test_the_landmarks_stand_on_different_sides_of_the_start_on_the_streets() -> void:
+	var sides := {}
+	for at: Vector3 in Config.LANDMARK_POSITIONS:
+		# One at the end of each arm of the two streets.
+		assert_bool(TownLayout.on_street(at, -2.0)).is_true()
+		sides[Vector2i(int(signf(at.x)), int(signf(at.z)))] = true
+	assert_int(sides.size()).is_equal(4)
 
 
 func test_the_level_builds_a_block_and_a_building_for_each_landmark() -> void:
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
-	assert_int(td.landmarks.items.size()).is_equal(3)
-	assert_int(td.border.landmark_buildings.size()).is_equal(3)
-	for i: int in range(3):
+	assert_int(td.landmarks.items.size()).is_equal(4)
+	assert_int(td.border.landmark_buildings.size()).is_equal(4)
+	for i: int in range(4):
 		var at := Config.LANDMARK_POSITIONS[i]
 		assert_vector(td.border.landmark_buildings[i].centre).is_equal(Vector2(at.x, at.z))
 		assert_vector(td.landmarks.items[i].position).is_equal(at)
@@ -94,7 +85,7 @@ func test_the_level_builds_a_block_and_a_building_for_each_landmark() -> void:
 
 func test_a_landmark_is_claimed_after_the_hold_and_lost_the_moment_the_border_drops_it() -> void:
 	var lms := _landmarks()
-	for i: int in range(3):
+	for i: int in range(4):
 		var lm := lms.items[i]
 		var log: Array[String] = []
 		lm.claimed.connect(func() -> void: log.append("claimed"))
@@ -117,7 +108,7 @@ func test_the_panel_lists_only_held_landmarks_with_their_boosts() -> void:
 	_hold(lms, Landmarks.BANDSTAND)
 	assert_array(lms.held_lines()).is_equal(["Bandstand: music x2", "Garden: nature x2"])
 	assert_int(lms.held_count()).is_equal(2)
-	assert_array(lms.held_flags()).is_equal([true, true, false])
+	assert_array(lms.held_flags()).is_equal([true, true, false, false])
 
 
 # --- The boosts -----------------------------------------------------------------------------------------------------
@@ -229,7 +220,7 @@ func test_a_ring_round_the_garden_claims_it_and_the_hud_panel_and_boost_follow()
 		frames += 1
 	assert_bool(td.landmarks.is_held(Landmarks.GARDEN)).is_true()
 	await runner.simulate_frames(3)
-	assert_str(td.hud.landmark_label.text).contains("Landmarks 1 of 3")
+	assert_str(td.hud.landmark_label.text).contains("Landmarks 1 of 4")
 	assert_str(td.hud.landmark_label.text).contains("Garden: nature x2")
 	assert_float(td.people[10].joy_boost[Config.Element.NATURE]).is_equal(2.0)
 	assert_float(td.people[10].joy_boost[Config.Element.MUSIC]).is_equal(1.0)

@@ -176,6 +176,7 @@ func test_no_pair_passes_through_each_other_while_the_loop_grows() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
+	td.border.buildings.clear()  # As in _pushed: blocks make the loop wrap round them, which this test is not about.
 	_rescue_ring(td, Vector3.ZERO, 10.0, 20)
 	await runner.simulate_frames(300)
 	var closest := INF

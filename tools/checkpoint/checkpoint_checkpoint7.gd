@@ -17,8 +17,9 @@ const C7_PLAY_NAMES: Array[String] = [
 	"play_push_in_progress",
 	"play_props_bunting"
 ]
-# The props view: a ring round two neighbouring blocks (BLOCK_POSITIONS 2 and 3, 18 m apart: bunting runs between them).
-const C7_PROPS_BLOCKS: Array[int] = [2, 3]
+# The props view: a ring round two neighbouring blocks (BLOCK_POSITIONS 1 and 2, 8 m apart on the main street: bunting runs
+# between them).
+const C7_PROPS_BLOCKS: Array[int] = [1, 2]
 const C7_PROPS_RING_RADIUS := 10.5
 const C7_PROPS_RING_COUNT := 24
 
@@ -176,9 +177,11 @@ func _c7_push(label: String, prefix: String = "") -> void:
 	await _set_zoom(Config.TD_CAMERA_ORTHO_SIZE)
 	var ring := _c7_ring_members()
 	var centre := main.border.centre
-	var out := (ring[10].position - centre).normalized()
-	_make_dimmed(main.people[ring_count + 30], ring[10].position + out * 1.3)
-	_make_dimmed(main.people[ring_count + 31], ring[10].position + out * 1.6 + Vector3(-out.z, 0.0, out.x) * 0.9)
+	# 0.3.3: with blocks round the ring there may be fewer than 11 members.
+	var pick := mini(10, ring.size() - 1)
+	var out := (ring[pick].position - centre).normalized()
+	_make_dimmed(main.people[ring_count + 30], ring[pick].position + out * 1.3)
+	_make_dimmed(main.people[ring_count + 31], ring[pick].position + out * 1.6 + Vector3(-out.z, 0.0, out.x) * 0.9)
 	var player_at := centre + Vector3(0.0, 0.0, 1.5)
 	if prefix != "":
 		player_at = centre + out * 8.0
@@ -198,7 +201,7 @@ func _c7_push(label: String, prefix: String = "") -> void:
 	await _c7_shot(prefix + "push_in_progress", label, {}, 4)
 	if prefix == "":
 		await _c7_shot(
-			"push_closeup", label, {"world": ring[10].position + out * 0.8, "size": Vector2i(426, 240), "scale": 3}, 2
+			"push_closeup", label, {"world": ring[pick].position + out * 0.8, "size": Vector2i(426, 240), "scale": 3}, 2
 		)
 	main.running = false
 	Config.tides_override = -1
@@ -207,7 +210,7 @@ func _c7_push(label: String, prefix: String = "") -> void:
 # Dawn: the front has reached the middle of the map; the sky is warming and the ring sits in the light.
 func _c7_dawn(label: String) -> void:
 	await _c7_level()
-	await _c7_move_player(Vector3(20.0, 0.0, 8.0))
+	await _c7_move_player(Vector3(20.0, 0.0, 2.0))
 	_c7_front(0.6)
 	await _c7_shot("dawn", label, {}, 20)
 

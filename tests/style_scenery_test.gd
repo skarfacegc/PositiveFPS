@@ -36,7 +36,7 @@ func test_layout_gives_each_block_its_props_and_lines_without_repeats() -> void:
 	for c: Vector3 in TopDownMain.BLOCK_POSITIONS:
 		centres.append(c)
 	var props := StyleProps.layout_props(centres)
-	assert_int(props.size()).is_equal(centres.size() * 4)
+	assert_int(props.size()).is_equal(centres.size() * 2)
 	var lines := StyleProps.layout_lines(centres, Config.C7_LINE_MAX_DIST)
 	assert_bool(lines.size() > 0).is_true()
 	var seen := {}
@@ -221,7 +221,7 @@ func test_a_beautified_block_blooms_its_own_props_first() -> void:
 	for p: StyleProps.Prop in sp.props:
 		if p.bloom > 0.99:
 			lit += 1
-	assert_int(lit).is_equal(4)
+	assert_int(lit).is_equal(2)
 	assert_int(sp.bench_positions().size()).is_equal(TopDownMain.BLOCK_POSITIONS.size())
 
 

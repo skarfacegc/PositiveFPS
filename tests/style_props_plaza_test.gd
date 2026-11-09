@@ -1,7 +1,8 @@
 extends GdUnitTestSuite
 
-# 0.3.1 (#48): the plaza props (StyleProps.layout_plaza), the bigger and warmer lamps and benches, and the soft balls
-# drawn after the post-process quad. Headless uses a dummy renderer, so these check state and instance counts; the
+# 0.3.1 (#48), 0.3.3 (#52): the street props (StyleProps.layout_streets: lamps along the kerbs, stalls on the square;
+# layout_props: a bench and planter in front of each block), the bigger and warmer lamps and benches, and the soft
+# balls drawn after the post-process quad. Headless uses a dummy renderer, so these check state and instance counts; the
 # screenshots check the look.
 
 
@@ -37,7 +38,7 @@ func _landmarks() -> Array[Vector3]:
 
 
 func _plaza() -> Array[StyleProps.Prop]:
-	return StyleProps.layout_plaza(_blocks(), _landmarks(), float(Config.TD_PLAZA_SIZE) * 0.5)
+	return StyleProps.layout_streets()
 
 
 # Props inside the play-zoom frame (34.7 m wide, about 15 m either side deep) round `at`.
@@ -49,36 +50,80 @@ func _in_frame(list: Array[StyleProps.Prop], at: Vector3) -> int:
 	return n
 
 
-func test_the_open_plaza_has_props_where_the_night_is_played() -> void:
+func test_the_streets_have_props_where_the_night_is_played() -> void:
 	var block_props := StyleProps.layout_props(_blocks())
 	var plaza := _plaza()
 	assert_bool(plaza.size() >= 20).is_true()
-	# Diagnosis (#48): the block props alone leave the middle bare; the plaza props fill the frame.
-	assert_int(_in_frame(block_props, Vector3.ZERO)).is_equal(0)
-	for at: Vector3 in [Vector3.ZERO, Vector3(14.5, 0.0, -14.0), Vector3(-15.0, 0.0, 10.0), Vector3(10.0, 0.0, 15.0)]:
+	# The lamps along the kerbs and the stalls on the square fill the frame wherever the night is played.
+	assert_bool(_in_frame(plaza, Vector3.ZERO) >= 8).is_true()
+	assert_bool(_in_frame(block_props, Vector3.ZERO) > 0).is_true()
+	for at: Vector3 in [Vector3.ZERO, Vector3(14.5, 0.0, 0.0), Vector3(-15.0, 0.0, 0.0), Vector3(0.0, 0.0, 15.0)]:
 		assert_bool(_in_frame(plaza, at) >= 4).is_true()
-	# Lamps and benches both stand in the plaza, away from the buildings, as scenery that blooms by the paint alone.
+	# Lamps and stalls stand on the streets, as scenery that blooms by the paint alone.
 	var kinds := {}
 	for p: StyleProps.Prop in plaza:
 		kinds[p.kind] = true
 		assert_bool(p.plaza).is_true()
 		assert_float(p.pos.y).is_equal(0.0)
-	assert_bool(kinds.has(StyleProps.Kind.LAMP) and kinds.has(StyleProps.Kind.BENCH)).is_true()
+	assert_bool(kinds.has(StyleProps.Kind.LAMP) and kinds.has(StyleProps.Kind.STALL)).is_true()
 
 
-func test_plaza_props_keep_clear_of_blocks_landmarks_the_start_and_the_edge() -> void:
+func test_street_props_stand_on_the_streets_clear_of_blocks_landmarks_the_start_and_the_edge() -> void:
 	var half := float(Config.TD_PLAZA_SIZE) * 0.5
 	for p: StyleProps.Prop in _plaza():
+		assert_bool(TownLayout.on_street(p.pos, 1.0) or TownLayout.on_square(p.pos)).is_true()
 		for c: Vector3 in _blocks():
-			assert_float(Vector2(p.pos.x - c.x, p.pos.z - c.z).length()).is_greater_equal(Config.L31_PLAZA_CLEAR)
+			var over := absf(p.pos.x - c.x) < 2.0 and absf(p.pos.z - c.z) < 2.0
+			assert_bool(over).is_false()
 		for lm: Vector3 in _landmarks():
-			assert_float(Vector2(p.pos.x - lm.x, p.pos.z - lm.z).length()).is_greater_equal(Config.L31_PLAZA_CLEAR)
-		assert_float(p.pos.length()).is_greater_equal(Config.L31_PLAZA_START_CLEAR)
-		assert_float(absf(p.pos.x)).is_less_equal(half - Config.L31_PLAZA_EDGE)
-		assert_float(absf(p.pos.z)).is_less_equal(half - Config.L31_PLAZA_EDGE)
+			var on_it := absf(p.pos.x - lm.x) < 2.0 and absf(p.pos.z - lm.z) < 2.0
+			assert_bool(on_it).is_false()
+		assert_float(p.pos.length()).is_greater_equal(Config.TOWN_STALL_OFFSET)
+		assert_float(absf(p.pos.x)).is_less_equal(half - Config.TOWN_EDGE_CLEAR)
+		assert_float(absf(p.pos.z)).is_less_equal(half - Config.TOWN_EDGE_CLEAR)
 
 
-func test_the_plaza_layout_is_the_same_every_time() -> void:
+func test_lamps_stand_at_regular_spacing_along_the_kerbs_and_stalls_ring_the_square() -> void:
+	var lamps := 0
+	var stalls := 0
+	var along_main: Array[float] = []
+	for p: StyleProps.Prop in _plaza():
+		if p.kind == StyleProps.Kind.LAMP:
+			lamps += 1
+			var on_main := is_equal_approx(absf(p.pos.z), Config.TOWN_KERB_OFFSET)
+			var on_cross := is_equal_approx(absf(p.pos.x), Config.TOWN_KERB_OFFSET)
+			assert_bool(on_main or on_cross).is_true()
+			if on_main and p.pos.z > 0.0 and p.pos.x > 0.0:
+				along_main.append(p.pos.x)
+		else:
+			stalls += 1
+			# A stall turns toward the start: its local +z points at the middle.
+			var toward := Vector3(sin(p.yaw), 0.0, cos(p.yaw))
+			assert_float(toward.dot(-p.pos.normalized())).is_greater(0.99)
+	assert_int(stalls).is_equal(4)
+	assert_int(lamps).is_equal(TownLayout.lamp_spots().size())
+	along_main.sort()
+	assert_bool(along_main.size() >= 3).is_true()
+	for i: int in range(1, along_main.size()):
+		assert_float(along_main[i] - along_main[i - 1]).is_equal_approx(Config.TOWN_LAMP_SPACING, 0.001)
+
+
+func test_each_blocks_bench_and_planter_stand_between_it_and_its_street() -> void:
+	var props := StyleProps.layout_props(_blocks())
+	assert_int(props.size()).is_equal(_blocks().size() * 2)
+	for p: StyleProps.Prop in props:
+		var c := _blocks()[p.block]
+		var f := TownLayout.facing(c)
+		assert_bool(p.kind == StyleProps.Kind.BENCH or p.kind == StyleProps.Kind.PLANTER).is_true()
+		assert_bool(p.plaza).is_false()
+		# In front of the block's face (toward the street) and still on the pavement side of the street's kerb.
+		assert_float((p.pos - Vector3(c.x, 0.0, c.z)).dot(f)).is_greater(2.0)
+		assert_bool(TownLayout.on_street(p.pos, 1.0)).is_true()
+		# The prop looks toward the street.
+		assert_float(Vector3(sin(p.yaw), 0.0, cos(p.yaw)).dot(f)).is_greater(0.99)
+
+
+func test_the_street_layout_is_the_same_every_time() -> void:
 	var a := _plaza()
 	var b := _plaza()
 	assert_int(a.size()).is_equal(b.size())
@@ -86,19 +131,9 @@ func test_the_plaza_layout_is_the_same_every_time() -> void:
 		assert_vector(a[i].pos).is_equal(b[i].pos)
 		assert_int(a[i].kind).is_equal(b[i].kind)
 		assert_float(a[i].yaw).is_equal(b[i].yaw)
-	assert_int(StyleProps.layout_plaza(_blocks(), _landmarks(), 0.0).size()).is_equal(0)
-	# A tight lattice (every 4 m) would put spots on the start and at the plaza's edge: those are left out.
-	var none: Array[Vector3] = []
-	var tight := StyleProps.layout_plaza(none, none, 20.0, 4.0)
-	assert_bool(tight.size() > 0).is_true()
-	for p: StyleProps.Prop in tight:
-		assert_float(p.pos.length()).is_greater_equal(Config.L31_PLAZA_START_CLEAR)
-		assert_float(absf(p.pos.x)).is_less_equal(20.0 - Config.L31_PLAZA_EDGE)
-		assert_float(absf(p.pos.z)).is_less_equal(20.0 - Config.L31_PLAZA_EDGE)
-	assert_bool(tight.size() < 10 * 10).is_true()
 
 
-func test_plaza_props_are_part_of_the_scene_but_not_its_bench_list() -> void:
+func test_street_props_are_part_of_the_scene_but_not_its_bench_list() -> void:
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
 	var sp := td.style_props
@@ -107,7 +142,7 @@ func test_plaza_props_are_part_of_the_scene_but_not_its_bench_list() -> void:
 		if p.plaza:
 			plaza_n += 1
 	assert_int(plaza_n).is_equal(_plaza().size())
-	assert_int(sp.props.size()).is_equal(TopDownMain.BLOCK_POSITIONS.size() * 4 + plaza_n)
+	assert_int(sp.props.size()).is_equal(TopDownMain.BLOCK_POSITIONS.size() * 2 + plaza_n)
 	assert_int(sp.bench_positions().size()).is_equal(TopDownMain.BLOCK_POSITIONS.size())
 	# A bare plaza lamp still glows warm (never dark in gloom) and the drawing stays inside the layers' capacity.
 	_paint_all(td, 0.0)

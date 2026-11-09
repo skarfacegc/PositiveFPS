@@ -61,6 +61,8 @@ func _run(centre: Vector3, ang: float) -> Dictionary:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
+	# Blocks make the loop wrap round them (see border_motion_test); these tests are about the map edge.
+	td.border.buildings.clear()
 	_rescue_ring(td, centre, 10.0, 30)
 	await runner.simulate_frames(300)
 	for k: int in range(SHOVES):

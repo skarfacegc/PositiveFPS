@@ -11,11 +11,14 @@ extends Node3D
 enum Kind { LAMP, BENCH, PLANTER, STALL }
 
 const WOOD_BARE := Color(0.22, 0.2, 0.2)
-const WOOD_WARM := Color(0.72, 0.48, 0.28)
+const WOOD_WARM := Color(0.6, 0.44, 0.31)  # 0.3.3 (#51): was (0.72, 0.48, 0.28), a bright orange.
 const METAL_BARE := Color(0.17, 0.18, 0.21)
 const METAL_WARM := Color(0.3, 0.33, 0.38)
 const POT_BARE := Color(0.25, 0.22, 0.22)
-const POT_WARM := Color(0.72, 0.4, 0.3)
+const POT_WARM := Color(0.58, 0.4, 0.33)  # 0.3.3 (#51): was (0.72, 0.4, 0.3), a bright orange.
+const SOIL := Color(0.16, 0.13, 0.12)
+const SOIL_RICH := Color(0.27, 0.2, 0.15)
+const AWNING := Color(0.76, 0.5, 0.5)
 const ROPE_BARE := Color(0.2, 0.2, 0.22)
 const ROPE_WARM := Color(0.74, 0.66, 0.5)
 const LAMP_OFF := Color(0.13, 0.13, 0.15, 1.0)
@@ -202,52 +205,35 @@ static func day_factor(sun_energy: float) -> float:
 	return clampf((sun_energy - Config.C7_DAY_ENERGY_LOW) / Config.C7_DAY_ENERGY_RANGE, 0.0, 1.0)
 
 
-# The scenery of every block: a lamp, a bench, a planter and (every other block) a stall, from the block centres.
+# The scenery that belongs to a block (0.3.3, #52): a bench and a planter in front of it, on the street side (see
+# TownLayout.block_front). Lamps and stalls stand on the streets and the square (layout_streets).
 static func layout_props(centres: Array[Vector3]) -> Array[Prop]:
 	var out: Array[Prop] = []
 	for i: int in range(centres.size()):
-		var c := Vector3(centres[i].x, 0.0, centres[i].z)
-		out.append(_prop(Kind.LAMP, c + Vector3(2.9, 0.0, 2.9), 0.0, i))
-		out.append(_prop(Kind.BENCH, c + Vector3(0.0, 0.0, 2.9), 0.0, i))
-		out.append(_prop(Kind.PLANTER, c + Vector3(-2.6, 0.0, 2.7), 0.0, i))
-		if i % 2 == 0:
-			out.append(_prop(Kind.STALL, c + Vector3(3.6, 0.0, -0.8), -PI / 2.0, i))
-		else:
-			out.append(_prop(Kind.STALL, c + Vector3(-3.6, 0.0, -0.8), PI / 2.0, i))
+		var front := TownLayout.block_front(centres[i])
+		var yaw: float = front["yaw"]
+		var bench: Vector3 = front["bench"]
+		var planter: Vector3 = front["planter"]
+		out.append(_prop(Kind.BENCH, bench, yaw, i))
+		out.append(_prop(Kind.PLANTER, planter, yaw, i))
 	return out
 
 
-# 0.3.1 (#48): props in the open plaza, on a lattice `L31_PLAZA_SPACING` apart (offset half a step so the player's
-# start is never on a spot). A spot is skipped when it is too near a block or a landmark (`L31_PLAZA_CLEAR`), the
-# player's start (the middle, `L31_PLAZA_START_CLEAR`) or the plaza's edge. The kind and the turn follow the lattice
-# position, so the layout is the same on every run.
-static func layout_plaza(
-	centres: Array[Vector3], landmarks: Array[Vector3], half: float, step: float = Config.L31_PLAZA_SPACING
-) -> Array[Prop]:
+# 0.3.3 (#52): the scenery of the streets, which bloom by the paint under them alone. Lamps stand along both kerbs of
+# both streets, `TOWN_LAMP_SPACING` apart (TownLayout.lamp_spots); four stalls stand on the small square at the
+# crossing, each turned toward the start (TownLayout.stall_spots). Replaces the 0.3.1 lattice of plaza props. The
+# layout is the same on every run.
+static func layout_streets() -> Array[Prop]:
 	var out: Array[Prop] = []
-	var n := floori(half / step)
-	var kinds: Array[int] = [Kind.LAMP, Kind.BENCH, Kind.PLANTER, Kind.LAMP]
-	for ix: int in range(-n, n):
-		for iz: int in range(-n, n):
-			var at := Vector3((float(ix) + 0.5) * step, 0.0, (float(iz) + 0.5) * step)
-			if absf(at.x) > half - Config.L31_PLAZA_EDGE or absf(at.z) > half - Config.L31_PLAZA_EDGE:
-				continue
-			if _near(at, centres, Config.L31_PLAZA_CLEAR) or _near(at, landmarks, Config.L31_PLAZA_CLEAR):
-				continue
-			if at.length() < Config.L31_PLAZA_START_CLEAR:
-				continue
-			var k := posmod(ix * 2 + iz, 4)
-			var p := _prop(kinds[k], at, float(posmod(ix + iz, 2)) * PI / 2.0, out.size())
-			p.plaza = true
-			out.append(p)
+	for at: Vector3 in TownLayout.lamp_spots():
+		var lamp := _prop(Kind.LAMP, at, 0.0, out.size())
+		lamp.plaza = true
+		out.append(lamp)
+	for at: Vector3 in TownLayout.stall_spots():
+		var stall := _prop(Kind.STALL, at, TownLayout.yaw_toward(-at.normalized()), out.size())
+		stall.plaza = true
+		out.append(stall)
 	return out
-
-
-static func _near(at: Vector3, list: Array[Vector3], dist: float) -> bool:
-	for c: Vector3 in list:
-		if Vector2(at.x - c.x, at.z - c.z).length() < dist:
-			return true
-	return false
 
 
 # A line from each block to its two nearest neighbours that are closer than `max_dist` (no pair twice).
@@ -376,9 +362,7 @@ func _ready() -> void:
 	for c: Vector3 in TopDownMain.BLOCK_POSITIONS:
 		_blocks.append(c)
 	props = layout_props(_blocks)
-	var landmarks: Array[Vector3] = []
-	landmarks.assign(Config.LANDMARK_POSITIONS)
-	props.append_array(layout_plaza(_blocks, landmarks, float(Config.TD_PLAZA_SIZE) * 0.5))
+	props.append_array(layout_streets())
 	lines = layout_lines(_blocks, Config.C7_LINE_MAX_DIST)
 	layers = make_layers(self, true)
 	visible = false
@@ -660,9 +644,15 @@ func _draw_bench_joy(p: Prop, w: float, iron: Color) -> void:
 		)
 
 
+# 0.3.3 (#51): the planter was one bright orange plank. Now a tapered terracotta pot (a narrow foot, a body and a wider
+# rim) in a muted clay, with a strip of dark soil on top.
 func _draw_planter(p: Prop) -> void:
+	var clay := tone(POT_BARE, POT_WARM, p.bloom)
+	layers.box(_at(p, big(Vector3(0.0, 0.06, 0.0))), big(Vector3(0.62, 0.12, 0.34)), clay.darkened(0.2), p.yaw)
+	layers.box(_at(p, big(Vector3(0.0, 0.22, 0.0))), big(Vector3(0.78, 0.2, 0.44)), clay, p.yaw)
+	layers.box(_at(p, big(Vector3(0.0, 0.36, 0.0))), big(Vector3(0.9, 0.08, 0.5)), clay.lightened(0.12), p.yaw)
 	layers.box(
-		_at(p, big(Vector3(0.0, 0.2, 0.0))), big(Vector3(0.9, 0.4, 0.5)), tone(POT_BARE, POT_WARM, p.bloom), p.yaw
+		_at(p, big(Vector3(0.0, 0.405, 0.0))), big(Vector3(0.78, 0.03, 0.38)), SOIL.lerp(SOIL_RICH, p.bloom), p.yaw
 	)
 	var s := Config.L31_PROP_SCALE
 	var stem := STEM_DEAD.lerp(STEM_LIVE, p.bloom)
@@ -677,7 +667,7 @@ func _draw_planter(p: Prop) -> void:
 
 
 func _draw_stall(p: Prop) -> void:
-	var wood := tone(WOOD_BARE, WOOD_WARM, p.bloom)
+	var wood := tone(WOOD_BARE, WOOD_WARM, p.bloom, 0.12)  # 0.3.3 (#51): weathered grey-brown in gloom, not orange.
 	var s := Config.L31_PROP_SCALE
 	layers.box(_at(p, big(Vector3(0.0, 0.35, 0.0))), big(Vector3(1.8, 0.7, 0.9)), wood, p.yaw)
 	for sx: float in [-0.85, 0.85]:
@@ -687,7 +677,7 @@ func _draw_stall(p: Prop) -> void:
 		layers.box(_at(p, big(Vector3(0.0, 1.75, 0.1))), big(Vector3(0.9, 0.04, 0.6)), ROPE_BARE, p.yaw, 0.0, 0.5)
 	else:
 		for k: int in range(4):
-			var col := FLOWERS[0] if k % 2 == 0 else CREAM
+			var col := AWNING if k % 2 == 0 else CREAM  # 0.3.3 (#51): a muted rose, not the bright coral.
 			layers.box(
 				_at(p, big(Vector3(-0.675 + 0.45 * float(k), 1.9, 0.0))),
 				big(Vector3(0.45, 0.06, 1.2 * open)),

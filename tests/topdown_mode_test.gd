@@ -164,7 +164,7 @@ func test_dawn_ends_the_level_with_the_dawn_screen() -> void:
 	assert_bool(td.running).is_false()
 	assert_bool(td.hud.end_panel.visible).is_true()
 	assert_str(td.hud.end_label.text).contains("Dawn")
-	assert_str(td.hud.end_label.text).contains("0 of 3 landmarks held")
+	assert_str(td.hud.end_label.text).contains("0 of 4 landmarks held")
 	assert_str(td.hud.end_label.text).contains("Dawn lights: [*][ ][ ]")
 
 

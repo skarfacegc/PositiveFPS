@@ -1,9 +1,9 @@
 class_name Landmarks
 extends Node3D
 
-# Round 19: the level's three landmarks and what they give. Owns the Landmark nodes (`items`, in Config.LANDMARK_NAMES
-# order: bandstand, garden, bell tower), updates their holds from the border, applies the boosts to the people and
-# makes the lines of the HUD panel.
+# Round 19: the level's landmarks and what they give. Owns the Landmark nodes (`items`, in Config.LANDMARK_NAMES
+# order: bandstand, garden, bell tower, gallery), updates their holds from the border, applies the boosts to the people
+# and makes the lines of the HUD panel. (0.3.3: the gallery can be placed and claimed but gives nothing yet.)
 #   Bandstand: music joy x LANDMARK_MUSIC_MULT.   Garden: nature joy x LANDMARK_NATURE_MULT.
 #   Bell tower: border members within LANDMARK_BELL_RADIUS take x LANDMARK_BELL_LOSS_MULT of the gloom's drain.
 # A boost applies only while its landmark is held; the next update after the border drops it takes it away.
@@ -11,6 +11,7 @@ extends Node3D
 const BANDSTAND := 0
 const GARDEN := 1
 const BELL_TOWER := 2
+const GALLERY := 3
 
 var items: Array[Landmark] = []
 

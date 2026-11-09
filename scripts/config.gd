@@ -93,19 +93,19 @@ const BURST_FX_COLOUR := Color(1.0, 0.9, 0.5)
 const BORDER_WARN_INTERVAL := 0.1
 
 # ---- Round 19: landmarks (scripts/landmark.gd, landmarks.gd, topdown_main.gd). ----
-# Three landmarks, far enough from the start that the natural ring (LANDMARK_START_REACH from the middle) cannot reach
-# them: the player needs beacons. Each is held while beautified inside the border for BORDER_LANDMARK_HOLD seconds,
-# and
-# loses its boost the moment the border drops it. Index order: bandstand, garden, bell tower.
-const LANDMARK_NAMES: Array[String] = ["Bandstand", "Garden", "Bell tower"]
-# Round 24: the Garden (index 1) stands about 14 m from the start, within the first arm's reach (was (-29, 0, 17)).
+# Landmarks (three in round 19, four since 0.3.3). Each is held while beautified inside the border for
+# BORDER_LANDMARK_HOLD seconds, and loses its boost the moment the border drops it. Index order: bandstand, garden,
+# bell tower, gallery. (The gallery has no boost yet.)
+const LANDMARK_NAMES: Array[String] = ["Bandstand", "Garden", "Bell tower", "Gallery"]
+# 0.3.3 (#17): four landmarks, one at the end of each street arm, 18 to 32 m from the start (see "Town layout").
 const LANDMARK_POSITIONS: Array[Vector3] = [
-	Vector3(27, 0, -21) * WORLD_SCALE, Vector3(-9, 0, 4) * WORLD_SCALE, Vector3(6, 0, 31) * WORLD_SCALE
+	Vector3(30, 0, 0), Vector3(-26, 0, 0), Vector3(0, 0, 32), Vector3(0, 0, -30)
 ]
 # Collision size (footprint 4 x 4 like the other blocks) and plain colour of each landmark's block.
-const LANDMARK_SIZES: Array[Vector3] = [Vector3(4, 2.6, 4), Vector3(4, 1.0, 4), Vector3(4, 7.0, 4)]
-const LANDMARK_COLOURS: Array[Color] = [Color(0.55, 0.62, 0.85), Color(0.55, 0.8, 0.5), Color(0.85, 0.72, 0.4)]
-const LANDMARK_START_REACH := 28.0 * WORLD_SCALE
+const LANDMARK_SIZES: Array[Vector3] = [Vector3(4, 2.6, 4), Vector3(4, 1.0, 4), Vector3(4, 7.0, 4), Vector3(4, 3.2, 4)]
+const LANDMARK_COLOURS: Array[Color] = [
+	Color(0.55, 0.62, 0.85), Color(0.55, 0.8, 0.5), Color(0.85, 0.72, 0.4), Color(0.8, 0.58, 0.78)
+]
 # Boosts while held: music joy x2 (bandstand), nature joy x2 (garden), and border members within
 # LANDMARK_BELL_RADIUS of the bell tower take x0.4 of the gloom's drain (bell tower).
 const LANDMARK_MUSIC_MULT := 2.0
@@ -113,7 +113,7 @@ const LANDMARK_NATURE_MULT := 2.0
 const LANDMARK_BELL_LOSS_MULT := 0.4
 const LANDMARK_BELL_RADIUS := 12.0 * WORLD_SCALE
 # Short boost text per landmark, for the HUD panel and the placeholder labels.
-const LANDMARK_BOOST_TEXT: Array[String] = ["music x2", "nature x2", "gloom slowed x0.4 nearby"]
+const LANDMARK_BOOST_TEXT: Array[String] = ["music x2", "nature x2", "gloom slowed x0.4 nearby", "art (no boost yet)"]
 
 # ---- Round 19: dawn rating (scripts/dawn_rating.gd). ----
 # The level is won by reaching dawn. 1 light for that; 2 lights when at least two of the three lower goals are met
@@ -293,7 +293,6 @@ const BEACON_PULL_FADE_ALPHA := 0.2  # The retreating arm's outline alpha once f
 const BEACON_PULL_FADE_ANGLE := 0.5  # Radians either side of the arm that fade.
 const BEACON_PULL_URGENT_RATIO := 1.2  # Loop over the people's length by this factor: hurry.
 const BEACON_PULL_URGENT_MULT := 4.0
-const LANDMARK_NEAR_INDEX := 1  # The Garden: within the first arm's reach of the start (the other two stay far).
 
 # ---- Checkpoint 5: wobble alert (scripts/wobble_alert.gd, minimap.gd, looks/minimap_look*.gd). ----
 # A wobble (a drained rescued person, about WOBBLE_SECONDS before a relapse) used to start off screen and go unseen. Now
@@ -619,15 +618,9 @@ const L31_BUTTERFLY_SCALE := 4.2  # Butterflies only (fewer, larger: they hurt p
 const L31_AMBIENT_RECHECK := 0.4  # Seconds between the ambient life's paint lookups (cached between).
 const L31_PROP_SCALE := 1.8  # Street props are drawn this many times bigger (lamp heads, planter flowers, stall cloth).
 const L31_PROP_LIFT := 0.55  # How far a bare prop's colour lifts toward its warm colour so it reads on grey ground.
-# Props (#48): the playtest found no props in the play-zoom frame. Cause: placement (all of them stand at the blocks,
-# 25 m or more from the middle where the night is played), then size and contrast. Plaza props stand on a lattice over
-# the open plaza (one every L31_PLAZA_SPACING metres, none within L31_PLAZA_CLEAR of a block or landmark,
-# L31_PLAZA_START_CLEAR of the player's start or L31_PLAZA_EDGE of the plaza's edge). Lamps and benches are drawn
-# bigger and warmer.
-const L31_PLAZA_SPACING := 12.0
-const L31_PLAZA_CLEAR := 6.5
-const L31_PLAZA_START_CLEAR := 4.0
-const L31_PLAZA_EDGE := 5.0
+# Props (#48): the playtest found no props in the play-zoom frame. Cause: placement (all of them stood at the blocks,
+# 25 m or more from the middle where the night is played), then size and contrast. Lamps and benches are drawn bigger
+# and warmer. (0.3.3: the props now follow the streets, see "Town layout" below.)
 const L31_LAMP_SCALE := 1.35  # Lamps are drawn this many times bigger again than the other props.
 const L31_LAMP_HEIGHT := 0.65  # A lamp post's height as a share of its drawn scale (its head was out of frame).
 const L31_BENCH_SCALE := 1.4  # Benches too.
@@ -662,6 +655,21 @@ const L32_POOL_ALPHA := 0.3  # The pool's alpha in its middle at full strength.
 const L32_HEAD_ALPHA := 0.3  # The small glow at the head.
 const L32_POOL_RADIUS := 3.0  # Metres: the pool on the ground (and the cone's width at the ground).
 const L32_MAX_LIGHT_ALPHA := 0.35  # No light shape is ever more opaque than this (the test checks the constants).
+
+# ---- 0.3.3 Town layout (#52, #51, #17): town_layout.gd, topdown_main.gd BLOCK_POSITIONS, looks/style_props.gd. ----
+# The town is a main street along x (z = 0) and a cross street along z (x = 0), TOWN_STREET_HALF_WIDTH either side of
+# the line. They cross at the player's start, which is the small square. Twenty blocks stand in rows on both sides of
+# each street, in front of the pavement strip, and face the street. One landmark stands at the end of each street arm.
+const TOWN_STREET_HALF_WIDTH := 5.0  # Metres from a street's centre line to its kerb.
+const TOWN_KERB_OFFSET := 5.5  # Metres from the centre line: the lamps stand in the pavement strip at this distance.
+const TOWN_LAMP_SPACING := 10.0  # Metres between the lamps along a kerb.
+const TOWN_LAMP_FIRST := 10.0  # The first lamp stands this far from the crossing (the square is kept clear).
+const TOWN_EDGE_CLEAR := 8.0  # Lamps stop this far from the plaza's edge.
+const TOWN_STALL_OFFSET := 8.0  # The four stalls on the small square stand at (+-8, +-8) from the start.
+const TOWN_BENCH_OFFSET := 2.9  # A block's bench stands this far in front of its centre (toward the street).
+const TOWN_PLANTER_OFFSET := Vector2(2.7, 2.6)  # A block's planter: forward, then sideways.
+const LANDMARK_NEAREST := 18.0  # Metres: every landmark stands between these two distances of the start.
+const LANDMARK_FARTHEST := 32.0
 
 static var intro_override: int = -1
 static var tides_override: int = -1  # Round 25: as intro_override, for the gloom tides (see tides_on).

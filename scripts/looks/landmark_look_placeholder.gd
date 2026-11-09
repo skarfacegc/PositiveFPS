@@ -96,7 +96,8 @@ func _build() -> void:
 	add_child(_label)
 
 
-# Each landmark's own simple shape: a flat canopy (bandstand), a ball (garden), a tall box (bell tower).
+# Each landmark's own simple shape: a flat canopy (bandstand), a ball (garden), a tall box (bell tower), a wide thin
+# wall (gallery).
 func _shape_mesh(index: int) -> Mesh:
 	if index == Landmarks.GARDEN:
 		var ball := SphereMesh.new()
@@ -107,6 +108,10 @@ func _shape_mesh(index: int) -> Mesh:
 		var tall := BoxMesh.new()
 		tall.size = Vector3(1.2, 2.4, 1.2)
 		return tall
+	if index == Landmarks.GALLERY:
+		var wall := BoxMesh.new()
+		wall.size = Vector3(3.2, 1.8, 0.5)
+		return wall
 	var canopy := CylinderMesh.new()
 	canopy.top_radius = 2.2
 	canopy.bottom_radius = 2.2

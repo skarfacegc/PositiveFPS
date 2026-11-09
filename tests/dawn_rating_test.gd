@@ -43,7 +43,7 @@ func test_the_reasons_are_spelt_out() -> void:
 	var lines: Array = r["lines"]
 	assert_str(lines[0]).is_equal("30 of 60 people rescued (50%)")
 	assert_str(lines[1]).is_equal("31% of the plaza held")
-	assert_str(lines[2]).is_equal("2 of 3 landmarks held")
+	assert_str(lines[2]).is_equal("2 of 4 landmarks held")
 	assert_str(DawnRating.lights_text(2)).is_equal("[*][*][ ]")
 	assert_str(DawnRating.hint_for(3)).is_equal("")
 	assert_str(DawnRating.hint_for(2)).contains("three")
@@ -73,7 +73,7 @@ func test_dawn_ends_the_level_with_one_light_for_an_empty_night() -> void:
 	assert_str(td.hud.end_label.text).contains("Dawn: 1 of 3 dawn lights")
 	assert_str(td.hud.end_label.text).contains("Dawn lights: [*][ ][ ]")
 	assert_str(td.hud.end_label.text).contains("0 of 60 people rescued")
-	assert_str(td.hud.end_label.text).contains("0 of 3 landmarks held")
+	assert_str(td.hud.end_label.text).contains("0 of 4 landmarks held")
 	assert_int(td.rating["lights"]).is_equal(1)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -99,7 +99,7 @@ func test_dawn_rates_what_is_held_thirty_people_and_a_landmark_make_two_lights()
 	await runner.simulate_frames(10)
 	assert_bool(td.running).is_false()
 	assert_str(td.hud.end_label.text).contains("Dawn: 2 of 3 dawn lights")
-	assert_str(td.hud.end_label.text).contains("1 of 3 landmarks held")
+	assert_str(td.hud.end_label.text).contains("1 of 4 landmarks held")
 	assert_str(td.hud.end_label.text).contains("30 of 60 people rescued")
 	await TopDownTestUtil.leave_loaded_scene(td)
 
