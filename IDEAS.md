@@ -491,6 +491,22 @@ people), 40 rescued, 1 first light finished (20 lifted), 12 gaps, 5 relapses, 2 
   buildings in an organised arrangement (#52, Backlog, M). Needs a design talk first (streets, rows, squares?).
 - Released as `v0.3.2` (2026-11-09) on GitHub: asset `PositiveFPS-3d52b58.7z`. Milestone 0.3.2 closed.
 
+## Town layout design (2026-11-09) (#52, #51)
+
+Design talk after the v0.3.2 release. Today the ten buildings (`TopDownMain.BLOCK_POSITIONS`) are hand-placed at scattered
+spots, and the plaza props sit on an even lattice (`StyleProps.layout_plaza`) unrelated to them: items are good but
+read as scattered. Decisions (interview, 2026-11-09), not yet scheduled (Backlog, no milestone):
+- **Shape: streets and rows.** A main street plus cross streets; buildings line them and face the street.
+- **Buildings: more and denser,** about 16 to 24 blocks (the 0.4 plan already wants buildings and landmarks denser).
+- **Props follow the streets:** lamps at regular spacing along the kerbs, benches and planters beside buildings or at a
+  small square, stalls on the square. This replaces the plaza lattice.
+- **Scope: look and placement only,** no new rules. Building positions are shared by gameplay (rescues, landmarks,
+  boosts, `_near_block`), so moving them still needs the full gate, a bot-night check of the difficulty, and the
+  landmarks kept reachable.
+- Open for the plan: street plan sketch (shots first, as for a look-focused target), how the border and the start
+  plaza sit on the streets, the orange stall or planter restyle (#51) rides along.
+- Size: L (was M). Best built before or beside 0.4 Tug of war, since both touch where buildings stand.
+
 ## 0.4 Tug of war plan (2026-11-07)
 
 Planned as rounds 27 and 28 before the switch to targets; the content is unchanged. **Order:** first pass **Reorg**
