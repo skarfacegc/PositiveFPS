@@ -66,7 +66,7 @@ placeholder, `tide_pointer` still is.
 - Open question: should the recorder rename `gap_open` / `gap_close` to `break_*`? (#23)
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
-- 0.3.2 Prop styling (built and played 2026-11-08, all three accepted, Done; plan, built and playtest notes below):
+- 0.3.2 Prop styling (done and released as v0.3.2; plan, built and playtest notes below):
   lamp styling (#49), bench styling (#50), bunting wires above the player (#42). The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
 
 **Watch in the next playtest** (no issue: questions for the interview, not work):
@@ -81,8 +81,8 @@ placeholder, `tide_pointer` still is.
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** 0.3.2 Prop styling (#42, #49, #50) is built and played (2026-11-08), all accepted: close it when the user
-calls the target done. Then 0.4 Tug of war (plan below, and on the board).
+**Next:** 0.3.2 Prop styling (#42, #49, #50) is done and released as `v0.3.2` (2026-11-09). New in Backlog from its
+playtest: the orange plank (#51) and the town layout (#52). Then 0.4 Tug of war (plan below, and on the board).
 0.3 Living town is done (2026-11-07) and 0.3.1 Living town fixes is done (2026-11-08, playtest 4 below), both internal
 only: no release.
 
@@ -486,7 +486,10 @@ people), 40 rescued, 1 first light finished (20 lifted), 12 gaps, 5 relapses, 2 
 - Wires (#42): look good. Accepted, Done.
 - Benches (#50): acceptable. Accepted, Done. (The shading and outline still differ from the buildings; not pursued.)
 - Lamps (#49): good. Accepted, Done.
-- Still open: the bright orange plank near the start is a stall or planter; restyling it was left to the user's call.
+- The bright orange plank near the start is a stall or planter: yes, restyle it (#51, Backlog, XS).
+- Town layout: the props are good but haphazardly placed, and it doesn't look like a town. Place props, stalls and
+  buildings in an organised arrangement (#52, Backlog, M). Needs a design talk first (streets, rows, squares?).
+- Released as `v0.3.2` (2026-11-09) on GitHub: asset `PositiveFPS-3d52b58.7z`. Milestone 0.3.2 closed.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
