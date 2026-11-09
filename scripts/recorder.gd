@@ -420,12 +420,12 @@ func _poll_gaps() -> void:
 		else:
 			new_id.append(_next_gap_id)
 			new_opened.append(t)
-			emit_event("gap_open", {"gap": _next_gap_id, "pos": _pos(mid), "open_gaps": mids.size()})
+			emit_event("break_open", {"gap": _next_gap_id, "pos": _pos(mid), "open_gaps": mids.size()})
 			_next_gap_id += 1
 	for i: int in range(_gap_pos.size()):
 		if not taken.has(i):
 			var dur := t - _gap_opened[i]
-			emit_event("gap_close", {"gap": _gap_id[i], "duration": snappedf(dur, 0.01), "open_gaps": mids.size()})
+			emit_event("break_close", {"gap": _gap_id[i], "duration": snappedf(dur, 0.01), "open_gaps": mids.size()})
 	_gap_pos = new_pos
 	_gap_id = new_id
 	_gap_opened = new_opened
@@ -434,7 +434,7 @@ func _poll_gaps() -> void:
 # The session is ending: gaps still open are closed with the duration so far (flagged as cut short by the end).
 func _poll_gaps_close_all() -> void:
 	for i: int in range(_gap_pos.size()):
-		emit_event("gap_close", {"gap": _gap_id[i], "duration": snappedf(t - _gap_opened[i], 0.01), "ended": true})
+		emit_event("break_close", {"gap": _gap_id[i], "duration": snappedf(t - _gap_opened[i], 0.01), "ended": true})
 	_gap_pos.clear()
 	_gap_id.clear()
 	_gap_opened.clear()

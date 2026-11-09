@@ -19,10 +19,10 @@ Definitions
     * nothing sank to gloomy or dimmed within `--quiet-window` seconds either side (default 5).
   "Quiet (dimmed only)" is the same, but only sinks to DIMMED count, because wistful people drift to gloomy all the time.
 - Sinks that happen in the first 0.5 s are the starting state, not events, and are ignored.
-- THREAT events are: sink to dimmed, gap_open, grab, player_dim (going dim) and relapse. Threat cadence is the number of
+- THREAT events are: sink to dimmed, break_open, grab, player_dim (going dim) and relapse. Threat cadence is the number of
   them per minute, by type, and the gaps (seconds) between one threat and the next.
 - Decision density is target_change events per minute (the player choosing someone new to help).
-- Gap durations come from gap_close events (a gap still open at the end is closed with the time so far).
+- Break durations come from break_close events (a gap still open at the end is closed with the time so far).
 - Round 23 sections: PATCH EFFECT (per gap_patched: kind gap or strain, gaps open at the patch, gaps 10 s and 20 s
   later from the samples, and whether they fell) and PRESSURE CURVE (15 s steps: mean dimmed, gaps and pressers,
   relapses and threats in the step, rescued at its end).
@@ -35,13 +35,18 @@ import os
 import statistics
 import sys
 
-THREAT_TYPES = ("sink_dimmed", "gap_open", "grab", "player_dim", "relapse")
+THREAT_TYPES = ("sink_dimmed", "break_open", "grab", "player_dim", "relapse")
 STAGES = ("wistful", "gloomy", "dimmed", "rescued")
 INITIAL_SECONDS = 0.5
+# Recordings made before the rename used the old names for breaks (gap_open / gap_close); they are read as the new names.
+OLD_EVENT_NAMES = {"gap_open": "break_open", "gap_close": "break_close"}
 
 
 def load_events(folder):
-    """Reads events.jsonl, skipping blank or damaged lines (a crash can cut the last line)."""
+    """Reads events.jsonl, skipping blank or damaged lines (a crash can cut the last line).
+
+    Old recordings' gap_open / gap_close events are renamed to break_open / break_close as they are read.
+    """
     path = os.path.join(folder, "events.jsonl")
     events = []
     with open(path, encoding="utf-8") as fh:
@@ -50,9 +55,12 @@ def load_events(folder):
             if not line:
                 continue
             try:
-                events.append(json.loads(line))
+                event = json.loads(line)
             except ValueError:
                 continue
+            if isinstance(event, dict) and event.get("type") in OLD_EVENT_NAMES:
+                event["type"] = OLD_EVENT_NAMES[event["type"]]
+            events.append(event)
     return events
 
 
@@ -115,7 +123,7 @@ def analyse(events, quiet_window=5.0):
         })
 
     # Events counted into the second they happened in (the sample row whose t is the next whole second up).
-    kinds = ("sink_dimmed", "sink_other", "lift", "rescue", "relapse", "gap_open", "gap_close", "grab", "grab_avoided",
+    kinds = ("sink_dimmed", "sink_other", "lift", "rescue", "relapse", "break_open", "break_close", "grab", "grab_avoided",
              "umbrella_pop", "guarded_glance", "shelter_block", "burst", "target_change", "player_dim")
     for row in rows:
         for k in kinds:
@@ -134,7 +142,7 @@ def analyse(events, quiet_window=5.0):
     counts = {}
     for e in real:
         counts[kind_of(e)] = counts.get(kind_of(e), 0) + 1
-    gap_durations = [e["duration"] for e in real if e["type"] == "gap_close"]
+    gap_durations = [e["duration"] for e in real if e["type"] == "break_close"]
     return {
         "start": start, "end": end, "duration": duration, "samples": samples, "rows": rows, "counts": counts,
         "threats": threats, "threat_gaps": threat_gaps, "gap_durations": gap_durations,
@@ -203,12 +211,12 @@ def report(res, folder):
         in_phase = [x for x in res["threats"] if a <= x[0] < b]
         add("  %-9s %5d %6.1f%% %8d %6d %6d %7d %8d %8.1f %7.1f" % (
             name, len(group), pct(sum(r["quiet"] for r in group), len(group)), len(in_phase),
-            sum(r["n_gap_open"] for r in group), sum(r["n_grab"] for r in group), sum(r["n_rescue"] for r in group),
+            sum(r["n_break_open"] for r in group), sum(r["n_grab"] for r in group), sum(r["n_rescue"] for r in group),
             sum(r["n_target_change"] for r in group), statistics.fmean(r["spirit"] for r in group),
             statistics.fmean(r["dimmed"] for r in group)))
     add("")
     add("THREAT CADENCE (events per minute over %.0f s)" % dur)
-    for k in ("sink_other", "sink_dimmed", "gap_open", "grab", "player_dim", "relapse", "rescue", "umbrella_pop",
+    for k in ("sink_other", "sink_dimmed", "break_open", "grab", "player_dim", "relapse", "rescue", "umbrella_pop",
               "guarded_glance", "burst"):
         c = res["counts"].get(k, 0)
         add("  %-15s %4d total  %5.2f /min" % (k, c, per_minute(c, dur)))
@@ -311,7 +319,7 @@ def tide_lines(res):
             s["t"], s.get("side", "?"), s.get("members", "?"),
             sum(1 for e in during if e["type"] == "wobble"),
             sum(1 for e in during if e["type"] == "relapse"),
-            sum(1 for e in during if e["type"] == "gap_open")))
+            sum(1 for e in during if e["type"] == "break_open")))
     return lines
 
 
@@ -452,7 +460,7 @@ def compare_column(res):
     dur = res["duration"]
     by_phase = []
     for name, group in phases(rows).items():
-        by_phase.append("%s %d" % (name, sum(r["n_gap_open"] for r in group)))
+        by_phase.append("%s %d" % (name, sum(r["n_break_open"] for r in group)))
     lm_events = res["landmark_events"]
     claims = sum(1 for e in lm_events if e["type"] == "landmark_claimed")
     win = res["win"]
@@ -462,7 +470,7 @@ def compare_column(res):
         "rescued": str(end.get("rescued", "?")) if end else "?",
         "dawn lights": str(win.get("lights", "?")) if win else "-",
         "quiet % strict": "%.1f" % pct(sum(r["quiet"] for r in rows), n),
-        "gaps opened": str(res["counts"].get("gap_open", 0)),
+        "gaps opened": str(res["counts"].get("break_open", 0)),
         "gaps by phase": ", ".join(by_phase) or "-",
         "relapses": str(res["counts"].get("relapse", 0)),
         "spirit mean": "%.1f" % statistics.fmean(r["spirit"] for r in rows),

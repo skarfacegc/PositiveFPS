@@ -26,7 +26,7 @@ def synthetic():
           {"t": 0.0, "type": "sink", "to": "gloomy", "id": 1}]  # initial state, ignored
     for t in range(1, 31):
         ev.append(sample(float(t), gaps=1 if 12 <= t <= 14 else 0, phase="calm" if t <= 15 else "rising"))
-    ev += [{"t": 12.2, "type": "gap_open", "gap": 1}, {"t": 14.8, "type": "gap_close", "gap": 1, "duration": 2.6},
+    ev += [{"t": 12.2, "type": "break_open", "gap": 1}, {"t": 14.8, "type": "break_close", "gap": 1, "duration": 2.6},
            {"t": 25.0, "type": "sink", "to": "dimmed", "id": 4}, {"t": 6.0, "type": "target_change", "target": 3},
            {"t": 7.0, "type": "target_change", "target": 4},
            {"t": 8.0, "type": "beacon_placed", "pos": [10.0, -4.0], "cost": 30.0, "spirit_after": 20.0},
@@ -58,7 +58,7 @@ class AnalyseTest(unittest.TestCase):
         self.assertEqual(rows[19]["quiet"], 1)
         self.assertEqual(res["gap_durations"], [2.6])
         self.assertEqual(res["target_changes"], 2)
-        self.assertEqual(len(res["threats"]), 2)  # gap_open and the dimmed sink; the t=0 sink is ignored
+        self.assertEqual(len(res["threats"]), 2)  # break_open and the dimmed sink; the t=0 sink is ignored
         self.assertAlmostEqual(res["threat_gaps"][0], 12.8)
 
     def test_beacons_are_counted_and_reported(self):
@@ -119,7 +119,7 @@ class AnalyseTest(unittest.TestCase):
         extra = [{"t": 10.0, "type": "spirit_warm", "id": 1, "joy": 40.0, "amount": 1.6, "pool": 8.4},
                  {"t": 10.5, "type": "spirit_warm", "id": 2, "joy": 40.0, "amount": 1.6, "pool": 6.8},
                  {"t": 11.0, "type": "spirit_warm", "id": 1, "joy": 20.0, "amount": 0.8, "pool": 6.0},
-                 {"t": 20.0, "type": "gap_close", "gap": 2, "duration": 0.21}]
+                 {"t": 20.0, "type": "break_close", "gap": 2, "duration": 0.21}]
         res = ar.analyse(sorted(synthetic() + extra, key=lambda e: e["t"]))
         self.assertEqual(len(res["warms"]), 3)
         text = ar.report(res, "x")
@@ -139,6 +139,31 @@ class AnalyseTest(unittest.TestCase):
                 rows = list(csv.DictReader(fh))
             self.assertEqual(len(rows), 30)
             self.assertIn("quiet", rows[0])
+
+    def test_old_gap_event_names_are_read_as_breaks(self):
+        # Recordings made before the rename hold gap_open / gap_close; they must analyse the same as break_*.
+        old = [{"t": 0.0, "type": "session_start"}, sample(1.0), sample(2.0), sample(3.0),
+               {"t": 12.2, "type": "gap_open", "gap": 1},
+               {"t": 14.8, "type": "gap_close", "gap": 1, "duration": 2.6},
+               {"t": 30.0, "type": "session_end", "outcome": "quit", "reason": "quit", "rescued": 0}]
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = os.path.join(tmp, "old")
+            os.makedirs(folder)
+            with open(os.path.join(folder, "events.jsonl"), "w", encoding="utf-8") as fh:
+                for e in old:
+                    fh.write(json.dumps(e) + "\n")
+            loaded = ar.load_events(folder)
+            self.assertEqual([e["type"] for e in loaded if e["type"].startswith("break_")],
+                             ["break_open", "break_close"])
+            self.assertFalse(any(e["type"].startswith("gap_") for e in loaded))
+            res = ar.analyse(loaded)
+            self.assertEqual(res["gap_durations"], [2.6])
+            self.assertEqual(len(res["threats"]), 1)
+            table, skipped = ar.compare_recordings([folder], min_seconds=0)
+            self.assertEqual(skipped, [])
+            opened_row = next(ln for ln in table.splitlines() if ln.startswith("gaps opened"))
+            self.assertTrue(opened_row.rstrip().endswith("1"))
+            self.assertEqual(ar.cli(["--compare", folder]), 0)
 
     def test_empty_recording_is_an_error(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -243,7 +268,7 @@ class TidesTest(unittest.TestCase):
             {"t": 40.0, "type": "tide_warn", "side": "north", "angle": -1.57},
             {"t": 55.0, "type": "tide_start", "side": "north", "angle": -1.57, "members": 4},
             {"t": 57.0, "type": "wobble"},
-            {"t": 58.0, "type": "gap_open"},
+            {"t": 58.0, "type": "break_open"},
             {"t": 59.0, "type": "relapse"},
             {"t": 67.0, "type": "tide_end", "side": "north", "angle": -1.57, "members": 3},
             {"t": 80.0, "type": "wobble"},

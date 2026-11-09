@@ -144,8 +144,8 @@ func test_a_gap_opening_and_closing_is_logged_with_its_duration() -> void:
 	td.border._mids_cache = []
 	rec._poll_gaps()
 	var events := _events(td)
-	var opened := _of_type(events, "gap_open")
-	var closed := _of_type(events, "gap_close")
+	var opened := _of_type(events, "break_open")
+	var closed := _of_type(events, "break_close")
 	assert_int(opened.size()).is_equal(1)
 	assert_int(closed.size()).is_equal(1)
 	assert_float(closed[0]["gap"]).is_equal(opened[0]["gap"])

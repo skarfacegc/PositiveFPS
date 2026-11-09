@@ -158,7 +158,7 @@ func test_gaps_still_open_when_the_session_ends_are_closed_as_cut_short() -> voi
 	rec._poll_gaps()
 	rec.t += 4.0
 	rec.end("quit")
-	var closed := _of_type(_read_file(td), "gap_close")
+	var closed := _of_type(_read_file(td), "break_close")
 	assert_int(closed.size()).is_equal(1)
 	assert_bool(closed[0]["ended"]).is_true()
 	assert_float(closed[0]["duration"]).is_equal_approx(4.0, 0.01)
