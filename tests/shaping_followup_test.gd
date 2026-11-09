@@ -56,8 +56,8 @@ func test_real_reach_gains_at_12_24_and_40_people() -> void:
 		var was: float = before[n]
 		assert_float(cap).is_greater(was * 1.14)
 	# The body stays a usable shape: at least 0.4 of the plain radius (5.7 m across the radius at 24 people).
-	assert_float(Config.BEACON_BODY_MIN).is_greater_equal(0.4)
-	assert_float(BorderCentre.circle_radius(24) * Config.BEACON_BODY_MIN).is_greater(5.5)
+	assert_float(BeaconConfig.BEACON_BODY_MIN).is_greater_equal(0.4)
+	assert_float(BorderCentre.circle_radius(24) * BeaconConfig.BEACON_BODY_MIN).is_greater(5.5)
 
 
 func test_the_planned_reach_matches_the_gain_in_a_real_level() -> void:
@@ -74,7 +74,7 @@ func test_the_planned_reach_matches_the_gain_in_a_real_level() -> void:
 	var west: Dictionary = td.border.plan_stretch(CENTRE + Vector3(-200, 0, 0))
 	var west_reach: float = west["reach"]
 	assert_float(west_reach).is_less(east_reach)
-	assert_str(west["reason"]).is_equal(Config.BEACON_FULL_TEXT)
+	assert_str(west["reason"]).is_equal(BeaconConfig.BEACON_FULL_TEXT)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -103,8 +103,8 @@ func test_a_zone_that_loses_its_people_one_by_one_draws_in() -> void:
 	var spacing := perimeter / maxf(float(td.border.member_count), 1.0)
 	var line := "PROBE after losing 24 of 44: n=%d loop %.1f of %.1f m, spacing %.2f m, notices %d"
 	print(line % [n, perimeter, budget, spacing, pulled[0]])
-	assert_float(perimeter).is_less_equal(budget * (1.0 + Config.BEACON_PULL_IN_TOLERANCE + 0.02))
-	assert_float(spacing).is_less_equal(Config.BORDER_MAX_GAP)
+	assert_float(perimeter).is_less_equal(budget * (1.0 + BeaconConfig.BEACON_PULL_IN_TOLERANCE + 0.02))
+	assert_float(spacing).is_less_equal(BorderConfig.BORDER_MAX_GAP)
 	# One notice per quiet spell, not one per person lost.
 	assert_int(pulled[0]).is_less_equal(4)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -126,7 +126,7 @@ func test_the_landmark_pointers_refresh_a_few_times_a_second() -> void:
 	lp.update_from(td, 0.05)
 	assert_float(lp._since).is_equal(0.0)  # worked out on reaching LANDMARK_POINTER_REFRESH
 	# A pointer that has changed since is not shown until the next refresh.
-	td.landmarks.items[Landmarks.BANDSTAND].update(Config.BORDER_LANDMARK_HOLD, true)
+	td.landmarks.items[Landmarks.BANDSTAND].update(LandmarkConfig.BORDER_LANDMARK_HOLD, true)
 	lp.update_from(td, 0.01)
 	assert_float(lp._since).is_equal_approx(0.01, 0.001)
 	lp.update_from(td)

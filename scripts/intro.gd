@@ -5,7 +5,7 @@ extends RefCounted
 # game teaches one thing at a time:
 #   dusk (until NIGHT_CALM_FRACTION): just rescuing and growing: nobody sinks to dimmed yet and no mood is active;
 #   then dimmed people emerge and press (the first gap gets a prompt);
-#   then moods switch on one type at a time (Config.MOOD_INTRO_FRACTIONS), each with a one-time prompt.
+#   then moods switch on one type at a time (HudConfig.MOOD_INTRO_FRACTIONS), each with a one-time prompt.
 # This class holds the unlock rules and the prompt queue (one prompt at a time, each shown once per level,
 # PROMPT_SECONDS long). The level asks for prompts when something first happens; PromptBar draws the current one.
 # With `enabled` false (the default in automated tests, see Config.intro_on()) everything is available at once and
@@ -38,7 +38,7 @@ var time_left: float = 0.0
 # Round 22: a notice (a refusal or a fall-back) stays NOTICE_SECONDS and may carry its own words (the plan's reason);
 # it is drawn coral (`coral`). The ordinary prompts keep PROMPT_SECONDS. Round 26: every prompt and notice is a slim
 # banner under the night bar (`big` stays true), one at a time.
-var duration: float = Config.PROMPT_SECONDS
+var duration: float = HudConfig.PROMPT_SECONDS
 var big: bool = true
 var coral: bool = false
 var custom_text: String = ""
@@ -60,14 +60,16 @@ func _init(night_cycle: NightCycle = null, is_enabled: bool = true) -> void:
 func dimmed_allowed() -> bool:
 	if not enabled:
 		return true
-	return night.progress() >= Config.NIGHT_CALM_FRACTION
+	return night.progress() >= NightConfig.NIGHT_CALM_FRACTION
 
 
 # True when `mood` (a Person.Mood) is switched on. Always true when the intro is off.
 func mood_active(mood: int) -> bool:
 	if not enabled or mood == Person.Mood.NONE:
 		return true
-	return night.progress() >= Config.MOOD_INTRO_FRACTIONS[clampi(mood, 0, Config.MOOD_INTRO_FRACTIONS.size() - 1)]
+	return (
+		night.progress() >= HudConfig.MOOD_INTRO_FRACTIONS[clampi(mood, 0, HudConfig.MOOD_INTRO_FRACTIONS.size() - 1)]
+	)
 
 
 # Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and always when
@@ -93,7 +95,7 @@ func notice(id: int, words: String = "") -> void:
 	big = true
 	coral = true
 	custom_text = words
-	duration = Config.NOTICE_SECONDS
+	duration = HudConfig.NOTICE_SECONDS
 	time_left = duration
 
 
@@ -108,12 +110,12 @@ func check_level(main: TopDownMain, delta: float) -> void:
 	if not enabled:
 		return
 	_check_timer += delta
-	if _check_timer < Config.INTRO_CHECK_SECONDS:
+	if _check_timer < HudConfig.INTRO_CHECK_SECONDS:
 		return
 	_check_timer = 0.0
 	if dimmed_allowed() and not main.border.push.breaks.is_empty():
 		request(Prompt.BREAK, main.border.push.break_points()[0])
-	elif dimmed_allowed() and main.border.push.deepest >= Config.PUSH_BREAK_DEPTH * Config.PUSH_PROMPT_FRACTION:
+	elif dimmed_allowed() and main.border.push.deepest >= PushConfig.PUSH_BREAK_DEPTH * PushConfig.PUSH_PROMPT_FRACTION:
 		request(Prompt.PUSH)
 	var view := main.get_viewport().get_visible_rect().grow(-40.0)
 	for p: Person in main.people:
@@ -131,7 +133,7 @@ func check_level(main: TopDownMain, delta: float) -> void:
 			request(Prompt.SHELTERED)
 	if main.player.is_dim:
 		request(Prompt.DIM)
-	elif main.player.spirit < Config.BURST_SPIRIT_COST:
+	elif main.player.spirit < SpiritConfig.BURST_SPIRIT_COST:
 		request(Prompt.SPIRIT_LOW)
 
 
@@ -160,7 +162,7 @@ func _reset_look() -> void:
 	big = true
 	coral = false
 	custom_text = ""
-	duration = Config.PROMPT_SECONDS
+	duration = HudConfig.PROMPT_SECONDS
 
 
 # The prompt for a mood (Person.Mood).
@@ -177,9 +179,9 @@ static func prompt_for_mood(mood: int) -> int:
 static func text_for(id: int) -> String:
 	match id:
 		Prompt.BREAK:
-			return Config.PUSH_BREAK_TEXT
+			return PushConfig.PUSH_BREAK_TEXT
 		Prompt.PUSH:
-			return Config.PUSH_NOTICE_TEXT
+			return PushConfig.PUSH_NOTICE_TEXT
 		Prompt.GUARDED:
 			return "Guarded: reach them from the front"
 		Prompt.SKITTISH:
@@ -191,21 +193,21 @@ static func text_for(id: int) -> String:
 		Prompt.SPIRIT_LOW:
 			return "Spirit low: rescue people to refill"
 		Prompt.DIM_HELP:
-			return Config.DIM_HELP_TEXT
+			return PeopleConfig.DIM_HELP_TEXT
 		Prompt.BEACON_SPIRIT:
-			return Config.BEACON_NO_SPIRIT_TEXT
+			return BeaconConfig.BEACON_NO_SPIRIT_TEXT
 		Prompt.BEACON_BORDER:
-			return Config.BEACON_NO_BORDER_TEXT
+			return BeaconConfig.BEACON_NO_BORDER_TEXT
 		Prompt.BEACON_BLOCKED:
-			return Config.BEACON_BLOCKED_TEXT
+			return BeaconConfig.BEACON_BLOCKED_TEXT
 		Prompt.BEACON_FELL_BACK:
-			return Config.BEACON_FELL_BACK_TEXT
+			return BeaconConfig.BEACON_FELL_BACK_TEXT
 		Prompt.ZONE_PULLED_IN:
-			return Config.BEACON_PULLED_IN_TEXT
+			return BeaconConfig.BEACON_PULLED_IN_TEXT
 		Prompt.FIRST_LIGHT:
-			return Config.FIRST_LIGHT_TEXT
+			return NightConfig.FIRST_LIGHT_TEXT
 		Prompt.TIDE:
-			return Config.TIDE_PLAIN_TEXT
+			return NightConfig.TIDE_PLAIN_TEXT
 	return "You're dim — rest inside your border"
 
 

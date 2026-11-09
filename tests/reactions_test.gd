@@ -24,7 +24,7 @@ func _border_level(count: int, r: float) -> Dictionary:
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * r, 0.0, sin(a) * r), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
-	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
+	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 	await runner.simulate_frames(600)
 	return {"runner": runner, "td": td}
 
@@ -77,16 +77,16 @@ func test_a_reacting_person_hops_turns_toward_the_spot_glows_then_settles() -> v
 	var look := m.look as PersonLookPlaceholder
 	# Something off to one side to turn toward.
 	var spot := m.position + Vector3(0.0, 0.0, 2.0)
-	m.react(Person.React.PATCH, Config.REACT_PATCH_SECONDS, spot)
+	m.react(Person.React.PATCH, PeopleConfig.REACT_PATCH_SECONDS, spot)
 	var top := 0.0
 	var turned := 0.0
 	var glowed := false
-	for _i: int in range(int(Config.REACT_PATCH_SECONDS * 60.0) - 2):
+	for _i: int in range(int(PeopleConfig.REACT_PATCH_SECONDS * 60.0) - 2):
 		await runner.simulate_frames(1)
 		top = maxf(top, look.visual.position.y)
 		turned = maxf(turned, absf(look.visual.rotation.y))
 		glowed = glowed or look.body_mat.emission_enabled
-	assert_float(top).is_greater(Config.REACT_PATCH_HOP_HEIGHT * 0.5)
+	assert_float(top).is_greater(PeopleConfig.REACT_PATCH_HOP_HEIGHT * 0.5)
 	assert_float(turned).is_greater(0.2)
 	assert_bool(glowed).is_true()
 	# Afterwards the body is put back.
@@ -124,11 +124,11 @@ func test_the_grace_glow_works_when_no_one_reacts_and_a_burst_makes_each_lifted_
 	var glow_look := td.people[20].look as PersonLookPlaceholder
 	glow_look._set_glow(1.0)
 	assert_bool(glow_look.body_mat.emission_enabled).is_true()
-	assert_float(glow_look.body_mat.emission_energy_multiplier).is_equal_approx(Config.GRACE_GLOW_ENERGY, 0.001)
-	glow_look._set_react_glow(Config.PATCH_COLOUR, 1.0)
-	assert_bool(glow_look.body_mat.emission.is_equal_approx(Config.PATCH_COLOUR)).is_true()
+	assert_float(glow_look.body_mat.emission_energy_multiplier).is_equal_approx(PeopleConfig.GRACE_GLOW_ENERGY, 0.001)
+	glow_look._set_react_glow(PeopleConfig.PATCH_COLOUR, 1.0)
+	assert_bool(glow_look.body_mat.emission.is_equal_approx(PeopleConfig.PATCH_COLOUR)).is_true()
 	glow_look._set_react_glow(Color.WHITE, 0.0)
-	assert_bool(glow_look.body_mat.emission.is_equal_approx(Config.GRACE_GLOW_COLOR)).is_true()
+	assert_bool(glow_look.body_mat.emission.is_equal_approx(PeopleConfig.GRACE_GLOW_COLOR)).is_true()
 	glow_look._set_glow(0.0)
 	assert_bool(glow_look.body_mat.emission_enabled).is_false()
 	var lifted: Person = td.people[20]
@@ -140,13 +140,14 @@ func test_the_grace_glow_works_when_no_one_reacts_and_a_burst_makes_each_lifted_
 	var look := lifted.look as PersonLookPlaceholder
 	var top := 0.0
 	var warm := false
-	for _i: int in range(int(Config.REACT_LIFT_SECONDS * 60.0) - 2):
+	for _i: int in range(int(PeopleConfig.REACT_LIFT_SECONDS * 60.0) - 2):
 		await runner.simulate_frames(1)
 		top = maxf(top, look.visual.position.y)
 		warm = (
-			warm or (look.body_mat.emission_enabled and look.body_mat.emission.is_equal_approx(Config.BURST_FX_COLOUR))
+			warm
+			or (look.body_mat.emission_enabled and look.body_mat.emission.is_equal_approx(SpiritConfig.BURST_FX_COLOUR))
 		)
-	assert_float(top).is_greater(Config.REACT_LIFT_HOP_HEIGHT * 0.5)
+	assert_float(top).is_greater(PeopleConfig.REACT_LIFT_HOP_HEIGHT * 0.5)
 	assert_bool(warm).is_true()
 	await runner.simulate_frames(20)
 	assert_float(look.visual.position.y).is_equal(0.0)
@@ -161,21 +162,21 @@ func test_the_styled_look_hops_and_turns_in_a_reaction_and_settles() -> void:
 	var m: Person = td.border.members[3]
 	td.set_look(Looks.Mode.STYLED)
 	await runner.simulate_frames(3)
-	m.react(Person.React.PATCH, Config.REACT_PATCH_SECONDS, m.position + Vector3.RIGHT * 3.0)
+	m.react(Person.React.PATCH, PeopleConfig.REACT_PATCH_SECONDS, m.position + Vector3.RIGHT * 3.0)
 	var top := 0.0
 	var turned := 0.0
-	for _i: int in range(int(Config.REACT_PATCH_SECONDS * 60.0) - 2):
+	for _i: int in range(int(PeopleConfig.REACT_PATCH_SECONDS * 60.0) - 2):
 		await runner.simulate_frames(1)
 		top = maxf(top, m.look.visual.position.y)
 		turned = maxf(turned, absf(m.look.visual.rotation.y - PI))
-	assert_float(top).is_greater(Config.REACT_PATCH_HOP_HEIGHT * 0.5)
+	assert_float(top).is_greater(PeopleConfig.REACT_PATCH_HOP_HEIGHT * 0.5)
 	assert_float(turned).is_greater(0.2)
 	await runner.simulate_frames(20)
 	assert_float(m.look.visual.position.y).is_equal(0.0)
 	assert_float(m.look.visual.rotation.y).is_equal_approx(PI, 0.0001)
 	# The base look's glow hook does nothing (only the placeholder and styled looks glow).
 	var base: PersonLook = auto_free(PersonLook.new())
-	base._set_react_glow(Config.PATCH_COLOUR, 1.0)
+	base._set_react_glow(PeopleConfig.PATCH_COLOUR, 1.0)
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -195,8 +196,8 @@ func test_the_cue_sits_right_of_the_spirit_meter_and_glows_when_it_is_ready() ->
 	var screen := td.get_viewport().get_visible_rect().size
 	assert_bool(label.visible).is_true()
 	assert_bool(td.burst_cue.cue_ready).is_true()
-	assert_str(label.text).is_equal(Config.CUE_BURST_TEXT % 2)
-	assert_float(label.position.x).is_greater(screen.x * 0.5 + Config.SPIRIT_METER_WIDTH * 0.5)
+	assert_str(label.text).is_equal(HudConfig.CUE_BURST_TEXT % 2)
+	assert_float(label.position.x).is_greater(screen.x * 0.5 + HudConfig.SPIRIT_METER_WIDTH * 0.5)
 	assert_float(label.position.y).is_greater(screen.y * 0.7)
 	var ready_edge := (label.get_theme_stylebox("normal") as StyleBoxFlat).border_color
 	assert_float(ready_edge.a).is_greater(0.5)
@@ -252,7 +253,7 @@ func test_hovering_shows_no_words_a_refusal_shows_only_on_e_and_the_pull_in_retr
 	assert_float(ctl.arms[1].y).is_equal(16.0)
 	var alpha_late := ctl.outline_alpha(seg_a, seg_a + Vector2(0.0, 1.0))
 	assert_float(alpha_late).is_less(alpha_early)
-	assert_float(alpha_late).is_greater_equal(Config.BEACON_PULL_FADE_ALPHA - 0.001)
+	assert_float(alpha_late).is_greater_equal(BeaconConfig.BEACON_PULL_FADE_ALPHA - 0.001)
 	# A stretch of the outline on the far side, or inside the body, is not faded.
 	var behind := Vector2(td.border.centre.x - 12.0, td.border.centre.z)
 	assert_float(ctl.outline_alpha(behind, behind + Vector2(0.0, 1.0))).is_equal(1.0)
@@ -262,7 +263,7 @@ func test_hovering_shows_no_words_a_refusal_shows_only_on_e_and_the_pull_in_retr
 	for _i: int in range(120):
 		ctl.pull_in(step, 5.0, 1.05)
 	assert_float(ctl.arms[0].y).is_less(20.0)
-	assert_float(ctl.arms[0].y).is_greater(20.0 - Config.BEACON_PULL_CALM_RATE * 2.2)
+	assert_float(ctl.arms[0].y).is_greater(20.0 - BeaconConfig.BEACON_PULL_CALM_RATE * 2.2)
 	assert_float(ctl.arms[1].y).is_equal(16.0)
 	assert_float(ctl.arms[2].y).is_equal(12.0)
 	# When it has reached the body it is gone, and the next arm is the one that fades and retreats.
@@ -285,14 +286,16 @@ func test_hovering_shows_no_words_a_refusal_shows_only_on_e_and_the_pull_in_retr
 	# A loop far over its length hurries and skips the fade (a fresh set of arms).
 	ctl = _centre_ctl(td)
 	# Over by the urgent ratio: the arm starts walking at once, at the urgent speed.
-	ctl.pull_in(step, 5.0, Config.BEACON_PULL_URGENT_RATIO + 0.05)
+	ctl.pull_in(step, 5.0, BeaconConfig.BEACON_PULL_URGENT_RATIO + 0.05)
 	var y0 := ctl.arms[0].y
 	assert_float(y0).is_less(20.0)
 	for _i: int in range(60):
-		ctl.pull_in(step, 5.0, Config.BEACON_PULL_URGENT_RATIO + 0.05)
+		ctl.pull_in(step, 5.0, BeaconConfig.BEACON_PULL_URGENT_RATIO + 0.05)
 	var walked := y0 - ctl.arms[0].y
-	assert_float(walked).is_equal_approx(Config.BEACON_PULL_CALM_RATE * Config.BEACON_PULL_URGENT_MULT, 0.2)
-	assert_float(Config.BEACON_PULL_URGENT_RATIO).is_less(Config.BORDER_MAX_GAP / Config.BORDER_TARGET_SPACING)
+	assert_float(walked).is_equal_approx(BeaconConfig.BEACON_PULL_CALM_RATE * BeaconConfig.BEACON_PULL_URGENT_MULT, 0.2)
+	assert_float(BeaconConfig.BEACON_PULL_URGENT_RATIO).is_less(
+		BorderConfig.BORDER_MAX_GAP / BorderConfig.BORDER_TARGET_SPACING
+	)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -300,18 +303,19 @@ func test_no_world_text_can_fill_the_view_and_the_notice_is_small() -> void:
 	# What filled the screen in the round 23 playtest: the limited-preview reason was a Label3D (default font 32, pixel
 	# size 0.035 m) with BEACON_FULL_TEXT, a 71-character line about 40 m wide, more than the whole 19.5 m view height.
 	var font := ThemeDB.fallback_font
-	var old_width := font.get_string_size(Config.BEACON_FULL_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x * 0.035
-	assert_float(old_width).is_greater(Config.TD_CAMERA_ORTHO_SIZE)
+	var old_width := font.get_string_size(BeaconConfig.BEACON_FULL_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x * 0.035
+	assert_float(old_width).is_greater(PlayerConfig.TD_CAMERA_ORTHO_SIZE)
 	# Now the only world label of the preview is "Stretching", a few metres.
 	var now_width := (
-		font.get_string_size("Stretching", HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x * Config.BEACON_GUIDE_LABEL_SIZE
+		font.get_string_size("Stretching", HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x * BeaconConfig.BEACON_GUIDE_LABEL_SIZE
 	)
-	assert_float(now_width).is_less(Config.TD_CAMERA_ORTHO_SIZE * 0.15)
-	assert_int(Config.NOTICE_FONT_SIZE).is_less_equal(16)
-	assert_float(Config.NOTICE_HEIGHT).is_less_equal(34.0)
+	assert_float(now_width).is_less(PlayerConfig.TD_CAMERA_ORTHO_SIZE * 0.15)
+	assert_int(HudConfig.NOTICE_FONT_SIZE).is_less_equal(16)
+	assert_float(HudConfig.NOTICE_HEIGHT).is_less_equal(34.0)
 	# The notice bar for the longest refusal is a fraction of a 1280 px window.
 	var bar := (
-		font.get_string_size(Config.BEACON_FULL_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1, Config.NOTICE_FONT_SIZE).x + 90.0
+		font.get_string_size(BeaconConfig.BEACON_FULL_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1, HudConfig.NOTICE_FONT_SIZE).x
+		+ 90.0
 	)
 	assert_float(bar).is_less(1280.0 * 0.8)
 
@@ -372,7 +376,7 @@ func test_losing_people_pulls_the_arms_in_one_at_a_time_and_keeps_the_spacing_he
 	)
 	assert_int(most).is_less_equal(1)
 	assert_float(reach1).is_less(reach0)
-	assert_float(worst_spacing).is_less_equal(Config.BORDER_MAX_GAP)
+	assert_float(worst_spacing).is_less_equal(BorderConfig.BORDER_MAX_GAP)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -401,7 +405,7 @@ func test_the_placeholder_border_line_fades_along_the_retreating_arm() -> void:
 func test_a_stretch_from_twelve_people_goes_most_of_the_way_to_the_nearest_landmark() -> void:
 	var s: Dictionary = await _border_level(12, BorderCentre.circle_radius(12))
 	var td: TopDownMain = s["td"]
-	var at := Config.LANDMARK_POSITIONS[Landmarks.GARDEN]
+	var at := LandmarkConfig.LANDMARK_POSITIONS[Landmarks.GARDEN]
 	td.border.buildings.clear()
 	var plan: Dictionary = td.border.plan_stretch(at)
 	var reach: float = plan["reach"]

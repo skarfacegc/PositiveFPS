@@ -38,7 +38,7 @@ func _remove_tree(path: String) -> void:
 
 
 func _start_of_light() -> float:
-	return Config.NIGHT_LENGTH - Config.FIRST_LIGHT_SECONDS
+	return NightConfig.NIGHT_LENGTH - NightConfig.FIRST_LIGHT_SECONDS
 
 
 # A level with everyone parked away, at `elapsed` seconds into the night.
@@ -87,9 +87,9 @@ func test_first_light_progress_is_zero_until_the_last_45_seconds_then_rises_to_o
 	night.elapsed = _start_of_light()
 	assert_float(night.first_light_progress()).is_equal(0.0)
 	assert_bool(night.first_light_active()).is_true()
-	night.elapsed = _start_of_light() + Config.FIRST_LIGHT_SECONDS * 0.5
+	night.elapsed = _start_of_light() + NightConfig.FIRST_LIGHT_SECONDS * 0.5
 	assert_float(night.first_light_progress()).is_equal_approx(0.5, 0.001)
-	night.elapsed = Config.NIGHT_LENGTH
+	night.elapsed = NightConfig.NIGHT_LENGTH
 	assert_float(night.first_light_progress()).is_equal(1.0)
 
 
@@ -99,20 +99,20 @@ func test_first_light_progress_is_zero_until_the_last_45_seconds_then_rises_to_o
 func test_the_front_starts_covering_the_whole_play_area_and_reaches_the_centre_at_dawn() -> void:
 	var s: Dictionary = await _level(_start_of_light())
 	var td: TopDownMain = s["td"]
-	var start := Config.FIRST_LIGHT_START_RADIUS
+	var start := NightConfig.FIRST_LIGHT_START_RADIUS
 	assert_float(td.first_light.edge()).is_equal_approx(start, 0.01)
 	# The plaza's corner is the furthest point of the play area, and the start radius reaches it.
 	var corner := Config.TD_PLAZA_SIZE * 0.5 * sqrt(2.0)
 	assert_float(start).is_greater_equal(corner)
-	td.night.elapsed = _start_of_light() + Config.FIRST_LIGHT_SECONDS * 0.5
+	td.night.elapsed = _start_of_light() + NightConfig.FIRST_LIGHT_SECONDS * 0.5
 	assert_float(td.first_light.edge()).is_equal_approx(start * 0.5, 0.01)
-	td.night.elapsed = Config.NIGHT_LENGTH
+	td.night.elapsed = NightConfig.NIGHT_LENGTH
 	assert_float(td.first_light.edge()).is_equal_approx(0.0, 0.01)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
 func test_a_person_is_passed_once_the_front_is_at_or_inside_their_round_distance() -> void:
-	var s: Dictionary = await _level(_start_of_light() + Config.FIRST_LIGHT_SECONDS * 0.5)
+	var s: Dictionary = await _level(_start_of_light() + NightConfig.FIRST_LIGHT_SECONDS * 0.5)
 	var td: TopDownMain = s["td"]
 	td.first_light.started = true
 	var e := td.first_light.edge()
@@ -129,7 +129,7 @@ func test_a_person_is_passed_once_the_front_is_at_or_inside_their_round_distance
 
 
 func test_the_front_reaches_the_centre_at_dawn_so_everyone_is_passed() -> void:
-	var s: Dictionary = await _level(Config.NIGHT_LENGTH)
+	var s: Dictionary = await _level(NightConfig.NIGHT_LENGTH)
 	var td: TopDownMain = s["td"]
 	td.first_light.started = true
 	assert_bool(td.first_light.has_passed(Vector3(0.0, 0.0, 0.0))).is_true()
@@ -158,14 +158,14 @@ func test_nothing_happens_before_the_last_45_seconds() -> void:
 
 
 func test_people_behind_the_front_lose_gloom_and_people_ahead_do_not() -> void:
-	var s: Dictionary = await _level(_start_of_light() + Config.FIRST_LIGHT_SECONDS * 0.5)
+	var s: Dictionary = await _level(_start_of_light() + NightConfig.FIRST_LIGHT_SECONDS * 0.5)
 	var td: TopDownMain = s["td"]
 	var behind: Person = td.people[0]
 	var ahead: Person = td.people[1]
 	TopDownTestUtil.place(behind, Vector3(40.0, 0.0, 10.0), behind.affinity, 0.9)
 	TopDownTestUtil.place(ahead, Vector3(5.0, 0.0, 5.0), ahead.affinity, 0.9)
 	td.first_light.step(2.0)
-	assert_float(behind.gloom).is_equal_approx(0.9 - 2.0 * Config.FIRST_LIGHT_LIFT_RATE, 0.0001)
+	assert_float(behind.gloom).is_equal_approx(0.9 - 2.0 * NightConfig.FIRST_LIGHT_LIFT_RATE, 0.0001)
 	assert_float(ahead.gloom).is_equal(0.9)
 	assert_bool(behind.dawn_lit).is_true()
 	assert_bool(ahead.dawn_lit).is_false()
@@ -191,7 +191,7 @@ func test_dimmed_lifts_to_gloomy_and_then_to_wistful() -> void:
 
 
 func test_a_person_behind_the_front_does_not_sink_but_one_ahead_can() -> void:
-	var s: Dictionary = await _level(_start_of_light() + Config.FIRST_LIGHT_SECONDS * 0.5)
+	var s: Dictionary = await _level(_start_of_light() + NightConfig.FIRST_LIGHT_SECONDS * 0.5)
 	var td: TopDownMain = s["td"]
 	var behind: Person = td.people[0]
 	var ahead: Person = td.people[1]
@@ -211,7 +211,7 @@ func test_a_person_behind_the_front_does_not_sink_but_one_ahead_can() -> void:
 
 
 func test_rescued_people_behind_the_front_stop_draining_and_those_ahead_still_do() -> void:
-	var s: Dictionary = await _level(_start_of_light() + Config.FIRST_LIGHT_SECONDS * 0.5)
+	var s: Dictionary = await _level(_start_of_light() + NightConfig.FIRST_LIGHT_SECONDS * 0.5)
 	var td: TopDownMain = s["td"]
 	var behind: Person = td.people[0]
 	var ahead: Person = td.people[1]
@@ -271,7 +271,7 @@ func test_a_first_light_notice_shows_when_it_begins_and_goes_away() -> void:
 	td.first_light.step(0.1)
 	assert_bool(td.intro.current == Intro.Prompt.FIRST_LIGHT).is_true()
 	assert_str(td.intro.current_text()).is_equal("First light: dawn is coming in from the edges")
-	td.intro.update(Config.NOTICE_SECONDS - 0.5)
+	td.intro.update(HudConfig.NOTICE_SECONDS - 0.5)
 	assert_bool(td.intro.current == Intro.Prompt.FIRST_LIGHT).is_true()
 	td.intro.update(1.0)
 	assert_int(td.intro.current).is_equal(-1)
@@ -283,7 +283,7 @@ func test_the_ground_ring_closes_inward_and_covers_everything_at_dawn() -> void:
 	var td: TopDownMain = s["td"]
 	td.first_light.step(0.1)
 	assert_int(td.first_light.tint_visible_count()).is_equal(1)
-	td.night.elapsed = Config.NIGHT_LENGTH
+	td.night.elapsed = NightConfig.NIGHT_LENGTH
 	td.first_light.step(0.1)
 	# At dawn the front is at the centre: the whole ground is lit, a ring from radius 0 out to the start radius.
 	assert_int(td.first_light.tint_visible_count()).is_equal(1)
@@ -298,7 +298,7 @@ func test_the_ground_ring_closes_inward_and_covers_everything_at_dawn() -> void:
 
 
 func test_the_minimap_gets_the_front_and_tints_the_lit_ground() -> void:
-	var s: Dictionary = await _level(_start_of_light() + Config.FIRST_LIGHT_SECONDS * 0.5)
+	var s: Dictionary = await _level(_start_of_light() + NightConfig.FIRST_LIGHT_SECONDS * 0.5)
 	var td: TopDownMain = s["td"]
 	td.first_light.step(0.1)
 	assert_float(td.minimap.first_light_edge).is_equal_approx(td.first_light.edge(), 0.001)
@@ -336,7 +336,7 @@ func test_the_recorder_gets_a_start_event_and_an_end_event_with_the_lifted_count
 		td.night.elapsed += 0.5
 		td.first_light.step(0.5)
 	# The last frame of the night writes the end event once.
-	td.night.elapsed = Config.NIGHT_LENGTH - 0.01
+	td.night.elapsed = NightConfig.NIGHT_LENGTH - 0.01
 	td.first_light.step(0.1)
 	td.first_light.step(0.1)
 	var events := _events(td)

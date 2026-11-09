@@ -95,11 +95,11 @@ func test_standing_still_shifts_weight_slowly() -> void:
 
 func test_a_run_differs_from_a_walk() -> void:
 	var walk := Gait.new()
-	walk.configure(0, 0.7, 1.1, Config.TD_MOVE_SPEED * 1.12, Config.TD_RUN_SPEED * 0.93)
+	walk.configure(0, 0.7, 1.1, PlayerConfig.TD_MOVE_SPEED * 1.12, PlayerConfig.TD_RUN_SPEED * 0.93)
 	var run := Gait.new()
-	run.configure(0, 0.7, 1.1, Config.TD_MOVE_SPEED * 1.12, Config.TD_RUN_SPEED * 0.93)
-	_walk(walk, Config.TD_MOVE_SPEED, 120)
-	_walk(run, Config.TD_RUN_SPEED, 120)
+	run.configure(0, 0.7, 1.1, PlayerConfig.TD_MOVE_SPEED * 1.12, PlayerConfig.TD_RUN_SPEED * 0.93)
+	_walk(walk, PlayerConfig.TD_MOVE_SPEED, 120)
+	_walk(run, PlayerConfig.TD_RUN_SPEED, 120)
 	assert_float(walk.run).is_less(0.05)
 	assert_float(run.run).is_greater(0.9)
 	assert_float(run.pitch).is_greater(walk.pitch)
@@ -271,7 +271,7 @@ func test_a_styled_player_swings_its_legs_and_a_placeholder_player_bobs() -> voi
 		player.rotation.y = -PI * 0.5
 		var peak := 0.0
 		for i: int in range(120):
-			player.position.x += Config.TD_RUN_SPEED * DT
+			player.position.x += PlayerConfig.TD_RUN_SPEED * DT
 			player.look.advance(DT)
 			if player.look is PlayerLookStyled:
 				var legs: Array[Node3D] = (player.look as PlayerLookStyled)._parts["legs"]

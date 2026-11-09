@@ -64,7 +64,7 @@ func test_rescue_shows_a_pulsing_ring_and_glow_that_end_with_the_grace() -> void
 	assert_int(changes).is_greater(30)
 
 	# Past the grace period, the ring and the glow are gone.
-	await runner.simulate_frames(int((Config.TD_RESCUE_GRACE_SECONDS + 0.5) * 60.0))
+	await runner.simulate_frames(int((PeopleConfig.TD_RESCUE_GRACE_SECONDS + 0.5) * 60.0))
 	assert_bool(target.look.grace_ring.visible).is_false()
 	assert_bool((target.look as PersonLookPlaceholder).body_mat.emission_enabled).is_false()
 

@@ -21,7 +21,7 @@ func _scenario() -> Dictionary:
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * RADIUS, 0.0, sin(a) * RADIUS), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
-	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
+	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 	await runner.simulate_frames(600)
 	td.spirit_warmth.pool = 0.0
 	for p: Person in td.people:
@@ -55,7 +55,7 @@ func test_two_pushers_bend_the_line_and_snap_it_once_in_a_reasonable_time() -> v
 	var td: TopDownMain = s["td"]
 	var border: Border = td.border
 	assert_int(border.gap_count()).is_equal(0)
-	var bent: Callable = func() -> bool: return border.push.deepest > Config.PUSH_BREAK_DEPTH * 0.3
+	var bent: Callable = func() -> bool: return border.push.deepest > PushConfig.PUSH_BREAK_DEPTH * 0.3
 	var frames_bent: int = await _until(s, bent)
 	assert_int(frames_bent).is_greater_equal(0)
 	assert_int(border.gap_count()).is_equal(0)  # It bends before it breaks.
@@ -79,7 +79,7 @@ func test_pushers_weakened_by_joy_do_not_break_the_line() -> void:
 	var held := true
 	for frame: int in range(1200):
 		for k: int in [20, 21]:
-			td.people[k].push_mult = Config.PUSH_WEAKEN_MIN  # What steady joy at them keeps them at.
+			td.people[k].push_mult = PushConfig.PUSH_WEAKEN_MIN  # What steady joy at them keeps them at.
 		await runner.simulate_frames(1)
 		if not border.push.breaks.is_empty():
 			held = false

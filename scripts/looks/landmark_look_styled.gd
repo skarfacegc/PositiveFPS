@@ -109,7 +109,7 @@ func _build() -> void:
 	_glow_mat = StyleKit.glow_mat(Color(1.0, 0.82, 0.38), 0.9)
 	_glow = StyleKit.glow_plane(self, _glow_mat, 5.0, Vector3(0, 0.06, 0))
 	var gold := StyleKit.mat(StyleKit.hexc("#ffe08a"), 0, 0.0, 1.4)
-	var height := Config.LANDMARK_SIZES[subject.index].y
+	var height := LandmarkConfig.LANDMARK_SIZES[subject.index].y
 	_beam = StyleKit.cyl(self, 0.15, 9.0, Vector3(0, height + 4.5, 0), gold, Vector3.ZERO, -1.0, 6, false)
 	_beam.visible = false
 	_build_cue()
@@ -129,7 +129,7 @@ func _build() -> void:
 # The boost cue: drifting motes (notes or petals) for the bandstand and the garden, a ring for the bell tower.
 func _build_cue() -> void:
 	if subject.index == Landmarks.BELL_TOWER:
-		var r := Config.LANDMARK_BELL_RADIUS
+		var r := LandmarkConfig.LANDMARK_BELL_RADIUS
 		_calm_mat = StyleCues.ring_material(Color("#ffe9a8"), Color("#fffbe8"), 0.12, 0.96)
 		_calm_ring = _flat_ring(_calm_mat, r)
 		_pulse_mat = StyleCues.ring_material(Color("#ffe9a8"), Color("#fffbe8"), 0.3, 0.9)
@@ -174,7 +174,7 @@ func _show_held(held: bool) -> void:
 
 # Moves the held cues: motes rise and drift, the bell swings, the calming ring pulses outward.
 func _animate(t: float) -> void:
-	var height := Config.LANDMARK_SIZES[subject.index].y
+	var height := LandmarkConfig.LANDMARK_SIZES[subject.index].y
 	for k: int in range(_motes.size()):
 		var phase := fposmod(t * 0.22 + float(k) / float(MOTES), 1.0)
 		var a := t * 0.5 + TAU * float(k) / float(MOTES)
@@ -186,7 +186,7 @@ func _animate(t: float) -> void:
 		bell.rotation.z = sin(t * 2.4) * 0.35
 	if _pulse_ring != null:
 		var u := fposmod(t / BELL_RING_FADE_SECONDS, 1.0)
-		var r := Config.LANDMARK_BELL_RADIUS * (0.2 + 0.8 * u)
+		var r := LandmarkConfig.LANDMARK_BELL_RADIUS * (0.2 + 0.8 * u)
 		_pulse_ring.scale = Vector3(r, 1.0, r)
 		_pulse_mat.set_shader_parameter("fade", 1.0 - u)
 

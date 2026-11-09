@@ -22,7 +22,7 @@ func _start(progress: float = 0.0) -> Dictionary:
 	TopDownTestUtil.send_everyone_away(td)
 	td.player.global_position = Vector3.ZERO
 	td.player.targeting_mode = Config.TargetingMode.LOCK_ON
-	td.night.elapsed = Config.NIGHT_LENGTH * progress
+	td.night.elapsed = NightConfig.NIGHT_LENGTH * progress
 	return {"runner": runner, "td": td}
 
 
@@ -81,7 +81,7 @@ func test_dimmed_people_emerge_after_the_calm_opening_and_some_sink_with_a_puff(
 	await runner.simulate_frames(20)
 	assert_int(Config.gloom_level(deep.gloom)).is_equal(1)
 	assert_bool(sank.has(2)).is_false()
-	td.night.elapsed = Config.NIGHT_LENGTH * (Config.NIGHT_CALM_FRACTION + 0.02)
+	td.night.elapsed = NightConfig.NIGHT_LENGTH * (NightConfig.NIGHT_CALM_FRACTION + 0.02)
 	assert_bool(td.intro.dimmed_allowed()).is_true()
 	await runner.simulate_frames(240)
 	assert_int(Config.gloom_level(deep.gloom)).is_equal(2)
@@ -99,17 +99,17 @@ func test_moods_switch_on_one_type_at_a_time_at_their_fractions() -> void:
 	var glum := _mooded(td, 2, Vector3(4, 0, -8), Person.Mood.GLUM)
 	await runner.simulate_frames(3)
 	assert_array([guarded.active_mood(), skittish.active_mood(), glum.active_mood()]).is_equal([0, 0, 0])
-	td.night.elapsed = Config.NIGHT_LENGTH * (Config.MOOD_INTRO_FRACTIONS[Person.Mood.GUARDED] + 0.01)
+	td.night.elapsed = NightConfig.NIGHT_LENGTH * (HudConfig.MOOD_INTRO_FRACTIONS[Person.Mood.GUARDED] + 0.01)
 	await runner.simulate_frames(3)
 	assert_array([guarded.active_mood(), skittish.active_mood(), glum.active_mood()]).is_equal(
 		[Person.Mood.GUARDED, 0, 0]
 	)
-	td.night.elapsed = Config.NIGHT_LENGTH * (Config.MOOD_INTRO_FRACTIONS[Person.Mood.SKITTISH] + 0.01)
+	td.night.elapsed = NightConfig.NIGHT_LENGTH * (HudConfig.MOOD_INTRO_FRACTIONS[Person.Mood.SKITTISH] + 0.01)
 	await runner.simulate_frames(3)
 	assert_array([guarded.active_mood(), skittish.active_mood(), glum.active_mood()]).is_equal(
 		[Person.Mood.GUARDED, Person.Mood.SKITTISH, 0]
 	)
-	td.night.elapsed = Config.NIGHT_LENGTH * (Config.MOOD_INTRO_FRACTIONS[Person.Mood.GLUM] + 0.01)
+	td.night.elapsed = NightConfig.NIGHT_LENGTH * (HudConfig.MOOD_INTRO_FRACTIONS[Person.Mood.GLUM] + 0.01)
 	await runner.simulate_frames(3)
 	assert_array([guarded.active_mood(), skittish.active_mood(), glum.active_mood()]).is_equal(
 		[Person.Mood.GUARDED, Person.Mood.SKITTISH, Person.Mood.GLUM]
@@ -127,21 +127,21 @@ func test_the_first_bend_shows_one_banner_and_never_again() -> void:
 	await _border(td, runner, 16, 6.0)
 	assert_int(td.border.gap_count()).is_equal(0)
 	assert_int(td.intro.current).is_equal(-1)
-	td.border.push.dent[3] = Config.PUSH_BREAK_DEPTH * 0.7
+	td.border.push.dent[3] = PushConfig.PUSH_BREAK_DEPTH * 0.7
 	await runner.simulate_frames(30)
 	assert_int(td.intro.current).is_equal(Intro.Prompt.PUSH)
-	assert_str(td.prompts.text).is_equal(Config.PUSH_NOTICE_TEXT)
+	assert_str(td.prompts.text).is_equal(PushConfig.PUSH_NOTICE_TEXT)
 	assert_int(td.prompts.icon).is_equal(MoodIcons.Kind.BANG)
 	assert_float(td.prompts.alpha).is_greater(0.0)
 	assert_bool(td.prompts.coral).is_false()
 	# It fades in, holds, and fades out.
 	await runner.simulate_frames(90)
 	assert_float(td.prompts.alpha).is_equal(1.0)
-	await runner.simulate_frames(int(Config.PROMPT_SECONDS * 60.0))
+	await runner.simulate_frames(int(HudConfig.PROMPT_SECONDS * 60.0))
 	assert_int(td.intro.current).is_equal(-1)
 	assert_float(td.prompts.alpha).is_equal(0.0)
 	# Bent again: no second banner.
-	td.border.push.dent[3] = Config.PUSH_BREAK_DEPTH * 0.7
+	td.border.push.dent[3] = PushConfig.PUSH_BREAK_DEPTH * 0.7
 	await runner.simulate_frames(60)
 	assert_int(td.intro.current).is_equal(-1)
 	assert_int(td.intro.queue.size()).is_equal(0)
@@ -153,12 +153,12 @@ func test_the_first_break_shows_one_banner_near_it() -> void:
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	await _border(td, runner, 16, 6.0)
-	td.border.push.dent[3] = Config.PUSH_BREAK_DEPTH + 0.5
+	td.border.push.dent[3] = PushConfig.PUSH_BREAK_DEPTH + 0.5
 	await runner.simulate_frames(30)
 	assert_int(td.border.push.breaks.size()).is_equal(1)
 	assert_int(td.intro.current).is_equal(Intro.Prompt.BREAK)
 	assert_bool(td.intro.anchor != Vector3.INF).is_true()
-	assert_str(td.prompts.text).is_equal(Config.PUSH_BREAK_TEXT)
+	assert_str(td.prompts.text).is_equal(PushConfig.PUSH_BREAK_TEXT)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -167,9 +167,9 @@ func test_no_gap_prompt_before_dimmed_people_emerge() -> void:
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	await _border(td, runner, 16, 6.0)
-	td.night.elapsed = Config.NIGHT_LENGTH * 0.1
+	td.night.elapsed = NightConfig.NIGHT_LENGTH * 0.1
 	var m: Person = td.border.members[3]
-	td.border.push.dent[td.border.push.sample_of(m.position)] = Config.PUSH_BREAK_DEPTH + 0.4
+	td.border.push.dent[td.border.push.sample_of(m.position)] = PushConfig.PUSH_BREAK_DEPTH + 0.4
 	await runner.simulate_frames(60)
 	assert_int(td.border.gap_count()).is_greater(0)
 	assert_int(td.intro.current).is_equal(-1)
@@ -189,12 +189,12 @@ func test_a_mood_prompt_shows_the_first_time_that_mood_is_seen() -> void:
 	_mooded(td, 1, Vector3(4, 0, -7), Person.Mood.SKITTISH)
 	await runner.simulate_frames(30)
 	assert_int(td.intro.queue.size()).is_equal(0)
-	td.night.elapsed = Config.NIGHT_LENGTH * 0.52
+	td.night.elapsed = NightConfig.NIGHT_LENGTH * 0.52
 	await runner.simulate_frames(30)
 	# It is queued behind the guarded prompt, which is still showing: one at a time.
 	assert_int(td.intro.current).is_equal(Intro.Prompt.GUARDED)
 	assert_array(td.intro.queue).is_equal([Intro.Prompt.SKITTISH])
-	await runner.simulate_frames(int(Config.PROMPT_SECONDS * 60.0))
+	await runner.simulate_frames(int(HudConfig.PROMPT_SECONDS * 60.0))
 	assert_int(td.intro.current).is_equal(Intro.Prompt.SKITTISH)
 	assert_str(td.prompts.text).contains("walk, don't run")
 	assert_int(td.prompts.icon).is_equal(MoodIcons.Kind.FEET)
@@ -216,7 +216,7 @@ func test_the_glum_and_sheltered_prompts_have_their_icons() -> void:
 	assert_bool(wistful.sheltered).is_true()
 	# Round 14: the dimmed person in view also queues the dimmed-help prompt, ahead of the sheltered one.
 	assert_array(td.intro.queue).is_equal([Intro.Prompt.DIM_HELP, Intro.Prompt.SHELTERED])
-	await runner.simulate_frames(int(Config.PROMPT_SECONDS * 60.0 * 2.0))
+	await runner.simulate_frames(int(HudConfig.PROMPT_SECONDS * 60.0 * 2.0))
 	assert_int(td.intro.current).is_equal(Intro.Prompt.SHELTERED)
 	assert_int(td.prompts.icon).is_equal(MoodIcons.Kind.UMBRELLA)
 	# Round 15: the prompt says the umbrella breaks after a few hits (round 26: shorter wording).
@@ -256,7 +256,7 @@ func test_spirit_low_and_dim_prompts_show_once() -> void:
 	var s: Dictionary = await _start(0.1)
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	td.player.spirit = Config.BURST_SPIRIT_COST - 5.0
+	td.player.spirit = SpiritConfig.BURST_SPIRIT_COST - 5.0
 	await runner.simulate_frames(30)
 	assert_int(td.intro.current).is_equal(Intro.Prompt.SPIRIT_LOW)
 	assert_str(td.prompts.text).contains("Spirit low")
@@ -264,10 +264,10 @@ func test_spirit_low_and_dim_prompts_show_once() -> void:
 	await runner.simulate_frames(30)
 	assert_bool(td.player.is_dim).is_true()
 	assert_array(td.intro.queue).is_equal([Intro.Prompt.DIM])
-	await runner.simulate_frames(int(Config.PROMPT_SECONDS * 60.0))
+	await runner.simulate_frames(int(HudConfig.PROMPT_SECONDS * 60.0))
 	assert_int(td.intro.current).is_equal(Intro.Prompt.DIM)
 	assert_str(td.prompts.text).contains("rest inside your border")
-	await runner.simulate_frames(int(Config.PROMPT_SECONDS * 60.0))
+	await runner.simulate_frames(int(HudConfig.PROMPT_SECONDS * 60.0))
 	assert_int(td.intro.current).is_equal(-1)
 	# Back up and down again: nothing new.
 	td.player.add_spirit(100.0)
@@ -288,10 +288,10 @@ func test_prompts_queue_one_at_a_time_and_each_shows_once() -> void:
 	assert_int(intro.current).is_equal(Intro.Prompt.GUARDED)
 	assert_array(intro.queue).is_equal([Intro.Prompt.SKITTISH, Intro.Prompt.GLUM])
 	for expected: int in [Intro.Prompt.SKITTISH, Intro.Prompt.GLUM]:
-		for i: int in range(int(Config.PROMPT_SECONDS * 10.0) + 2):
+		for i: int in range(int(HudConfig.PROMPT_SECONDS * 10.0) + 2):
 			intro.update(0.1)
 		assert_int(intro.current).is_equal(expected)
-	for i: int in range(int(Config.PROMPT_SECONDS * 10.0) + 2):
+	for i: int in range(int(HudConfig.PROMPT_SECONDS * 10.0) + 2):
 		intro.update(0.1)
 	assert_int(intro.current).is_equal(-1)
 	assert_bool(intro.request(Intro.Prompt.GLUM)).is_false()  # still once per level

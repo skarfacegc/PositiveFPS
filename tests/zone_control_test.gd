@@ -1,7 +1,7 @@
 extends GdUnitTestSuite
 
 # 0.3.3 (#53): zone control around buildings. People are moved directly (blocks do not stop them), so slots, rest
-# places and walks must keep out of the block footprints (grown by Config.ZONE_BLOCK_CLEAR) and go round them.
+# places and walks must keep out of the block footprints (grown by BorderConfig.ZONE_BLOCK_CLEAR) and go round them.
 
 const CLEAR := 0.8
 
@@ -79,7 +79,7 @@ func test_a_member_and_a_rescued_person_behind_a_block_reach_their_places_in_tim
 func test_slots_and_rest_places_never_fall_inside_a_block() -> void:
 	var border := _border()
 	var r := 6.0 * Config.WORLD_SCALE
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, r, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, r, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	for k: int in range(6):
 		var a := TAU * float(k) / 6.0

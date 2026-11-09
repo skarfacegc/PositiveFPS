@@ -86,8 +86,8 @@ func test_the_shield_lets_a_quarter_of_the_joy_through() -> void:
 	var ward_gain := ward.joy - ward_before
 	var control_gain := control.joy - control_before
 	assert_float(control_gain).is_greater(0.0)
-	assert_float(ward_gain / control_gain).is_equal_approx(Config.SHELTER_LEAK, 0.0001)
-	assert_float(Config.SHELTER_LEAK).is_equal(0.25)
+	assert_float(ward_gain / control_gain).is_equal_approx(MoodConfig.SHELTER_LEAK, 0.0001)
+	assert_float(MoodConfig.SHELTER_LEAK).is_equal(0.25)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -167,8 +167,8 @@ func test_hover_fire_pops_the_shield_on_the_fourth_landing() -> void:
 	assert_float(dimmed.shield_down_left).is_greater(0.0)
 	# The pop came on the fourth landing (the shield took a hit each time, and the fourth one popped it).
 	var landings: int = landed[0]
-	assert_int(landings).is_equal(Config.SHELTER_HITS)
-	assert_int(ward.glance_count).is_equal(Config.SHELTER_HITS)
+	assert_int(landings).is_equal(MoodConfig.SHELTER_HITS)
+	assert_int(ward.glance_count).is_equal(MoodConfig.SHELTER_HITS)
 	assert_bool(ward.sheltered).is_false()
 	assert_object(dimmed.shelter_ward).is_null()
 	assert_int(dimmed.shield_hits).is_equal(0)
@@ -187,7 +187,7 @@ func test_the_fifth_landing_lands_at_full_strength() -> void:
 	await runner.simulate_frames(3)
 	var ward := td.people[1]
 	var control := td.people[2]
-	_hit(ward, Config.SHELTER_HITS)
+	_hit(ward, MoodConfig.SHELTER_HITS)
 	assert_bool(ward.sheltered).is_false()
 	var ward_before := ward.joy
 	var control_before := control.joy
@@ -206,12 +206,12 @@ func test_the_umbrella_steps_down_with_each_hit_and_goes_when_the_shield_pops() 
 	await runner.simulate_frames(3)
 	var ward := td.people[1]
 	var last_wear := 2.0
-	for hit: int in range(Config.SHELTER_HITS - 1):
+	for hit: int in range(MoodConfig.SHELTER_HITS - 1):
 		var icon := _icon_for(td, ward, MoodIcons.Kind.UMBRELLA)
 		assert_bool(icon.is_empty()).is_false()
 		var wear: float = icon["wear"]
 		assert_float(wear).is_less(last_wear)
-		assert_float(wear).is_equal_approx(1.0 - float(hit) / float(Config.SHELTER_HITS), 0.0001)
+		assert_float(wear).is_equal_approx(1.0 - float(hit) / float(MoodConfig.SHELTER_HITS), 0.0001)
 		last_wear = wear
 		_hit(ward, 1)
 		await runner.simulate_frames(2)
@@ -235,8 +235,8 @@ func test_after_a_pop_the_dimmed_person_shelters_again_only_after_the_regrow_tim
 	await runner.simulate_frames(3)
 	var dimmed := td.people[0]
 	var ward := td.people[1]
-	_hit(ward, Config.SHELTER_HITS)
-	assert_float(dimmed.shield_down_left).is_equal_approx(Config.SHELTER_REGROW, 0.0001)
+	_hit(ward, MoodConfig.SHELTER_HITS)
+	assert_float(dimmed.shield_down_left).is_equal_approx(MoodConfig.SHELTER_REGROW, 0.0001)
 	# Everyone is put back on the spots: the ward is still in range, but no shielding happens during the cooldown.
 	_arrange(td)
 	await runner.simulate_frames(BEFORE_REGROW_FRAMES)
@@ -266,8 +266,8 @@ func test_a_popped_shielder_helped_out_of_dimmed_does_not_shelter_and_starts_fre
 	await runner.simulate_frames(3)
 	var dimmed := td.people[0]
 	var ward := td.people[1]
-	_hit(ward, Config.SHELTER_HITS - 1)
-	assert_int(dimmed.shield_hits).is_equal(Config.SHELTER_HITS - 1)
+	_hit(ward, MoodConfig.SHELTER_HITS - 1)
+	assert_int(dimmed.shield_hits).is_equal(MoodConfig.SHELTER_HITS - 1)
 	_hit(ward, 1)
 	# Helped out of dimmed (wistful now) during the cooldown.
 	TopDownTestUtil.place(dimmed, Vector3(0, 0, -8), 0, 0.2)
@@ -338,7 +338,9 @@ func test_a_bloom_pulsing_beside_a_sheltered_person_leaks_joy_but_does_not_wear_
 		ward.receive_joy(Config.Element.NATURE, 0.002, 0.0, Vector3.INF, false)
 		control.receive_joy(Config.Element.NATURE, 0.002, 0.0, Vector3.INF, false)
 	assert_float(control.joy - control_before).is_greater(0.0)
-	assert_float((ward.joy - ward_before) / (control.joy - control_before)).is_equal_approx(Config.SHELTER_LEAK, 0.0001)
+	assert_float((ward.joy - ward_before) / (control.joy - control_before)).is_equal_approx(
+		MoodConfig.SHELTER_LEAK, 0.0001
+	)
 	assert_int(dimmed.shield_hits).is_equal(0)
 	assert_bool(ward.sheltered).is_true()
 	assert_int(ward.glance_count).is_equal(0)

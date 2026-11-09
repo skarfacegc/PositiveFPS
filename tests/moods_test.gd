@@ -127,7 +127,7 @@ func test_shots_from_the_front_or_side_land_and_the_player_can_run_round_to_the_
 	# Run north past them with WASD, then keep running round them in a square. Round 17: they turn at GUARDED_TURN_SPEED
 	# (0.45 rad/s, was 0.8), slower than a runner can circle, so the square (about a minute of game time at most) gets
 	# joy in from their front or side. The pointer stays on them between legs.
-	assert_float(Config.GUARDED_TURN_SPEED).is_equal(0.45)
+	assert_float(MoodConfig.GUARDED_TURN_SPEED).is_equal(0.45)
 	var legs := [KEY_W, KEY_D, KEY_S, KEY_A]
 	var frames := 0
 	var leg := 0
@@ -206,7 +206,7 @@ func test_running_at_a_skittish_person_scares_them_away_but_walking_does_not() -
 	var from_z := shy.global_position.z
 	await runner.simulate_frames(60)
 	# Moving away from the player (north, to smaller z) at about the flee speed.
-	assert_float(from_z - shy.global_position.z).is_greater(Config.SKITTISH_FLEE_SPEED * 0.6)
+	assert_float(from_z - shy.global_position.z).is_greater(MoodConfig.SKITTISH_FLEE_SPEED * 0.6)
 	await runner.simulate_frames(60)
 	assert_float(shy.flee_left).is_equal(0.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -295,7 +295,7 @@ func test_joy_counts_triple_during_a_glum_look_up_and_normal_outside_it() -> voi
 	glum.joy = 0.0
 	glum.glum_up = true
 	glum.receive_joy(0, 100.0, 0.0)
-	assert_float(glum.joy).is_equal_approx(normal * Config.GLUM_LOOKUP_MULT, 0.01)
+	assert_float(glum.joy).is_equal_approx(normal * MoodConfig.GLUM_LOOKUP_MULT, 0.01)
 	# Another mood's flag does nothing.
 	var other := _mooded(td, 1, Vector3(3, 0, -5), Person.Mood.GUARDED)
 	other.glum_up = true
@@ -323,7 +323,7 @@ func test_shots_that_land_in_the_look_up_are_triple_when_the_player_fires() -> v
 				singles.append(glum.joy)
 	assert_int(singles.size()).is_greater(3)
 	assert_int(triples.size()).is_greater(0)
-	assert_float(triples[0]).is_equal_approx(singles[0] * Config.GLUM_LOOKUP_MULT, singles[0] * 0.05)
+	assert_float(triples[0]).is_equal_approx(singles[0] * MoodConfig.GLUM_LOOKUP_MULT, singles[0] * 0.05)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -387,10 +387,10 @@ func test_a_dimmed_person_further_than_the_shelter_radius_does_not_shelter() -> 
 	var td: TopDownMain = s["td"]
 	var wistful := _mooded(td, 0, Vector3(0, 0, -8), Person.Mood.NONE)
 	var dimmed := td.people[1]
-	TopDownTestUtil.place(dimmed, Vector3(Config.SHELTER_RADIUS + 0.5, 0, -8), 1, 0.95)
+	TopDownTestUtil.place(dimmed, Vector3(MoodConfig.SHELTER_RADIUS + 0.5, 0, -8), 1, 0.95)
 	await runner.simulate_frames(3)
 	assert_bool(wistful.sheltered).is_false()
-	TopDownTestUtil.place(dimmed, Vector3(Config.SHELTER_RADIUS - 0.2, 0, -8), 1, 0.95)
+	TopDownTestUtil.place(dimmed, Vector3(MoodConfig.SHELTER_RADIUS - 0.2, 0, -8), 1, 0.95)
 	await runner.simulate_frames(3)
 	assert_bool(wistful.sheltered).is_true()
 	# A dimmed person does not shelter themselves, and a gloomy (not dimmed) neighbour does not shelter anyone.

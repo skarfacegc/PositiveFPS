@@ -114,7 +114,7 @@ func _build_scenario() -> void:
 		p.global_position = ring_centre + Vector3(cos(a), 0.0, sin(a)) * ring_radius
 		p.receive_joy(p.affinity, Config.JOY_MAX * 2.0, 0.0)
 	main.player.global_position = ring_centre + Vector3(0.5, 0.0, 1.5)
-	main.night.elapsed = Config.NIGHT_LENGTH * 0.5
+	main.night.elapsed = NightConfig.NIGHT_LENGTH * 0.5
 	for i: int in range(settle_frames):
 		main._process(1.0 / 60.0)
 	# The rules open every stretch of a loop at once (spacing over BORDER_MAX_GAP), so one gap on a healthy loop does not
@@ -149,9 +149,9 @@ func _build_scenario() -> void:
 			child.queue_free()
 	# Freeze the rules at the peak of the gap pulse, with the light of mid-night.
 	main.running = false
-	main.border._time = Config.BORDER_GAP_PULSE_SECONDS * 0.5
+	main.border._time = BorderConfig.BORDER_GAP_PULSE_SECONDS * 0.5
 	main.border._draw_lines()
-	main._update_light()
+	main.camera_rig.update_light()
 	for p: Person in people:
 		p._update_visuals()
 
@@ -208,7 +208,7 @@ func _add_cues(first: int) -> void:
 	# Two shields: a fresh one (a dimmed person and the wistful person they shelter) and one worn to the last hit.
 	spot_shelter = at + Vector3(-13.5, 0.0, -1.0)
 	shield_pair = _shelter(people[first + 11], people[first + 12], spot_shelter, 1)
-	worn_pair = _shelter(people[first + 13], people[first + 14], at + Vector3(-12.0, 0.0, 7.5), Config.SHELTER_HITS - 1)
+	worn_pair = _shelter(people[first + 13], people[first + 14], at + Vector3(-12.0, 0.0, 7.5), MoodConfig.SHELTER_HITS - 1)
 	# A faltering border member (the progress ring and the "!" badge) and a dimmed person hit by joy (their ring).
 	falterer = main.border.members[3] if main.border.members.size() > 3 else null
 	if falterer != null:
@@ -252,8 +252,8 @@ func _refresh_effects() -> void:
 	main.feedback.on_blocked(shield_pair[1], Person.Block.SHELTERED)
 	main.feedback.on_blocked(guarded_closed, Person.Block.GUARDED)
 	main.feedback.on_dim_joy(dim_hit)
-	main.spirit_meter.moment(Config.SPIRIT_PER_RESCUE, SpiritMeter.Moment.GAIN)
-	main.spirit_meter.moment(-Config.BURST_SPIRIT_COST, SpiritMeter.Moment.SPEND)
+	main.spirit_meter.moment(SpiritConfig.SPIRIT_PER_RESCUE, SpiritMeter.Moment.GAIN)
+	main.spirit_meter.moment(-SpiritConfig.BURST_SPIRIT_COST, SpiritMeter.Moment.SPEND)
 	main.feedback.pulse_player(SpiritMeter.Moment.GAIN)
 
 
@@ -274,12 +274,12 @@ func _build_edge_scenario() -> void:
 		p.global_position = centre + Vector3(cos(a), 0.0, sin(a)) * 7.0
 		p.receive_joy(p.affinity, Config.JOY_MAX * 2.0, 0.0)
 	main.player.global_position = Vector3(42.0, 0.0, -2.0)
-	main.night.elapsed = Config.NIGHT_LENGTH * 0.5
+	main.night.elapsed = NightConfig.NIGHT_LENGTH * 0.5
 	for i: int in range(300):
 		main._process(1.0 / 60.0)
 	# Press the loop toward the east edge (the joy burst's shove), then let it settle.
 	for k: int in range(14):
-		main.border._push_at(0.0, Config.BORDER_SHOVE_AMOUNT / maxf(main.border._scale, 0.01))
+		main.border._push_at(0.0, RoundLoopConfig.BORDER_SHOVE_AMOUNT / maxf(main.border._scale, 0.01))
 		for i: int in range(90):
 			main._process(1.0 / 60.0)
 	for i: int in range(600):
@@ -290,10 +290,10 @@ func _build_edge_scenario() -> void:
 			sealed += 1
 	print("SEALED segments=", sealed, " of ", main.border.polygon.size(), " members=", main.border.member_count)
 	main.running = false
-	main.border._time = Config.BORDER_GAP_PULSE_SECONDS * 0.5
+	main.border._time = BorderConfig.BORDER_GAP_PULSE_SECONDS * 0.5
 	for p: Person in people:
 		p._update_visuals()
-	main._update_light()
+	main.camera_rig.update_light()
 
 
 func _print_stats() -> void:
@@ -304,7 +304,7 @@ func _print_stats() -> void:
 	print("STATS landmark hold=", main.landmarks.items[0].progress(), " gap_spot=", gap_spot, " player=", main.player.global_position)
 	for g: Vector3 in b.gap_midpoints():
 		print("STATS gap at ", g, " on screen ", main.world_to_screen(g))
-	print("STATS landmark on screen ", main.world_to_screen(Config.LANDMARK_POSITIONS[0]))
+	print("STATS landmark on screen ", main.world_to_screen(LandmarkConfig.LANDMARK_POSITIONS[0]))
 	print("STATS plaza centre ", b.centre)
 
 
@@ -315,7 +315,7 @@ func _print_stats() -> void:
 var views: Array[Dictionary] = []
 # Every image taken: shots[view_name][look_name] = Image.
 var shots: Dictionary = {}
-var current_zoom: float = Config.TD_CAMERA_ORTHO_SIZE
+var current_zoom: float = PlayerConfig.TD_CAMERA_ORTHO_SIZE
 
 
 func _make_views() -> void:
@@ -326,8 +326,8 @@ func _make_views() -> void:
 		{"name": "shield_closeup", "world": spot_shelter + Vector3(0.0, 0.0, 4.0), "size": Vector2i(426, 240), "scale": 3},
 		{"name": "ui_closeup", "rect": Rect2i(300, 500, 680, 220), "scale": 2},
 		{"name": "minimap_closeup", "rect": Rect2i(10, 10, 270, 270), "scale": 3},
-		{"name": "zoom_min", "zoom": Config.TD_ZOOM_MIN},
-		{"name": "zoom_max", "zoom": Config.TD_ZOOM_MAX},
+		{"name": "zoom_min", "zoom": PlayerConfig.TD_ZOOM_MIN},
+		{"name": "zoom_max", "zoom": PlayerConfig.TD_ZOOM_MAX},
 	]
 
 
@@ -338,7 +338,7 @@ func _take_shots() -> void:
 		if Looks.mode != mode:
 			main.set_look(mode)
 		var label := Looks.mode_name().to_lower()
-		await _set_zoom(Config.TD_CAMERA_ORTHO_SIZE)
+		await _set_zoom(PlayerConfig.TD_CAMERA_ORTHO_SIZE)
 		await _settle(12)
 		var frame_ms := await _time_frames(90)
 		timings[label] = frame_ms
@@ -353,14 +353,14 @@ func _take_shots() -> void:
 		main.arrows.visible = true
 		for view: Dictionary in views:
 			var view_name: String = view["name"]
-			var zoom: float = view.get("zoom", Config.TD_CAMERA_ORTHO_SIZE)
+			var zoom: float = view.get("zoom", PlayerConfig.TD_CAMERA_ORTHO_SIZE)
 			await _set_zoom(zoom)
 			_refresh_effects()
 			var full := await _grab()
 			_save(view_name, label, _cut(full, view))
 		print("TIMING ", label, " ", snappedf(frame_ms, 0.01), " ms/frame, fallback=", Looks.placeholder_fallback_count())
 	# The sealed map edge: a second level with its loop pressed against the east edge.
-	await _set_zoom(Config.TD_CAMERA_ORTHO_SIZE)
+	await _set_zoom(PlayerConfig.TD_CAMERA_ORTHO_SIZE)
 	main.queue_free()
 	await get_tree().process_frame
 	main = (load("res://topdown.tscn") as PackedScene).instantiate()
@@ -387,7 +387,7 @@ func _set_zoom(size: float) -> void:
 	if is_equal_approx(current_zoom, size):
 		return
 	current_zoom = size
-	main._zoom_target = size
+	main.camera_rig.zoom_target = size
 	await _settle(100)
 
 
@@ -540,7 +540,7 @@ func _build_round19_scenario() -> void:
 		p.global_position = ring_centre + Vector3(cos(a), 0.0, sin(a)) * ring_radius
 		p.receive_joy(p.affinity, Config.JOY_MAX * 2.0, 0.0)
 	main.player.global_position = ring_centre + Vector3(0.5, 0.0, 1.5)
-	main.night.elapsed = Config.NIGHT_LENGTH * 0.25
+	main.night.elapsed = NightConfig.NIGHT_LENGTH * 0.25
 	for i: int in range(settle_frames):
 		main._process(1.0 / 60.0)
 	main.running = false
@@ -551,15 +551,15 @@ func _build_round19_scenario() -> void:
 	for k: int in range(R19_NAMES.size()):
 		for j: int in range(2):
 			var p := people[ring_count + k * 2 + j]
-			p.global_position = Config.LANDMARK_POSITIONS[k] + Vector3(float(j * 2 - 1) * 3.4, 0.0, 3.8)
+			p.global_position = LandmarkConfig.LANDMARK_POSITIONS[k] + Vector3(float(j * 2 - 1) * 3.4, 0.0, 3.8)
 			p.gloom = 0.25
 			p.joy = 0.0
 	for child: Node in main.get_children():
 		if child is Label3D:
 			child.queue_free()
-	main.border._time = Config.BORDER_GAP_PULSE_SECONDS * 0.5
+	main.border._time = BorderConfig.BORDER_GAP_PULSE_SECONDS * 0.5
 	main.border._draw_lines()
-	main._update_light()
+	main.camera_rig.update_light()
 	for p: Person in people:
 		p._update_visuals()
 
@@ -571,8 +571,8 @@ func _make_round19_views() -> void:
 		{"name": "beacon_closeup", "prep": "beacon", "world": mid_beacon, "size": Vector2i(640, 360), "scale": 2},
 	]
 	for k: int in range(R19_NAMES.size()):
-		var at: Vector3 = Config.LANDMARK_POSITIONS[k]
-		var mid := Vector3(at.x, Config.LANDMARK_SIZES[k].y * 0.8, at.z)
+		var at: Vector3 = LandmarkConfig.LANDMARK_POSITIONS[k]
+		var mid := Vector3(at.x, LandmarkConfig.LANDMARK_SIZES[k].y * 0.8, at.z)
 		for state: String in ["unheld", "claiming", "held"]:
 			r19_views.append(
 				{
@@ -612,7 +612,7 @@ func _r19_prepare(prep: String, arg: int) -> void:
 	elif prep == "dawn":
 		held = [true, true, arg >= 3]
 	elif prep.begins_with("landmark_"):
-		var at: Vector3 = Config.LANDMARK_POSITIONS[arg]
+		var at: Vector3 = LandmarkConfig.LANDMARK_POSITIONS[arg]
 		focus = at + Vector3(7.0, 0.0, -1.0)
 		if prep == "landmark_held":
 			held[arg] = true
@@ -629,22 +629,22 @@ func _r19_landmark_states(held: Array[bool], claiming: int) -> void:
 	for i: int in range(held.size()):
 		var lm := main.landmarks.items[i]
 		if held[i]:
-			lm.hold = Config.BORDER_LANDMARK_HOLD
+			lm.hold = LandmarkConfig.BORDER_LANDMARK_HOLD
 			lm.update(0.0, true)
 		elif i == claiming:
-			lm.hold = Config.BORDER_LANDMARK_HOLD * 0.5
+			lm.hold = LandmarkConfig.BORDER_LANDMARK_HOLD * 0.5
 			lm.update(0.0, true)
 		else:
 			lm.hold = 0.0
 			lm.update(0.0, false)
-	main.hud.set_landmarks(main.landmarks.held_lines(), Config.LANDMARK_NAMES.size(), main.landmarks.held_flags())
+	main.hud.set_landmarks(main.landmarks.held_lines(), LandmarkConfig.LANDMARK_NAMES.size(), main.landmarks.held_flags())
 
 
 # The end screen for `lights` dawn lights (0 for a lost round).
 func _r19_show_end(lights: int) -> void:
 	if lights == 0:
 		main.rating = {}
-		main.hud.show_end("The border fell", main._detail_text(), {})
+		main.hud.show_end("The border fell", main.level_end.detail_text(), {})
 		return
 	var r: Dictionary = {}
 	if lights == 3:
@@ -654,7 +654,7 @@ func _r19_show_end(lights: int) -> void:
 	else:
 		r = DawnRating.rate(14, Config.TD_PEOPLE_COUNT, 0.1, 0)
 	main.rating = r
-	main.hud.show_end("Dawn: %d of 3 dawn lights" % (r["lights"] as int), main._detail_text(), r)
+	main.hud.show_end("Dawn: %d of 3 dawn lights" % (r["lights"] as int), main.level_end.detail_text(), r)
 
 
 # contact_sheet.png (styled), contact_sheet_compare.png (placeholder | styled), compare.png (the overview pair) and

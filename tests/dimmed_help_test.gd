@@ -21,7 +21,7 @@ func _start() -> Dictionary:
 	TopDownTestUtil.send_everyone_away(td)
 	td.player.global_position = Vector3.ZERO
 	td.player.targeting_mode = Config.TargetingMode.HOVER_STICKY
-	td.night.elapsed = Config.NIGHT_LENGTH * 0.5
+	td.night.elapsed = NightConfig.NIGHT_LENGTH * 0.5
 	return {"runner": runner, "td": td}
 
 
@@ -96,7 +96,7 @@ func test_the_dimmed_help_prompt_shows_once_when_a_dimmed_person_is_first_in_vie
 	assert_str(td.prompts.text).is_equal("Dimmed folk can be helped too — it takes longer")
 
 	# It does not come back: not after it ends, and not when joy lands on them afterwards.
-	await runner.simulate_frames(int(Config.PROMPT_SECONDS * 60.0) + 30)
+	await runner.simulate_frames(int(HudConfig.PROMPT_SECONDS * 60.0) + 30)
 	assert_int(td.intro.current).is_not_equal(Intro.Prompt.DIM_HELP)
 	await _hover(runner, td, dimmed)
 	await runner.simulate_frames(60)

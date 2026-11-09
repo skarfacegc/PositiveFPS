@@ -5,29 +5,31 @@ extends GdUnitTestSuite
 
 
 func test_circle_polygon_has_the_samples_on_the_circle() -> void:
-	var pts := BorderShape.circle_polygon(Vector2(1.0, -2.0), 4.0, Config.BORDER_SAMPLES)
-	assert_int(pts.size()).is_equal(Config.BORDER_SAMPLES)
+	var pts := BorderShape.circle_polygon(Vector2(1.0, -2.0), 4.0, RoundLoopConfig.BORDER_SAMPLES)
+	assert_int(pts.size()).is_equal(RoundLoopConfig.BORDER_SAMPLES)
 	for p: Vector2 in pts:
 		assert_float(p.distance_to(Vector2(1.0, -2.0))).is_equal_approx(4.0, 0.0001)
 	assert_float(BorderShape.perimeter_of(pts)).is_equal_approx(TAU * 4.0, 0.05)
 
 
 func test_slot_count_is_the_perimeter_over_the_spacing_rounded_up() -> void:
-	assert_int(BorderShape.slot_count_for(Config.BORDER_TARGET_SPACING * 9.0)).is_equal(9)
-	assert_int(BorderShape.slot_count_for(Config.BORDER_TARGET_SPACING * 9.0 + 0.5)).is_equal(10)
-	assert_float(Config.BORDER_PUSH).is_equal_approx(2.4 * Config.WORLD_SCALE, 0.0001)
+	assert_int(BorderShape.slot_count_for(BorderConfig.BORDER_TARGET_SPACING * 9.0)).is_equal(9)
+	assert_int(BorderShape.slot_count_for(BorderConfig.BORDER_TARGET_SPACING * 9.0 + 0.5)).is_equal(10)
+	assert_float(RoundLoopConfig.BORDER_PUSH).is_equal_approx(2.4 * Config.WORLD_SCALE, 0.0001)
 
 
 # Round 13a: spacing 2.6 x WORLD_SCALE on a radius 6 x WORLD_SCALE loop, so the counts are unchanged.
 # Round 11: spacing 2.6 (was 3.0). A radius 6 loop (perimeter 37.7 m) holds 15 slots at 2.6 m (13 at the old 3.0), and
 # the slots still fit the loop: 15 x 2.6 is 39 m, just over the perimeter.
 func test_round_eleven_spacing_is_two_point_six_metres_on_a_radius_six_loop() -> void:
-	assert_float(Config.BORDER_TARGET_SPACING).is_equal_approx(2.6 * Config.WORLD_SCALE, 0.0001)
-	var loop := BorderShape.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, Config.BORDER_SAMPLES)
+	assert_float(BorderConfig.BORDER_TARGET_SPACING).is_equal_approx(2.6 * Config.WORLD_SCALE, 0.0001)
+	var loop := BorderShape.circle_polygon(Vector2.ZERO, 6.0 * Config.WORLD_SCALE, RoundLoopConfig.BORDER_SAMPLES)
 	var perimeter := BorderShape.perimeter_of(loop)
 	assert_float(perimeter).is_equal_approx(TAU * 6.0 * Config.WORLD_SCALE, 0.1)
 	assert_int(BorderShape.slot_count_for(perimeter)).is_equal(15)
-	assert_float(perimeter / float(BorderShape.slot_count_for(perimeter))).is_less_equal(Config.BORDER_TARGET_SPACING)
+	assert_float(perimeter / float(BorderShape.slot_count_for(perimeter))).is_less_equal(
+		BorderConfig.BORDER_TARGET_SPACING
+	)
 
 
 func test_perimeter_of_a_unit_square_is_four() -> void:
@@ -37,13 +39,13 @@ func test_perimeter_of_a_unit_square_is_four() -> void:
 
 func test_spacing_under_the_limit_is_not_a_gap() -> void:
 	var filled: Array[bool] = [true, true, true]
-	var gaps := BorderShape.gap_flags(Config.BORDER_MAX_GAP - 0.5, filled)
+	var gaps := BorderShape.gap_flags(BorderConfig.BORDER_MAX_GAP - 0.5, filled)
 	assert_array(gaps).is_equal([false, false, false])
 
 
 func test_spacing_over_the_limit_is_a_gap_on_every_segment() -> void:
 	var filled: Array[bool] = [true, true, true]
-	var gaps := BorderShape.gap_flags(Config.BORDER_MAX_GAP + 0.5, filled)
+	var gaps := BorderShape.gap_flags(BorderConfig.BORDER_MAX_GAP + 0.5, filled)
 	assert_array(gaps).is_equal([true, true, true])
 
 
@@ -74,7 +76,7 @@ func test_gloom_outside_an_intact_line_cannot_drain_someone_inside() -> void:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	var ring: Array[Person] = []
 	for i: int in range(14):
@@ -96,10 +98,10 @@ func test_gloom_outside_an_intact_line_cannot_drain_someone_inside() -> void:
 	dimmed.gloom = 1.0
 	var people: Array[Person] = [inside, dimmed]
 	var before := inside.joy
-	GloomSim.update(people, 0.5, Config.TD_DRAIN_MULTIPLIER, 1.0, border)
+	GloomSim.update(people, 0.5, PeopleConfig.TD_DRAIN_MULTIPLIER, 1.0, border)
 	assert_float(inside.joy).is_equal(before)
 	# The same pair with no border in the way is drained.
-	GloomSim.update(people, 0.5, Config.TD_DRAIN_MULTIPLIER, 1.0)
+	GloomSim.update(people, 0.5, PeopleConfig.TD_DRAIN_MULTIPLIER, 1.0)
 	assert_float(inside.joy).is_less(before)
 
 
@@ -132,7 +134,7 @@ func test_rescue_pushes_the_border_outward_at_its_angle() -> void:
 	var people: Array[Person] = [rescued]
 	border.update(people, 0.0, 1.0)
 	# The peak push is BORDER_PUSH at the rescue angle (angle 0 is index 0) and almost nothing half a turn away.
-	assert_float(border._raw_radii[0]).is_equal_approx(before_at_rescue + Config.BORDER_PUSH, 0.001)
+	assert_float(border._raw_radii[0]).is_equal_approx(before_at_rescue + RoundLoopConfig.BORDER_PUSH, 0.001)
 	assert_float(border._raw_radii[24]).is_less(before_opposite + 0.01)
 	assert_float(border._raw_radii[1]).is_greater(border._raw_radii[24])
 
@@ -149,7 +151,7 @@ func test_organic_border_wraps_a_block_it_reaches_so_the_block_is_enclosed() -> 
 	body.add_child(mesh_inst)
 	add_child(body)
 	border.register_building(body, Vector2(1.0, 1.0), false)
-	for i: int in range(Config.BORDER_SAMPLES):
+	for i: int in range(RoundLoopConfig.BORDER_SAMPLES):
 		border._raw_radii[i] = 5.5
 	var pts: PackedVector2Array = border._organic_polygon(Vector2.ZERO, 3, 0.0)
 	# Sample 0 points at the block: it is pushed out to just beyond the far face (x = 7), so the block is inside.
@@ -164,7 +166,7 @@ func test_a_rescue_standing_on_the_centre_waits_until_the_centre_moves_off_it() 
 	var people: Array[Person] = [alone]
 	border.update(people, 0.0, 1.0)
 	# The lone first person is the centre, so there is no direction to push in yet: no push, and it stays pending.
-	assert_float(border._raw_radii[0]).is_equal_approx(Config.BORDER_MIN_RADIUS, 0.001)
+	assert_float(border._raw_radii[0]).is_equal_approx(RoundLoopConfig.BORDER_MIN_RADIUS, 0.001)
 	assert_int(border._pending_pushes.size()).is_equal(1)
 
 
@@ -177,7 +179,7 @@ func test_a_rescue_that_relapses_before_its_push_is_applied_gets_no_push() -> vo
 	p.is_rescued = false
 	var people: Array[Person] = [p]
 	border.update(people, 0.0, 1.0)
-	assert_float(border._raw_radii[0]).is_equal_approx(Config.BORDER_MIN_RADIUS, 0.001)
+	assert_float(border._raw_radii[0]).is_equal_approx(RoundLoopConfig.BORDER_MIN_RADIUS, 0.001)
 	assert_int(border._pending_pushes.size()).is_equal(0)
 
 
@@ -185,7 +187,7 @@ func test_no_cover_without_a_loop_and_the_debug_labels_hide_again() -> void:
 	var border := _organic_border()
 	assert_float(border.cover_at(Vector3.ZERO)).is_equal(0.0)
 	border.active = true
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES)
 	border.set_debug(true)
 	border.set_debug(false)
 	assert_int(border.visible_debug_label_count()).is_equal(0)

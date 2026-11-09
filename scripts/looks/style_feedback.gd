@@ -32,7 +32,7 @@ static func _motes(layer: FeedbackLayer, c: float) -> void:
 		var life: float = m["life"]
 		var t := age / life
 		var pos: Vector3 = m["pos"]
-		var col := Config.LEAK_COLOUR.lerp(StyleUi.INK, 0.15)
+		var col := BorderConfig.LEAK_COLOUR.lerp(StyleUi.INK, 0.15)
 		col.a = 0.9 * minf(t / 0.15, 1.0) * (1.0 - t)
 		var cells := 1 + int(t * 2.5)
 		var at := StyleUi.cell_of(layer.main.world_to_screen(pos), c)
@@ -41,7 +41,7 @@ static func _motes(layer: FeedbackLayer, c: float) -> void:
 
 # Sheltering tethers: dotted violet lines with a small plus at each end; a snapped tether flies apart in cells.
 static func _tethers(layer: FeedbackLayer, c: float) -> void:
-	var col := Config.TETHER_COLOUR
+	var col := MoodConfig.TETHER_COLOUR
 	col.a = 0.8
 	for t: Dictionary in layer.tethers:
 		var a := layer.main.world_to_screen(_v3(t["a"]))
@@ -51,10 +51,10 @@ static func _tethers(layer: FeedbackLayer, c: float) -> void:
 		StyleUi.sparkle(layer, b, 1, c, col)
 	for s: Dictionary in layer.snaps:
 		var left: float = s["left"]
-		var f := left / Config.TETHER_SNAP_SECONDS
+		var f := left / MoodConfig.TETHER_SNAP_SECONDS
 		var a := layer.main.world_to_screen(_v3(s["a"]))
 		var b := layer.main.world_to_screen(_v3(s["b"]))
-		var broken := Config.TETHER_COLOUR
+		var broken := MoodConfig.TETHER_COLOUR
 		broken.a = 0.9 * f
 		var gap := (1.0 - f) * 14.0
 		var dir := (b - a).normalized() if (b - a).length() > 1.0 else Vector2.RIGHT
@@ -71,9 +71,9 @@ static func _tethers(layer: FeedbackLayer, c: float) -> void:
 static func _closes(layer: FeedbackLayer, c: float) -> void:
 	for cl: Dictionary in layer.closes:
 		var left: float = cl["left"]
-		var f := left / Config.FALTER_CLOSED_SECONDS
+		var f := left / HudConfig.FALTER_CLOSED_SECONDS
 		var at := layer.main.world_to_screen(_v3(cl["pos"]))
-		var col := Config.FALTER_SEAL_COLOUR
+		var col := HudConfig.FALTER_SEAL_COLOUR
 		col.a = f
 		var links: Array = cl["links"]
 		for g: Vector3 in links:
@@ -90,17 +90,17 @@ static func _closes(layer: FeedbackLayer, c: float) -> void:
 # A ring of cells round a body: a dithered ink track, then the filled part of the arc over an ink edge.
 static func _progress_ring(layer: FeedbackLayer, c: float, centre: Vector2, progress: float, alpha: float) -> void:
 	var track := Color(0.1, 0.08, 0.14, 0.6 * alpha)
-	StyleUi.ring(layer, centre, Config.FALTER_RING_RADIUS, c, track, 3, 1.0, 0.0, TAU, true)
+	StyleUi.ring(layer, centre, HudConfig.FALTER_RING_RADIUS, c, track, 3, 1.0, 0.0, TAU, true)
 	if progress <= 0.0:
 		return
 	var edge := StyleUi.INK
 	edge.a = 0.75 * alpha
 	var a0 := -PI * 0.5
 	var a1 := a0 + TAU * progress
-	StyleUi.ring(layer, centre, Config.FALTER_RING_RADIUS, c, edge, 5, 1.0, a0, a1)
-	var pc := Config.BORDER_GAP_COLOUR.lerp(Config.FALTER_SEAL_COLOUR, progress)
+	StyleUi.ring(layer, centre, HudConfig.FALTER_RING_RADIUS, c, edge, 5, 1.0, a0, a1)
+	var pc := BorderConfig.BORDER_GAP_COLOUR.lerp(HudConfig.FALTER_SEAL_COLOUR, progress)
 	pc.a = alpha
-	StyleUi.ring(layer, centre, Config.FALTER_RING_RADIUS, c, pc, 3, 1.0, a0, a1)
+	StyleUi.ring(layer, centre, HudConfig.FALTER_RING_RADIUS, c, pc, 3, 1.0, a0, a1)
 
 
 # The round-14 progress ring on a dimmed person hit by joy (fades in its last half second).
@@ -120,9 +120,9 @@ static func _marker(layer: FeedbackLayer, c: float, m: Dictionary) -> void:
 	var head: Vector2 = m["head"]
 	var prog: float = m["progress"]
 	var clock := layer.clock()
-	var wave := 0.5 - 0.5 * cos(TAU * clock * lerpf(Config.FALTER_PULSE_HZ_MIN, Config.FALTER_PULSE_HZ_MAX, u))
-	var base := Config.BORDER_GAP_COLOUR.lerp(Color(1.0, 0.85, 0.75), u * 0.6)
-	var radius := Config.FALTER_MARKER_RADIUS * (0.85 + 0.3 * wave) * (1.0 + 0.3 * u)
+	var wave := 0.5 - 0.5 * cos(TAU * clock * lerpf(HudConfig.FALTER_PULSE_HZ_MIN, HudConfig.FALTER_PULSE_HZ_MAX, u))
+	var base := BorderConfig.BORDER_GAP_COLOUR.lerp(Color(1.0, 0.85, 0.75), u * 0.6)
+	var radius := HudConfig.FALTER_MARKER_RADIUS * (0.85 + 0.3 * wave) * (1.0 + 0.3 * u)
 	var edge := StyleUi.INK
 	edge.a = 0.8
 	StyleUi.ring(layer, feet, radius, c, edge, 4 + int(2.0 * u), 0.55)
@@ -130,7 +130,7 @@ static func _marker(layer: FeedbackLayer, c: float, m: Dictionary) -> void:
 	ring.a = lerpf(0.55, 1.0, wave)
 	StyleUi.ring(layer, feet, radius, c, ring, 2 + int(2.0 * u), 0.55)
 	_progress_ring(layer, c, (feet + head) * 0.5 + Vector2(0, 6), prog, 1.0)
-	var badge := Config.FALTER_BADGE_SIZE * (1.0 + 0.35 * u) * (1.0 + 0.1 * wave)
+	var badge := HudConfig.FALTER_BADGE_SIZE * (1.0 + 0.35 * u) * (1.0 + 0.1 * wave)
 	var badge_col := base
 	badge_col.a = 1.0
 	MoodIcons.draw(layer, MoodIcons.Kind.BANG, head + Vector2(0, -22.0 - 4.0 * wave), badge, badge_col)
@@ -140,7 +140,7 @@ static func _marker(layer: FeedbackLayer, c: float, m: Dictionary) -> void:
 static func _sparks(layer: FeedbackLayer, c: float) -> void:
 	for s: Dictionary in layer.sparks:
 		var left: float = s["left"]
-		var f := left / Config.BLOCK_SPARK_SECONDS
+		var f := left / MoodConfig.BLOCK_SPARK_SECONDS
 		var t := 1.0 - f
 		var at := layer.main.world_to_screen(_v3(s["pos"]))
 		var col: Color = s["colour"]
@@ -158,13 +158,13 @@ static func _player_pulses(layer: FeedbackLayer, c: float) -> void:
 		var left: float = p["left"]
 		var f := left / 0.5
 		var kind: int = p["kind"]
-		var col := Config.SPIRIT_GAIN_COLOUR
+		var col := HudConfig.SPIRIT_GAIN_COLOUR
 		var radius := lerpf(70.0, 24.0, f)
 		if kind == SpiritMeter.Moment.SPEND:
-			col = Config.SPIRIT_SPEND_COLOUR
+			col = HudConfig.SPIRIT_SPEND_COLOUR
 			radius = lerpf(24.0, 70.0, f)
 		elif kind == SpiritMeter.Moment.LOSS:
-			col = Config.SPIRIT_LOSS_COLOUR
+			col = HudConfig.SPIRIT_LOSS_COLOUR
 			radius = lerpf(80.0, 22.0, f)
 		col.a = f
 		var at := layer.main.world_to_screen(layer.main.player.global_position)

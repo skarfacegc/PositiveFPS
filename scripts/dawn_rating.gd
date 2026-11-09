@@ -14,21 +14,21 @@ extends RefCounted
 static func rate(rescued: int, total: int, ground: float, landmarks: int) -> Dictionary:
 	var people := float(rescued) / float(maxi(total, 1))
 	var goals := 0
-	if people >= Config.DAWN_PEOPLE_LOW:
+	if people >= LandmarkConfig.DAWN_PEOPLE_LOW:
 		goals += 1
-	if ground >= Config.DAWN_GROUND_LOW:
+	if ground >= LandmarkConfig.DAWN_GROUND_LOW:
 		goals += 1
-	if landmarks >= Config.DAWN_LANDMARKS_LOW:
+	if landmarks >= LandmarkConfig.DAWN_LANDMARKS_LOW:
 		goals += 1
 	var lights := 1
 	if goals >= 2:
 		lights = 2
-	if people >= Config.DAWN_PEOPLE_HIGH and landmarks >= Config.DAWN_LANDMARKS_HIGH:
+	if people >= LandmarkConfig.DAWN_PEOPLE_HIGH and landmarks >= LandmarkConfig.DAWN_LANDMARKS_HIGH:
 		lights = 3
 	var lines: Array[String] = [
 		"%d of %d people rescued (%d%%)" % [rescued, total, roundi(people * 100.0)],
 		"%d%% of the plaza held" % roundi(ground * 100.0),
-		"%d of %d landmarks held" % [landmarks, Config.LANDMARK_NAMES.size()],
+		"%d of %d landmarks held" % [landmarks, LandmarkConfig.LANDMARK_NAMES.size()],
 	]
 	return {"lights": lights, "people": people, "ground": ground, "landmarks": landmarks, "lines": lines}
 
@@ -48,18 +48,22 @@ static func hint_for(lights: int) -> String:
 	if lights == 2:
 		return (
 			"For three: %d%% of the people rescued and %d landmarks held at dawn"
-			% [roundi(Config.DAWN_PEOPLE_HIGH * 100.0), Config.DAWN_LANDMARKS_HIGH]
+			% [roundi(LandmarkConfig.DAWN_PEOPLE_HIGH * 100.0), LandmarkConfig.DAWN_LANDMARKS_HIGH]
 		)
 	return (
 		"For two, meet two of: %d%% rescued, %d%% of the plaza held, %d landmark held"
-		% [roundi(Config.DAWN_PEOPLE_LOW * 100.0), roundi(Config.DAWN_GROUND_LOW * 100.0), Config.DAWN_LANDMARKS_LOW]
+		% [
+			roundi(LandmarkConfig.DAWN_PEOPLE_LOW * 100.0),
+			roundi(LandmarkConfig.DAWN_GROUND_LOW * 100.0),
+			LandmarkConfig.DAWN_LANDMARKS_LOW
+		]
 	)
 
 
 # The lines on the end screen (moved from TopDownMain in round 21): the dawn lights (at dawn) with the reasons, then the
 # buildings beautified.
 static func detail_text(main: TopDownMain) -> String:
-	var r: Dictionary = main.rating if not main.rating.is_empty() else main._current_rating()
+	var r: Dictionary = main.rating if not main.rating.is_empty() else main.level_end.current_rating()
 	var lights: int = r["lights"]
 	var lines: Array[String] = []
 	if not main.rating.is_empty():

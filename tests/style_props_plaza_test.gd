@@ -26,14 +26,14 @@ func _paint_all(td: TopDownMain, weight: float) -> void:
 
 func _blocks() -> Array[Vector3]:
 	var centres: Array[Vector3] = []
-	for c: Vector3 in TopDownMain.BLOCK_POSITIONS:
+	for c: Vector3 in Plaza.BLOCK_POSITIONS:
 		centres.append(c)
 	return centres
 
 
 func _landmarks() -> Array[Vector3]:
 	var out: Array[Vector3] = []
-	out.assign(Config.LANDMARK_POSITIONS)
+	out.assign(LandmarkConfig.LANDMARK_POSITIONS)
 	return out
 
 
@@ -78,9 +78,9 @@ func test_street_props_stand_on_the_streets_clear_of_blocks_landmarks_the_start_
 		for lm: Vector3 in _landmarks():
 			var on_it := absf(p.pos.x - lm.x) < 2.0 and absf(p.pos.z - lm.z) < 2.0
 			assert_bool(on_it).is_false()
-		assert_float(p.pos.length()).is_greater_equal(Config.TOWN_STALL_OFFSET)
-		assert_float(absf(p.pos.x)).is_less_equal(half - Config.TOWN_EDGE_CLEAR)
-		assert_float(absf(p.pos.z)).is_less_equal(half - Config.TOWN_EDGE_CLEAR)
+		assert_float(p.pos.length()).is_greater_equal(TownConfig.TOWN_STALL_OFFSET)
+		assert_float(absf(p.pos.x)).is_less_equal(half - TownConfig.TOWN_EDGE_CLEAR)
+		assert_float(absf(p.pos.z)).is_less_equal(half - TownConfig.TOWN_EDGE_CLEAR)
 
 
 func test_lamps_stand_at_regular_spacing_along_the_kerbs_and_stalls_ring_the_square() -> void:
@@ -90,8 +90,8 @@ func test_lamps_stand_at_regular_spacing_along_the_kerbs_and_stalls_ring_the_squ
 	for p: StyleProps.Prop in _plaza():
 		if p.kind == StyleProps.Kind.LAMP:
 			lamps += 1
-			var on_main := is_equal_approx(absf(p.pos.z), Config.TOWN_KERB_OFFSET)
-			var on_cross := is_equal_approx(absf(p.pos.x), Config.TOWN_KERB_OFFSET)
+			var on_main := is_equal_approx(absf(p.pos.z), TownConfig.TOWN_KERB_OFFSET)
+			var on_cross := is_equal_approx(absf(p.pos.x), TownConfig.TOWN_KERB_OFFSET)
 			assert_bool(on_main or on_cross).is_true()
 			if on_main and p.pos.z > 0.0 and p.pos.x > 0.0:
 				along_main.append(p.pos.x)
@@ -105,7 +105,7 @@ func test_lamps_stand_at_regular_spacing_along_the_kerbs_and_stalls_ring_the_squ
 	along_main.sort()
 	assert_bool(along_main.size() >= 3).is_true()
 	for i: int in range(1, along_main.size()):
-		assert_float(along_main[i] - along_main[i - 1]).is_equal_approx(Config.TOWN_LAMP_SPACING, 0.001)
+		assert_float(along_main[i] - along_main[i - 1]).is_equal_approx(TownConfig.TOWN_LAMP_SPACING, 0.001)
 
 
 func test_each_blocks_bench_and_planter_stand_between_it_and_its_street() -> void:
@@ -142,29 +142,29 @@ func test_street_props_are_part_of_the_scene_but_not_its_bench_list() -> void:
 		if p.plaza:
 			plaza_n += 1
 	assert_int(plaza_n).is_equal(_plaza().size())
-	assert_int(sp.props.size()).is_equal(TopDownMain.BLOCK_POSITIONS.size() * 2 + plaza_n)
-	assert_int(sp.bench_positions().size()).is_equal(TopDownMain.BLOCK_POSITIONS.size())
+	assert_int(sp.props.size()).is_equal(Plaza.BLOCK_POSITIONS.size() * 2 + plaza_n)
+	assert_int(sp.bench_positions().size()).is_equal(Plaza.BLOCK_POSITIONS.size())
 	# A bare plaza lamp still glows warm (never dark in gloom) and the drawing stays inside the layers' capacity.
 	_paint_all(td, 0.0)
-	sp.refresh(Config.C7_PROPS_INTERVAL)
+	sp.refresh(StyleConfig.C7_PROPS_INTERVAL)
 	assert_bool(sp.layers.ball_count() >= int(plaza_n * 0.25)).is_true()
 	assert_bool(sp.layers.box_count() < StyleProps.BOX_CAPACITY).is_true()
 	_paint_all(td, 1.0)
-	sp.refresh(Config.C7_BLOOM_SECONDS * 2.0)
+	sp.refresh(StyleConfig.C7_BLOOM_SECONDS * 2.0)
 	assert_bool(sp.layers.box_count() < StyleProps.BOX_CAPACITY).is_true()
 	assert_bool(sp.layers.ball_count() < StyleProps.BALL_CAPACITY).is_true()
 
 
 func test_lamps_and_benches_are_drawn_bigger_and_warmer_than_the_other_props() -> void:
-	assert_float(Config.L31_LAMP_SCALE).is_greater(1.0)
-	assert_float(Config.L31_BENCH_SCALE).is_greater(1.0)
-	var big := Vector3.ONE * Config.L31_PROP_SCALE * Config.L31_BENCH_SCALE
+	assert_float(StyleConfig.L31_LAMP_SCALE).is_greater(1.0)
+	assert_float(StyleConfig.L31_BENCH_SCALE).is_greater(1.0)
+	var big := Vector3.ONE * StyleConfig.L31_PROP_SCALE * StyleConfig.L31_BENCH_SCALE
 	assert_vector(StyleProps.bench_big(Vector3.ONE)).is_equal(big)
 	var bare := StyleProps.WOOD_BARE
 	var warm := StyleProps.WOOD_WARM
-	var lifted := StyleProps.tone(bare, warm, 0.0, Config.L31_BENCH_LIFT)
+	var lifted := StyleProps.tone(bare, warm, 0.0, StyleConfig.L31_BENCH_LIFT)
 	assert_bool(lifted.r > StyleProps.tone(bare, warm, 0.0).r).is_true()
-	assert_float(Config.L31_LAMP_MIN_GLOW).is_greater(0.0)
+	assert_float(StyleConfig.L31_LAMP_MIN_GLOW).is_greater(0.0)
 
 
 func test_a_lamp_glows_in_gloom_and_the_soft_balls_draw_after_the_post_process_quad() -> void:
@@ -183,7 +183,7 @@ func test_a_lamp_glows_in_gloom_and_the_soft_balls_draw_after_the_post_process_q
 	# The soft balls draw after the post-process quad (priority 0), or they are painted over and never seen.
 	var ball_mi: MultiMeshInstance3D = parent.get_child(1)
 	var ball_mat: BaseMaterial3D = ball_mi.material_override
-	assert_int(ball_mat.render_priority).is_equal(Config.L31_SOFT_PRIORITY)
+	assert_int(ball_mat.render_priority).is_equal(StyleConfig.L31_SOFT_PRIORITY)
 	var box_mi: MultiMeshInstance3D = parent.get_child(0)
 	var box_mat: BaseMaterial3D = box_mi.material_override
 	assert_int(box_mat.render_priority).is_equal(0)

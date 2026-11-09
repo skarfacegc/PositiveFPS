@@ -16,7 +16,7 @@ func _start() -> Dictionary:
 func _ground(size: int, erodes: bool) -> PaintedGround:
 	var g: PaintedGround = auto_free(PaintedGround.new())
 	add_child(g)
-	g.setup(size, Config.TD_GROUND_SPREAD_SPEED, Config.TD_GROUND_FADE_SPEED, erodes)
+	g.setup(size, GroundConfig.TD_GROUND_SPREAD_SPEED, GroundConfig.TD_GROUND_FADE_SPEED, erodes)
 	return g
 
 
@@ -34,7 +34,7 @@ func _person(affinity: int, pos: Vector3, gloom: float, rescued: bool = false) -
 # Runs `updates` paint updates (each one is GROUND_UPDATE_INTERVAL, so the paint runs once per call).
 func _paint_updates(g: PaintedGround, people: Array, updates: int) -> void:
 	for i: int in range(updates):
-		g.update_paint(people, Config.GROUND_UPDATE_INTERVAL)
+		g.update_paint(people, GroundConfig.GROUND_UPDATE_INTERVAL)
 
 
 # --- Own paint does not protect -----------------------------------------------------------------------------------
@@ -86,9 +86,9 @@ func test_cover_excluding_own_paint_matches_others_paint_on_the_ground() -> void
 	var b := _person(1, Vector3(3, 0, 0), 0.0, true)
 	var people: Array = [a, b]
 	_paint_updates(g, people, 150)
-	var all_cover := g.average_weight(Vector3.ZERO, Config.TD_COVER_RADIUS)
-	var excl_a := g.average_weight_excluding(Vector3.ZERO, Config.TD_COVER_RADIUS, a)
-	var excl_b := g.average_weight_excluding(Vector3.ZERO, Config.TD_COVER_RADIUS, b)
+	var all_cover := g.average_weight(Vector3.ZERO, GroundConfig.TD_COVER_RADIUS)
+	var excl_a := g.average_weight_excluding(Vector3.ZERO, GroundConfig.TD_COVER_RADIUS, a)
+	var excl_b := g.average_weight_excluding(Vector3.ZERO, GroundConfig.TD_COVER_RADIUS, b)
 	assert_float(all_cover).is_greater(0.3)
 	# Both paint the centre about equally, so each one's cover without their own paint is still about half.
 	assert_float(excl_a).is_greater(0.2)
@@ -96,7 +96,7 @@ func test_cover_excluding_own_paint_matches_others_paint_on_the_ground() -> void
 	assert_float(excl_a).is_less_equal(all_cover + 0.001)
 	# Someone who painted nothing leaves nothing out.
 	var nobody := _person(2, Vector3(50, 0, 50), 0.0)
-	assert_float(g.average_weight_excluding(Vector3.ZERO, Config.TD_COVER_RADIUS, nobody)).is_equal_approx(
+	assert_float(g.average_weight_excluding(Vector3.ZERO, GroundConfig.TD_COVER_RADIUS, nobody)).is_equal_approx(
 		all_cover, 0.001
 	)
 
@@ -115,7 +115,7 @@ func test_a_lone_rescued_person_next_to_a_dimmed_person_relapses_within_a_bounde
 	var dimmed: Person = td.people[1]
 	TopDownTestUtil.place(dimmed, Vector3(2, 0, -8), 1, 0.9)
 	# Round 10: the calm opening (grey strength 0.2) slows the drain, so this runs at midnight, where it was tuned.
-	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
+	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 
 	# Grace first, then the drain (about 24 joy a second) takes them below half their joy: about 25 seconds in all.
 	var frames := 0

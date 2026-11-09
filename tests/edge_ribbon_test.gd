@@ -22,7 +22,7 @@ func _ring_level(count: int, r: float) -> Dictionary:
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * r, 0.0, sin(a) * r), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
-	td.night.elapsed = Config.NIGHT_LENGTH / 2.0
+	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 	await runner.simulate_frames(600)
 	return {"runner": runner, "td": td}
 
@@ -43,7 +43,7 @@ func test_the_ribbon_is_one_closed_loop_through_every_member() -> void:
 	assert_int(strips.size()).is_equal(1)
 	assert_bool(strips[0].closed).is_true()
 	for m: Person in td.border.members:
-		assert_float(_nearest(strips, Vector2(m.position.x, m.position.z))).is_less(Config.EDGE_RIBBON_STEP)
+		assert_float(_nearest(strips, Vector2(m.position.x, m.position.z))).is_less(BorderConfig.EDGE_RIBBON_STEP)
 	for p: Vector2 in strips[0].pts:
 		assert_float(BorderShape.distance_to_line(td.border.polygon, p)).is_less(1.2)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -57,7 +57,7 @@ func test_the_ribbon_points_are_close_together_and_run_one_way_round() -> void:
 	var centre := Vector2(td.border.centre.x, td.border.centre.z)
 	for i: int in range(pts.size()):
 		var j := (i + 1) % pts.size()
-		assert_float(pts[i].distance_to(pts[j])).is_less_equal(Config.EDGE_RIBBON_STEP + 0.01)
+		assert_float(pts[i].distance_to(pts[j])).is_less_equal(BorderConfig.EDGE_RIBBON_STEP + 0.01)
 		turned += wrapf((pts[j] - centre).angle() - (pts[i] - centre).angle(), -PI, PI)
 	assert_float(absf(turned)).is_equal_approx(TAU, 0.05)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -67,7 +67,7 @@ func test_the_ribbon_breaks_where_the_line_broke() -> void:
 	var s: Dictionary = await _ring_level(16, 6.0)
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
-	td.border.push.dent[td.border.push.sample_of(td.border.members[4].position)] = Config.PUSH_BREAK_DEPTH + 0.4
+	td.border.push.dent[td.border.push.sample_of(td.border.members[4].position)] = PushConfig.PUSH_BREAK_DEPTH + 0.4
 	await runner.simulate_frames(6)
 	assert_int(td.border.gap_count()).is_greater(0)
 	var strips := EdgeRibbon.build(td.border)
@@ -84,23 +84,25 @@ func test_strain_turns_the_ribbon_from_gold_to_amber_to_thin_coral() -> void:
 	var gold := EdgeRibbon.colour_for(0.0)
 	var amber := EdgeRibbon.colour_for(0.5)
 	var coral := EdgeRibbon.colour_for(1.0)
-	assert_bool(gold.is_equal_approx(Config.EDGE_RIBBON_GOLD)).is_true()
-	assert_bool(amber.is_equal_approx(Config.EDGE_RIBBON_AMBER)).is_true()
-	assert_bool(coral.is_equal_approx(Config.EDGE_RIBBON_CORAL)).is_true()
+	assert_bool(gold.is_equal_approx(BorderConfig.EDGE_RIBBON_GOLD)).is_true()
+	assert_bool(amber.is_equal_approx(BorderConfig.EDGE_RIBBON_AMBER)).is_true()
+	assert_bool(coral.is_equal_approx(BorderConfig.EDGE_RIBBON_CORAL)).is_true()
 	assert_float(gold.g).is_greater(amber.g)
 	assert_float(amber.g).is_greater(coral.g)
-	assert_float(EdgeRibbon.width_for(0.0)).is_equal(Config.EDGE_RIBBON_WIDTH)
-	assert_float(EdgeRibbon.width_for(1.0)).is_equal_approx(Config.EDGE_RIBBON_WIDTH * Config.EDGE_RIBBON_THIN, 0.001)
+	assert_float(EdgeRibbon.width_for(0.0)).is_equal(BorderConfig.EDGE_RIBBON_WIDTH)
+	assert_float(EdgeRibbon.width_for(1.0)).is_equal_approx(
+		BorderConfig.EDGE_RIBBON_WIDTH * BorderConfig.EDGE_RIBBON_THIN, 0.001
+	)
 	assert_float(EdgeRibbon.width_for(0.7)).is_between(EdgeRibbon.width_for(1.0), EdgeRibbon.width_for(0.0))
 	# A sealed stretch leans toward honey when it is not strained.
-	assert_bool(EdgeRibbon.colour_for(0.0, 1.0).is_equal_approx(Config.EDGE_RIBBON_HONEY)).is_true()
+	assert_bool(EdgeRibbon.colour_for(0.0, 1.0).is_equal_approx(BorderConfig.EDGE_RIBBON_HONEY)).is_true()
 
 
 func test_the_strain_of_a_member_is_how_far_the_line_is_bent_there() -> void:
 	var s: Dictionary = await _ring_level(16, 6.0)
 	var td: TopDownMain = s["td"]
 	var m: Person = td.border.members[4]
-	td.border.push.dent[td.border.push.sample_of(m.position)] = Config.PUSH_BREAK_DEPTH * 0.5
+	td.border.push.dent[td.border.push.sample_of(m.position)] = PushConfig.PUSH_BREAK_DEPTH * 0.5
 	var strain := EdgeRibbon.strain_map(td.border)
 	assert_float(strain[m]).is_equal_approx(0.5, 0.01)
 	assert_float(strain[td.border.members[12]]).is_equal(0.0)
@@ -114,7 +116,7 @@ func test_a_bent_stretch_colours_the_mesh() -> void:
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	var m: Person = td.border.members[4]
-	td.border.push.dent[td.border.push.sample_of(m.position)] = Config.PUSH_BREAK_DEPTH * 0.8
+	td.border.push.dent[td.border.push.sample_of(m.position)] = PushConfig.PUSH_BREAK_DEPTH * 0.8
 	await runner.simulate_frames(3)
 	var strips := EdgeRibbon.build(td.border)
 	var best := 0.0
@@ -134,7 +136,7 @@ func test_a_bent_stretch_colours_the_mesh() -> void:
 	var least_green := 1.0
 	for c: Color in cols:
 		least_green = minf(least_green, c.g)
-	assert_float(least_green).is_less(Config.EDGE_RIBBON_GOLD.g - 0.1)
+	assert_float(least_green).is_less(BorderConfig.EDGE_RIBBON_GOLD.g - 0.1)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -161,7 +163,7 @@ func test_one_member_or_a_dead_border_has_nothing_to_join() -> void:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	var one: Person = auto_free(Person.new())
 	one.is_rescued = true

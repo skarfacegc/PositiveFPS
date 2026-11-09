@@ -21,7 +21,7 @@ const CUE_RIMS: Array[Color] = [Color("#e8963a"), Color("#f2b04a"), Color("#ffc9
 
 
 # The landmark panel: a parchment panel with one row per landmark: its pixel icon (lit when held, grey when not), its
-# name and what it gives. `held` is the held flags in Config.LANDMARK_NAMES order.
+# name and what it gives. `held` is the held flags in LandmarkConfig.LANDMARK_NAMES order.
 static func draw_landmarks(ci: Control, held: Array[bool]) -> void:
 	var c := StyleUi.cell(ci)
 	StyleHud.align(ci, c)
@@ -31,7 +31,7 @@ static func draw_landmarks(ci: Control, held: Array[bool]) -> void:
 	for flag: bool in held:
 		if flag:
 			count += 1
-	var total := Config.LANDMARK_NAMES.size()
+	var total := LandmarkConfig.LANDMARK_NAMES.size()
 	ci.draw_string(
 		font,
 		Vector2(14.0, 26.0),
@@ -49,13 +49,19 @@ static func draw_landmarks(ci: Control, held: Array[bool]) -> void:
 		var text_x := 14.0 + float(StyleGlyphs.size_of("landmark%d" % i, rows).x) * c + 8.0
 		var name_col := StyleUi.INK if on else DIM_TEXT
 		ci.draw_string(
-			font, Vector2(text_x, y + 14.0), Config.LANDMARK_NAMES[i], HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_ROW, name_col
+			font,
+			Vector2(text_x, y + 14.0),
+			LandmarkConfig.LANDMARK_NAMES[i],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			FONT_ROW,
+			name_col
 		)
 		var sub_col := AMBER_TEXT if on else DIM_TEXT
 		ci.draw_string(
 			font,
 			Vector2(text_x, y + 30.0),
-			Config.LANDMARK_BOOST_TEXT[i],
+			LandmarkConfig.LANDMARK_BOOST_TEXT[i],
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
 			FONT_SUB,
@@ -73,20 +79,20 @@ static func draw_alert(ci: Control, text: String, colour: Color) -> void:
 	var c := StyleUi.cell(ci)
 	var font := ThemeDB.fallback_font
 	# Checkpoint 6: a slim banner just under the night bar (it was a 52 px panel near the middle of the play area).
-	var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, Config.CP6_ALERT_STYLED_FONT)
+	var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, HudConfig.CP6_ALERT_STYLED_FONT)
 	var star := StyleGlyphs.size_of("alert_star", StyleGlyphs.STAR)
 	var star_w := float(star.x) * c
 	var w := size.x + star_w + 54.0
-	var h := Config.CP6_BANNER_HEIGHT
-	var rect := Rect2(Vector2((ci.size.x - w) * 0.5, Config.CP6_BANNER_TOP), Vector2(w, h))
+	var h := HudConfig.CP6_BANNER_HEIGHT
+	var rect := Rect2(Vector2((ci.size.x - w) * 0.5, HudConfig.CP6_BANNER_TOP), Vector2(w, h))
 	rect.position = (rect.position / c).floor() * c
 	StyleUi.panel(ci, rect, c, StyleUi.PARCHMENT)
 	var pal := StyleGlyphs.palette_for(colour)
 	var star_at := Vector2(rect.position.x + 20.0, rect.position.y + (h - float(star.y) * c) * 0.5)
 	StyleGlyphs.draw(ci, "alert_star", StyleGlyphs.STAR, star_at, c, pal)
 	var text_x := rect.position.x + 20.0 + star_w + 12.0
-	var text_at := Vector2(text_x, rect.position.y + h * 0.5 + float(Config.CP6_ALERT_STYLED_FONT) * 0.35)
-	ci.draw_string(font, text_at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, Config.CP6_ALERT_STYLED_FONT, StyleUi.INK)
+	var text_at := Vector2(text_x, rect.position.y + h * 0.5 + float(HudConfig.CP6_ALERT_STYLED_FONT) * 0.35)
+	ci.draw_string(font, text_at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, HudConfig.CP6_ALERT_STYLED_FONT, StyleUi.INK)
 
 
 # The size a cue panel needs for `text`.
@@ -145,7 +151,11 @@ static func goals_met(rating: Dictionary) -> Array[bool]:
 	var people: float = rating["people"]
 	var ground: float = rating["ground"]
 	var landmarks: int = rating["landmarks"]
-	return [people >= Config.DAWN_PEOPLE_LOW, ground >= Config.DAWN_GROUND_LOW, landmarks >= Config.DAWN_LANDMARKS_LOW]
+	return [
+		people >= LandmarkConfig.DAWN_PEOPLE_LOW,
+		ground >= LandmarkConfig.DAWN_GROUND_LOW,
+		landmarks >= LandmarkConfig.DAWN_LANDMARKS_LOW
+	]
 
 
 # The dawn rating end screen: a parchment panel with the title, the three dawn lights (lit or out), the reasons with

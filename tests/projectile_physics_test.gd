@@ -83,7 +83,7 @@ func test_bloom_gives_joy_to_people_standing_in_it_then_frees_itself() -> void:
 	assert_bool(is_instance_valid(bloom)).is_true()
 
 	# The bloom lasts TD_BLOOM_SECONDS, then frees itself.
-	await runner.simulate_frames(int((Config.TD_BLOOM_SECONDS + 0.5) * 60.0))
+	await runner.simulate_frames(int((ProjectileConfig.TD_BLOOM_SECONDS + 0.5) * 60.0))
 	assert_bool(is_instance_valid(bloom)).is_false()
 
 
@@ -116,7 +116,7 @@ func test_projectile_fired_at_a_target_behind_a_block_fizzles_on_the_block() -> 
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)
 	# The first block (-38, -8) is 4 m wide. The target stands just beyond it, to the north.
-	var block := TopDownMain.BLOCK_POSITIONS[0] * Vector3(1, 0, 1)
+	var block := Plaza.BLOCK_POSITIONS[0] * Vector3(1, 0, 1)
 	var target: Person = td.people[0]
 	TopDownTestUtil.place(target, block + Vector3(0, 0, -3.5), 0, 0.0)
 	td.player.global_position = block + Vector3(0, 0, 4.0)

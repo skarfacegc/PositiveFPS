@@ -53,7 +53,7 @@ static func screen_of(td: TopDownMain, spot: Vector3) -> Vector2:
 # that places several dimmed people in one go opens that gate first, so each one may sink at once (stagger_test.gd
 # checks the gate itself).
 static func open_dim_gate(td: TopDownMain) -> void:
-	td._last_dim_sink = -INF
+	td.dim_gate.last_sink = -INF
 
 
 # Round 24: a drained rescued person wobbles before they relapse, and one relapse goes through the shared gate per

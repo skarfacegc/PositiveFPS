@@ -10,7 +10,7 @@ var _ring: MeshInstance3D
 
 
 func sync(_delta: float = 0.0) -> void:
-	mat.albedo_color = base_colour.lerp(Config.BORDER_BUILDING_COLOUR, subject.tint)
+	mat.albedo_color = base_colour.lerp(BorderConfig.BORDER_BUILDING_COLOUR, subject.tint)
 
 
 func set_post(on: bool) -> void:
@@ -35,15 +35,15 @@ func _build() -> void:
 	sphere.height = 0.7
 	_lantern.mesh = sphere
 	_lantern.position = Vector3(0.0, top + 0.6, 0.0)
-	_lantern.material_override = _unshaded(Config.BORDER_POST_LANTERN_COLOUR)
+	_lantern.material_override = _unshaded(BeaconConfig.BORDER_POST_LANTERN_COLOUR)
 	_ring = MeshInstance3D.new()
 	var torus := TorusMesh.new()
-	torus.inner_radius = Config.BORDER_POST_RING_INNER
-	torus.outer_radius = Config.BORDER_POST_RING_OUTER
+	torus.inner_radius = BeaconConfig.BORDER_POST_RING_INNER
+	torus.outer_radius = BeaconConfig.BORDER_POST_RING_OUTER
 	_ring.mesh = torus
 	# The body sits at the block's centre, so the base is `top` below it.
 	_ring.position = Vector3(0.0, -top + 0.06, 0.0)
-	_ring.material_override = _unshaded(Config.BORDER_POST_RING_COLOUR)
+	_ring.material_override = _unshaded(BeaconConfig.BORDER_POST_RING_COLOUR)
 	add_child(_lantern)
 	add_child(_ring)
 	set_post(subject.post)

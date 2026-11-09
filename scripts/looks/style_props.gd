@@ -202,7 +202,7 @@ static func attach(level: TopDownMain) -> StyleProps:
 
 # 1 by day, 0 at night, for a sun energy (NightCycle.sun_energy).
 static func day_factor(sun_energy: float) -> float:
-	return clampf((sun_energy - Config.C7_DAY_ENERGY_LOW) / Config.C7_DAY_ENERGY_RANGE, 0.0, 1.0)
+	return clampf((sun_energy - StyleConfig.C7_DAY_ENERGY_LOW) / StyleConfig.C7_DAY_ENERGY_RANGE, 0.0, 1.0)
 
 
 # The scenery that belongs to a block (0.3.3, #52): a bench and a planter in front of it, on the street side (see
@@ -258,8 +258,14 @@ static func layout_lines(centres: Array[Vector3], max_dist: float) -> Array[Line
 			var d := Vector3(centres[j].x - centres[i].x, 0.0, centres[j].z - centres[i].z).normalized()
 			# 0.3.1: the line's ends are the tops of two posts at roof height (the posts stand on the ground below).
 			# 0.3.2 (#42): higher than the player's head (see line_low_point).
-			l.a = Vector3(centres[i].x, Config.L32_LINE_POST_HEIGHT, centres[i].z) + d * Config.L31_LINE_POST_OFFSET
-			l.b = Vector3(centres[j].x, Config.L32_LINE_POST_HEIGHT, centres[j].z) - d * Config.L31_LINE_POST_OFFSET
+			l.a = (
+				Vector3(centres[i].x, StyleConfig.L32_LINE_POST_HEIGHT, centres[i].z)
+				+ d * StyleConfig.L31_LINE_POST_OFFSET
+			)
+			l.b = (
+				Vector3(centres[j].x, StyleConfig.L32_LINE_POST_HEIGHT, centres[j].z)
+				- d * StyleConfig.L31_LINE_POST_OFFSET
+			)
 			l.block_a = i
 			l.block_b = j
 			l.washing = (i + j) % 2 == 1
@@ -310,7 +316,7 @@ static func _make_light_multimesh(parent: Node3D, pool: bool) -> MultiMesh:
 		mm.mesh = cone
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://shaders/style_lamp_light.gdshader" if pool else "res://shaders/style_lamp_cone.gdshader")
-	mat.render_priority = Config.L31_SOFT_PRIORITY
+	mat.render_priority = StyleConfig.L31_SOFT_PRIORITY
 	mm.instance_count = LIGHT_CAPACITY
 	mm.visible_instance_count = 0
 	var mi := MultiMeshInstance3D.new()
@@ -339,7 +345,7 @@ static func _make_multimesh(parent: Node3D, ball: bool, capacity: int) -> MultiM
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		# 0.3.1 (#48): drawn after the post-process quad (priority 0), which otherwise paints over every soft ball: the
 		# lamp glows, planter flowers and fireflies were invisible in the styled look.
-		mat.render_priority = Config.L31_SOFT_PRIORITY
+		mat.render_priority = StyleConfig.L31_SOFT_PRIORITY
 	else:
 		var cube := BoxMesh.new()
 		cube.size = Vector3.ONE
@@ -359,11 +365,11 @@ static func _make_multimesh(parent: Node3D, ball: bool, capacity: int) -> MultiM
 
 
 func _ready() -> void:
-	for c: Vector3 in TopDownMain.BLOCK_POSITIONS:
+	for c: Vector3 in Plaza.BLOCK_POSITIONS:
 		_blocks.append(c)
 	props = layout_props(_blocks)
 	props.append_array(layout_streets())
-	lines = layout_lines(_blocks, Config.C7_LINE_MAX_DIST)
+	lines = layout_lines(_blocks, StyleConfig.C7_LINE_MAX_DIST)
 	layers = make_layers(self, true)
 	visible = false
 
@@ -374,14 +380,14 @@ func _process(delta: float) -> void:
 		return
 	time += delta
 	_timer += delta
-	if _timer >= Config.C7_PROPS_INTERVAL:
+	if _timer >= StyleConfig.C7_PROPS_INTERVAL:
 		refresh(_timer)
 		_timer = 0.0
 
 
 # Moves every prop's bloom `delta` seconds toward its target and redraws all the props.
 func refresh(delta: float) -> void:
-	var step := delta / maxf(Config.C7_BLOOM_SECONDS, 0.01)
+	var step := delta / maxf(StyleConfig.C7_BLOOM_SECONDS, 0.01)
 	var tints := _block_tints()
 	for p: Prop in props:
 		p.bloom = move_toward(p.bloom, _target(p.pos, 0.0 if p.plaza else tints[p.block]), step)
@@ -451,30 +457,30 @@ func _at(p: Prop, local: Vector3) -> Vector3:
 
 # 0.3.1: a prop's bare colour lifts toward its warm colour (by L31_PROP_LIFT at least) so it reads on the grey ground.
 static func tone(bare: Color, warm: Color, bloom: float, lift: float = -1.0) -> Color:
-	var base := Config.L31_PROP_LIFT if lift < 0.0 else lift
+	var base := StyleConfig.L31_PROP_LIFT if lift < 0.0 else lift
 	return bare.lerp(warm, lerpf(base, 1.0, bloom))
 
 
 # A local size or offset drawn L31_PROP_SCALE times bigger.
 static func big(v: Vector3) -> Vector3:
-	return v * Config.L31_PROP_SCALE
+	return v * StyleConfig.L31_PROP_SCALE
 
 
 # A bench's local size or offset: L31_BENCH_SCALE bigger again than the other props.
 static func bench_big(v: Vector3) -> Vector3:
-	return v * Config.L31_PROP_SCALE * Config.L31_BENCH_SCALE
+	return v * StyleConfig.L31_PROP_SCALE * StyleConfig.L31_BENCH_SCALE
 
 
 # 0.3.2 (#49): the colour of a lamp's light: cool pale blue-white in gloom, warm cheery amber in full bloom.
 static func lamp_light_colour(bloom: float) -> Color:
-	return Config.L32_LIGHT_COOL.lerp(Config.L32_LIGHT_WARM, smoothstep(0.1, 0.9, bloom))
+	return StyleConfig.L32_LIGHT_COOL.lerp(StyleConfig.L32_LIGHT_WARM, smoothstep(0.1, 0.9, bloom))
 
 
 # 0.3.2 (#49): how strongly a lamp's light shows (0 to 1): full at night, faint by day, a little less in gloom.
 static func lamp_light_strength(bloom: float, night: float) -> float:
 	return (
-		lerpf(Config.L32_LIGHT_DAY, 1.0, clampf(night, 0.0, 1.0))
-		* lerpf(Config.L32_LIGHT_GLOOM, 1.0, clampf(bloom, 0.0, 1.0))
+		lerpf(StyleConfig.L32_LIGHT_DAY, 1.0, clampf(night, 0.0, 1.0))
+		* lerpf(StyleConfig.L32_LIGHT_GLOOM, 1.0, clampf(bloom, 0.0, 1.0))
 	)
 
 
@@ -490,7 +496,7 @@ static func vine_steps(bloom: float) -> int:
 
 # The height (metres) of a lamp's head, the middle of its glass.
 static func lamp_head_height() -> float:
-	return 2.3 * Config.L31_PROP_SCALE * Config.L31_LAMP_SCALE * Config.L31_LAMP_HEIGHT
+	return 2.3 * StyleConfig.L31_PROP_SCALE * StyleConfig.L31_LAMP_SCALE * StyleConfig.L31_LAMP_HEIGHT
 
 
 # 0.3.2 (#49): a stiff iron gas lamp with a caged glass head. Bloom grows vines up the post (leaves, then a few small
@@ -498,7 +504,7 @@ static func lamp_head_height() -> float:
 # a pool on the ground (cool in gloom, warm in bloom; strongest at night) and a small glow at the head.
 func _draw_lamp(p: Prop, night: float) -> void:
 	var iron := IRON_COLD.lerp(IRON_WARM, p.bloom)
-	var s := Config.L31_PROP_SCALE * Config.L31_LAMP_SCALE  # 0.3.1 (#48): lamps are bigger again.
+	var s := StyleConfig.L31_PROP_SCALE * StyleConfig.L31_LAMP_SCALE  # 0.3.1 (#48): lamps are bigger again.
 	var top_y := lamp_head_height()  # Shorter and stouter: the head stays in the frame at play zoom.
 	var post_top := top_y - 0.3 * s
 	var post_h := post_top - 0.3 * s
@@ -522,12 +528,12 @@ func _draw_lamp(p: Prop, night: float) -> void:
 	layers.box(_at(p, Vector3(0.0, top_y + 0.3 * s, 0.0)), Vector3(0.22, 0.08, 0.22) * s, iron, p.yaw)
 	layers.box(_at(p, Vector3(0.0, top_y + 0.38 * s, 0.0)), Vector3(0.07, 0.1, 0.07) * s, iron, p.yaw)
 	_draw_vines(p, s, post_top)
-	var radius := Config.L32_POOL_RADIUS * lerpf(0.85, 1.0, p.bloom)
-	layers.cone(head, 0.05, radius, Color(light.r, light.g, light.b, Config.L32_CONE_ALPHA * strength))
+	var radius := StyleConfig.L32_POOL_RADIUS * lerpf(0.85, 1.0, p.bloom)
+	layers.cone(head, 0.05, radius, Color(light.r, light.g, light.b, StyleConfig.L32_CONE_ALPHA * strength))
 	layers.pool(
-		Vector3(p.pos.x, 0.06, p.pos.z), radius, Color(light.r, light.g, light.b, Config.L32_POOL_ALPHA * strength)
+		Vector3(p.pos.x, 0.06, p.pos.z), radius, Color(light.r, light.g, light.b, StyleConfig.L32_POOL_ALPHA * strength)
 	)
-	layers.ball(head, 0.3 * s, Color(light.r, light.g, light.b, Config.L32_HEAD_ALPHA * strength))
+	layers.ball(head, 0.3 * s, Color(light.r, light.g, light.b, StyleConfig.L32_HEAD_ALPHA * strength))
 
 
 # 0.3.2 (#49): vines curl up a lamp post as it blooms; a leaf on every other turn of the vine and, near full bloom, a
@@ -654,7 +660,7 @@ func _draw_planter(p: Prop) -> void:
 	layers.box(
 		_at(p, big(Vector3(0.0, 0.405, 0.0))), big(Vector3(0.78, 0.03, 0.38)), SOIL.lerp(SOIL_RICH, p.bloom), p.yaw
 	)
-	var s := Config.L31_PROP_SCALE
+	var s := StyleConfig.L31_PROP_SCALE
 	var stem := STEM_DEAD.lerp(STEM_LIVE, p.bloom)
 	var top := 0.4 + lerpf(0.25, 0.12, p.bloom)
 	var size := 0.14 * smoothstep(0.2, 1.0, p.bloom) * s
@@ -668,7 +674,7 @@ func _draw_planter(p: Prop) -> void:
 
 func _draw_stall(p: Prop) -> void:
 	var wood := tone(WOOD_BARE, WOOD_WARM, p.bloom, 0.12)  # 0.3.3 (#51): weathered grey-brown in gloom, not orange.
-	var s := Config.L31_PROP_SCALE
+	var s := StyleConfig.L31_PROP_SCALE
 	layers.box(_at(p, big(Vector3(0.0, 0.35, 0.0))), big(Vector3(1.8, 0.7, 0.9)), wood, p.yaw)
 	for sx: float in [-0.85, 0.85]:
 		layers.box(_at(p, big(Vector3(sx, 0.95, 0.4))), big(Vector3(0.08, 1.9, 0.08)), wood, p.yaw)
@@ -697,28 +703,28 @@ func _draw_stall(p: Prop) -> void:
 # the paint has reached it (`unfurl` at least L31_LINE_SHOW); then two posts stand up from the ground and the
 # bunting is strung between their tops at roof height.
 static func line_shown(unfurl: float) -> bool:
-	return unfurl >= Config.L31_LINE_SHOW
+	return unfurl >= StyleConfig.L31_LINE_SHOW
 
 
 # How far the posts have grown (0 on the ground, 1 at roof height) for a line that is `unfurl` unfurled.
 static func post_growth(unfurl: float) -> float:
-	return smoothstep(Config.L31_LINE_SHOW, Config.L31_LINE_SHOW + Config.L32_LINE_RISE, unfurl)
+	return smoothstep(StyleConfig.L31_LINE_SHOW, StyleConfig.L31_LINE_SHOW + StyleConfig.L32_LINE_RISE, unfurl)
 
 
 # 0.3.2 (#42): how far a line that is `unfurl` unfurled hangs at its middle.
 static func line_sag(unfurl: float) -> float:
-	return lerpf(Config.L32_LINE_SAG_GLOOM, Config.L32_LINE_SAG_BLOOM, unfurl)
+	return lerpf(StyleConfig.L32_LINE_SAG_GLOOM, StyleConfig.L32_LINE_SAG_BLOOM, unfurl)
 
 
 # 0.3.2 (#42): how long a flag hangs on a line that is `unfurl` unfurled (drawn size, washing is longer than bunting).
 static func flag_length(unfurl: float, washing: bool) -> float:
-	return (0.8 if washing else 0.5) * unfurl * Config.L31_LINE_BOLD
+	return (0.8 if washing else 0.5) * unfurl * StyleConfig.L31_LINE_BOLD
 
 
 # 0.3.2 (#42): the lowest point (metres above the ground) a fully risen line of `unfurl` ever draws: its posts' height
 # less its sag at the middle and the longest flag hanging there. Always above the player's height by a margin.
 static func line_low_point(unfurl: float, washing: bool) -> float:
-	return Config.L32_LINE_POST_HEIGHT - line_sag(unfurl) - flag_length(unfurl, washing)
+	return StyleConfig.L32_LINE_POST_HEIGHT - line_sag(unfurl) - flag_length(unfurl, washing)
 
 
 func _draw_line(l: Line, index: int) -> void:
@@ -728,7 +734,7 @@ func _draw_line(l: Line, index: int) -> void:
 	var rise := Vector3(0.0, l.a.y * (1.0 - grow), 0.0)  # The ends rise with the posts as the line unfurls.
 	var sag := line_sag(l.unfurl)
 	var rope := ROPE_BARE.lerp(ROPE_WARM, l.unfurl)
-	var bold := Config.L31_LINE_BOLD
+	var bold := StyleConfig.L31_LINE_BOLD
 	for tip: Vector3 in [l.a, l.b]:
 		var top := tip - rise
 		var post_w := 0.18 * bold

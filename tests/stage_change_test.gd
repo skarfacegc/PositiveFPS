@@ -51,10 +51,10 @@ func test_sinking_a_stage_gives_a_grey_violet_puff_and_ripple() -> void:
 	assert_array(sank).is_equal([1])
 	var colours := _puff_colours(p)
 	assert_int(colours.size()).is_greater(before)
-	assert_bool(colours.has(Config.STAGE_SINK_COLOUR)).is_true()
+	assert_bool(colours.has(PeopleConfig.STAGE_SINK_COLOUR)).is_true()
 	assert_int(_ripples(p).size()).is_equal(1)
 	# Not icy: more red than blue is not needed, but it must not be a cold blue-white.
-	assert_float(Config.STAGE_SINK_COLOUR.b - Config.STAGE_SINK_COLOUR.r).is_less(0.25)
+	assert_float(PeopleConfig.STAGE_SINK_COLOUR.b - PeopleConfig.STAGE_SINK_COLOUR.r).is_less(0.25)
 	# Gloomy to dimmed: another one.
 	p.gloom = 0.8
 	await runner.simulate_frames(2)
@@ -77,11 +77,11 @@ func test_lifting_a_stage_gives_a_warm_puff_and_ripple() -> void:
 	await runner.simulate_frames(2)
 	assert_array(lifted).is_equal([-1])
 	var colours := _puff_colours(p)
-	assert_bool(colours.has(Config.STAGE_LIFT_COLOUR)).is_true()
-	assert_float(Config.STAGE_LIFT_COLOUR.r).is_greater(Config.STAGE_LIFT_COLOUR.b)  # warm
+	assert_bool(colours.has(PeopleConfig.STAGE_LIFT_COLOUR)).is_true()
+	assert_float(PeopleConfig.STAGE_LIFT_COLOUR.r).is_greater(PeopleConfig.STAGE_LIFT_COLOUR.b)  # warm
 	assert_int(_ripples(p).size()).is_equal(ripples_before + 1)
 	# The ripples spread out and are gone a moment later.
-	await runner.simulate_frames(int(Config.STAGE_RIPPLE_SECONDS * 60.0) + 20)
+	await runner.simulate_frames(int(PeopleConfig.STAGE_RIPPLE_SECONDS * 60.0) + 20)
 	assert_int(_ripples(p).size()).is_equal(0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -118,10 +118,10 @@ func test_the_minimap_shows_a_blip_where_someone_became_dimmed_and_it_fades() ->
 	var found := false
 	for py: int in range(Minimap.RESOLUTION):
 		for px: int in range(Minimap.RESOLUTION):
-			if _close(td.minimap._image.get_pixel(px, py), Config.MINIMAP_BLIP_COLOUR):
+			if _close(td.minimap._image.get_pixel(px, py), HudConfig.MINIMAP_BLIP_COLOUR):
 				found = true
 	assert_bool(found).is_true()
-	await runner.simulate_frames(int(Config.MINIMAP_BLIP_SECONDS * 60.0) + 10)
+	await runner.simulate_frames(int(HudConfig.MINIMAP_BLIP_SECONDS * 60.0) + 10)
 	assert_int(td.minimap.blips.size()).is_equal(0)
 	# Sinking to gloomy, or lifting out of dimmed, makes no blip.
 	var q: Person = td.people[1]

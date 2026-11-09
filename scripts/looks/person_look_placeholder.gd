@@ -95,14 +95,14 @@ func _sync_body() -> void:
 		wisp.emitting = false
 		if wobbling:
 			# Round 24: a wide wobble and a body that greys steadily toward the end of the wobble.
-			var grey := lerpf(Config.WOBBLE_GREY_FROM, 1.0, wobble_prog)
-			body_mat.albedo_color = elem_col.lerp(Config.LEVEL_COLORS[1], grey)
-			body.rotation.y = wave * Config.WOBBLE_SWAY
-			body.rotation.z = wave * Config.WOBBLE_SWAY * 0.5
+			var grey := lerpf(PeopleConfig.WOBBLE_GREY_FROM, 1.0, wobble_prog)
+			body_mat.albedo_color = elem_col.lerp(PeopleConfig.LEVEL_COLORS[1], grey)
+			body.rotation.y = wave * PeopleConfig.WOBBLE_SWAY
+			body.rotation.z = wave * PeopleConfig.WOBBLE_SWAY * 0.5
 		elif warning:
 			# Flicker between the affinity colour and grey, and wobble.
 			var pulse := 0.5 + 0.5 * wave
-			body_mat.albedo_color = elem_col.lerp(Config.LEVEL_COLORS[1], pulse)
+			body_mat.albedo_color = elem_col.lerp(PeopleConfig.LEVEL_COLORS[1], pulse)
 			body.rotation.y = wave * 0.15
 			body.rotation.z = 0.0
 		else:
@@ -111,8 +111,8 @@ func _sync_body() -> void:
 			body.rotation.z = 0.0
 	else:
 		# Round 24: a dimmed person shows their progress strongly: the body warms to their colour as joy builds.
-		var tint := Config.DIMMED_PROGRESS_TINT if subject.level >= 2 else 0.6
-		body_mat.albedo_color = Config.LEVEL_COLORS[subject.level].lerp(elem_col, frac * tint)
+		var tint := PeopleConfig.DIMMED_PROGRESS_TINT if subject.level >= 2 else 0.6
+		body_mat.albedo_color = PeopleConfig.LEVEL_COLORS[subject.level].lerp(elem_col, frac * tint)
 		body.rotation.y = 0.0
 		body.rotation.z = 0.0
 		wisp.emitting = subject.level == 2
@@ -126,17 +126,17 @@ func _sync_body() -> void:
 # into the line. Subject.brace is 0 to 1 and brace_dir the flat direction of the lean (world).
 func _pose_brace() -> void:
 	var amount := subject.brace
-	body.scale.x = 1.0 + Config.PUSH_BRACE_WIDEN * amount
+	body.scale.x = 1.0 + PushConfig.PUSH_BRACE_WIDEN * amount
 	body.scale.z = body.scale.x
 	if amount <= 0.01 or subject.brace_dir == Vector3.ZERO:
 		body.rotation.x = 0.0
 		return
 	var local := subject.global_transform.basis.inverse() * subject.brace_dir
-	var lean := amount * Config.PUSH_BRACE_LEAN
+	var lean := amount * PushConfig.PUSH_BRACE_LEAN
 	body.rotation.x = local.z * lean
 	body.rotation.z += -local.x * lean
 	if amount > 0.5:
-		body.rotation.z += sin(clock * 40.0) * Config.PUSH_BRACE_SHAKE * (amount - 0.5) * 2.0
+		body.rotation.z += sin(clock * 40.0) * PushConfig.PUSH_BRACE_SHAKE * (amount - 0.5) * 2.0
 
 
 func _set_glow(amount: float) -> void:
@@ -152,8 +152,8 @@ func _set_react_glow(colour: Color, amount: float) -> void:
 
 
 func _apply_glow() -> void:
-	var react_energy := Config.REACT_GLOW_ENERGY * _react_amount
-	var grace_energy := Config.GRACE_GLOW_ENERGY * _grace_amount
+	var react_energy := PeopleConfig.REACT_GLOW_ENERGY * _react_amount
+	var grace_energy := PeopleConfig.GRACE_GLOW_ENERGY * _grace_amount
 	if react_energy <= 0.0 and grace_energy <= 0.0:
 		body_mat.emission_enabled = false
 		return
@@ -162,5 +162,5 @@ func _apply_glow() -> void:
 		body_mat.emission = _react_colour
 		body_mat.emission_energy_multiplier = react_energy
 	else:
-		body_mat.emission = Config.GRACE_GLOW_COLOR
+		body_mat.emission = PeopleConfig.GRACE_GLOW_COLOR
 		body_mat.emission_energy_multiplier = grace_energy

@@ -26,7 +26,7 @@ func test_f3_from_the_menu_shows_readable_on_screen_labels() -> void:
 
 	menu.simulate_key_pressed(KEY_F3)
 	await menu.simulate_frames(2)
-	assert_bool(td.debug_on).is_true()
+	assert_bool(td.level_hud.debug_on).is_true()
 	assert_bool(td.hud.debug_hint_label.visible).is_true()
 	assert_bool(p.debug_label.visible).is_true()
 

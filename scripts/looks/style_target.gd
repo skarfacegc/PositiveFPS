@@ -13,21 +13,21 @@ const GOLD_RIM := Color("#fff3c4")
 # Turns `highlight` (a MeshInstance3D the level owns) into the styled ring, with the tint disc as its only child.
 static func build(highlight: MeshInstance3D) -> void:
 	highlight.mesh = StyleCues.ring_mesh()
-	highlight.material_override = StyleCues.ring_material(GOLD, GOLD_RIM, 0.75, Config.CP6_TARGET_RING_INNER)
+	highlight.material_override = StyleCues.ring_material(GOLD, GOLD_RIM, 0.75, PlayerConfig.CP6_TARGET_RING_INNER)
 	highlight.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var disc := MeshInstance3D.new()
 	disc.name = "TintDisc"
 	disc.mesh = StyleCues.ring_mesh()
 	disc.material_override = StyleCues.ring_material(GOLD, GOLD_RIM, 0.28, 0.0)
 	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	disc.scale = Vector3.ONE * (Config.CP6_TARGET_RING_INNER - 0.04)
+	disc.scale = Vector3.ONE * (PlayerConfig.CP6_TARGET_RING_INNER - 0.04)
 	disc.position.y = -0.005
 	highlight.add_child(disc)
 
 
 # One frame: the ring's size (with the slow pulse `pulse`, about 1) and the tint disc's colour.
 static func sync(highlight: MeshInstance3D, element_colour: Color, pulse: float) -> void:
-	var r := Config.TD_HIGHLIGHT_RADIUS * Config.CP6_TARGET_RADIUS_SCALE * pulse
+	var r := PlayerConfig.TD_HIGHLIGHT_RADIUS * PlayerConfig.CP6_TARGET_RADIUS_SCALE * pulse
 	highlight.scale = Vector3(r, 1.0, r)
 	var disc := highlight.get_node_or_null("TintDisc") as MeshInstance3D
 	if disc != null:

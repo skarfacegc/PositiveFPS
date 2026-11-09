@@ -9,7 +9,7 @@ can reach:
     (tools/coverage.py save_clean_run: per-unit line hits, which tests each unit ran, and the text of every script as it
     was when the run was made).
 Anything this cannot map falls back to running everything, with the reason printed: no or old coverage map, a deleted
-script, scripts/config.gd and config_base.gd (every test reads them), scenes, resources, project.godot, addons, the test
+script, scripts/config.gd and the scripts/*_config.gd files (every test reads them), scenes, resources, project.godot, addons, the test
 helper, the test tooling itself. Docs, other tools and the hook scripts cannot change a Godot test result and are ignored.
 
 The changed lines are the diff against a base (HEAD by default; a merge base for a branch). The saved map may be older
@@ -27,7 +27,7 @@ import subprocess
 
 # Tooling whose change can alter how tests run or are judged: it needs the whole suite.
 TOOLS_AFFECTING_TESTS = {"run_tests.py", "gate.py", "coverage.py", "godot_run.py", "godot_path.py", "fast_tier.py"}
-ALL_SCRIPTS = {"scripts/config.gd", "scripts/config_base.gd"}  # read by every test
+ALL_SCRIPTS = {"scripts/config.gd"}  # read by every test (and every scripts/*_config.gd, see impact)
 HUNK_RE = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 FUNC_RE = re.compile(r"^(\t*)(?:static\s+)?func\s+(\w+)")
 
@@ -47,7 +47,7 @@ def impact(path):
         if name.endswith((".py", ".sh")):
             return "all" if name in TOOLS_AFFECTING_TESTS else "none"
         return "none" if name.endswith((".md", ".txt")) else "all"
-    if p in ALL_SCRIPTS:
+    if p in ALL_SCRIPTS or (p.startswith("scripts/") and p.endswith("_config.gd") and "/" not in p[len("scripts/"):]):
         return "all"
     if p.startswith("scripts/") and p.endswith(".gd"):
         return "script"

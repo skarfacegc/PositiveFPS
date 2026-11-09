@@ -54,7 +54,7 @@ func _check_arrows_clear(td: TopDownMain) -> void:
 	assert_int(arrows.size()).is_equal(8)
 	for a: Dictionary in arrows:
 		var pos: Vector2 = a["pos"]
-		var box := Rect2(pos, Vector2.ZERO).grow(Config.CP6_GAP_ARROW_REACH)
+		var box := Rect2(pos, Vector2.ZERO).grow(HudConfig.CP6_GAP_ARROW_REACH)
 		assert_bool(safe.grow(0.01).encloses(box)).is_true()
 		for r: Rect2 in avoid:
 			assert_bool(box.intersects(r)).is_false()
@@ -92,8 +92,8 @@ func _check_banner(td: TopDownMain, bar_bottom: float) -> void:
 	assert_float(bar.alpha).is_greater(0.0)
 	var r: Rect2 = bar._rect
 	assert_float(r.position.y).is_greater_equal(bar_bottom)
-	assert_float(r.size.y).is_equal(Config.NOTICE_HEIGHT)
-	assert_float(r.size.x).is_less_equal(Config.CP6_BANNER_MAX_WIDTH)
+	assert_float(r.size.y).is_equal(HudConfig.NOTICE_HEIGHT)
+	assert_float(r.size.x).is_less_equal(HudConfig.CP6_BANNER_MAX_WIDTH)
 	assert_float(r.get_center().x).is_equal_approx(SCREEN.x * 0.5, 2.0)
 	assert_bool(Rect2(Vector2.ZERO, SCREEN).encloses(r)).is_true()
 	# It sits above the people: nowhere near the middle of the window.
@@ -117,7 +117,7 @@ func test_a_notice_is_a_slim_banner_under_the_top_bar_in_both_looks_and_keeps_it
 	for mode: int in [Looks.Mode.PLACEHOLDER, Looks.Mode.STYLED]:
 		await _look(s, mode)
 		td.intro.notice(Intro.Prompt.FIRST_LIGHT, "First light: the ring is closing")
-		assert_float(td.intro.time_left).is_equal(Config.NOTICE_SECONDS)
+		assert_float(td.intro.time_left).is_equal(HudConfig.NOTICE_SECONDS)
 		await runner.simulate_frames(30)
 		_check_banner(td, td.hud.night_bar.get_global_rect().end.y)
 		_check_banner_clear_of_hud(td)
@@ -136,8 +136,8 @@ func test_a_long_notice_shrinks_its_text_to_fit_the_banner() -> void:
 	var runner: GdUnitSceneRunner = s["runner"]
 	td.intro.notice(Intro.Prompt.BEACON_BLOCKED, "A very long reason for a refusal, " + "word ".repeat(30))
 	await runner.simulate_frames(20)
-	assert_float(td.prompts._rect.size.x).is_less_equal(Config.CP6_BANNER_MAX_WIDTH)
-	assert_int(td.prompts.font_px).is_less(Config.NOTICE_FONT_SIZE)
+	assert_float(td.prompts._rect.size.x).is_less_equal(HudConfig.CP6_BANNER_MAX_WIDTH)
+	assert_int(td.prompts.font_px).is_less(HudConfig.NOTICE_FONT_SIZE)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -151,7 +151,7 @@ func test_a_notice_moves_down_below_the_alert_so_the_two_never_overlap_in_both_l
 		td.hud.show_alert("Someone lost their joy!")
 		td.intro.notice(Intro.Prompt.BEACON_BLOCKED)
 		await runner.simulate_frames(10)
-		var alert := Rect2(0.0, Config.CP6_BANNER_TOP, SCREEN.x, Config.CP6_BANNER_HEIGHT)
+		var alert := Rect2(0.0, HudConfig.CP6_BANNER_TOP, SCREEN.x, HudConfig.CP6_BANNER_HEIGHT)
 		assert_bool(td.hud.alert_showing()).is_true()
 		assert_bool(td.prompts._rect.intersects(alert)).is_false()
 		assert_float(td.prompts._rect.position.y).is_greater_equal(alert.end.y)
@@ -186,7 +186,7 @@ func test_the_styled_look_has_its_own_hud_lines_and_the_placeholder_look_keeps_i
 		assert_bool(labels[k].visible).is_false()
 		assert_bool(panels[k].visible).is_true()
 		assert_str(panels[k].line_text).is_equal(labels[k].text)
-		assert_bool(panels[k].size.x > 40.0 and panels[k].size.y == Config.CP6_LINE_HEIGHT).is_true()
+		assert_bool(panels[k].size.x > 40.0 and panels[k].size.y == HudConfig.CP6_LINE_HEIGHT).is_true()
 	assert_str(td.hud.burst_panel.line_text).is_equal("Joy burst [G]: READY - clears 3 dimmed")
 	assert_int(td.hud.burst_panel.line_state).is_equal(StyleHudText.READY)
 	assert_str(td.hud.key_panel.line_text).contains("[F4] look")
@@ -260,7 +260,7 @@ func test_the_target_highlight_is_a_flat_ring_in_the_styled_look_and_the_warm_di
 	var p: Person = td.people[0]
 	TopDownTestUtil.place(p, td.player.global_position + Vector3(2, 0, 2), Config.Element.NATURE, 0.0)
 	td.player.target = p
-	td._update_highlight(0.016)
+	td.highlight.sync(0.016)
 	assert_bool(td.highlight.visible).is_true()
 	var tint: Color = (disc.material_override as ShaderMaterial).get_shader_parameter("fill_color")
 	assert_bool(tint.is_equal_approx(Config.ELEMENT_COLORS[Config.Element.NATURE])).is_true()

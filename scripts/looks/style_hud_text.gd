@@ -27,7 +27,7 @@ const KEY_TEXT := Color("#9a5a12")
 static func line_width(kind: int, text: String) -> float:
 	if kind == StyledPanel.Kind.KEYS:
 		return PAD * 2.0 + keys_width(text)
-	var w := ThemeDB.fallback_font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, Config.CP6_LINE_FONT).x
+	var w := ThemeDB.fallback_font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, HudConfig.CP6_LINE_FONT).x
 	return PAD * 2.0 + ICON_W + w
 
 
@@ -42,11 +42,11 @@ static func keys_width(text: String) -> float:
 
 static func _part_width(part: String) -> float:
 	var font := ThemeDB.fallback_font
-	var space := font.get_string_size(" ", HORIZONTAL_ALIGNMENT_LEFT, -1, Config.CP6_KEY_FONT).x
+	var space := font.get_string_size(" ", HORIZONTAL_ALIGNMENT_LEFT, -1, HudConfig.CP6_KEY_FONT).x
 	var w := 0.0
 	var tokens := part.split(" ")
 	for t: String in tokens:
-		w += font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, Config.CP6_KEY_FONT).x
+		w += font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, HudConfig.CP6_KEY_FONT).x
 	return w + space * float(maxi(tokens.size() - 1, 0))
 
 
@@ -85,8 +85,8 @@ static func draw(ci: Control, kind: int, text: String, state: int, colour: Color
 		ink = DIM_TEXT
 	elif state == WARN:
 		ink = WARN_TEXT
-	var at := Vector2(PAD + ICON_W, mid + float(Config.CP6_LINE_FONT) * 0.35)
-	ci.draw_string(ThemeDB.fallback_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, Config.CP6_LINE_FONT, ink)
+	var at := Vector2(PAD + ICON_W, mid + float(HudConfig.CP6_LINE_FONT) * 0.35)
+	ci.draw_string(ThemeDB.fallback_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, HudConfig.CP6_LINE_FONT, ink)
 	ci.draw_set_transform(Vector2.ZERO)
 
 
@@ -130,7 +130,7 @@ static func _disc(ci: CanvasItem, centre: Vector2, r: int, c: float, col: Color)
 # The key line: the "|"-separated parts in ink with the key names in amber, and a small gold pixel mark between parts.
 static func _draw_keys(ci: Control, text: String, mid: float) -> void:
 	var font := ThemeDB.fallback_font
-	var fs := Config.CP6_KEY_FONT
+	var fs := HudConfig.CP6_KEY_FONT
 	var space := font.get_string_size(" ", HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var base := mid + float(fs) * 0.35
 	var c := StyleUi.cell(ci)

@@ -13,12 +13,12 @@ extends RefCounted
 static func is_target(p: Person, at: Vector3, _border: Border = null) -> bool:
 	if p.is_rescued or not GloomSim.is_dimmed(p):
 		return false
-	return GloomSim.flat_dist(at, p.global_position) <= Config.BURST_LIFT_RADIUS
+	return GloomSim.flat_dist(at, p.global_position) <= SpiritConfig.BURST_LIFT_RADIUS
 
 
 # True when a lifted person at `pos` is also close enough to the border line to be pushed back from it.
 static func is_at_border(border: Border, pos: Vector3) -> bool:
-	return border != null and border.active and distance_to_line(border, pos) <= Config.BURST_BORDER_BAND
+	return border != null and border.active and distance_to_line(border, pos) <= SpiritConfig.BURST_BORDER_BAND
 
 
 # The distance from `pos` to the border line, metres.
@@ -46,14 +46,14 @@ static func run(people: Array[Person], at: Vector3, border: Border) -> Dictionar
 			var from := p.global_position
 			var to := _pushed(border, from) if is_at_border(border, from) else from
 			p.global_position = to
-			p.gloom = minf(p.gloom, Config.BURST_LIFT_GLOOM)
+			p.gloom = minf(p.gloom, SpiritConfig.BURST_LIFT_GLOOM)
 			p.joy = 0.0
-			p.calm_left = Config.BURST_CALM_SECONDS
+			p.calm_left = SpiritConfig.BURST_CALM_SECONDS
 			cleared.append({"person": p, "from": from, "to": to})
 			continue
-		var reach := Config.BURST_CLEAR_RADIUS if p.is_rescued else Config.TD_BURST_RADIUS
+		var reach := SpiritConfig.BURST_CLEAR_RADIUS if p.is_rescued else SpiritConfig.TD_BURST_RADIUS
 		if GloomSim.flat_dist(at, p.global_position) <= reach:
-			p.receive_joy(p.affinity, Config.TD_BURST_JOY, 0.0, at)
+			p.receive_joy(p.affinity, SpiritConfig.TD_BURST_JOY, 0.0, at)
 			hits += 1
 	if border != null:
 		border.push.relieve(at)  # Round 26: the line near the burst springs back and is pushed less for a while.
@@ -67,7 +67,7 @@ static func _pushed(border: Border, from: Vector3) -> Vector3:
 		out = Vector3.RIGHT
 	var dist := distance_to_line(border, from)
 	var inside := Geometry2D.is_point_in_polygon(Vector2(from.x, from.z), border.polygon)
-	var push := Config.BURST_PUSH_DISTANCE + (dist if inside else 0.0)
+	var push := SpiritConfig.BURST_PUSH_DISTANCE + (dist if inside else 0.0)
 	var to := from + out.normalized() * push
-	var lim := Config.BORDER_MAP_LIMIT
+	var lim := RoundLoopConfig.BORDER_MAP_LIMIT
 	return Vector3(clampf(to.x, -lim, lim), from.y, clampf(to.z, -lim, lim))

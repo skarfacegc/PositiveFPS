@@ -94,15 +94,15 @@ func _c7_move_player(at: Vector3, frames: int = 40) -> void:
 
 # Sets the night clock to `progress` (0 = dusk, 0.5 = mid-night) and redraws the light.
 func _c7_night(progress: float) -> void:
-	main.night.elapsed = Config.NIGHT_LENGTH * progress
-	main._update_light()
+	main.night.elapsed = NightConfig.NIGHT_LENGTH * progress
+	main.camera_rig.update_light()
 	main.hud.set_night_progress(main.night.progress())
 
 
 # The first-light front at `progress` (0..1) of the last FIRST_LIGHT_SECONDS of the night.
 func _c7_front(progress: float) -> void:
-	main.night.elapsed = Config.NIGHT_LENGTH - Config.FIRST_LIGHT_SECONDS * (1.0 - progress)
-	main._update_light()
+	main.night.elapsed = NightConfig.NIGHT_LENGTH - NightConfig.FIRST_LIGHT_SECONDS * (1.0 - progress)
+	main.camera_rig.update_light()
 	main.hud.set_night_progress(main.night.progress())
 	main.first_light.step(0.0)
 	main.minimap.refresh_clouds(main.people)
@@ -121,8 +121,8 @@ func _c7_opening(label: String, prefix: String = "") -> void:
 	await get_tree().process_frame
 	main.running = false
 	main.night.elapsed = 0.0
-	main._update_light()
-	await _set_zoom(Config.TD_CAMERA_ORTHO_SIZE)
+	main.camera_rig.update_light()
+	await _set_zoom(PlayerConfig.TD_CAMERA_ORTHO_SIZE)
 	await _c7_shot(prefix + "calm_opening", label, {}, 40)
 
 
@@ -130,7 +130,7 @@ func _c7_opening(label: String, prefix: String = "") -> void:
 func _c7_midnight(label: String, prefix: String = "") -> void:
 	await _c7_level()
 	_c7_night(0.5)
-	await _set_zoom(Config.TD_CAMERA_ORTHO_SIZE)
+	await _set_zoom(PlayerConfig.TD_CAMERA_ORTHO_SIZE)
 	await _c7_move_player(main.border.centre + Vector3(0.0, 0.0, 1.5))
 	await _c7_shot(prefix + "midnight_inside_zone", label, {}, 20)
 	await _c7_move_player(Vector3(-8.0, 0.0, -4.0))
@@ -144,24 +144,24 @@ func _c7_props(label: String) -> void:
 	var saved_centre := ring_centre
 	var saved_radius := ring_radius
 	var saved_count := ring_count
-	var a: Vector3 = TopDownMain.BLOCK_POSITIONS[C7_PROPS_BLOCKS[0]]
-	var b: Vector3 = TopDownMain.BLOCK_POSITIONS[C7_PROPS_BLOCKS[1]]
+	var a: Vector3 = Plaza.BLOCK_POSITIONS[C7_PROPS_BLOCKS[0]]
+	var b: Vector3 = Plaza.BLOCK_POSITIONS[C7_PROPS_BLOCKS[1]]
 	ring_centre = Vector3((a.x + b.x) * 0.5, 0.0, (a.z + b.z) * 0.5 + 1.0)
 	ring_radius = C7_PROPS_RING_RADIUS
 	ring_count = C7_PROPS_RING_COUNT
 	await _c7_level()
 	_c7_night(0.5)
-	await _set_zoom(Config.TD_CAMERA_ORTHO_SIZE)
+	await _set_zoom(PlayerConfig.TD_CAMERA_ORTHO_SIZE)
 	for k: int in C7_PROPS_BLOCKS:
-		var at: Vector3 = TopDownMain.BLOCK_POSITIONS[k]
+		var at: Vector3 = Plaza.BLOCK_POSITIONS[k]
 		for bd: Building in main.border.buildings:
 			if bd.centre.distance_to(Vector2(at.x, at.z)) < 1.0:
-				bd.inside_time = Config.BORDER_BUILDING_SECONDS
+				bd.inside_time = BorderConfig.BORDER_BUILDING_SECONDS
 				bd.beautified = true
 				bd.tint = 1.0
 	await _c7_move_player(ring_centre + Vector3(0.0, 0.0, 2.0))
-	for i: int in range(int(Config.C7_BLOOM_SECONDS / Config.C7_PROPS_INTERVAL) + 8):
-		main.style_props.refresh(Config.C7_PROPS_INTERVAL)
+	for i: int in range(int(StyleConfig.C7_BLOOM_SECONDS / StyleConfig.C7_PROPS_INTERVAL) + 8):
+		main.style_props.refresh(StyleConfig.C7_PROPS_INTERVAL)
 	await _c7_shot("play_props_bunting", label, {}, 8)
 	ring_centre = saved_centre
 	ring_radius = saved_radius
@@ -174,7 +174,7 @@ func _c7_props(label: String) -> void:
 func _c7_push(label: String, prefix: String = "") -> void:
 	await _c7_level()
 	_c7_night(0.5)
-	await _set_zoom(Config.TD_CAMERA_ORTHO_SIZE)
+	await _set_zoom(PlayerConfig.TD_CAMERA_ORTHO_SIZE)
 	var ring := _c7_ring_members()
 	var centre := main.border.centre
 	# 0.3.3: with blocks round the ring there may be fewer than 11 members.
@@ -192,7 +192,7 @@ func _c7_push(label: String, prefix: String = "") -> void:
 	tide.tides[1]["angle"] = angle
 	tide.tides[1]["side"] = GloomTide.side_name(angle)
 	var tide_start: float = tide.tides[1]["start"]
-	main.night.elapsed = tide_start + Config.TIDE_SECONDS * 0.5
+	main.night.elapsed = tide_start + NightConfig.TIDE_SECONDS * 0.5
 	main.running = true
 	tide.update(0.0)
 	_r20_run(45)

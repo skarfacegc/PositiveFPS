@@ -66,7 +66,7 @@ func _run(centre: Vector3, ang: float) -> Dictionary:
 	_rescue_ring(td, centre, 10.0, 30)
 	await runner.simulate_frames(300)
 	for k: int in range(SHOVES):
-		td.border._push_at(ang, Config.BORDER_SHOVE_AMOUNT / maxf(td.border._scale, 0.01))
+		td.border._push_at(ang, RoundLoopConfig.BORDER_SHOVE_AMOUNT / maxf(td.border._scale, 0.01))
 		await runner.simulate_frames(FRAMES_BETWEEN_SHOVES)
 	var close_samples := 0
 	var gap_samples := 0
@@ -75,7 +75,7 @@ func _run(centre: Vector3, ang: float) -> Dictionary:
 		await runner.simulate_frames(10)
 		if f >= 12:  # Two seconds after the last push.
 			samples += 1
-			if _min_pair(td) < CLUSTER_FRACTION * Config.BORDER_TARGET_SPACING:
+			if _min_pair(td) < CLUSTER_FRACTION * BorderConfig.BORDER_TARGET_SPACING:
 				close_samples += 1
 			if td.border.gap_count() > 0:
 				gap_samples += 1
@@ -148,7 +148,7 @@ func _person_at(pos: Vector3) -> Person:
 
 
 func test_the_loop_is_pulled_onto_the_map_and_the_edge_stretch_is_sealed() -> void:
-	var lim := Config.BORDER_MAP_LIMIT
+	var lim := RoundLoopConfig.BORDER_MAP_LIMIT
 	var pts := PackedVector2Array(
 		[Vector2(lim + 20.0, -10.0), Vector2(lim + 30.0, 0.0), Vector2(lim + 25.0, 10.0), Vector2(0.0, 0.0)]
 	)
@@ -162,15 +162,15 @@ func test_the_loop_is_pulled_onto_the_map_and_the_edge_stretch_is_sealed() -> vo
 	assert_float(sealed[3]).is_equal(0.0)
 	assert_float(BorderShape.open_perimeter_of(pts, sealed)).is_less(BorderShape.perimeter_of(pts))
 	# A loop well inside the map is not sealed anywhere.
-	var inside := BorderShape.circle_polygon(Vector2.ZERO, 5.0, Config.BORDER_SAMPLES)
+	var inside := BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES)
 	var none := BorderShape.clamp_to_map(inside)
 	assert_float(none.max()).is_equal(0.0)
 
 
 func test_a_sealed_stretch_takes_no_members_and_is_never_a_gap() -> void:
-	var lim := Config.BORDER_MAP_LIMIT
+	var lim := RoundLoopConfig.BORDER_MAP_LIMIT
 	var border := _bare_border()
-	var loop := BorderShape.circle_polygon(Vector2(lim - 10.0, 0.0), 30.0, Config.BORDER_SAMPLES)
+	var loop := BorderShape.circle_polygon(Vector2(lim - 10.0, 0.0), 30.0, RoundLoopConfig.BORDER_SAMPLES)
 	border._sealed = BorderShape.clamp_to_map(loop)
 	border.polygon = loop
 	border.active = true
@@ -232,7 +232,7 @@ func test_the_nearest_free_slot_skips_taken_ones() -> void:
 func test_the_slot_grid_has_no_phase_when_the_members_cancel_out() -> void:
 	# Two members half a spacing apart along the open length have opposite phases: no mean, so the grid stays at 0.
 	var border := _bare_border()
-	var loop := BorderShape.circle_polygon(Vector2.ZERO, 20.0, Config.BORDER_SAMPLES)
+	var loop := BorderShape.circle_polygon(Vector2.ZERO, 20.0, RoundLoopConfig.BORDER_SAMPLES)
 	var seal: Array[float] = []
 	for j: int in range(loop.size()):
 		seal.append(0.0)
@@ -254,7 +254,7 @@ func test_the_slot_grid_has_no_phase_when_the_members_cancel_out() -> void:
 
 func test_a_loop_with_no_open_length_or_no_arc_falls_back_to_its_first_point() -> void:
 	var border := _bare_border()
-	var loop := BorderShape.circle_polygon(Vector2(5, 5), 20.0, Config.BORDER_SAMPLES)
+	var loop := BorderShape.circle_polygon(Vector2(5, 5), 20.0, RoundLoopConfig.BORDER_SAMPLES)
 	var seal: Array[float] = []
 	for j: int in range(loop.size()):
 		seal.append(1.0)
@@ -273,9 +273,9 @@ func test_a_loop_with_no_open_length_or_no_arc_falls_back_to_its_first_point() -
 
 
 func test_nothing_presses_on_a_sealed_stretch() -> void:
-	var lim := Config.BORDER_MAP_LIMIT
+	var lim := RoundLoopConfig.BORDER_MAP_LIMIT
 	var border := _bare_border()
-	var loop := BorderShape.circle_polygon(Vector2(lim - 10.0, 0.0), 30.0, Config.BORDER_SAMPLES)
+	var loop := BorderShape.circle_polygon(Vector2(lim - 10.0, 0.0), 30.0, RoundLoopConfig.BORDER_SAMPLES)
 	border._sealed = BorderShape.clamp_to_map(loop)
 	border.polygon = loop
 	border.active = true

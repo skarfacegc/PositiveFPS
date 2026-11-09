@@ -93,12 +93,12 @@ func _zone_preview(c: Vector2, plan: Dictionary) -> void:
 	var limited := reason != ""
 	var end := c + Vector2(cos(ang), sin(ang)) * reach
 	if limited:
-		_outline(outline, Config.BEACON_LIMITED_OUTLINE_WIDTH, Config.BEACON_LIMITED_COLOUR)
-		_cross(end, Config.AIM_CROSS_SIZE, Config.BEACON_LIMITED_COLOUR)
+		_outline(outline, BeaconConfig.BEACON_LIMITED_OUTLINE_WIDTH, BeaconConfig.BEACON_LIMITED_COLOUR)
+		_cross(end, BeaconConfig.AIM_CROSS_SIZE, BeaconConfig.BEACON_LIMITED_COLOUR)
 	else:
-		_outline(outline, Config.BEACON_GUIDE_OUTLINE_WIDTH, Config.BEACON_GUIDE_PREVIEW_COLOUR)
-		_disc(end, 1.1, Config.BEACON_GUIDE_TIP_COLOUR)
-		_ring(end, 2.0, Config.BEACON_GUIDE_TIP_COLOUR)
+		_outline(outline, BeaconConfig.BEACON_GUIDE_OUTLINE_WIDTH, BeaconConfig.BEACON_GUIDE_PREVIEW_COLOUR)
+		_disc(end, 1.1, BeaconConfig.BEACON_GUIDE_TIP_COLOUR)
+		_ring(end, 2.0, BeaconConfig.BEACON_GUIDE_TIP_COLOUR)
 	# Round 24: no words while hovering, limited or not. A refusal shows (as a small notice) only when E is released on
 	# a spot that cannot be placed (BeaconPlacement.try_place). Round 22's reason was a world-space Label3D, wider than
 	# the whole view for the longest text.
@@ -112,7 +112,7 @@ func _travel(info: Dictionary) -> void:
 
 
 func _on_zone_grew(gain: float, tip: Vector3, angle: float) -> void:
-	_pulse_left = Config.BEACON_PULSE_SECONDS
+	_pulse_left = BeaconConfig.BEACON_PULSE_SECONDS
 	_pulse_ang = angle
 	_pulse_tip = Vector2(tip.x, tip.z)
 	_pulse_gain = gain
@@ -129,7 +129,7 @@ func _pulse(border: Border) -> void:
 			_styled.end_pulse()
 		return
 	_pulse_left = maxf(_pulse_left - get_process_delta_time(), 0.0)
-	var p := 1.0 - _pulse_left / Config.BEACON_PULSE_SECONDS
+	var p := 1.0 - _pulse_left / BeaconConfig.BEACON_PULSE_SECONDS
 	if Looks.is_styled() and _styled != null:
 		# Graphics checkpoint 5: the wave and the ring are flat pieces; only the count is shared with the placeholder.
 		_styled.pulse(border, p, _pulse_ang, _pulse_tip)
@@ -151,12 +151,12 @@ func _pulse(border: Border) -> void:
 		if u <= 0.05:
 			continue
 		var wave := clampf(1.0 - absf(u - p * 1.3) / 0.45, 0.0, 1.0)
-		var col := Config.BEACON_PULSE_COLOUR
+		var col := BeaconConfig.BEACON_PULSE_COLOUR
 		col.a *= clampf(0.35 + wave, 0.0, 1.0) * (1.0 - p * 0.6)
-		_line(q0, q1, Config.BEACON_PULSE_WIDTH * (1.0 + wave * 0.6), col)
-	var ring_col := Config.BEACON_PULSE_COLOUR
+		_line(q0, q1, BeaconConfig.BEACON_PULSE_WIDTH * (1.0 + wave * 0.6), col)
+	var ring_col := BeaconConfig.BEACON_PULSE_COLOUR
 	ring_col.a *= 1.0 - p
-	_ring(_pulse_tip, Config.BEACON_PULSE_RING_START + Config.BEACON_PULSE_RING_GROW * p, ring_col)
+	_ring(_pulse_tip, BeaconConfig.BEACON_PULSE_RING_START + BeaconConfig.BEACON_PULSE_RING_GROW * p, ring_col)
 	_mesh.surface_end()
 	_show_gain(p)
 
@@ -168,15 +168,15 @@ func _show_gain(p: float) -> void:
 		_gain_label = Label3D.new()
 		_gain_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		_gain_label.no_depth_test = true
-		_gain_label.pixel_size = Config.BEACON_GAIN_LABEL_SIZE
-		_gain_label.outline_size = Config.BEACON_GAIN_OUTLINE_SIZE
+		_gain_label.pixel_size = BeaconConfig.BEACON_GAIN_LABEL_SIZE
+		_gain_label.outline_size = BeaconConfig.BEACON_GAIN_OUTLINE_SIZE
 		add_child(_gain_label)
 	var styled := Looks.is_styled()
 	_gain_label.outline_modulate = StyleCues.INK if styled else Color.BLACK
-	_gain_label.outline_size = Config.BEACON_GAIN_OUTLINE_SIZE * (2 if styled else 1)
-	var pc := Config.BEACON_PULSE_COLOUR
+	_gain_label.outline_size = BeaconConfig.BEACON_GAIN_OUTLINE_SIZE * (2 if styled else 1)
+	var pc := BeaconConfig.BEACON_PULSE_COLOUR
 	_gain_label.visible = _pulse_gain >= 1.0
-	_gain_label.text = Config.BEACON_GAIN_TEXT % int(roundf(_pulse_gain))
+	_gain_label.text = BeaconConfig.BEACON_GAIN_TEXT % int(roundf(_pulse_gain))
 	_gain_label.modulate = Color(pc.r, pc.g, pc.b, 1.0 - p * p)
 	_gain_label.position = Vector3(_pulse_tip.x, 3.5 + 4.0 * p, _pulse_tip.y)
 
@@ -189,11 +189,11 @@ func _set_label(text: String, at: Vector2) -> void:
 		_label = Label3D.new()
 		_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		_label.no_depth_test = true
-		_label.pixel_size = Config.BEACON_GUIDE_LABEL_SIZE
+		_label.pixel_size = BeaconConfig.BEACON_GUIDE_LABEL_SIZE
 		add_child(_label)
 	_label.visible = text != ""
-	_label.modulate = Config.BEACON_GUIDE_LABEL_COLOUR
-	_label.pixel_size = Config.BEACON_GUIDE_LABEL_SIZE
+	_label.modulate = BeaconConfig.BEACON_GUIDE_LABEL_COLOUR
+	_label.pixel_size = BeaconConfig.BEACON_GUIDE_LABEL_SIZE
 	_label.outline_size = 6
 	if text != "" and text != _label.text:
 		_label.text = text
@@ -208,8 +208,8 @@ func _outline(pts: PackedVector2Array, width: float, col: Color) -> void:
 
 # A small cross (an X of two thin strokes, half-length `size`) at `at`: the limited preview's tip.
 func _cross(at: Vector2, size: float, col: Color) -> void:
-	_line(at + Vector2(-size, -size), at + Vector2(size, size), Config.AIM_CROSS_WIDTH, col)
-	_line(at + Vector2(-size, size), at + Vector2(size, -size), Config.AIM_CROSS_WIDTH, col)
+	_line(at + Vector2(-size, -size), at + Vector2(size, size), BeaconConfig.AIM_CROSS_WIDTH, col)
+	_line(at + Vector2(-size, size), at + Vector2(size, -size), BeaconConfig.AIM_CROSS_WIDTH, col)
 
 
 # A ring of radius `r` round `at`.
@@ -225,7 +225,7 @@ func _line(a: Vector2, b: Vector2, width: float, col: Color) -> void:
 	if dir.length() < 0.001:
 		return
 	var side := Vector2(-dir.y, dir.x).normalized() * width * 0.5
-	var y := Config.BEACON_GUIDE_Y
+	var y := BeaconConfig.BEACON_GUIDE_Y
 	var quad := [a - side, a + side, b + side, a - side, b + side, b - side]
 	for v: Vector2 in quad:
 		_mesh.surface_set_color(col)
@@ -233,7 +233,7 @@ func _line(a: Vector2, b: Vector2, width: float, col: Color) -> void:
 
 
 func _disc(at: Vector2, r: float, col: Color) -> void:
-	var y := Config.BEACON_GUIDE_Y + 0.02
+	var y := BeaconConfig.BEACON_GUIDE_Y + 0.02
 	for i: int in range(16):
 		var a0 := TAU * float(i) / 16.0
 		var a1 := TAU * float(i + 1) / 16.0

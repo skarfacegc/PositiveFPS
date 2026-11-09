@@ -319,7 +319,7 @@ static func tatter_for(wear: float) -> int:
 static func draw_icon(
 	ci: CanvasItem, kind: int, centre: Vector2, size: float, colour: Color, wear: float = 1.0
 ) -> void:
-	var c := cell(ci) * float(maxi(1, roundi(size / Config.MOOD_ICON_SIZE)))
+	var c := cell(ci) * float(maxi(1, roundi(size / MoodConfig.MOOD_ICON_SIZE)))
 	var mid := cell_of(centre, c)
 	var alpha := colour.a
 	var ink := INK

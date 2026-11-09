@@ -26,11 +26,11 @@ func _settle(runner: GdUnitSceneRunner) -> void:
 func test_the_default_zoom_is_nineteen_and_a_half_metres() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
-	assert_float(Config.TD_CAMERA_ORTHO_SIZE).is_equal_approx(19.5, 0.0001)
+	assert_float(PlayerConfig.TD_CAMERA_ORTHO_SIZE).is_equal_approx(19.5, 0.0001)
 	assert_float(td.camera.size).is_equal_approx(19.5, 0.0001)
-	assert_float(Config.TD_ZOOM_MIN).is_equal(14.0)
-	assert_float(Config.TD_ZOOM_MAX).is_equal(26.0)
-	assert_float(Config.TD_ZOOM_STEP).is_equal(1.5)
+	assert_float(PlayerConfig.TD_ZOOM_MIN).is_equal(14.0)
+	assert_float(PlayerConfig.TD_ZOOM_MAX).is_equal(26.0)
+	assert_float(PlayerConfig.TD_ZOOM_STEP).is_equal(1.5)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -54,16 +54,16 @@ func test_wheel_down_zooms_out_and_the_zoom_clamps_at_both_ends() -> void:
 	for i: int in range(12):
 		await _notch(runner, MOUSE_BUTTON_WHEEL_DOWN)
 	await _settle(runner)
-	assert_float(td.camera.size).is_equal_approx(Config.TD_ZOOM_MAX, 0.01)
+	assert_float(td.camera.size).is_equal_approx(PlayerConfig.TD_ZOOM_MAX, 0.01)
 	# A further notch does not go past the wide end.
 	await _notch(runner, MOUSE_BUTTON_WHEEL_DOWN)
 	await _settle(runner)
-	assert_float(td.camera.size).is_equal_approx(Config.TD_ZOOM_MAX, 0.01)
+	assert_float(td.camera.size).is_equal_approx(PlayerConfig.TD_ZOOM_MAX, 0.01)
 
 	for i: int in range(20):
 		await _notch(runner, MOUSE_BUTTON_WHEEL_UP)
 	await _settle(runner)
-	assert_float(td.camera.size).is_equal_approx(Config.TD_ZOOM_MIN, 0.01)
+	assert_float(td.camera.size).is_equal_approx(PlayerConfig.TD_ZOOM_MIN, 0.01)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -83,7 +83,7 @@ func test_the_player_keeps_the_same_place_on_screen_and_the_labels_keep_their_si
 	var at_close := td.world_to_screen(td.player.global_position)
 	assert_vector(at_close).is_equal_approx(at_default, Vector2(0.5, 0.5))
 	assert_float(p.ui_scale / td.camera.size).is_equal_approx(label_default, 0.0005)
-	assert_float(p.ui_scale).is_less(Config.TD_UI_SCALE)
+	assert_float(p.ui_scale).is_less(PlayerConfig.TD_UI_SCALE)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -98,5 +98,5 @@ func test_the_wheel_does_not_change_the_targeting_or_the_joy() -> void:
 	await runner.simulate_frames(10)
 	assert_object(td.player.target).is_null()
 	assert_float(p.joy).is_equal(0.0)
-	assert_int(td.player.targeting_mode).is_equal(Config.TD_TARGETING_MODE)
+	assert_int(td.player.targeting_mode).is_equal(PlayerConfig.TD_TARGETING_MODE)
 	await TopDownTestUtil.leave_loaded_scene(td)

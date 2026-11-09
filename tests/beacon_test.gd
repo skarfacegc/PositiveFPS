@@ -84,7 +84,7 @@ func test_e_places_a_beacon_at_the_cursor_and_costs_spirit() -> void:
 	assert_float(td.border.beacon_pos().x).is_equal_approx(8.0, 0.6)
 	assert_float(td.border.beacon_pos().z).is_equal_approx(6.0, 0.6)
 	# One press and one release: one beacon, one charge.
-	assert_float(before - td.player.spirit).is_equal_approx(Config.BEACON_SPIRIT_COST, 0.5)
+	assert_float(before - td.player.spirit).is_equal_approx(BeaconConfig.BEACON_SPIRIT_COST, 0.5)
 	assert_bool(td.beacon_marker.visible).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -100,8 +100,8 @@ func test_the_tip_stretches_toward_the_beacon_at_the_pull_speed_and_the_centre_s
 	var info: Dictionary = td.border.stretch_info()
 	var tip1: Vector3 = info["tip"]
 	var moved := GloomSim.flat_dist(tip1, tip0)
-	print("PROBE tip travel in 0.5 s = %.2f m (speed %.2f m/s)" % [moved, Config.BEACON_PULL_SPEED])
-	assert_float(moved).is_equal_approx(Config.BEACON_PULL_SPEED * 0.5, 0.06)
+	print("PROBE tip travel in 0.5 s = %.2f m (speed %.2f m/s)" % [moved, BeaconConfig.BEACON_PULL_SPEED])
+	assert_float(moved).is_equal_approx(BeaconConfig.BEACON_PULL_SPEED * 0.5, 0.06)
 	assert_bool(td.border.has_beacon()).is_true()
 	assert_float(GloomSim.flat_dist(td.border.centre, c0)).is_less(0.01)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -114,8 +114,8 @@ func test_the_zone_covers_ground_toward_the_tip_without_squeezing_the_body_below
 	for people: int in [3, 6, 12, 30, 52]:
 		var radius := BorderCentre.circle_radius(people)
 		var far_reach := BorderCentre.feasible_distance(radius)
-		var body_min := radius * Config.BEACON_BODY_MIN
-		var hull := BorderCentre.hull_perimeter(body_min, Config.BEACON_TIP_WIDTH * body_min, far_reach)
+		var body_min := radius * BeaconConfig.BEACON_BODY_MIN
+		var hull := BorderCentre.hull_perimeter(body_min, BeaconConfig.BEACON_TIP_WIDTH * body_min, far_reach)
 		assert_float(hull).is_equal_approx(TAU * radius, TAU * radius * 0.01)
 		assert_float(far_reach).is_greater(radius)
 	var s: Dictionary = await _formed()
@@ -141,7 +141,7 @@ func test_the_zone_covers_ground_toward_the_tip_without_squeezing_the_body_below
 		back = minf(back, pt.distance_to(cx))
 	print("PROBE body radius before %.2f m, smallest during the stretch %.2f m" % [r0, back])
 	# Round 23: was * 0.5, with BEACON_BODY_MIN at 0.6.
-	assert_float(back).is_greater(BorderCentre.circle_radius(6) * Config.BEACON_BODY_MIN)
+	assert_float(back).is_greater(BorderCentre.circle_radius(6) * BeaconConfig.BEACON_BODY_MIN)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -192,7 +192,7 @@ func test_a_beacon_nearer_than_the_reach_stops_the_tip_at_the_beacon() -> void:
 func test_reach_grows_with_the_people_rescued() -> void:
 	assert_float(BorderCentre.reach_beyond(20)).is_greater(BorderCentre.reach_beyond(10))
 	assert_float(BorderCentre.reach_beyond(10) - BorderCentre.reach_beyond(5)).is_equal_approx(
-		Config.BEACON_REACH_PER_PERSON * 5.0, 0.001
+		BeaconConfig.BEACON_REACH_PER_PERSON * 5.0, 0.001
 	)
 	var s: Dictionary = await _formed()
 	var td: TopDownMain = s["td"]
@@ -274,7 +274,7 @@ func test_a_beacon_is_refused_without_enough_spirit() -> void:
 	var s: Dictionary = await _formed()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
-	td.player.lose_spirit(td.player.spirit - (Config.BEACON_SPIRIT_COST - 5.0))
+	td.player.lose_spirit(td.player.spirit - (BeaconConfig.BEACON_SPIRIT_COST - 5.0))
 	var before := td.player.spirit
 	await _press_e(runner, td, Vector3(8, 0, 6))
 	assert_bool(td.border.has_beacon()).is_false()
@@ -305,7 +305,7 @@ func test_a_second_beacon_replaces_the_first_and_costs_again() -> void:
 	await runner.simulate_frames(2)
 	await _press_e(runner, td, Vector3(-20, 0, -8))
 	assert_float(td.border.beacon_pos().x).is_equal_approx(-20.0, 0.6)
-	assert_float(before - td.player.spirit).is_equal_approx(2.0 * Config.BEACON_SPIRIT_COST, 1.0)
+	assert_float(before - td.player.spirit).is_equal_approx(2.0 * BeaconConfig.BEACON_SPIRIT_COST, 1.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -313,7 +313,7 @@ func test_the_beacon_is_clamped_inside_the_map() -> void:
 	var s: Dictionary = await _formed()
 	var td: TopDownMain = s["td"]
 	td.border.place_beacon(Vector3(500, 0, -500))
-	var lim := Config.BORDER_MAP_LIMIT
+	var lim := RoundLoopConfig.BORDER_MAP_LIMIT
 	assert_float(td.border.beacon_pos().x).is_equal(lim)
 	assert_float(td.border.beacon_pos().z).is_equal(-lim)
 	await TopDownTestUtil.leave_loaded_scene(td)

@@ -3,7 +3,7 @@ extends RefCounted
 
 # Round 26, physical push. The only things that push the border are visible: dimmed people leaning on the line from
 # outside, and a gloom tide (a wave of fog with figures in it) shoving the side it rolls in from. Everything is kept per
-# angle sample round the centre (Config.BORDER_SAMPLES, the same samples the loop is built from):
+# angle sample round the centre (RoundLoopConfig.BORDER_SAMPLES, the same samples the loop is built from):
 #  - force: what pushes there this frame (pushers spread along the loop as a bell, plus the tide's `wave`);
 #  - dent: how far the line is shoved inward there, in metres. It follows force x PUSH_DENT_PER_FORCE, deepening at
 #    PUSH_GIVE_SPEED and springing back at PUSH_SPRING_SPEED when relieved;
@@ -37,7 +37,7 @@ func _init(border: Border) -> void:
 
 # Back to a flat line with nothing pushing (a new border, or no border).
 func reset() -> void:
-	var n := Config.BORDER_SAMPLES
+	var n := RoundLoopConfig.BORDER_SAMPLES
 	dent.clear()
 	broken.clear()
 	wave.clear()
@@ -76,7 +76,7 @@ func clear_wave() -> void:
 
 # How bent the line is at `pos`, 0 (flat) to 1 (at the break depth): what the ribbon colours and a member braces by.
 func bend_at(pos: Vector3) -> float:
-	return clampf(dent[sample_of(pos)] / Config.PUSH_BREAK_DEPTH, 0.0, 1.0)
+	return clampf(dent[sample_of(pos)] / PushConfig.PUSH_BREAK_DEPTH, 0.0, 1.0)
 
 
 # True when polygon segment `j` lies in a break.
@@ -102,7 +102,7 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 # Dimmed people outside the line, close enough to lean on it, add their force at the sample they stand at.
 func _push_from_people(people: Array[Person], strength: float, delta: float) -> void:
 	pushers = 0
-	var sigma := Config.PUSH_SPREAD / (TAU / float(dent.size()))
+	var sigma := PushConfig.PUSH_SPREAD / (TAU / float(dent.size()))
 	for p: Person in people:
 		if p.is_rescued:
 			continue
@@ -110,7 +110,7 @@ func _push_from_people(people: Array[Person], strength: float, delta: float) -> 
 		if GloomSim.is_dimmed(p):
 			leaning = _lean(p, strength, sigma, delta)
 		if not leaning:
-			p.brace = move_toward(p.brace, 0.0, Config.PUSH_BRACE_SMOOTH * delta)
+			p.brace = move_toward(p.brace, 0.0, PushConfig.PUSH_BRACE_SMOOTH * delta)
 
 
 # Works out whether `p` leans on an intact stretch; if so adds the force and sets their lean. Returns true then.
@@ -121,14 +121,14 @@ func _lean(p: Person, strength: float, sigma: float, delta: float) -> bool:
 	var near := b._nearest_on_loop(p2)
 	var dist: float = near["dist"]
 	var seg: int = near["seg"]
-	if dist > Config.PUSH_LEAN_RANGE or b.is_sealed(seg) or segment_broken(seg):
+	if dist > PushConfig.PUSH_LEAN_RANGE or b.is_sealed(seg) or segment_broken(seg):
 		return false
 	pushers += 1
-	var force := Config.PUSH_PER_PERSON * strength * p.push_mult * (1.0 - 0.4 * dist / Config.PUSH_LEAN_RANGE)
+	var force := PushConfig.PUSH_PER_PERSON * strength * p.push_mult * (1.0 - 0.4 * dist / PushConfig.PUSH_LEAN_RANGE)
 	var who := b._nearest_member(p.position)
 	if who != null:
 		var share := clampf(who.joy / maxf(who.joy_needed(), 0.001), 0.0, 1.0)
-		force *= 1.0 + Config.PUSH_SOFT_BONUS * (1.0 - share)
+		force *= 1.0 + PushConfig.PUSH_SOFT_BONUS * (1.0 - share)
 	var i := sample_of(p.position)
 	var reach := ceili(3.0 * sigma)
 	var n := dent.size()
@@ -138,7 +138,7 @@ func _lean(p: Person, strength: float, sigma: float, delta: float) -> bool:
 	var to_line := line_point - p2
 	if to_line.length() > 0.001:
 		p.brace_dir = Vector3(to_line.x, 0.0, to_line.y).normalized()
-	p.brace = move_toward(p.brace, clampf(force / 2.0, 0.3, 1.0), Config.PUSH_BRACE_SMOOTH * delta)
+	p.brace = move_toward(p.brace, clampf(force / 2.0, 0.3, 1.0), PushConfig.PUSH_BRACE_SMOOTH * delta)
 	return true
 
 
@@ -149,13 +149,13 @@ func _read_joy(delta: float) -> void:
 		next[m] = m.joy_hits
 		if not _seen_hits.has(m) or _seen_hits[m] == m.joy_hits:
 			continue
-		calm_at(m.position, Config.PUSH_JOY_CALM, 2)
+		calm_at(m.position, PushConfig.PUSH_JOY_CALM, 2)
 		for br: Dictionary in breaks:
-			if _flat(m.position, _break_point(br)) <= Config.PUSH_MEND_REACH:
+			if _flat(m.position, _break_point(br)) <= PushConfig.PUSH_MEND_REACH:
 				br["joyed"] = true
 	_seen_hits = next
 	for i: int in range(_calm.size()):
-		_calm[i] = maxf(0.0, _calm[i] - delta / Config.PUSH_CALM_SECONDS)
+		_calm[i] = maxf(0.0, _calm[i] - delta / PushConfig.PUSH_CALM_SECONDS)
 
 
 # Calms the samples within `spread` of the one nearest `pos` (a joy hit on a member, or a burst).
@@ -173,21 +173,21 @@ func relieve(at: Vector3) -> void:
 		return
 	var at2 := Vector2(at.x, at.z)
 	for i: int in range(_calm.size()):
-		if b.polygon.size() > i and b.polygon[i].distance_to(at2) <= Config.PUSH_BURST_REACH:
-			_calm[i] = maxf(_calm[i], Config.PUSH_BURST_CALM)
+		if b.polygon.size() > i and b.polygon[i].distance_to(at2) <= PushConfig.PUSH_BURST_REACH:
+			_calm[i] = maxf(_calm[i], PushConfig.PUSH_BURST_CALM)
 
 
 func _move_dents(delta: float) -> void:
 	for i: int in range(dent.size()):
 		var calm := _calm[i]
-		var cut := 1.0 - Config.PUSH_CALM_CUT * calm
+		var cut := 1.0 - PushConfig.PUSH_CALM_CUT * calm
 		var target := 0.0
 		if not b.is_sealed(i):
-			target = minf(_force[i] * cut * Config.PUSH_DENT_PER_FORCE, Config.PUSH_DENT_MAX)
+			target = minf(_force[i] * cut * PushConfig.PUSH_DENT_PER_FORCE, PushConfig.PUSH_DENT_MAX)
 		if target > dent[i]:
-			dent[i] = minf(target, dent[i] + Config.PUSH_GIVE_SPEED * delta)
+			dent[i] = minf(target, dent[i] + PushConfig.PUSH_GIVE_SPEED * delta)
 		else:
-			var spring := Config.PUSH_SPRING_SPEED * lerpf(1.0, Config.PUSH_CALM_SPRING, calm)
+			var spring := PushConfig.PUSH_SPRING_SPEED * lerpf(1.0, PushConfig.PUSH_CALM_SPRING, calm)
 			dent[i] = maxf(target, dent[i] - spring * delta)
 
 
@@ -195,7 +195,7 @@ func _move_dents(delta: float) -> void:
 func _update_breaks(people: Array[Person], delta: float) -> void:
 	var n := dent.size()
 	for i: int in range(n):
-		if dent[i] < Config.PUSH_BREAK_DEPTH or broken[i] or _near_break(i):
+		if dent[i] < PushConfig.PUSH_BREAK_DEPTH or broken[i] or _near_break(i):
 			continue
 		_open_break(i)
 	for k: int in range(breaks.size() - 1, -1, -1):
@@ -205,14 +205,14 @@ func _update_breaks(people: Array[Person], delta: float) -> void:
 		br["age"] = age + delta
 		clear = 0.0 if _dimmed_near(people, _break_point(br)) else clear + delta
 		br["clear"] = clear
-		var joyed: bool = br["joyed"] or not Config.PUSH_MEND_NEEDS_JOY
-		if clear > 0.0 and (joyed or clear >= Config.PUSH_MEND_AUTO):
+		var joyed: bool = br["joyed"] or not PushConfig.PUSH_MEND_NEEDS_JOY
+		if clear > 0.0 and (joyed or clear >= PushConfig.PUSH_MEND_AUTO):
 			_mend(k)
 
 
 func _near_break(i: int) -> bool:
 	var n := broken.size()
-	for off: int in range(-2 * Config.PUSH_BREAK_HALF - 1, 2 * Config.PUSH_BREAK_HALF + 2):
+	for off: int in range(-2 * PushConfig.PUSH_BREAK_HALF - 1, 2 * PushConfig.PUSH_BREAK_HALF + 2):
 		if broken[posmod(i + off, n)]:
 			return true
 	return false
@@ -220,7 +220,7 @@ func _near_break(i: int) -> bool:
 
 func _open_break(i: int) -> void:
 	var n := broken.size()
-	for off: int in range(-Config.PUSH_BREAK_HALF, Config.PUSH_BREAK_HALF + 1):
+	for off: int in range(-PushConfig.PUSH_BREAK_HALF, PushConfig.PUSH_BREAK_HALF + 1):
 		broken[posmod(i + off, n)] = true
 	var br := {"at": i, "age": 0.0, "joyed": false, "clear": 0.0}
 	breaks.append(br)
@@ -232,10 +232,10 @@ func _mend(k: int) -> void:
 	var br: Dictionary = breaks[k]
 	var n := broken.size()
 	var i: int = br["at"]
-	for off: int in range(-Config.PUSH_BREAK_HALF, Config.PUSH_BREAK_HALF + 1):
+	for off: int in range(-PushConfig.PUSH_BREAK_HALF, PushConfig.PUSH_BREAK_HALF + 1):
 		var at := posmod(i + off, n)
 		broken[at] = false
-		dent[at] = minf(dent[at], Config.PUSH_BREAK_DEPTH * 0.5)  # Mended: half sprung back, not at the limit.
+		dent[at] = minf(dent[at], PushConfig.PUSH_BREAK_DEPTH * 0.5)  # Mended: half sprung back, not at the limit.
 	var spot := _break_point(br)
 	var open_for: float = br["age"]
 	breaks.remove_at(k)
@@ -252,7 +252,7 @@ func _break_point(br: Dictionary) -> Vector3:
 
 func _dimmed_near(people: Array[Person], spot: Vector3) -> bool:
 	for p: Person in people:
-		if not p.is_rescued and GloomSim.is_dimmed(p) and _flat(p.position, spot) <= Config.PUSH_MEND_CLEAR:
+		if not p.is_rescued and GloomSim.is_dimmed(p) and _flat(p.position, spot) <= PushConfig.PUSH_MEND_CLEAR:
 			return true
 	return false
 
@@ -263,13 +263,13 @@ func _flat(a: Vector3, c: Vector3) -> float:
 
 # Members brace against the dent at their spot: lean outward, planted, struggling more as it deepens.
 func _brace_members(delta: float) -> void:
-	var step := Config.PUSH_BRACE_SMOOTH * delta
+	var step := PushConfig.PUSH_BRACE_SMOOTH * delta
 	for m: Person in b.members:
 		var out := Vector3(m.position.x - b.centre.x, 0.0, m.position.z - b.centre.z)
 		if out.length() > 0.01:
 			m.brace_dir = out.normalized()
 		var i := sample_of(m.position)
-		var want := clampf(maxf(dent[i] / Config.PUSH_BREAK_DEPTH, _force[i] * 0.25), 0.0, 1.0)
+		var want := clampf(maxf(dent[i] / PushConfig.PUSH_BREAK_DEPTH, _force[i] * 0.25), 0.0, 1.0)
 		if broken[i]:
 			want = 1.0
 		m.brace = move_toward(m.brace, want, step)

@@ -18,7 +18,7 @@ var loss_mult: float = 1.0
 var look: GroundLook
 # The radius of a rescued person's paint disc, in metres. Top-down uses the zone radius; the paint edge border uses
 # its own.
-var paint_radius: float = Config.ZONE_RADIUS
+var paint_radius: float = PeopleConfig.ZONE_RADIUS
 # When the living border has a loop, tiles inside it are painted and tiles outside are not (see set_region). Without a
 # loop, rescued people paint discs as before.
 var region_active: bool = false
@@ -38,8 +38,8 @@ var _other_weights: Array[float] = []
 var _hold: Array[float] = []
 # Tile centres on the territory edge, rebuilt with the targets (see _paint).
 var _edge_points: Array[Vector3] = []
-var _spread_speed: float = Config.GROUND_PAINT_SPEED
-var _fade_speed: float = Config.GROUND_PAINT_SPEED
+var _spread_speed: float = GroundConfig.GROUND_PAINT_SPEED
+var _fade_speed: float = GroundConfig.GROUND_PAINT_SPEED
 var _timer := 0.0
 
 
@@ -47,8 +47,8 @@ var _timer := 0.0
 # `spread_speed` while they are getting more painted and at `fade_speed` while they are fading back (per update).
 func setup(
 	size: int,
-	spread_speed: float = Config.GROUND_PAINT_SPEED,
-	fade_speed: float = Config.GROUND_PAINT_SPEED,
+	spread_speed: float = GroundConfig.GROUND_PAINT_SPEED,
+	fade_speed: float = GroundConfig.GROUND_PAINT_SPEED,
 	erodes_paint: bool = false
 ) -> void:
 	_size = size
@@ -57,8 +57,8 @@ func setup(
 	erodes = erodes_paint
 	for ix: int in range(size):
 		for iz: int in range(size):
-			_colors.append(Config.GROUND_GREY)
-			_targets.append(Config.GROUND_GREY)
+			_colors.append(GroundConfig.GROUND_GREY)
+			_targets.append(GroundConfig.GROUND_GREY)
 			_weights.append(0.0)
 			_target_weights.append(0.0)
 			_top_owner.append(0)
@@ -80,7 +80,7 @@ func rebuild_look() -> void:
 # weight a little toward its target every frame of that update.
 func update_paint(people: Array, delta: float) -> void:
 	_timer += delta
-	if _timer < Config.GROUND_UPDATE_INTERVAL:
+	if _timer < GroundConfig.GROUND_UPDATE_INTERVAL:
 		return
 	_timer = 0.0
 	_paint(people)
@@ -103,7 +103,7 @@ func paint_colour_at(world_pos: Vector3) -> Color:
 	var ix := floori(world_pos.x + half)
 	var iz := floori(world_pos.z + half)
 	if ix < 0 or iz < 0 or ix >= _size or iz >= _size:
-		return Config.GROUND_GREY
+		return GroundConfig.GROUND_GREY
 	return _colors[ix * _size + iz]
 
 
@@ -185,7 +185,7 @@ func _average(world_pos: Vector3, radius: float, owner_id: int) -> float:
 func _paint(people: Array) -> void:
 	var count := _size * _size
 	for i: int in range(count):
-		_targets[i] = Config.GROUND_GREY
+		_targets[i] = GroundConfig.GROUND_GREY
 		_target_weights[i] = 0.0
 		_top_owner[i] = 0
 		_other_weights[i] = 0.0
@@ -196,7 +196,7 @@ func _paint(people: Array) -> void:
 	else:
 		_paint_discs(people, half)
 
-	var interval := Config.GROUND_UPDATE_INTERVAL
+	var interval := GroundConfig.GROUND_UPDATE_INTERVAL
 	for i: int in range(count):
 		_hold[i] = maxf(0.0, _hold[i] - interval)
 	if erodes:
@@ -207,7 +207,7 @@ func _paint(people: Array) -> void:
 			var before := _target_weights[i]
 			_target_weights[i] = minf(before, _weights[i])
 			var ratio := clampf(_weights[i] / maxf(before, 0.001), 0.0, 1.0)
-			_targets[i] = Config.GROUND_GREY.lerp(_targets[i], ratio)
+			_targets[i] = GroundConfig.GROUND_GREY.lerp(_targets[i], ratio)
 
 	for i: int in range(count):
 		# Painting in uses the spread speed; fading back uses the fade speed.
@@ -249,7 +249,7 @@ func _add_contribution(idx: int, owner: int, k: float, paint_col: Color) -> void
 		_other_weights[idx] = _target_weights[idx]
 		_target_weights[idx] = k
 		_top_owner[idx] = owner
-		_targets[idx] = Config.GROUND_GREY.lerp(paint_col, Config.GROUND_PAINT_STRENGTH * k)
+		_targets[idx] = GroundConfig.GROUND_GREY.lerp(paint_col, GroundConfig.GROUND_PAINT_STRENGTH * k)
 	elif k > _other_weights[idx]:
 		_other_weights[idx] = k
 
@@ -265,14 +265,14 @@ func _paint_region(half: float) -> void:
 			_in_region[idx] = inside
 			if inside:
 				_target_weights[idx] = 1.0
-				_targets[idx] = Config.BORDER_GROUND_COLOUR
+				_targets[idx] = BorderConfig.BORDER_GROUND_COLOUR
 
 
 # Gloom erodes paint. Each unrescued dimmed person takes TD_ERODE_RATE weight per second off the edge tiles within
 # TD_ERODE_RADIUS of them, and an eroded tile is held for TD_ERODE_HOLD seconds (see _paint). Deep interior tiles are
 # immune. Tiles are checked before any are changed, so the order of people does not matter.
 func _erode(people: Array) -> void:
-	var r := Config.TD_ERODE_RADIUS
+	var r := GroundConfig.TD_ERODE_RADIUS
 	var half := _size / 2.0
 	var seen: Dictionary = {}
 	var to_erode: Array[int] = []
@@ -295,8 +295,10 @@ func _erode(people: Array) -> void:
 				seen[idx] = true
 				to_erode.append(idx)
 	for idx: int in to_erode:
-		_weights[idx] = maxf(0.0, _weights[idx] - Config.TD_ERODE_RATE * loss_mult * Config.GROUND_UPDATE_INTERVAL)
-		_hold[idx] = Config.TD_ERODE_HOLD
+		_weights[idx] = maxf(
+			0.0, _weights[idx] - GroundConfig.TD_ERODE_RATE * loss_mult * GroundConfig.GROUND_UPDATE_INTERVAL
+		)
+		_hold[idx] = GroundConfig.TD_ERODE_HOLD
 
 
 # Inside a region only tiles in the region erode. Otherwise edge tiles erode (interior tiles are immune).
@@ -314,7 +316,7 @@ func _is_interior(ix: int, iz: int) -> bool:
 			var nz := iz + dz
 			if nx < 0 or nz < 0 or nx >= _size or nz >= _size:
 				continue
-			if _weights[nx * _size + nz] < Config.TD_ERODE_EDGE_MAX:
+			if _weights[nx * _size + nz] < GroundConfig.TD_ERODE_EDGE_MAX:
 				return false
 	return true
 
@@ -326,7 +328,7 @@ func _rebuild_edge() -> void:
 	for ix: int in range(_size):
 		for iz: int in range(_size):
 			var w := _weights[ix * _size + iz]
-			if w > Config.TD_EDGE_MIN and w < Config.TD_ERODE_EDGE_MAX:
+			if w > GroundConfig.TD_EDGE_MIN and w < GroundConfig.TD_ERODE_EDGE_MAX:
 				_edge_points.append(Vector3(-half + 0.5 + ix, 0.0, -half + 0.5 + iz))
 
 

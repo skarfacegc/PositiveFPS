@@ -28,9 +28,11 @@ func test_paint_projectile_is_drawn_at_the_configured_size() -> void:
 	pr.element = Config.Element.ART
 	td.add_child(pr)
 	# Scale is set in _ready, so it is already in place once the node is in the level.
-	var expected := Config.TD_PROJECTILE_VISUAL_SCALE * Config.TD_ELEMENT_VISUAL_SCALE[Config.Element.ART]
+	var expected := (
+		ProjectileConfig.TD_PROJECTILE_VISUAL_SCALE * ProjectileConfig.TD_ELEMENT_VISUAL_SCALE[Config.Element.ART]
+	)
 	assert_float(pr.scale.x).is_equal_approx(expected, 0.001)
-	assert_float(Config.TD_ELEMENT_VISUAL_SCALE[Config.Element.ART]).is_equal_approx(1.3, 0.001)
+	assert_float(ProjectileConfig.TD_ELEMENT_VISUAL_SCALE[Config.Element.ART]).is_equal_approx(1.3, 0.001)
 
 
 func test_paint_splat_radius_matches_the_config() -> void:
@@ -40,7 +42,7 @@ func test_paint_splat_radius_matches_the_config() -> void:
 	pr.element = Config.Element.ART
 	td.add_child(pr)
 	pr._spawn_splat(Vector3(-30, 0, 10))
-	assert_float(_impact_radius(td, "splat")).is_equal_approx(Config.TD_SPLAT_RADIUS, 0.001)
+	assert_float(_impact_radius(td, "splat")).is_equal_approx(ProjectileConfig.TD_SPLAT_RADIUS, 0.001)
 
 
 func test_paint_splash_reaches_a_person_at_one_metre_but_not_at_one_point_three() -> void:
@@ -70,7 +72,7 @@ func test_paint_splash_ring_is_drawn_at_exactly_the_splash_radius() -> void:
 	pr.element = Config.Element.ART
 	td.add_child(pr)
 	pr._spawn_splash_ring(Vector3(-30, 0, 10))
-	assert_float(_impact_radius(td, "splash")).is_equal_approx(Config.TD_PAINT_SPLASH_RADIUS, 0.001)
+	assert_float(_impact_radius(td, "splash")).is_equal_approx(ProjectileConfig.TD_PAINT_SPLASH_RADIUS, 0.001)
 
 
 func test_bloom_has_no_outline_and_a_faint_fill() -> void:
@@ -86,16 +88,16 @@ func test_bloom_has_no_outline_and_a_faint_fill() -> void:
 	for child: Node in bloom.get_children():
 		if child is MeshInstance3D and (child as MeshInstance3D).mesh is CylinderMesh:
 			var mesh := (child as MeshInstance3D).mesh as CylinderMesh
-			if is_equal_approx(mesh.top_radius, Config.TD_BLOOM_RADIUS):
+			if is_equal_approx(mesh.top_radius, ProjectileConfig.TD_BLOOM_RADIUS):
 				discs += 1
 				var mat := (child as MeshInstance3D).material_override as StandardMaterial3D
-				assert_float(mat.albedo_color.a).is_less_equal(Config.TD_BLOOM_FILL_ALPHA + 0.001)
+				assert_float(mat.albedo_color.a).is_less_equal(ProjectileConfig.TD_BLOOM_FILL_ALPHA + 0.001)
 		elif child is Node3D and not (child is MeshInstance3D):
 			flowers += 1
 	assert_int(discs).is_equal(1)
-	assert_int(flowers).is_equal(Config.TD_BLOOM_FLOWER_COUNT)
-	assert_bool(Config.TD_BLOOM_FLOWER_COUNT <= 4).is_true()
-	assert_int(Config.TD_BLOOM_PETALS).is_less_equal(4)
+	assert_int(flowers).is_equal(ProjectileConfig.TD_BLOOM_FLOWER_COUNT)
+	assert_bool(ProjectileConfig.TD_BLOOM_FLOWER_COUNT <= 4).is_true()
+	assert_int(ProjectileConfig.TD_BLOOM_PETALS).is_less_equal(4)
 
 
 func test_bloom_fades_as_one_piece_without_shrinking() -> void:
@@ -127,7 +129,7 @@ func test_camera_range_ring_fits_on_a_1280_by_720_screen() -> void:
 
 	# Round 10: the whole auto-range ring (16 points) is on screen, from the orthographic camera.
 	var centre := td.player.global_position
-	var r := Config.TD_AUTO_RANGE
+	var r := PlayerConfig.TD_AUTO_RANGE
 	for i: int in range(16):
 		var a := TAU * float(i) / 16.0
 		var spot := centre + Vector3(cos(a) * r, 0, sin(a) * r)
@@ -144,10 +146,10 @@ func test_round_eleven_camera_is_zoomed_out_and_the_ten_metre_ring_still_fits() 
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	var rect := td.get_viewport().get_visible_rect()
-	assert_float(td.camera.size).is_equal_approx(Config.TD_CAMERA_ORTHO_SIZE, 0.0001)
+	assert_float(td.camera.size).is_equal_approx(PlayerConfig.TD_CAMERA_ORTHO_SIZE, 0.0001)
 	# Round 14: the default zoom is 19.5 (was 18), so the ring fits with room to spare: see the test below.
-	assert_float(Config.TD_CAMERA_ORTHO_SIZE).is_equal_approx(19.5, 0.0001)
-	assert_float(Config.TD_AUTO_RANGE).is_equal(10.0)
+	assert_float(PlayerConfig.TD_CAMERA_ORTHO_SIZE).is_equal_approx(19.5, 0.0001)
+	assert_float(PlayerConfig.TD_AUTO_RANGE).is_equal(10.0)
 
 	var centre := td.player.global_position
 	var fits_at_13 := true

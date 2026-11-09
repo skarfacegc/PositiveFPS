@@ -1,10 +1,10 @@
 class_name FirstLight
 extends Node3D
 
-# Round 24: first light. Over the last Config.FIRST_LIGHT_SECONDS of the night a front of dawn starts where it covers
+# Round 24: first light. Over the last FIRST_LIGHT_SECONDS of the night a front of dawn starts where it covers
 # the whole play area and moves inward as a circle (checkpoint 6; it was a square), reaching the centre at dawn. A
 # person is "passed" once the front's radius is at or inside their distance from the centre. For everyone passed:
-#  - unrescued people lose Config.FIRST_LIGHT_LIFT_RATE gloom a second (dimmed to gloomy to wistful) and are calm, so
+#  - unrescued people lose FIRST_LIGHT_LIFT_RATE gloom a second (dimmed to gloomy to wistful) and are calm, so
 #    nobody sinks behind the front;
 #  - rescued people no longer drain joy (Person.dawn_lit, honoured by Person.drain_joy).
 # People ahead of the front get none of this, so it is a rally, not a free win: the rating still depends on what the
@@ -36,8 +36,8 @@ static func attach(level: TopDownMain) -> FirstLight:
 
 
 func _build() -> void:
-	_tint = _make_ring(Config.FIRST_LIGHT_TINT)
-	_band = _make_ring(Config.FIRST_LIGHT_BAND_COLOUR)
+	_tint = _make_ring(NightConfig.FIRST_LIGHT_TINT)
+	_band = _make_ring(NightConfig.FIRST_LIGHT_BAND_COLOUR)
 
 
 func _process(delta: float) -> void:
@@ -47,7 +47,7 @@ func _process(delta: float) -> void:
 
 # Radius (metres) of the circle the front has reached: FIRST_LIGHT_START_RADIUS at the start, 0 at dawn.
 func edge() -> float:
-	return Config.FIRST_LIGHT_START_RADIUS * (1.0 - main.night.first_light_progress())
+	return NightConfig.FIRST_LIGHT_START_RADIUS * (1.0 - main.night.first_light_progress())
 
 
 # True when the front has passed `pos` (its round distance from the centre is at least the front's radius).
@@ -68,15 +68,15 @@ func step(delta: float) -> void:
 			_lift(p, delta)
 	_sync_look()
 	main.minimap.first_light_edge = edge()
-	if not finished and main.night.elapsed + delta >= Config.NIGHT_LENGTH:
+	if not finished and main.night.elapsed + delta >= NightConfig.NIGHT_LENGTH:
 		finish()
 
 
 # Lifts one unrescued person who is behind the front, and keeps them from sinking.
 func _lift(p: Person, delta: float) -> void:
-	p.calm_left = maxf(p.calm_left, Config.FIRST_LIGHT_CALM)
+	p.calm_left = maxf(p.calm_left, NightConfig.FIRST_LIGHT_CALM)
 	var before := Config.gloom_level(p.gloom)
-	p.gloom = maxf(0.0, p.gloom - Config.FIRST_LIGHT_LIFT_RATE * delta)
+	p.gloom = maxf(0.0, p.gloom - NightConfig.FIRST_LIGHT_LIFT_RATE * delta)
 	var drop := before - Config.gloom_level(p.gloom)
 	if drop > 0:
 		stages_lifted += drop
@@ -125,8 +125,8 @@ func _sync_look() -> void:
 		return
 	if _styled != null:
 		_styled.hide()
-	_set_ring(_tint, e, Config.FIRST_LIGHT_START_RADIUS)
-	_set_ring(_band, maxf(0.0, e - Config.FIRST_LIGHT_BAND_WIDTH), e)
+	_set_ring(_tint, e, NightConfig.FIRST_LIGHT_START_RADIUS)
+	_set_ring(_band, maxf(0.0, e - NightConfig.FIRST_LIGHT_BAND_WIDTH), e)
 
 
 # The styled front: the ground shader's front, the motes near the player, and the sky.
@@ -147,7 +147,7 @@ func _set_ring(ring: MeshInstance3D, inner: float, outer: float) -> void:
 	ring.visible = show
 	if not show:
 		return
-	var segs := Config.FIRST_LIGHT_RING_SEGMENTS
+	var segs := NightConfig.FIRST_LIGHT_RING_SEGMENTS
 	var verts := PackedVector3Array()
 	var idx := PackedInt32Array()
 	for i: int in range(segs):
@@ -175,7 +175,7 @@ func _make_ring(col: Color) -> MeshInstance3D:
 	var m := MeshInstance3D.new()
 	m.mesh = ArrayMesh.new()
 	m.material_override = mat
-	m.position = Vector3(0.0, Config.FIRST_LIGHT_Y, 0.0)
+	m.position = Vector3(0.0, NightConfig.FIRST_LIGHT_Y, 0.0)
 	m.visible = false
 	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	m.extra_cull_margin = 200.0

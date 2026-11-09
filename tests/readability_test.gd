@@ -22,7 +22,7 @@ func _rescue_ring(td: TopDownMain, c: Vector3, r: float, count: int) -> void:
 
 func _refresh(td: TopDownMain) -> void:
 	td.minimap.refresh_from(
-		td.ground, td.border, td.people, td.player.global_position, td._view_centre(), td.view_half_extents()
+		td.ground, td.border, td.people, td.player.global_position, td.camera_rig.view_centre(), td.view_half_extents()
 	)
 
 
@@ -30,10 +30,10 @@ func test_the_camera_is_orthographic_at_the_configured_size_and_pitch() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	assert_int(td.camera.projection).is_equal(Camera3D.PROJECTION_ORTHOGONAL)
-	assert_float(td.camera.size).is_equal_approx(Config.TD_CAMERA_ORTHO_SIZE, 0.001)
+	assert_float(td.camera.size).is_equal_approx(PlayerConfig.TD_CAMERA_ORTHO_SIZE, 0.001)
 	# The camera looks down at the pitch angle.
 	var forward := -td.camera.global_transform.basis.z
-	assert_float(forward.y).is_equal_approx(-sin(deg_to_rad(Config.TD_CAMERA_PITCH_DEG)), 0.001)
+	assert_float(forward.y).is_equal_approx(-sin(deg_to_rad(PlayerConfig.TD_CAMERA_PITCH_DEG)), 0.001)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -65,7 +65,7 @@ func test_the_minimap_model_shows_the_border_gaps_members_landmark_and_player() 
 	assert_int(mm.member_pts.size()).is_equal(td.border.member_count)
 	assert_int(mm.landmark_pts.size()).is_equal(4)
 	for k: int in range(4):
-		var at := Config.LANDMARK_POSITIONS[k]
+		var at := LandmarkConfig.LANDMARK_POSITIONS[k]
 		assert_vector(mm.landmark_pts[k]).is_equal(Vector2(at.x, at.z))
 	assert_vector(mm.player_pos).is_equal(Vector2(td.player.global_position.x, td.player.global_position.z))
 	assert_int(mm.view_pts.size()).is_equal(4)
@@ -88,7 +88,7 @@ func test_the_minimap_marks_dimmed_people_and_refreshes_about_ten_times_a_second
 	# The tick is due once a refresh interval has passed, and not before.
 	td.minimap._timer = 0.0
 	assert_bool(td.minimap.tick(0.05)).is_false()
-	assert_bool(td.minimap.tick(Config.TD_MINIMAP_REFRESH_SECONDS)).is_true()
+	assert_bool(td.minimap.tick(HudConfig.TD_MINIMAP_REFRESH_SECONDS)).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -104,8 +104,8 @@ func test_off_screen_gap_arrows_appear_for_an_off_screen_gap_only() -> void:
 	assert_int(arrows.size()).is_equal(1)
 	var pos: Vector2 = arrows[0]["pos"]
 	# The badge sits on the inset screen edge, and clear of the minimap circle.
-	assert_float(pos.x).is_greater_equal(Config.OFFSCREEN_ARROW_MARGIN - 0.5)
-	assert_float(pos.y).is_greater_equal(Config.OFFSCREEN_ARROW_MARGIN - 0.5)
+	assert_float(pos.x).is_greater_equal(HudConfig.OFFSCREEN_ARROW_MARGIN - 0.5)
+	assert_float(pos.y).is_greater_equal(HudConfig.OFFSCREEN_ARROW_MARGIN - 0.5)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -120,20 +120,20 @@ func test_an_arrow_for_a_gap_toward_the_minimap_is_kept_clear_of_it() -> void:
 	assert_int(arrows.size()).is_equal(1)
 	var pos: Vector2 = arrows[0]["pos"]
 	var mm_c := mm_rect.get_center()
-	assert_float(pos.distance_to(mm_c)).is_greater_equal(mm_rect.size.x * 0.5 + Config.OFFSCREEN_ARROW_PAD - 0.5)
+	assert_float(pos.distance_to(mm_c)).is_greater_equal(mm_rect.size.x * 0.5 + HudConfig.OFFSCREEN_ARROW_PAD - 0.5)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
 func test_the_gap_pulse_follows_its_formula_over_time() -> void:
 	assert_float(Border.gap_pulse(0.0)).is_equal_approx(0.0, 0.0001)
-	assert_float(Border.gap_pulse(Config.BORDER_GAP_PULSE_SECONDS * 0.5)).is_equal_approx(1.0, 0.0001)
-	assert_float(Border.gap_pulse(Config.BORDER_GAP_PULSE_SECONDS)).is_equal_approx(0.0, 0.0001)
+	assert_float(Border.gap_pulse(BorderConfig.BORDER_GAP_PULSE_SECONDS * 0.5)).is_equal_approx(1.0, 0.0001)
+	assert_float(Border.gap_pulse(BorderConfig.BORDER_GAP_PULSE_SECONDS)).is_equal_approx(0.0, 0.0001)
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
 	for i: int in range(5):
 		border.update([], 0.1, 1.0)
-	var expected := 0.5 - 0.5 * cos(TAU * border._time / Config.BORDER_GAP_PULSE_SECONDS)
+	var expected := 0.5 - 0.5 * cos(TAU * border._time / BorderConfig.BORDER_GAP_PULSE_SECONDS)
 	assert_float(border.pulse()).is_equal_approx(expected, 0.0001)
 
 
@@ -141,7 +141,7 @@ func test_a_gap_glows_coral_and_intact_stretches_stay_gold() -> void:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 4.0, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 4.0, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	var ring: Array[Person] = []
 	for i: int in range(4):
@@ -153,20 +153,20 @@ func test_a_gap_glows_coral_and_intact_stretches_stay_gold() -> void:
 		ring.append(p)
 	border._assign_members(ring)
 	assert_bool(border.segment_is_gap(0)).is_true()
-	assert_float(border.segment_colour(0).r).is_equal_approx(Config.BORDER_GAP_COLOUR.r, 0.001)
+	assert_float(border.segment_colour(0).r).is_equal_approx(BorderConfig.BORDER_GAP_COLOUR.r, 0.001)
 	assert_int(border.gap_midpoints().size()).is_equal(border.gap_count())
 	# A segment that is not a gap keeps the gold line colour.
-	assert_float(border.segment_colour(0).g).is_not_equal(Config.BORDER_INTACT_COLOUR.g)
+	assert_float(border.segment_colour(0).g).is_not_equal(BorderConfig.BORDER_INTACT_COLOUR.g)
 
 
 func test_the_player_marker_is_saffron_and_no_person_shares_its_colour() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	var col := (td.player.look as PlayerLookPlaceholder).body_mat.albedo_color
-	assert_float(col.r).is_equal_approx(Config.TD_PLAYER_COLOUR.r, 0.001)
+	assert_float(col.r).is_equal_approx(PlayerConfig.TD_PLAYER_COLOUR.r, 0.001)
 	for c: Color in Config.ELEMENT_COLORS:
 		assert_bool(col.is_equal_approx(c)).is_false()
-	for c: Color in Config.LEVEL_COLORS:
+	for c: Color in PeopleConfig.LEVEL_COLORS:
 		assert_bool(col.is_equal_approx(c)).is_false()
 	await TopDownTestUtil.leave_loaded_scene(td)
 

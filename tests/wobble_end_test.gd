@@ -23,7 +23,7 @@ func _tick(p: Person, seconds: float) -> void:
 
 # Drains a rescued person just below the relapse line so they begin to wobble.
 func _start_wobble(p: Person) -> void:
-	p.drain_joy(p.joy - p.joy_needed() * Config.RELAPSE_FRACTION + 1.0)
+	p.drain_joy(p.joy - p.joy_needed() * PeopleConfig.RELAPSE_FRACTION + 1.0)
 
 
 func test_a_wobble_ends_safely_once_first_light_has_passed_the_person() -> void:
@@ -34,12 +34,14 @@ func test_a_wobble_ends_safely_once_first_light_has_passed_the_person() -> void:
 	_start_wobble(p)
 	assert_bool(p.wobbling).is_true()
 	p.dawn_lit = true  # The dawn front passes them mid-wobble (FirstLight sets this each frame).
-	_tick(p, Config.WOBBLE_SECONDS * 2.0)
+	_tick(p, PeopleConfig.WOBBLE_SECONDS * 2.0)
 	assert_bool(p.wobbling).is_false()
 	assert_bool(p.is_rescued).is_true()
 	assert_int(counts[1]).is_equal(0)
 	assert_int(counts[0]).is_equal(0)  # A quiet end, not a counted save.
-	assert_float(p.joy).is_greater_equal(p.joy_needed() * (Config.RELAPSE_FRACTION + Config.WOBBLE_SAVE_JOY) - 0.01)
+	assert_float(p.joy).is_greater_equal(
+		p.joy_needed() * (PeopleConfig.RELAPSE_FRACTION + PeopleConfig.WOBBLE_SAVE_JOY) - 0.01
+	)
 	# A lit person does not drain, so no new wobble starts.
 	p.drain_joy(500.0)
 	assert_bool(p.wobbling).is_false()

@@ -167,7 +167,7 @@ func pulse(border: Border, p: float, ang: float, tip_at: Vector2) -> void:
 			run.append(q1)
 	if run.size() >= 2:
 		_ribbon_pairs(_wave_mesh, run, 0.9, Y + 0.02)
-	var r := Config.BEACON_PULSE_RING_START + Config.BEACON_PULSE_RING_GROW * p
+	var r := BeaconConfig.BEACON_PULSE_RING_START + BeaconConfig.BEACON_PULSE_RING_GROW * p
 	_pulse_ring.visible = true
 	_pulse_ring.position = Vector3(tip_at.x, Y + 0.03, tip_at.y)
 	_pulse_ring.scale = Vector3(r, 1.0, r)

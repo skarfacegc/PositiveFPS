@@ -22,7 +22,7 @@ func _hud_rects() -> Array[Rect2]:
 
 func _clear_of(box: Rect2, rects: Array[Rect2]) -> bool:
 	for r: Rect2 in rects:
-		if box.intersects(r.grow(Config.LANDMARK_POINTER_CLEAR_MARGIN)):
+		if box.intersects(r.grow(HudConfig.LANDMARK_POINTER_CLEAR_MARGIN)):
 			return false
 	return true
 
@@ -31,7 +31,7 @@ func _clear_of(box: Rect2, rects: Array[Rect2]) -> bool:
 
 
 func test_the_edge_point_is_where_the_ray_from_the_centre_leaves_the_inset_rectangle() -> void:
-	var inset := Config.LANDMARK_POINTER_INSET
+	var inset := HudConfig.LANDMARK_POINTER_INSET
 	var right := LandmarkPointers.edge_point(Vector2(2000, 360), SCREEN, inset)
 	assert_float(right.x).is_equal_approx(SCREEN.x - inset, 0.01)
 	assert_float(right.y).is_equal_approx(360.0, 0.01)
@@ -58,7 +58,7 @@ func test_a_pointer_on_the_right_edge_has_its_label_to_the_left_inside_the_windo
 	var tip: Vector2 = placed["tip"]
 	var label: Rect2 = placed["label"]
 	var box: Rect2 = placed["box"]
-	assert_float(tip.x).is_equal_approx(SCREEN.x - Config.LANDMARK_POINTER_INSET, 0.01)
+	assert_float(tip.x).is_equal_approx(SCREEN.x - HudConfig.LANDMARK_POINTER_INSET, 0.01)
 	assert_float(label.end.x).is_less(tip.x)
 	assert_float(box.position.x).is_greater_equal(0.0)
 	assert_float(box.end.x).is_less_equal(SCREEN.x)
@@ -69,9 +69,9 @@ func test_a_pointer_slides_along_the_edge_to_clear_a_hud_panel() -> void:
 	var avoid: Array[Rect2] = [Rect2(1000, 300, 280, 120)]
 	var placed := LandmarkPointers.place(Vector2(2000, 360), SCREEN, Vector2(200, 24), avoid)
 	var box: Rect2 = placed["box"]
-	assert_bool(box.intersects(avoid[0].grow(Config.LANDMARK_POINTER_CLEAR_MARGIN))).is_false()
+	assert_bool(box.intersects(avoid[0].grow(HudConfig.LANDMARK_POINTER_CLEAR_MARGIN))).is_false()
 	var tip: Vector2 = placed["tip"]
-	assert_float(tip.x).is_equal_approx(SCREEN.x - Config.LANDMARK_POINTER_INSET, 0.01)
+	assert_float(tip.x).is_equal_approx(SCREEN.x - HudConfig.LANDMARK_POINTER_INSET, 0.01)
 	assert_bool(absf(tip.y - 360.0) > 1.0).is_true()
 
 
@@ -105,12 +105,12 @@ func test_an_unheld_landmark_has_a_pale_ring_on_the_placeholder_minimap_and_a_he
 	var unheld: Array[bool] = [false]
 	m.held_landmarks = unheld
 	m._render()
-	var pale := _count_colour(m._image, Config.TD_MINIMAP_LANDMARK_UNHELD_RING_COLOUR)
+	var pale := _count_colour(m._image, HudConfig.TD_MINIMAP_LANDMARK_UNHELD_RING_COLOUR)
 	assert_int(pale).is_greater(20)
 	var held: Array[bool] = [true]
 	m.held_landmarks = held
 	m._render()
-	assert_int(_count_colour(m._image, Config.TD_MINIMAP_LANDMARK_UNHELD_RING_COLOUR)).is_equal(0)
+	assert_int(_count_colour(m._image, HudConfig.TD_MINIMAP_LANDMARK_UNHELD_RING_COLOUR)).is_equal(0)
 	var base := MinimapLook.new()
 	assert_float(base.landmark_star_grow(false)).is_equal(1.0)
 	assert_float(base.unheld_landmark_ring_colour().a).is_equal(0.0)
@@ -136,16 +136,16 @@ func test_a_pointer_is_shown_for_each_unheld_landmark_that_is_off_screen() -> vo
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
 	# Hold the bandstand by hand and refresh the pointers at once (the level resets a hold it does not see each frame).
-	td.landmarks.items[Landmarks.BANDSTAND].update(Config.BORDER_LANDMARK_HOLD, true)
+	td.landmarks.items[Landmarks.BANDSTAND].update(LandmarkConfig.BORDER_LANDMARK_HOLD, true)
 	td.landmark_pointers.update_from(td)
 	var screen := td.get_viewport().get_visible_rect().size
 	assert_bool(td.landmarks.is_held(Landmarks.BANDSTAND)).is_true()
 	assert_bool(td.landmark_pointers.pointer_for("Bandstand").is_empty()).is_true()
-	for k: int in range(Config.LANDMARK_NAMES.size()):
+	for k: int in range(LandmarkConfig.LANDMARK_NAMES.size()):
 		if k == Landmarks.BANDSTAND:
 			continue
-		var label_name: String = Config.LANDMARK_NAMES[k]
-		var at := td.world_to_screen(Config.LANDMARK_POSITIONS[k])
+		var label_name: String = LandmarkConfig.LANDMARK_NAMES[k]
+		var at := td.world_to_screen(LandmarkConfig.LANDMARK_POSITIONS[k])
 		var expected := not LandmarkPointers.on_screen(at, screen)
 		(
 			assert_bool(not td.landmark_pointers.pointer_for(label_name).is_empty())
@@ -162,17 +162,19 @@ func test_each_shown_pointer_names_its_landmark_and_boost_and_clears_the_hud() -
 	var td: TopDownMain = runner.scene()
 	await runner.simulate_frames(2)
 	var rects: Array[Rect2] = td.landmark_pointers._avoid_rects(td)
-	for k: int in range(Config.LANDMARK_NAMES.size()):
+	for k: int in range(LandmarkConfig.LANDMARK_NAMES.size()):
 		if td.landmarks.is_held(k):
 			continue
-		var s: Dictionary = td.landmark_pointers.pointer_for(Config.LANDMARK_NAMES[k])
+		var s: Dictionary = td.landmark_pointers.pointer_for(LandmarkConfig.LANDMARK_NAMES[k])
 		if s.is_empty():
 			continue
-		assert_str(s["text"]).is_equal("%s: %s" % [Config.LANDMARK_NAMES[k], Config.LANDMARK_BOOST_TEXT[k]])
+		assert_str(s["text"]).is_equal(
+			"%s: %s" % [LandmarkConfig.LANDMARK_NAMES[k], LandmarkConfig.LANDMARK_BOOST_TEXT[k]]
+		)
 		var box: Rect2 = s["box"]
 		(
 			assert_bool(_clear_of(box, rects))
-			. override_failure_message("%s overlaps the HUD" % Config.LANDMARK_NAMES[k])
+			. override_failure_message("%s overlaps the HUD" % LandmarkConfig.LANDMARK_NAMES[k])
 			. is_true()
 		)
 	await TopDownTestUtil.leave_loaded_scene(td)

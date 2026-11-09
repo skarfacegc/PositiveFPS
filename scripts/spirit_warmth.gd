@@ -27,7 +27,7 @@ static func attach(level: TopDownMain) -> SpiritWarmth:
 
 # `amount` of spirit did not fit in the meter: it joins the pool.
 func add_spare(amount: float) -> void:
-	pool = minf(pool + maxf(amount, 0.0), Config.SPARE_POOL_MAX)
+	pool = minf(pool + maxf(amount, 0.0), SpiritConfig.SPARE_POOL_MAX)
 
 
 func _process(delta: float) -> void:
@@ -40,7 +40,7 @@ func step(delta: float) -> float:
 		_since = 0.0
 		return 0.0
 	_since += delta
-	if _since < Config.SPARE_WARM_INTERVAL:
+	if _since < SpiritConfig.SPARE_WARM_INTERVAL:
 		return 0.0
 	_since = 0.0
 	return pour()
@@ -49,7 +49,7 @@ func step(delta: float) -> float:
 # The most strained border member under SPARE_WARM_CEILING, or null.
 func most_strained() -> Person:
 	var best: Person = null
-	var best_frac := Config.SPARE_WARM_CEILING
+	var best_frac := SpiritConfig.SPARE_WARM_CEILING
 	for p: Person in main.border.members:
 		if not is_instance_valid(p) or not p.is_rescued:
 			continue
@@ -70,7 +70,7 @@ static func warm(p: Person, amount: float) -> float:
 		return 0.0
 	p.joy += gain
 	if p.react_kind == Person.React.NONE or p.react_kind == Person.React.WARM:
-		p.react(Person.React.WARM, Config.SPARE_GLOW_SECONDS)
+		p.react(Person.React.WARM, SpiritConfig.SPARE_GLOW_SECONDS)
 	return gain
 
 
@@ -80,9 +80,11 @@ func pour() -> float:
 	var who := most_strained()
 	if who == null:
 		return 0.0
-	var wanted := minf(Config.SPARE_WARM_RATE * Config.SPARE_WARM_INTERVAL, pool * Config.SPARE_JOY_PER_SPIRIT)
+	var wanted := minf(
+		SpiritConfig.SPARE_WARM_RATE * SpiritConfig.SPARE_WARM_INTERVAL, pool * SpiritConfig.SPARE_JOY_PER_SPIRIT
+	)
 	var gave := warm(who, wanted)  # Always above 0: they are under the ceiling and the pool is not empty.
-	var spent := gave / Config.SPARE_JOY_PER_SPIRIT
+	var spent := gave / SpiritConfig.SPARE_JOY_PER_SPIRIT
 	pool = maxf(pool - spent, 0.0)
 	warmed.emit(who, gave, spent)
 	return gave

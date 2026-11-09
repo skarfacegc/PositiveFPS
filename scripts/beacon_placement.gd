@@ -36,16 +36,16 @@ static func try_place(main: TopDownMain) -> bool:
 	if not main.border.formed:
 		main.intro.notice(Intro.Prompt.BEACON_BORDER)
 		return false
-	if player.is_dim or player.spirit < Config.BEACON_SPIRIT_COST:
+	if player.is_dim or player.spirit < BeaconConfig.BEACON_SPIRIT_COST:
 		main.intro.notice(Intro.Prompt.BEACON_SPIRIT)
 		return false
 	var plan := main.border.plan_stretch(player.aim_point())
 	if plan["refused"]:
 		main.intro.notice(Intro.Prompt.BEACON_BLOCKED, str(plan["reason"]))
 		return false
-	player.lose_spirit(Config.BEACON_SPIRIT_COST)
+	player.lose_spirit(BeaconConfig.BEACON_SPIRIT_COST)
 	main.border.place_beacon(player.aim_point())
-	main.spirit_meter.moment(-Config.BEACON_SPIRIT_COST, SpiritMeter.Moment.SPEND)
+	main.spirit_meter.moment(-BeaconConfig.BEACON_SPIRIT_COST, SpiritMeter.Moment.SPEND)
 	main.feedback.pulse_player(SpiritMeter.Moment.SPEND)
-	main.beacon_placed.emit(main.border.beacon_pos(), Config.BEACON_SPIRIT_COST, player.spirit)
+	main.beacon_placed.emit(main.border.beacon_pos(), BeaconConfig.BEACON_SPIRIT_COST, player.spirit)
 	return true

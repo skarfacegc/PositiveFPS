@@ -17,17 +17,17 @@ func _ready() -> void:
 	_glow_mat = _unshaded_mat()
 	_glow = MeshInstance3D.new()
 	var disc := CylinderMesh.new()
-	disc.top_radius = Config.EMBRACE_GLOW_RADIUS
-	disc.bottom_radius = Config.EMBRACE_GLOW_RADIUS
+	disc.top_radius = EmbraceConfig.EMBRACE_GLOW_RADIUS
+	disc.bottom_radius = EmbraceConfig.EMBRACE_GLOW_RADIUS
 	disc.height = 0.03
 	_glow.mesh = disc
-	_glow.position = Vector3(0, Config.EMBRACE_GLOW_Y, 0)
+	_glow.position = Vector3(0, EmbraceConfig.EMBRACE_GLOW_Y, 0)
 	_glow.material_override = _glow_mat
 	add_child(_glow)
 	_ring_mat = _unshaded_mat()
-	_ring_mat.albedo_color = Config.EMBRACE_RING_COLOUR
+	_ring_mat.albedo_color = EmbraceConfig.EMBRACE_RING_COLOUR
 	_ring = MeshInstance3D.new()
-	_ring.position = Vector3(0, Config.EMBRACE_RING_Y, 0)
+	_ring.position = Vector3(0, EmbraceConfig.EMBRACE_RING_Y, 0)
 	_ring.material_override = _ring_mat
 	add_child(_ring)
 	Looks.note_placeholder(self, "embrace")
@@ -38,12 +38,12 @@ func _ready() -> void:
 func show_progress(frac: float, inside: bool, clock: float) -> void:
 	if _glow == null:
 		return
-	var breathe := 0.5 + 0.5 * sin(clock * TAU * Config.EMBRACE_PULSE_HZ)
-	var strength := 1.0 if inside else Config.EMBRACE_OUTSIDE_FADE
-	var c := Config.EMBRACE_GLOW_COLOUR
-	var alpha := Config.EMBRACE_GLOW_ALPHA * lerpf(0.6, 1.0, breathe) * (0.7 + 0.3 * frac) * strength
+	var breathe := 0.5 + 0.5 * sin(clock * TAU * EmbraceConfig.EMBRACE_PULSE_HZ)
+	var strength := 1.0 if inside else EmbraceConfig.EMBRACE_OUTSIDE_FADE
+	var c := EmbraceConfig.EMBRACE_GLOW_COLOUR
+	var alpha := EmbraceConfig.EMBRACE_GLOW_ALPHA * lerpf(0.6, 1.0, breathe) * (0.7 + 0.3 * frac) * strength
 	_glow_mat.albedo_color = Color(c.r, c.g, c.b, alpha)
-	var segs := roundi(clampf(frac, 0.0, 1.0) * Config.EMBRACE_RING_SEGMENTS)
+	var segs := roundi(clampf(frac, 0.0, 1.0) * EmbraceConfig.EMBRACE_RING_SEGMENTS)
 	if segs != _segments:
 		_segments = segs
 		_ring.mesh = ring_mesh(segs)
@@ -59,9 +59,9 @@ func segments() -> int:
 static func ring_mesh(segs: int) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var inner := Config.EMBRACE_RING_INNER
-	var outer := Config.EMBRACE_RING_OUTER
-	var total := float(Config.EMBRACE_RING_SEGMENTS)
+	var inner := EmbraceConfig.EMBRACE_RING_INNER
+	var outer := EmbraceConfig.EMBRACE_RING_OUTER
+	var total := float(EmbraceConfig.EMBRACE_RING_SEGMENTS)
 	for i: int in range(segs):
 		var a0 := TAU * float(i) / total
 		var a1 := TAU * float(i + 1) / total

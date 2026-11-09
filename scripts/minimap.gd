@@ -11,7 +11,7 @@ extends Control
 # and shown scaled up with nearest-neighbour filtering. It is rebuilt about every TD_MINIMAP_REFRESH_SECONDS from the
 # data model below, so tests can check what is on the map without reading pixels.
 
-const RESOLUTION := Config.TD_MINIMAP_RESOLUTION
+const RESOLUTION := HudConfig.TD_MINIMAP_RESOLUTION
 const CLOUD_PROFILE_STEPS := 64
 
 # ---- The data model (world metres, x and z; the plaza is centred on the origin) ---- The border loop, as points in
@@ -54,7 +54,7 @@ var look: MinimapLook
 var _image: Image
 var _texture: ImageTexture
 var _ground: PaintedGround
-var _timer: float = Config.TD_MINIMAP_REFRESH_SECONDS
+var _timer: float = HudConfig.TD_MINIMAP_REFRESH_SECONDS
 var _wobble_clock: float = 0.0  # Checkpoint 5: the clock for the wobble blips' pulse (see WobbleAlert.pulse_at).
 # Round 20: the cloud's alpha for each picture pixel (RESOLUTION x RESOLUTION, row by row; 0 where there is none).
 var _cloud_alpha := PackedFloat32Array()
@@ -120,11 +120,11 @@ func tick(delta: float) -> bool:
 	_cloud_paint_left -= delta
 	_base_left -= delta
 	_cloud_age += delta
-	if _cloud_age >= Config.MINIMAP_CLOUD_SECONDS:
+	if _cloud_age >= HudConfig.MINIMAP_CLOUD_SECONDS:
 		_cloud_due = true
 	_ease_clouds(delta)
 	_timer += delta
-	if _timer < Config.TD_MINIMAP_REFRESH_SECONDS:
+	if _timer < HudConfig.TD_MINIMAP_REFRESH_SECONDS:
 		return false
 	_timer = 0.0
 	return true
@@ -168,7 +168,7 @@ func refresh_from(
 	var bp := border.beacon_pos()
 	beacon_pos = Vector2.INF if bp == Vector3.INF else Vector2(bp.x, bp.z)
 	landmark_pts = PackedVector2Array()
-	for at: Vector3 in Config.LANDMARK_POSITIONS:
+	for at: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
 		landmark_pts.append(Vector2(at.x, at.z))
 	player_at.y = 0.0
 	player_pos = Vector2(player_at.x, player_at.z)
@@ -202,10 +202,10 @@ func refresh_from(
 func refresh_clouds(people: Array[Person]) -> void:
 	_cloud_due = false
 	_cloud_age = 0.0
-	var n := Config.MINIMAP_CLOUD_CELLS
+	var n := HudConfig.MINIMAP_CLOUD_CELLS
 	var cell_m := float(Config.TD_PLAZA_SIZE) / float(n)
 	var half := Config.TD_PLAZA_SIZE * 0.5
-	var rim := half * Config.MINIMAP_CLOUD_RIM
+	var rim := half * HudConfig.MINIMAP_CLOUD_RIM
 	var counts := PackedInt32Array()
 	counts.resize(n * n)
 	var sums := PackedVector2Array()
@@ -221,17 +221,19 @@ func refresh_clouds(people: Array[Person]) -> void:
 	_cloud_targets.clear()
 	for idx: int in range(n * n):
 		var count := counts[idx]
-		if count < Config.MINIMAP_CLOUD_MIN_COUNT:
+		if count < HudConfig.MINIMAP_CLOUD_MIN_COUNT:
 			continue
 		var centre := sums[idx] / float(count)
 		# A crowd in a corner of the square is outside the map circle: its blob sits at the rim in that direction.
 		if centre.length() > rim:
 			centre = centre.normalized() * rim
 		var radius := minf(
-			Config.MINIMAP_CLOUD_BASE_RADIUS_PX + Config.MINIMAP_CLOUD_RADIUS_PER_PERSON_PX * sqrt(float(count)),
-			Config.MINIMAP_CLOUD_MAX_RADIUS_PX
+			HudConfig.MINIMAP_CLOUD_BASE_RADIUS_PX + HudConfig.MINIMAP_CLOUD_RADIUS_PER_PERSON_PX * sqrt(float(count)),
+			HudConfig.MINIMAP_CLOUD_MAX_RADIUS_PX
 		)
-		var peak := Config.MINIMAP_CLOUD_MAX_ALPHA * minf(1.0, float(count) / float(Config.MINIMAP_CLOUD_FULL_COUNT))
+		var peak := (
+			HudConfig.MINIMAP_CLOUD_MAX_ALPHA * minf(1.0, float(count) / float(HudConfig.MINIMAP_CLOUD_FULL_COUNT))
+		)
 		cloud_cells.append({"centre": centre, "count": count, "radius": radius, "peak": peak})
 		_cloud_targets[idx] = {"pos": centre, "radius": radius, "peak": peak}
 	if not _cloud_started:
@@ -247,7 +249,7 @@ func refresh_clouds(people: Array[Person]) -> void:
 func _ease_clouds(delta: float) -> void:
 	if _cloud_targets.is_empty() and _cloud_shown.is_empty():
 		return
-	var k := 1.0 - exp(-delta / Config.MINIMAP_CLOUD_EASE_SECONDS)
+	var k := 1.0 - exp(-delta / HudConfig.MINIMAP_CLOUD_EASE_SECONDS)
 	for idx: int in _cloud_targets:
 		if not _cloud_shown.has(idx):
 			_cloud_shown[idx] = {
@@ -297,7 +299,7 @@ func _update_cloud_alpha(force: bool = false) -> void:
 		_paint_clouds()
 		_cloud_dirty = false
 		_cloud_version += 1
-		_cloud_paint_left = Config.MINIMAP_CLOUD_PAINT_SECONDS
+		_cloud_paint_left = HudConfig.MINIMAP_CLOUD_PAINT_SECONDS
 
 
 # Round 20: fills the cloud alpha map from the drawn blobs. Each blob is solid to MINIMAP_CLOUD_CORE of its radius and
@@ -334,7 +336,7 @@ func _paint_clouds() -> void:
 # loop needs no square root or smoothstep per pixel. Entry k is the falloff at the middle of its slice.
 func _build_cloud_profile() -> void:
 	_cloud_profile.resize(CLOUD_PROFILE_STEPS)
-	var core := Config.MINIMAP_CLOUD_CORE
+	var core := HudConfig.MINIMAP_CLOUD_CORE
 	for k: int in range(CLOUD_PROFILE_STEPS):
 		var d := sqrt((float(k) + 0.5) / float(CLOUD_PROFILE_STEPS))
 		var t := clampf((d - core) / (1.0 - core), 0.0, 1.0)
@@ -343,7 +345,7 @@ func _build_cloud_profile() -> void:
 
 # Round 12b: a blip at a world point (x, z) for MINIMAP_BLIP_SECONDS, drawn as a ring (someone became dimmed).
 func add_blip(world: Vector2) -> void:
-	blips.append({"pos": world, "left": Config.MINIMAP_BLIP_SECONDS})
+	blips.append({"pos": world, "left": HudConfig.MINIMAP_BLIP_SECONDS})
 
 
 # ---- Drawing
@@ -388,7 +390,7 @@ func _build_base() -> void:
 				if clouds_on and _cloud_alpha[py * RESOLUTION + px] > 0.0:
 					col = col.lerp(cloud, _cloud_alpha[py * RESOLUTION + px] * cloud.a)
 				_base.set_pixel(px, py, col)
-	_base_left = Config.MINIMAP_GROUND_SECONDS
+	_base_left = HudConfig.MINIMAP_GROUND_SECONDS
 	_base_look = look
 	_base_edge = first_light_edge
 	_base_cloud_version = _cloud_version
@@ -425,7 +427,7 @@ func _render() -> void:
 	for b: Dictionary in blips:
 		var at: Vector2 = b["pos"]
 		var left: float = b["left"]
-		_ring(at, 2.0 + 3.0 * (1.0 - left / Config.MINIMAP_BLIP_SECONDS), Config.MINIMAP_BLIP_COLOUR)
+		_ring(at, 2.0 + 3.0 * (1.0 - left / HudConfig.MINIMAP_BLIP_SECONDS), HudConfig.MINIMAP_BLIP_COLOUR)
 	for gm: Dictionary in gap_markers:
 		var u: float = gm["urgency"]
 		var at: Vector2 = gm["pos"]
@@ -439,8 +441,8 @@ func _render() -> void:
 		var pulse := WobbleAlert.pulse_at(_wobble_clock, wurgency)
 		var wcol := look.member_colour(pulse)
 		if wcol.a > 0.0:
-			_marker(wpos, Config.WOBBLE_BLIP_RADIUS, wcol, "wobble")
-			_ring(wpos, Config.WOBBLE_BLIP_RADIUS + Config.WOBBLE_BLIP_PULSE_GROW * pulse, wcol)
+			_marker(wpos, HudConfig.WOBBLE_BLIP_RADIUS, wcol, "wobble")
+			_ring(wpos, HudConfig.WOBBLE_BLIP_RADIUS + HudConfig.WOBBLE_BLIP_PULSE_GROW * pulse, wcol)
 	for k: int in range(landmark_pts.size()):
 		var held := k < held_landmarks.size() and held_landmarks[k]
 		var star_halo := look.halo_colour("landmark")
@@ -453,7 +455,7 @@ func _render() -> void:
 			# Round 22: an unheld landmark may carry a ring of its own (placeholder look), so it is easy to find.
 			var unheld_ring := look.unheld_landmark_ring_colour()
 			if unheld_ring.a > 0.0:
-				_ring(landmark_pts[k], Config.TD_MINIMAP_LANDMARK_UNHELD_RING_RADIUS, unheld_ring)
+				_ring(landmark_pts[k], HudConfig.TD_MINIMAP_LANDMARK_UNHELD_RING_RADIUS, unheld_ring)
 	if beacon_pos != Vector2.INF:
 		var beacon_halo := look.halo_colour("beacon")
 		if beacon_halo.a > 0.0:
@@ -482,20 +484,24 @@ func _first_light_line() -> void:
 func _tide_fog_edge() -> void:
 	var rim := float(Config.TD_PLAZA_SIZE) * 0.5
 	var mid := tide_fog.angle()
-	var segs := Config.TIDE_MINIMAP_SEGMENTS
-	for k: int in range(Config.TIDE_MINIMAP_BANDS):
-		var r := rim - float(k) * Config.TIDE_MINIMAP_BAND_STEP
-		var col := Config.TIDE_MINIMAP_COLOUR
-		col.a *= 1.0 - float(k) / float(Config.TIDE_MINIMAP_BANDS)
+	var segs := NightConfig.TIDE_MINIMAP_SEGMENTS
+	for k: int in range(NightConfig.TIDE_MINIMAP_BANDS):
+		var r := rim - float(k) * NightConfig.TIDE_MINIMAP_BAND_STEP
+		var col := NightConfig.TIDE_MINIMAP_COLOUR
+		col.a *= 1.0 - float(k) / float(NightConfig.TIDE_MINIMAP_BANDS)
 		for j: int in range(segs):
-			var a0 := lerpf(mid - Config.TIDE_HALF_WIDTH, mid + Config.TIDE_HALF_WIDTH, float(j) / float(segs))
-			var a1 := lerpf(mid - Config.TIDE_HALF_WIDTH, mid + Config.TIDE_HALF_WIDTH, float(j + 1) / float(segs))
+			var a0 := lerpf(
+				mid - NightConfig.TIDE_HALF_WIDTH, mid + NightConfig.TIDE_HALF_WIDTH, float(j) / float(segs)
+			)
+			var a1 := lerpf(
+				mid - NightConfig.TIDE_HALF_WIDTH, mid + NightConfig.TIDE_HALF_WIDTH, float(j + 1) / float(segs)
+			)
 			_line(Vector2(cos(a0), sin(a0)) * r, Vector2(cos(a1), sin(a1)) * r, col)
 
 
 # A circle of `radius` metres about the centre, drawn as short straight pieces.
 func _round_line(radius: float, col: Color) -> void:
-	var segs := Config.FIRST_LIGHT_RING_SEGMENTS
+	var segs := NightConfig.FIRST_LIGHT_RING_SEGMENTS
 	for j: int in range(segs):
 		var a0 := TAU * float(j) / float(segs)
 		var a1 := TAU * float(j + 1) / float(segs)

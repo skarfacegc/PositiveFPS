@@ -103,16 +103,16 @@ func test_inside_lifts_a_stage_per_step_and_rescues_at_the_end() -> void:
 	var p := _person(td, 0, Vector3.ZERO, 0.8)
 	td.player.spirit = 10.0
 	var rescued_before := td.rescued_count
-	_run(td, Config.EMBRACE_STEP_SECONDS + 0.2)
+	_run(td, EmbraceConfig.EMBRACE_STEP_SECONDS + 0.2)
 	assert_int(Config.gloom_level(p.gloom)).is_equal(1)
 	assert_bool(p.is_rescued).is_false()
-	_run(td, Config.EMBRACE_STEP_SECONDS)
+	_run(td, EmbraceConfig.EMBRACE_STEP_SECONDS)
 	assert_int(Config.gloom_level(p.gloom)).is_equal(0)
 	assert_bool(p.is_rescued).is_false()
-	_run(td, Config.EMBRACE_STEP_SECONDS)
+	_run(td, EmbraceConfig.EMBRACE_STEP_SECONDS)
 	assert_bool(p.is_rescued).is_true()
 	assert_int(td.rescued_count).is_equal(rescued_before + 1)
-	assert_float(td.player.spirit).is_equal_approx(10.0 + Config.SPIRIT_PER_RESCUE, 0.001)
+	assert_float(td.player.spirit).is_equal_approx(10.0 + SpiritConfig.SPIRIT_PER_RESCUE, 0.001)
 	assert_float(p.grace_left).is_greater(0.0)  # The ordinary rescue grace.
 	assert_int(td.embrace.start_count).is_equal(1)
 	assert_int(td.embrace.lift_count).is_equal(2)
@@ -123,7 +123,7 @@ func test_inside_lifts_a_stage_per_step_and_rescues_at_the_end() -> void:
 func test_a_wistful_person_inside_is_rescued_after_one_step() -> void:
 	var td: TopDownMain = await _start()
 	var p := _person(td, 0, Vector3(3, 0, 3), 0.1)
-	_run(td, Config.EMBRACE_STEP_SECONDS - 1.0)
+	_run(td, EmbraceConfig.EMBRACE_STEP_SECONDS - 1.0)
 	assert_bool(p.is_rescued).is_false()
 	assert_float(td.embrace.progress_of(p)).is_greater(0.8)
 	_run(td, 1.2)
@@ -136,7 +136,7 @@ func test_outside_the_loop_nothing_happens_even_for_a_dimmed_person_pressing() -
 	var td: TopDownMain = await _start()
 	var p := _person(td, 0, Vector3(HALF + 1.0, 0, 0), 0.8)
 	var q := _person(td, 1, Vector3(0, 0, -HALF - 2.0), 0.4)
-	_run(td, 3.0 * Config.EMBRACE_STEP_SECONDS)
+	_run(td, 3.0 * EmbraceConfig.EMBRACE_STEP_SECONDS)
 	assert_int(Config.gloom_level(p.gloom)).is_equal(2)
 	assert_float(q.gloom).is_equal(0.4)
 	assert_bool(p.is_rescued or q.is_rescued).is_false()
@@ -149,7 +149,7 @@ func test_no_loop_means_no_embrace() -> void:
 	var td: TopDownMain = await _start()
 	td.border.polygon = PackedVector2Array()
 	var p := _person(td, 0, Vector3.ZERO, 0.1)
-	_run(td, 2.0 * Config.EMBRACE_STEP_SECONDS)
+	_run(td, 2.0 * EmbraceConfig.EMBRACE_STEP_SECONDS)
 	assert_bool(p.is_rescued).is_false()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -161,11 +161,11 @@ func test_leaving_pauses_and_the_step_fades_slowly() -> void:
 	assert_float(td.embrace.progress_of(p)).is_equal_approx(0.5, 0.02)
 	p.global_position = CENTRE + Vector3(HALF + 3.0, 0, 0)  # Walks out.
 	_run(td, 4.0)
-	var expected := (4.0 - Config.EMBRACE_DECAY_RATE * 4.0) / Config.EMBRACE_STEP_SECONDS
+	var expected := (4.0 - EmbraceConfig.EMBRACE_DECAY_RATE * 4.0) / EmbraceConfig.EMBRACE_STEP_SECONDS
 	assert_float(td.embrace.progress_of(p)).is_equal_approx(expected, 0.02)
 	assert_bool(p.is_rescued).is_false()
 	p.global_position = CENTRE  # Back in: it carries on from there.
-	_run(td, Config.EMBRACE_STEP_SECONDS * (1.0 - expected) + 0.2)
+	_run(td, EmbraceConfig.EMBRACE_STEP_SECONDS * (1.0 - expected) + 0.2)
 	assert_bool(p.is_rescued).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -176,7 +176,7 @@ func test_a_long_absence_loses_the_step_and_the_cue() -> void:
 	_run(td, 2.0)
 	assert_bool(td.embrace.entries.has(p)).is_true()
 	p.global_position = CENTRE + Vector3(HALF + 3.0, 0, 0)
-	_run(td, 2.0 / Config.EMBRACE_DECAY_RATE + 1.0)
+	_run(td, 2.0 / EmbraceConfig.EMBRACE_DECAY_RATE + 1.0)
 	assert_bool(td.embrace.entries.has(p)).is_false()
 	assert_float(td.embrace.progress_of(p)).is_equal(0.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -192,9 +192,9 @@ func test_the_nearest_members_drain_a_little_faster_only_while_embracing() -> vo
 	for m: Person in members:
 		assert_float(m.joy).is_equal_approx(before, 0.001)  # Nobody embraced: no extra drain.
 	var p := _person(td, 0, Vector3(0, 0, 4), 0.8)  # Nearest members: x 0 (d 2), -2 and 2 (d 2.8).
-	assert_int(td.embrace.nearest_members(p, Config.EMBRACE_STRAIN_COUNT).size()).is_equal(3)
+	assert_int(td.embrace.nearest_members(p, EmbraceConfig.EMBRACE_STRAIN_COUNT).size()).is_equal(3)
 	_run(td, 5.0)
-	var drain := Config.EMBRACE_STRAIN_RATE * 5.0
+	var drain := EmbraceConfig.EMBRACE_STRAIN_RATE * 5.0
 	for i: int in range(1, 4):
 		assert_float(members[i].joy).is_equal_approx(before - drain, 0.5)
 	assert_float(members[0].joy).is_equal_approx(before, 0.001)  # x -4: not among the nearest three.
@@ -207,7 +207,7 @@ func test_strain_stops_when_the_embrace_ends() -> void:
 	var td: TopDownMain = await _start()
 	var m := _member(td, 10, Vector3(0, 0, 6), 0.9)
 	var p := _person(td, 0, Vector3(0, 0, 4), 0.1)
-	_run(td, Config.EMBRACE_STEP_SECONDS + 0.5)  # Rescued at 8 s.
+	_run(td, EmbraceConfig.EMBRACE_STEP_SECONDS + 0.5)  # Rescued at 8 s.
 	assert_bool(p.is_rescued).is_true()
 	var after := m.joy
 	_run(td, 3.0)
@@ -232,7 +232,7 @@ func test_works_from_the_current_stage_so_first_light_saves_steps() -> void:
 	var p := _person(td, 0, Vector3.ZERO, 0.5)  # Gloomy: two steps on their own.
 	_run(td, 2.0)
 	p.gloom = 0.1  # First light's lift took them to wistful.
-	_run(td, Config.EMBRACE_STEP_SECONDS)
+	_run(td, EmbraceConfig.EMBRACE_STEP_SECONDS)
 	assert_bool(p.is_rescued).is_true()
 	assert_int(td.embrace.lift_count).is_equal(0)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -253,7 +253,7 @@ func test_a_person_who_just_relapsed_is_left_alone_for_a_while() -> void:
 	assert_bool(td.embrace.entries.has(p)).is_true()
 	p.relapsed.emit()
 	assert_bool(td.embrace.entries.has(p)).is_false()
-	_run(td, Config.EMBRACE_RELAPSE_PAUSE - 1.0)
+	_run(td, EmbraceConfig.EMBRACE_RELAPSE_PAUSE - 1.0)
 	assert_bool(td.embrace.entries.has(p)).is_false()
 	_run(td, 2.0)
 	assert_bool(td.embrace.entries.has(p)).is_true()
@@ -270,7 +270,7 @@ func test_the_cue_shows_a_glow_and_a_ring_that_fills_and_goes_when_rescued() -> 
 	var early := cue.segments()
 	_run(td, 4.0)
 	assert_int(cue.segments()).is_greater(early)
-	assert_int(cue.segments()).is_less_equal(Config.EMBRACE_RING_SEGMENTS)
+	assert_int(cue.segments()).is_less_equal(EmbraceConfig.EMBRACE_RING_SEGMENTS)
 	_run(td, 4.0)
 	assert_bool(p.is_rescued).is_true()
 	assert_bool(cue.is_queued_for_deletion()).is_true()
@@ -293,7 +293,7 @@ func test_through_the_real_frames_a_wistful_person_in_a_real_loop_is_rescued() -
 	var p: Person = td.people[count]
 	TopDownTestUtil.place(p, CENTRE, p.affinity, 0.1)
 	var before := td.rescued_count
-	await runner.simulate_frames(roundi((Config.EMBRACE_STEP_SECONDS + 1.0) * 60.0))
+	await runner.simulate_frames(roundi((EmbraceConfig.EMBRACE_STEP_SECONDS + 1.0) * 60.0))
 	assert_bool(p.is_rescued).is_true()
 	assert_int(td.rescued_count).is_equal(before + 1)
 	await TopDownTestUtil.leave_loaded_scene(td)
@@ -302,7 +302,7 @@ func test_through_the_real_frames_a_wistful_person_in_a_real_loop_is_rescued() -
 func test_the_recorder_notes_start_lift_and_rescue() -> void:
 	var td: TopDownMain = await _start(true)
 	var p := _person(td, 0, Vector3.ZERO, 0.5)
-	_run(td, 2.0 * Config.EMBRACE_STEP_SECONDS + 0.5)
+	_run(td, 2.0 * EmbraceConfig.EMBRACE_STEP_SECONDS + 0.5)
 	var starts := _events(td, "embrace_start")
 	var lifts := _events(td, "embrace_lift")
 	var rescues := _events(td, "embrace_rescue")
@@ -312,7 +312,7 @@ func test_the_recorder_notes_start_lift_and_rescue() -> void:
 	assert_str(lifts[0]["from"]).is_equal("gloomy")
 	assert_str(lifts[0]["to"]).is_equal("wistful")
 	assert_int(rescues.size()).is_equal(1)
-	assert_float(rescues[0]["seconds"]).is_equal_approx(2.0 * Config.EMBRACE_STEP_SECONDS, 0.1)
+	assert_float(rescues[0]["seconds"]).is_equal_approx(2.0 * EmbraceConfig.EMBRACE_STEP_SECONDS, 0.1)
 	assert_float(rescues[0]["id"]).is_equal(float(td.people.find(p)))
 	await TopDownTestUtil.leave_loaded_scene(td)
 

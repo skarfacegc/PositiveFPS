@@ -33,7 +33,7 @@ func build(parent: Node3D) -> void:
 	_multi.transform_format = MultiMesh.TRANSFORM_3D
 	_multi.mesh = mesh
 	# Room for every mote of the whole circle (one per STEP metres of the starting circle, the most it ever lays).
-	_multi.instance_count = ceili(TAU * Config.FIRST_LIGHT_START_RADIUS / STEP) + 4
+	_multi.instance_count = ceili(TAU * NightConfig.FIRST_LIGHT_START_RADIUS / STEP) + 4
 	_multi.visible_instance_count = 0
 	_motes = MultiMeshInstance3D.new()
 	_motes.multimesh = _multi
@@ -66,7 +66,7 @@ func sync(edge: float, focus: Vector3, seconds: float) -> void:
 	if edge > 0.5:
 		# The motes sit at fixed angles (one per STEP metres of the starting circle) so they do not slide as the front
 		# closes; each has a threshold and drops out as the circle shrinks, which keeps the spacing near STEP.
-		var dtheta := STEP / Config.FIRST_LIGHT_START_RADIUS
+		var dtheta := STEP / NightConfig.FIRST_LIGHT_START_RADIUS
 		var total := ceili(TAU / dtheta)
 		var around := atan2(focus.z, focus.x)
 		var span := minf(PI, SPAN / edge)
@@ -78,7 +78,7 @@ func sync(edge: float, focus: Vector3, seconds: float) -> void:
 		for k: int in range(k0, k1 + 1):
 			var h1 := _hash(k)
 			var h2 := _hash(k * 7 + 5)
-			if _hash(k * 3 + 1) > edge / Config.FIRST_LIGHT_START_RADIUS + 0.15:
+			if _hash(k * 3 + 1) > edge / NightConfig.FIRST_LIGHT_START_RADIUS + 0.15:
 				continue
 			var a := (float(k) + h1 - 0.5) * dtheta
 			var r := edge + h2 * 2.4
@@ -96,7 +96,9 @@ func sync(edge: float, focus: Vector3, seconds: float) -> void:
 
 # The sky the styled view shows when first light is `progress` of the way in (STYLED_BACKGROUND at the start).
 static func sky_at(progress: float) -> Color:
-	return ViewPipeline.STYLED_BACKGROUND.lerp(Config.CP5_FIRST_LIGHT_SKY, Config.CP5_FIRST_LIGHT_SKY_MIX * progress)
+	return ViewPipeline.STYLED_BACKGROUND.lerp(
+		StyleConfig.CP5_FIRST_LIGHT_SKY, StyleConfig.CP5_FIRST_LIGHT_SKY_MIX * progress
+	)
 
 
 static func _hash(k: int) -> float:

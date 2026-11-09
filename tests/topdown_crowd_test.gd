@@ -40,7 +40,7 @@ func test_two_dimmed_people_on_the_same_spot_push_apart() -> void:
 	TopDownTestUtil.place(b, Vector3(0, 0, -8), 1, 1.0)
 
 	await runner.simulate_frames(120)
-	assert_float(_gap(a, b)).is_greater_equal(Config.TD_SEPARATION_RADIUS * 0.8)
+	assert_float(_gap(a, b)).is_greater_equal(PeopleConfig.TD_SEPARATION_RADIUS * 0.8)
 
 
 func test_at_most_two_dimmed_people_drift_toward_one_rescued_person() -> void:
@@ -61,9 +61,9 @@ func test_at_most_two_dimmed_people_drift_toward_one_rescued_person() -> void:
 	for p: Person in td.people:
 		if pursuit.has(p) and pursuit[p] == rescued:
 			toward_rescued += 1
-	assert_int(toward_rescued).is_equal(Config.TD_MAX_PURSUERS_PER_TARGET)
+	assert_int(toward_rescued).is_equal(PeopleConfig.TD_MAX_PURSUERS_PER_TARGET)
 	# The other two dimmed people get no slot, so they wander.
-	assert_int(pursuit.size()).is_equal(Config.TD_MAX_PURSUERS_PER_TARGET)
+	assert_int(pursuit.size()).is_equal(PeopleConfig.TD_MAX_PURSUERS_PER_TARGET)
 
 
 func test_a_dimmed_person_without_a_slot_takes_the_next_nearest_rescued_person() -> void:
@@ -106,8 +106,8 @@ func test_dimmed_person_drifts_no_faster_than_the_drift_speed() -> void:
 	# One second of game time (60 frames at the fixed 60 fps).
 	await runner.simulate_frames(60)
 	var moved := dimmed.global_position.distance_to(start)
-	assert_float(moved).is_less_equal(Config.TD_DIMMED_DRIFT_SPEED * 1.0 + 0.05)
-	assert_float(moved).is_greater(Config.TD_DIMMED_DRIFT_SPEED * 0.5)
+	assert_float(moved).is_less_equal(PeopleConfig.TD_DIMMED_DRIFT_SPEED * 1.0 + 0.05)
+	assert_float(moved).is_greater(PeopleConfig.TD_DIMMED_DRIFT_SPEED * 0.5)
 	assert_float(_gap(dimmed, rescued)).is_less(gap_before)
 
 
@@ -125,7 +125,7 @@ func test_top_down_people_get_the_grace_period_on_spawn() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	for p: Person in td.people:
-		assert_float(p.grace_seconds).is_equal(Config.TD_RESCUE_GRACE_SECONDS)
+		assert_float(p.grace_seconds).is_equal(PeopleConfig.TD_RESCUE_GRACE_SECONDS)
 
 
 # Round 19 coverage: the two fallbacks when the ground has no clear spot. A full plaza gives up after 200 tries and
@@ -138,8 +138,8 @@ func test_a_spawn_spot_in_a_full_plaza_is_the_last_try_and_is_not_clear() -> voi
 	for ix: int in range(-48, 49, 3):
 		for iz: int in range(-48, 49, 3):
 			placed.append(Vector3(float(ix), 0.0, float(iz)))
-	var spot := td._find_spot(placed)
-	assert_bool(td._spot_ok(spot, placed)).is_false()
+	var spot := td.plaza.find_spot(placed)
+	assert_bool(td.plaza.spot_ok(spot, placed)).is_false()
 	assert_float(absf(spot.x)).is_less_equal(Config.TD_PLAZA_SIZE / 2.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -147,16 +147,16 @@ func test_a_spawn_spot_in_a_full_plaza_is_the_last_try_and_is_not_clear() -> voi
 func test_a_wanderer_next_to_a_block_stays_put_when_no_clear_spot_turns_up() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
-	td._rng.seed = Config.RNG_SEED
-	var block: Vector3 = TopDownMain.BLOCK_POSITIONS[0]
+	td.plaza.rng.seed = Config.RNG_SEED
+	var block: Vector3 = Plaza.BLOCK_POSITIONS[0]
 	var stayed := 0
 	for i: int in range(20):
 		var target := td._new_wander_target(block)
 		if target == block:
 			stayed += 1
 		else:
-			assert_bool(td._near_block(target, Config.TD_BLOCK_CLEARANCE)).is_false()
-			assert_float(GloomSim.flat_dist(target, block)).is_less_equal(Config.TD_WANDER_RANGE)
+			assert_bool(td.plaza.near_block(target, PeopleConfig.TD_BLOCK_CLEARANCE)).is_false()
+			assert_float(GloomSim.flat_dist(target, block)).is_less_equal(PeopleConfig.TD_WANDER_RANGE)
 	# Most tries from a block's centre land inside the block's clearance, so with the seed fixed some call stays put.
 	assert_int(stayed).is_greater(0)
 	await TopDownTestUtil.leave_loaded_scene(td)

@@ -53,7 +53,7 @@ func test_walking_and_running_are_about_fifteen_percent_faster_than_round_ten() 
 	runner.simulate_key_release(KEY_W)
 	var walked := start.distance_to(player.global_position)
 	assert_float(walked).is_greater(6.0 * 1.12)
-	assert_float(walked).is_equal_approx(Config.TD_MOVE_SPEED, 0.2)
+	assert_float(walked).is_equal_approx(PlayerConfig.TD_MOVE_SPEED, 0.2)
 
 	var after_walk: Vector3 = player.global_position
 	runner.simulate_key_press(KEY_SHIFT)
@@ -63,7 +63,7 @@ func test_walking_and_running_are_about_fifteen_percent_faster_than_round_ten() 
 	runner.simulate_key_release(KEY_SHIFT)
 	var ran := after_walk.distance_to(player.global_position)
 	assert_float(ran).is_greater(9.5 * 1.12)
-	assert_float(ran).is_equal_approx(Config.TD_RUN_SPEED, 0.2)
+	assert_float(ran).is_equal_approx(PlayerConfig.TD_RUN_SPEED, 0.2)
 
 
 func test_mouse_alone_never_fires_in_lock_on_mode() -> void:
@@ -111,7 +111,7 @@ func test_g_and_q_burst_only_when_ready() -> void:
 
 	runner.simulate_key_pressed(KEY_G)
 	await runner.simulate_frames(2)
-	assert_float(player.burst_cooldown).is_greater(Config.TD_BURST_COOLDOWN - 0.5)
+	assert_float(player.burst_cooldown).is_greater(SpiritConfig.TD_BURST_COOLDOWN - 0.5)
 	assert_str(td.hud.burst_label.text).contains("s")  # cooldown shown, not READY
 
 	await runner.simulate_frames(30)
@@ -124,10 +124,10 @@ func test_g_and_q_burst_only_when_ready() -> void:
 	# Once the cooldown is ready (set directly, so the test does not wait 8 s), Q bursts again. Round 12a: it costs
 	# spirit, so the player is topped up first.
 	player.burst_cooldown = 0.0
-	player.add_spirit(Config.SPIRIT_MAX)
+	player.add_spirit(SpiritConfig.SPIRIT_MAX)
 	runner.simulate_key_pressed(KEY_Q)
 	await runner.simulate_frames(2)
-	assert_float(player.burst_cooldown).is_greater(Config.TD_BURST_COOLDOWN - 0.5)
+	assert_float(player.burst_cooldown).is_greater(SpiritConfig.TD_BURST_COOLDOWN - 0.5)
 
 
 # Round 14: the mouse wheel now zooms (see zoom_test.gd), but it still never changes the element or the target.
@@ -146,7 +146,9 @@ func test_element_keys_and_the_wheel_never_change_the_element_or_target() -> voi
 	assert_object(player.target).is_null()
 	(
 		assert_bool(
-			(player.look as PlayerLookPlaceholder)._ring_mat.albedo_color.is_equal_approx(Config.TD_NO_TARGET_COLOR)
+			(player.look as PlayerLookPlaceholder)._ring_mat.albedo_color.is_equal_approx(
+				PlayerConfig.TD_NO_TARGET_COLOR
+			)
 		)
 		. is_true()
 	)
@@ -158,7 +160,7 @@ func test_dawn_ends_the_level_with_the_dawn_screen() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	td.night.elapsed = Config.NIGHT_LENGTH - 0.05
+	td.night.elapsed = NightConfig.NIGHT_LENGTH - 0.05
 	await runner.simulate_frames(10)
 
 	assert_bool(td.running).is_false()
@@ -221,7 +223,7 @@ func test_a_relapse_lowers_the_count_and_shows_the_alert() -> void:
 	target.grace_left = 0.0
 	target.drain_joy(Config.JOY_MAX)
 	# Round 24: they wobble first (up to WOBBLE_SECONDS plus its jitter), then relapse.
-	await runner.simulate_frames(int((Config.WOBBLE_SECONDS * (1.0 + Config.WOBBLE_JITTER) + 1.0) * 60.0))
+	await runner.simulate_frames(int((PeopleConfig.WOBBLE_SECONDS * (1.0 + PeopleConfig.WOBBLE_JITTER) + 1.0) * 60.0))
 	assert_bool(target.is_rescued).is_false()
 	assert_int(td.rescued_count).is_equal(0)
 	assert_str(td.hud.alert_label.text).is_equal("Someone lost their joy!")

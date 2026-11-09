@@ -13,11 +13,16 @@ functions with line numbers) and Read only those lines.
 ## Scenes
 - `menu.tscn` (`scripts/menu.gd`): title, Look toggle, Play (Enter, 1, click) -> `topdown.tscn`.
 - `topdown.tscn`: only a `TopDownMain` root; **everything else is built in code** in `TopDownMain._ready()`.
+- **`TopDownMain` only coordinates** (about 220 lines): `_ready` builds the systems in order, `_process` calls them in
+  order, and each system's set-up and per-frame work lives in its own script (below). Order matters (child order and
+  signal-connection order are part of the simulation): keep each call where it is when adding one.
 - Systems that attach to the level use `X.attach(main)` (one line in `TopDownMain`, stored as `main.x`): `BurstCue`,
-  `FirstLight`, `SpiritWarmth`, `WobbleAlert`. New systems should do the same and stay out of `topdown_main.gd` (near the line cap).
+  `FirstLight`, `SpiritWarmth`, `WobbleAlert`, `Embrace`, `GloomTide`, `TargetHighlight`. New systems should do the same and
+  never add logic to `topdown_main.gd`; its helpers (`main.plaza`, `main.camera_rig`, `main.events`, `main.level_hud`,
+  `main.level_end`, `main.dim_gate`, `main.cover_update`, `main.dim_recovery`) are plain objects built with `X.new(main)`.
 
 ## Script map (`scripts/*.gd`)
-- `topdown_main.gd`: the level (plaza, camera, zoom, win/lose, wiring, dim sink gate `_try_dim_sink`); `crowd_movement.gd`: unrescued people's movement (separation uses a spatial grid, `rebuild_grid()`, and a cached index)
+- `topdown_main.gd`: the level coordinator (builds the systems, calls them each frame, F4 and input routing). Its helpers: `plaza.gd` (floor, walls, `BLOCK_*`, spawn spots, the level's `rng`, `near_block`), `camera_rig.gd` (environment, sun, camera, wheel zoom), `target_highlight.gd` (the ring under the target), `level_hud.gd` (builds and updates the HUD layer, the F3 debug overlay), `level_events.gd` (rescue, relapse, joy, burst, grab, dim and landmark handlers), `level_end.gd` (win/lose, rating, leaving the level), `dim_gate.gd` (the midnight stagger), `cover_update.gd` (cover and protection), `dim_recovery.gd` (the dim player's recovery), `look_switch.gd` (F4); `crowd_movement.gd`: unrescued people's movement (separation uses a spatial grid, `rebuild_grid()`, and a cached index)
 - `topdown_player.gd`: movement, aiming, targeting, firing, burst, spirit and the dim state, sticky hover; `controls.gd`: every InputMap action (no raw keys elsewhere)
 - `person.gd`: one person (affinity, joy, gloom, rescued, wobble, shield, react); `moods.gd`: guarded/skittish/glum and sheltering; `grabs.gd`: dimmed grabs
 - `gloom_sim.gd`: dimming, spreading, draining; `night_cycle.gd`: clock, strength, `dim_gap_at()`; `relapse_wave.gd`: relapse gate; `first_light.gd`: dawn rally
@@ -27,18 +32,18 @@ functions with line numbers) and Read only those lines.
 - `painted_ground.gd`: 1 m paint grid; `joy_projectile.gd`, `bloom.gd`: shots; `floor_effects.gd`: floor overlay registry/cap
 - `hud.gd`, `hud_safe_area.gd`, `minimap.gd`, `gap_arrows.gd`, `wobble_alert.gd`, `landmark_pointers.gd`: HUD, minimap, edge pointers (`HudSafeArea` is the one safe rectangle they share)
 - `feedback_layer.gd`, `spirit_meter.gd`, `mood_icons.gd`, `intro.gd`, `prompt_bar.gd`: screen-space cues, prompts and `Intro.notice(id, words)`
-- `recorder.gd`: gameplay recorder; `config_base.gd` + `config.gd`: all tuning (see Tuning)
+- `recorder.gd`: gameplay recorder; `config.gd` + `*_config.gd`: all tuning, one config script per system (see Tuning)
 
 ## Areas (where to start; tests are `tests/<name>.gd`)
 - **Border / territory:** `border.gd`, `border_slots.gd`, `border_shape.gd`, `border_push.gd`, `edge_ribbon.gd`, `building.gd`, `painted_ground.gd`; tests `border_*_test` (`border_push_test` for the push), `push_defence_test`, `edge_ribbon_test`, `edge_pressure_test`, `cover_test`; config `BORDER_*`, `PUSH_*`. Slots are spaced along the open length; the map-edge stretch is sealed (no slots, never a gap). A break is a gap made by pushing (`BorderPush`): `Border.update` calls `push.update`, applies `push.dent` to the sampled loop AFTER the size is normalised, and `BorderSlots` marks the broken segments as gap (a faltering member no longer steps back or opens one). Pushers are dimmed people within `PUSH_LEAN_RANGE` outside the line and the tide's wave (`GloomTide` calls `push.set_wave`).
-- **Beacon / zone / landmarks / dawn rating:** `border_centre.gd`, `reach_guide.gd`, `beacon_marker.gd`, `landmark(s).gd`, `dawn_rating.gd`, `topdown_main.gd` (`try_place_beacon`, `_check_end`); tests `beacon_test`, `stretch_safety_test`, `shaped_zone_test`, `shaping_followup_test`, `reactions_test`, `landmarks_test`, `dawn_rating_test`; config `BEACON_*`, `LANDMARK_*`, `DAWN_*`. `BorderCentre.plan_toward()` is the one plan used by both the preview and the real stretch. Landmark positions are in the spawn exclusion (`_near_block`): moving one changes who spawns where and their gloom. **Town layout:** `town_layout.gd` describes the street plan (a main street along x and a cross street along z, crossing at the start; `TopDownMain.BLOCK_POSITIONS` are rows beside them, one of the four landmarks ends each arm); `StyleProps.layout_streets` (lamps on the kerbs, stalls on the square) and `layout_props` (a bench and planter in front of each block) follow it; tests `town_layout_test`, `style_props_plaza_test`; config `TOWN_*`, `LANDMARK_NEAREST/FARTHEST`. A layout change shifts the spawns: check a bot night, not only the gate.
+- **Beacon / zone / landmarks / dawn rating:** `border_centre.gd`, `reach_guide.gd`, `beacon_marker.gd`, `landmark(s).gd`, `dawn_rating.gd`, `topdown_main.gd` (`try_place_beacon`), `level_end.gd` (`check`); tests `beacon_test`, `stretch_safety_test`, `shaped_zone_test`, `shaping_followup_test`, `reactions_test`, `landmarks_test`, `dawn_rating_test`; config `BEACON_*`, `LANDMARK_*`, `DAWN_*`. `BorderCentre.plan_toward()` is the one plan used by both the preview and the real stretch. Landmark positions are in the spawn exclusion (`_near_block`): moving one changes who spawns where and their gloom. **Town layout:** `town_layout.gd` describes the street plan (a main street along x and a cross street along z, crossing at the start; `Plaza.BLOCK_POSITIONS` are rows beside them, one of the four landmarks ends each arm); `StyleProps.layout_streets` (lamps on the kerbs, stalls on the square) and `layout_props` (a bench and planter in front of each block) follow it; tests `town_layout_test`, `style_props_plaza_test`; config `TOWN_*`, `LANDMARK_NEAREST/FARTHEST`. A layout change shifts the spawns: check a bot night, not only the gate.
 - **People / gloom / night / waves:** `person.gd`, `gloom_sim.gd`, `night_cycle.gd`, `relapse_wave.gd`, `first_light.gd`, `crowd_movement.gd`; tests `person_test`, `gloom_sim_test`, `night_cycle_test`, `topdown_crowd_test`, `dimmed_waves_test`, `first_light_test`; config `GLOOM_*`, `NIGHT_*`, `DIM_*`, `WOBBLE_*`, `FIRST_LIGHT_*`.
 - **Moods / shelter / shield / guarded wedge / hover:** `moods.gd`, `person.gd` (`receive_joy`, `shot_lands_now`), `topdown_player.gd` (`_update_hover_target`), `feedback_layer.gd`; tests `moods_test`, `shield_test`, `shelter_nearest_test`, `guarded_wedge_test`, `hover_stick_test`, `stagger_test`; config `GUARDED_*`, `SKITTISH_*`, `GLUM_*`, `SHELTER_*`, `HOVER_*`.
 - **Spirit / dim / grabs / spirit actions:** `topdown_player.gd`, `grabs.gd`, `burst_cue.gd`, `burst_fx.gd`, `burst_clear.gd`, `spirit_warmth.gd`; spirit actions are the beacon (`beacon_marker.gd`) and the burst (G or Q), and there is no patch action; tests `spirit_test`, `grab_test`, `spirit_warmth_test`, `burst_cue_test`, `burst_clear_test`, `defence_cues_test`; config `SPIRIT_*`, `DIM_*`, `GRAB_*`, `BURST_*`, `SPARE_*`.
 - **Projectiles / blooms / floor effects:** `joy_projectile.gd`, `bloom.gd`, `floor_effects.gd`; tests `projectile_*_test`, `floor_test`, `paint_bloom_camera_test`.
-- **Targeting / input / zoom / camera:** `topdown_player.gd`, `controls.gd`, `topdown_main.gd` (`_update_camera`, `view_half_extents`); tests `targeting_test`, `topdown_mode_test`, `zoom_test`, `world_scale_test`.
+- **Targeting / input / zoom / camera:** `topdown_player.gd`, `controls.gd`, `camera_rig.gd` (`update`, `view_half_extents`, wheel zoom); tests `targeting_test`, `topdown_mode_test`, `zoom_test`, `world_scale_test`.
 - **HUD / minimap / cues / intro:** `hud.gd`, `minimap.gd`, `gap_arrows.gd` (the pointer to an off-screen break), `wobble_alert.gd`, `feedback_layer.gd`, `intro.gd`, `prompt_bar.gd` (every prompt and notice is a slim banner under the night bar). `edge_markers.gd`, `edge_marker_fx.gd` and `border_warning.gd` are deleted; do not reintroduce them. Tests `hud_test`, `readability_test`, `feedback_test`, `intro_test`, `debug_overlay_test`, `menu_test`. These are screen-space UI: both looks draw them.
-- **Looks / styled art:** `scripts/looks/*`, `shaders/*`, `topdown_main.gd` (`set_look`); tests `looks_*_test`; tool `checkpoint_shots.py`. See Looks.
+- **Looks / styled art:** `scripts/looks/*`, `shaders/*`, `look_switch.gd` (F4, via `TopDownMain.set_look`); tests `looks_*_test`; tool `checkpoint_shots.py`. See Looks.
 - **Recorder:** `recorder.gd`; tests `recorder_test`, `python tools/test_analyse_recording.py`.
 - **Tooling:** `tools/*`, `.githooks/pre-commit`, `tools/COVERAGE_TOOL_NOTES.md`; self-checks in `tools/test_*.py`.
 - Before writing a level test read `tests/topdown_test_util.gd`.
@@ -80,11 +85,22 @@ functions with line numbers) and Read only those lines.
   itself; output in `design/renders/checkpoint_NN/`; look at the PNGs and write `NOTES.md` there). If it hangs, a script has a
   parse error or the class cache is stale: run `python tools/run_tests.py --suites looks_checkpoint5_test` first, or run the scene with `--timeout 90` and read the output.
 
-## Tuning (`scripts/config.gd`, `scripts/config_base.gd`)
-- `Config extends ConfigBase`, so `Config.X` reaches everything. **New constants go in `config.gd` as a "<Target>: <part>"
-  block just above the first helper function (`intro_on`).** A constant in `ConfigBase` cannot read one in `Config`.
-  Keep each file under the 1000-line lint cap. No magic numbers in other scripts.
-- Search both files for block names ("Territory game", "Round 9: the living border", "Round 19: beacon", "Checkpoint 6" ...).
+## Tuning (`scripts/config.gd` and `scripts/*_config.gd`)
+- **One config script per system**, constants filed by system, not by round. `Config` (`config.gd`) keeps only the shared
+  core: `WORLD_SCALE`, the elements and joy matchups, plaza size, people count, `RNG_SEED`, and the pure helpers
+  (`multiplier`, `falloff`, `gloom_level`, `intro_on`, `tides_on`, `is_automated_test`). The rest is read as
+  `<System>Config.X`: `BorderConfig` (members, slots, gaps, ribbon, edge pressure, zone control), `PushConfig`,
+  `NightConfig` (night curve, dimmed arrivals, first light, tides), `PeopleConfig` (gloom, relapse, wobble, wandering,
+  spawn, grace, reactions), `MoodConfig` (moods, shelter, shield readability), `GroundConfig` (paint, cover, contagion,
+  erosion), `ProjectileConfig`, `PlayerConfig` (camera, zoom, targeting, hover, player marker), `SpiritConfig` (spirit,
+  dim, grabs, burst, spare spirit), `EmbraceConfig`, `LandmarkConfig` (landmarks, dawn rating), `TownConfig` (streets,
+  lamps, landmark distances), `HudConfig` (HUD, minimap, notices, intro, cue panel, edge pointers), `RecorderConfig`,
+  `StyleConfig` (styled-look numbers; the rules never read them). `BeaconConfig` (beacon, arms, reach guide, posts) and
+  `RoundLoopConfig` (the round border loop: samples, centre, size ease, map-edge seals) hold their constants as they were,
+  untidied: pass 2 of 0.4 deletes those two files whole.
+- **New constants go in the config of the system they tune** (a new file if it is a new system). A constant that reads
+  another config's value names it (`BorderConfig.X`); configs must not depend on each other in a cycle. Keep each file
+  under the 1000-line lint cap. No magic numbers in other scripts. Find a constant by name: search `scripts/*_config.gd`.
 - **World scale:** `Config.WORLD_SCALE` (100/70) scales TERRITORY constants (plaza, blocks, spawn, border spacing/gap/radii,
   cover, paint, search reach); INTERACTION and BODY constants (sizes, projectile ranges and speeds, `GRAB_*`, `SHELTER_RADIUS`,
   hit radii) are not; per-metre rates are divided by it. New distances: decide which kind and write `* WORLD_SCALE` if territory. Test: `world_scale_test`.
@@ -95,8 +111,8 @@ functions with line numbers) and Read only those lines.
 2. If `running`: `night.update` -> HUD night bar and light.
 3. `border.update(...)`: members, breaks, push, building capture, polygon, ground region.
 4. People steering (`CrowdMovement`), then `Moods.update`.
-5. `_update_cover` (every `GROUND_UPDATE_INTERVAL`), `_update_dim`, `GloomSim.update`, `Grabs.update`, `Person.tick`.
-6. `ground.update_paint`, landmarks, HUD spirit and burst, `_check_end`.
+5. `cover_update.update` (every `GROUND_UPDATE_INTERVAL`), `dim_recovery.update`, `GloomSim.update`, `dim_gate.hold_back`, `Grabs.update`, `Person.tick`.
+6. `ground.update_paint`, landmarks, HUD spirit and burst (`level_hud`), `level_end.check`.
 Player and projectile physics run on the 60 Hz physics tick.
 
 ## Recorder
@@ -147,7 +163,7 @@ in a `_poll_*`) and call `emit_event("name", {...})`; keep it cheap (nothing per
 - **Pre-commit hook = `gate.py --hook`:** lint + the fast tier (`run_tests.py --tier fast`: every test under 5 s, plus the
   slow tests that the changed functions of staged `scripts/*.gd` can reach per the saved per-unit coverage map, plus the
   whole suite of a changed `tests/*_test.gd`; `tools/fast_tier.py` prints what it chose; anything it cannot map, such as
-  `config.gd`, scenes, `project.godot`, the test tooling or a missing/old map, runs everything). `--full` when
+  `config.gd` or any `*_config.gd`, scenes, `project.godot`, the test tooling or a missing/old map, runs everything). `--full` when
   `coverage_baseline.json` is staged. A commit that cannot change a Godot test (docs, tools other than
   run_tests/gate/coverage/godot_run/godot_path/fast_tier) runs lint + that tool's `tools/test_*.py` only. A fast pass
   never answers a plain or `--full` request in the gate cache.

@@ -44,11 +44,11 @@ func test_drain_multiplier_scales_the_drain_from_gloom() -> void:
 	var half_dimmed: Person = _make_person(1, Vector3(2, 0, 0), 1.0)
 	var half_before: float = half_rescued.joy
 	for i: int in range(60):
-		GloomSim.update([half_rescued, half_dimmed], 1.0 / 60.0, Config.TD_DRAIN_MULTIPLIER)
+		GloomSim.update([half_rescued, half_dimmed], 1.0 / 60.0, PeopleConfig.TD_DRAIN_MULTIPLIER)
 	var half_lost := half_before - half_rescued.joy
 
 	assert_float(full_lost).is_greater(0.0)
-	assert_float(half_lost).is_equal_approx(full_lost * Config.TD_DRAIN_MULTIPLIER, 0.01)
+	assert_float(half_lost).is_equal_approx(full_lost * PeopleConfig.TD_DRAIN_MULTIPLIER, 0.01)
 
 
 func test_gloom_still_grows_near_rescued_people_when_they_have_no_cover() -> void:
@@ -69,7 +69,7 @@ func test_gloom_grows_far_from_zones() -> void:
 # Round 11: with nobody rescued and no cover, a person grows at the base rate plus the far-from-zones rate
 # (NO_ZONE_DISTANCE). Light grey -> grey is unchanged; grey -> dimmed is slowed by GLOOM_DIMMED_STEP_MULT.
 func test_the_grey_to_dimmed_step_grows_slower_and_light_to_grey_does_not() -> void:
-	var base := Config.GLOOM_GROWTH + Config.GLOOM_GROWTH_PER_METER * Config.NO_ZONE_DISTANCE
+	var base := PeopleConfig.GLOOM_GROWTH + PeopleConfig.GLOOM_GROWTH_PER_METER * PeopleConfig.NO_ZONE_DISTANCE
 	var light: Person = _make_person(1, Vector3(100, 0, 0), 0.2)
 	var grey: Person = _make_person(1, Vector3(-100, 0, 0), 0.5)
 	GloomSim.update([light], 1.0)
@@ -77,8 +77,8 @@ func test_the_grey_to_dimmed_step_grows_slower_and_light_to_grey_does_not() -> v
 	var light_gain := light.gloom - 0.2
 	var grey_gain := grey.gloom - 0.5
 	assert_float(light_gain).is_equal_approx(base, 0.0001)
-	assert_float(grey_gain).is_equal_approx(base * Config.GLOOM_DIMMED_STEP_MULT, 0.0001)
-	assert_float(Config.GLOOM_DIMMED_STEP_MULT).is_equal_approx(0.65, 0.0001)
+	assert_float(grey_gain).is_equal_approx(base * PeopleConfig.GLOOM_DIMMED_STEP_MULT, 0.0001)
+	assert_float(PeopleConfig.GLOOM_DIMMED_STEP_MULT).is_equal_approx(0.65, 0.0001)
 	assert_float(grey_gain).is_less(light_gain)
 
 

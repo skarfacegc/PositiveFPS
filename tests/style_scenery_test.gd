@@ -33,11 +33,11 @@ func _count_live(list: Array[StyleAmbient.Flyer]) -> int:
 
 func test_layout_gives_each_block_its_props_and_lines_without_repeats() -> void:
 	var centres: Array[Vector3] = []
-	for c: Vector3 in TopDownMain.BLOCK_POSITIONS:
+	for c: Vector3 in Plaza.BLOCK_POSITIONS:
 		centres.append(c)
 	var props := StyleProps.layout_props(centres)
 	assert_int(props.size()).is_equal(centres.size() * 2)
-	var lines := StyleProps.layout_lines(centres, Config.C7_LINE_MAX_DIST)
+	var lines := StyleProps.layout_lines(centres, StyleConfig.C7_LINE_MAX_DIST)
 	assert_bool(lines.size() > 0).is_true()
 	var seen := {}
 	for l: StyleProps.Line in lines:
@@ -52,16 +52,16 @@ func test_lines_are_strung_at_roof_height_from_posts_and_never_bare_in_gloom() -
 	var td: TopDownMain = s["td"]
 	var sp := td.style_props
 	for l: StyleProps.Line in sp.lines:
-		assert_float(l.a.y).is_equal_approx(Config.L32_LINE_POST_HEIGHT, 0.001)
-		assert_float(l.b.y).is_equal_approx(Config.L32_LINE_POST_HEIGHT, 0.001)
+		assert_float(l.a.y).is_equal_approx(StyleConfig.L32_LINE_POST_HEIGHT, 0.001)
+		assert_float(l.b.y).is_equal_approx(StyleConfig.L32_LINE_POST_HEIGHT, 0.001)
 	assert_bool(StyleProps.line_shown(0.0)).is_false()
-	assert_bool(StyleProps.line_shown(Config.L31_LINE_SHOW - 0.01)).is_false()
-	assert_bool(StyleProps.line_shown(Config.L31_LINE_SHOW)).is_true()
+	assert_bool(StyleProps.line_shown(StyleConfig.L31_LINE_SHOW - 0.01)).is_false()
+	assert_bool(StyleProps.line_shown(StyleConfig.L31_LINE_SHOW)).is_true()
 	# In gloom no line is drawn at all: the drawing is the props alone.
 	_paint_all(td, 0.0)
 	for b: Building in td.border.buildings:
 		b.tint = 0.0
-	sp.refresh(Config.C7_BLOOM_SECONDS * 2.0)
+	sp.refresh(StyleConfig.C7_BLOOM_SECONDS * 2.0)
 	for l: StyleProps.Line in sp.lines:
 		assert_float(l.unfurl).is_equal(0.0)
 	var bare_boxes := sp.layers.box_count()
@@ -72,7 +72,7 @@ func test_lines_are_strung_at_roof_height_from_posts_and_never_bare_in_gloom() -
 	# Inside the zone every line stands on two posts: at least a post pair, the rope and its flags more than without.
 	sp.lines.assign(lines)
 	_paint_all(td, 1.0)
-	sp.refresh(Config.C7_BLOOM_SECONDS * 2.0)
+	sp.refresh(StyleConfig.C7_BLOOM_SECONDS * 2.0)
 	var with_lines := sp.layers.box_count()
 	assert_bool(with_lines - bare_boxes >= sp.lines.size() * (2 + StyleProps.LINE_PIECES)).is_true()
 
@@ -83,19 +83,21 @@ func test_a_line_rises_on_its_posts_as_the_paint_reaches_it() -> void:
 	var sp := td.style_props
 	var l: StyleProps.Line = sp.lines[0]
 	sp.layers.begin()
-	l.unfurl = Config.L31_LINE_SHOW
+	l.unfurl = StyleConfig.L31_LINE_SHOW
 	sp._draw_line(l, 0)
 	assert_bool(sp.layers.box_count() > 0).is_true()
 	# Just shown the posts are still on the ground; unfurled they stand at roof height (and draw a taller line).
-	assert_float(StyleProps.post_growth(Config.L31_LINE_SHOW)).is_equal(0.0)
-	assert_float(StyleProps.post_growth(Config.L31_LINE_SHOW + Config.L32_LINE_RISE * 0.5)).is_between(0.1, 0.9)
+	assert_float(StyleProps.post_growth(StyleConfig.L31_LINE_SHOW)).is_equal(0.0)
+	assert_float(StyleProps.post_growth(StyleConfig.L31_LINE_SHOW + StyleConfig.L32_LINE_RISE * 0.5)).is_between(
+		0.1, 0.9
+	)
 	assert_float(StyleProps.post_growth(1.0)).is_equal(1.0)
 	sp.layers.begin()
 	l.unfurl = 1.0
 	sp._draw_line(l, 0)
 	assert_bool(sp.layers.box_count() > 0).is_true()
 	sp.layers.begin()
-	l.unfurl = Config.L31_LINE_SHOW * 0.5
+	l.unfurl = StyleConfig.L31_LINE_SHOW * 0.5
 	sp._draw_line(l, 0)
 	assert_int(sp.layers.box_count()).is_equal(0)
 
@@ -107,17 +109,17 @@ func test_props_and_ambient_are_drawn_bigger_so_they_read_at_play_zoom() -> void
 	assert_bool(StyleProps.tone(bare, warm, 0.0).r > bare.r).is_true()
 	assert_bool(StyleProps.tone(bare, warm, 0.0).r < warm.r).is_true()
 	assert_bool(StyleProps.tone(bare, warm, 1.0).is_equal_approx(warm)).is_true()
-	assert_vector(StyleProps.big(Vector3.ONE)).is_equal(Vector3.ONE * Config.L31_PROP_SCALE)
-	assert_float(Config.L31_AMBIENT_SCALE).is_greater(1.0)
+	assert_vector(StyleProps.big(Vector3.ONE)).is_equal(Vector3.ONE * StyleConfig.L31_PROP_SCALE)
+	assert_float(StyleConfig.L31_AMBIENT_SCALE).is_greater(1.0)
 
 
 func test_there_are_few_butterflies_and_each_is_drawn_larger_than_the_other_ambient_life() -> void:
-	assert_int(Config.C7_BUTTERFLIES).is_between(8, 10)
-	assert_float(Config.L31_BUTTERFLY_SCALE).is_greater(Config.L31_AMBIENT_SCALE)
+	assert_int(StyleConfig.C7_BUTTERFLIES).is_between(8, 10)
+	assert_float(StyleConfig.L31_BUTTERFLY_SCALE).is_greater(StyleConfig.L31_AMBIENT_SCALE)
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
 	var sa := td.style_ambient
-	assert_int(sa.butterflies.size()).is_equal(Config.C7_BUTTERFLIES)
+	assert_int(sa.butterflies.size()).is_equal(StyleConfig.C7_BUTTERFLIES)
 	# A live butterfly's wing is drawn at the butterfly scale (14 cm times it, at full fade and day).
 	var f: StyleAmbient.Flyer = sa.butterflies[0]
 	f.live = true
@@ -154,14 +156,14 @@ func test_the_ambient_step_looks_the_paint_up_only_now_and_then() -> void:
 	# A change is still picked up on the next recheck: lose the ground and everyone leaves.
 	_paint_all(td, 0.0)
 	for i: int in range(3):
-		sa.step(Config.L31_AMBIENT_RECHECK)
+		sa.step(StyleConfig.L31_AMBIENT_RECHECK)
 	assert_int(_count_live(sa.butterflies)).is_equal(0)
 	for id: Variant in sa.idlers:
 		assert_bool((sa.idlers[id] as StyleAmbient.Idler).in_zone).is_false()
 
 
 func test_bunting_is_drawn_bold_enough_for_play_zoom() -> void:
-	assert_float(Config.L31_LINE_BOLD).is_greater(1.0)
+	assert_float(StyleConfig.L31_LINE_BOLD).is_greater(1.0)
 	var s: Dictionary = await _level()
 	var sp: StyleProps = s["td"].style_props
 	var l: StyleProps.Line = sp.lines[0]
@@ -171,13 +173,13 @@ func test_bunting_is_drawn_bold_enough_for_play_zoom() -> void:
 	# Two posts, the rope pieces and the flags, and a finial ball on each post (MultiMesh readback is empty headless).
 	assert_bool(sp.layers.box_count() >= 2 + StyleProps.LINE_PIECES).is_true()
 	assert_bool(sp.layers.ball_count() >= 2).is_true()
-	assert_float(Config.L31_PROP_SCALE).is_greater_equal(1.8)
+	assert_float(StyleConfig.L31_PROP_SCALE).is_greater_equal(1.8)
 
 
 func test_day_factor_runs_from_night_to_day() -> void:
 	assert_float(StyleProps.day_factor(0.35)).is_equal(0.0)
 	assert_float(StyleProps.day_factor(1.0)).is_equal(1.0)
-	var mid := StyleProps.day_factor(Config.C7_DAY_ENERGY_LOW + Config.C7_DAY_ENERGY_RANGE * 0.5)
+	var mid := StyleProps.day_factor(StyleConfig.C7_DAY_ENERGY_LOW + StyleConfig.C7_DAY_ENERGY_RANGE * 0.5)
 	assert_float(mid).is_equal_approx(0.5, 0.001)
 
 
@@ -188,14 +190,14 @@ func test_props_are_bare_in_gloom_and_bloom_where_the_paint_is() -> void:
 	_paint_all(td, 0.0)
 	for b: Building in td.border.buildings:
 		b.tint = 0.0
-	sp.refresh(Config.C7_PROPS_INTERVAL)
+	sp.refresh(StyleConfig.C7_PROPS_INTERVAL)
 	for p: StyleProps.Prop in sp.props:
 		assert_float(p.bloom).is_equal(0.0)
 	var bare_balls := sp.layers.ball_count()
 	var bare_boxes := sp.layers.box_count()
 	assert_bool(bare_boxes > 0).is_true()
 	_paint_all(td, 1.0)
-	sp.refresh(Config.C7_BLOOM_SECONDS * 2.0)
+	sp.refresh(StyleConfig.C7_BLOOM_SECONDS * 2.0)
 	for p: StyleProps.Prop in sp.props:
 		assert_float(p.bloom).is_equal(1.0)
 	for l: StyleProps.Line in sp.lines:
@@ -204,7 +206,7 @@ func test_props_are_bare_in_gloom_and_bloom_where_the_paint_is() -> void:
 	assert_bool(sp.layers.box_count() > bare_boxes).is_true()
 	# Losing the ground takes the bloom away again.
 	_paint_all(td, 0.0)
-	sp.refresh(Config.C7_BLOOM_SECONDS * 2.0)
+	sp.refresh(StyleConfig.C7_BLOOM_SECONDS * 2.0)
 	assert_float(sp.props[0].bloom).is_equal(0.0)
 
 
@@ -216,13 +218,13 @@ func test_a_beautified_block_blooms_its_own_props_first() -> void:
 	var target := td.border.buildings[0]
 	for b: Building in td.border.buildings:
 		b.tint = 1.0 if b == target else 0.0
-	sp.refresh(Config.C7_BLOOM_SECONDS * 2.0)
+	sp.refresh(StyleConfig.C7_BLOOM_SECONDS * 2.0)
 	var lit := 0
 	for p: StyleProps.Prop in sp.props:
 		if p.bloom > 0.99:
 			lit += 1
 	assert_int(lit).is_equal(2)
-	assert_int(sp.bench_positions().size()).is_equal(TopDownMain.BLOCK_POSITIONS.size())
+	assert_int(sp.bench_positions().size()).is_equal(Plaza.BLOCK_POSITIONS.size())
 
 
 func test_props_and_ambient_are_hidden_and_idle_in_the_placeholder_look() -> void:
@@ -263,7 +265,7 @@ func test_butterflies_drift_by_day_and_fireflies_by_night_only_inside_the_zone()
 	assert_bool(sa.layers.box_count() > 0).is_true()
 	var day_balls := sa.layers.ball_count()
 	# At midnight the fireflies glow (soft balls) and the butterflies are gone from the drawing.
-	td.night.elapsed = Config.NIGHT_LENGTH * 0.5
+	td.night.elapsed = NightConfig.NIGHT_LENGTH * 0.5
 	for i: int in range(6):
 		sa.step(0.6)
 	assert_bool(sa.layers.ball_count() > day_balls).is_true()
@@ -319,20 +321,20 @@ func test_a_bird_lands_on_a_beautified_roof_and_leaves_when_it_is_lost() -> void
 	var building := td.border.buildings[0]
 	building.beautified = true
 	var idx := -1
-	for i: int in range(TopDownMain.BLOCK_POSITIONS.size()):
-		var c := TopDownMain.BLOCK_POSITIONS[i]
+	for i: int in range(Plaza.BLOCK_POSITIONS.size()):
+		var c := Plaza.BLOCK_POSITIONS[i]
 		if building.centre.distance_to(Vector2(c.x, c.z)) < 1.0:
 			idx = i
 	assert_bool(idx >= 0).is_true()
-	sa.step(Config.C7_BIRD_SECONDS * 0.5)
+	sa.step(StyleConfig.C7_BIRD_SECONDS * 0.5)
 	assert_float(sa.birds[idx].t).is_equal_approx(0.5, 0.001)
 	assert_bool(sa.layers.box_count() > 3).is_true()  # Flying: body, tail and two wings.
-	sa.step(Config.C7_BIRD_SECONDS)
+	sa.step(StyleConfig.C7_BIRD_SECONDS)
 	assert_float(sa.birds[idx].t).is_equal(1.0)
 	assert_int(sa.layers.box_count()).is_equal(2)  # Landed: body and tail.
 	assert_int(sa.layers.ball_count()).is_equal(1)  # The head.
 	building.beautified = false
-	sa.step(Config.C7_BIRD_SECONDS * 2.0)
+	sa.step(StyleConfig.C7_BIRD_SECONDS * 2.0)
 	assert_float(sa.birds[idx].t).is_equal(0.0)
 	assert_int(sa.layers.box_count()).is_equal(0)
 
@@ -357,21 +359,21 @@ func test_rescued_people_idle_in_the_zone_without_moving_their_rule_position() -
 	var quiet_balls := sa.layers.ball_count()
 	for action: int in [StyleAmbient.Action.SIT, StyleAmbient.Action.WAVE, StyleAmbient.Action.TEND]:
 		sa.idlers[it_id].action = action
-		sa.idlers[it_id].still = Config.C7_IDLE_AFTER
+		sa.idlers[it_id].still = StyleConfig.C7_IDLE_AFTER
 		sa.idlers[it_id].ease_in = 0.0
-		sa.step(Config.C7_IDLE_EASE * 2.0)
+		sa.step(StyleConfig.C7_IDLE_EASE * 2.0)
 		assert_float(sa.idlers[it_id].ease_in).is_equal(1.0)
 		var extra := sa.layers.box_count() - quiet_boxes + sa.layers.ball_count() - quiet_balls
 		assert_bool(extra > 0).is_true()
 		# The rules position never moves; only the drawing sinks (sitting).
 		assert_vector(p.global_position).is_equal(spot)
 		if action == StyleAmbient.Action.SIT:
-			assert_float(p.look.position.y).is_equal_approx(-Config.C7_SIT_DROP, 0.001)
+			assert_float(p.look.position.y).is_equal_approx(-StyleConfig.C7_SIT_DROP, 0.001)
 		else:
 			assert_float(p.look.position.y).is_equal(0.0)
 	# Moving restarts the wait and the action eases out.
 	p.global_position = spot + Vector3(1, 0, 0)
-	sa.step(Config.C7_IDLE_EASE * 2.0)
+	sa.step(StyleConfig.C7_IDLE_EASE * 2.0)
 	assert_float(sa.idlers[it_id].ease_in).is_equal(0.0)
 	assert_float(sa.idlers[it_id].still).is_equal(0.0)
 	assert_float(p.look.position.y).is_equal(0.0)
@@ -391,8 +393,8 @@ func test_idle_sinks_are_put_back_and_the_unrescued_never_idle() -> void:
 	assert_bool(sa.idlers.has(q.get_instance_id())).is_false()
 	var it: StyleAmbient.Idler = sa.idlers[p.get_instance_id()]
 	it.action = StyleAmbient.Action.SIT
-	it.still = Config.C7_IDLE_AFTER
-	sa.step(Config.C7_IDLE_EASE * 2.0)
+	it.still = StyleConfig.C7_IDLE_AFTER
+	sa.step(StyleConfig.C7_IDLE_EASE * 2.0)
 	assert_float(p.look.position.y).is_less(0.0)
 	sa.release_idlers()
 	assert_float(p.look.position.y).is_equal(0.0)
@@ -403,10 +405,10 @@ func test_idle_sinks_are_put_back_and_the_unrescued_never_idle() -> void:
 	sa.step(0.1)
 	assert_bool(sa.idlers.has(p.get_instance_id())).is_false()
 	p.wobbling = false
-	sa.step(Config.L31_AMBIENT_RECHECK)  # New idlers and zone changes are looked up on a recheck step.
+	sa.step(StyleConfig.L31_AMBIENT_RECHECK)  # New idlers and zone changes are looked up on a recheck step.
 	assert_bool(sa.idlers.has(p.get_instance_id())).is_true()
 	_paint_all(td, 0.0)
-	sa.step(Config.L31_AMBIENT_RECHECK)
+	sa.step(StyleConfig.L31_AMBIENT_RECHECK)
 	assert_bool(sa.idlers.has(p.get_instance_id())).is_false()
 
 

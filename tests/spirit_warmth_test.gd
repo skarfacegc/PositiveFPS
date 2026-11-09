@@ -83,7 +83,7 @@ func test_a_gain_that_fits_adds_no_spare_and_one_that_does_not_spills_the_rest()
 	assert_float(td.spirit_warmth.pool).is_equal(0.0)
 	td.player.spirit = 90.0
 	td.player.add_spirit(20.0)  # 10 fit, 10 do not
-	assert_float(td.player.spirit).is_equal(Config.SPIRIT_MAX)
+	assert_float(td.player.spirit).is_equal(SpiritConfig.SPIRIT_MAX)
 	assert_float(spilled[0]).is_equal_approx(10.0, 0.001)
 	assert_float(td.spirit_warmth.pool).is_equal_approx(10.0, 0.001)
 	td.player.add_spirit(20.0)  # full: all of it spills
@@ -97,9 +97,9 @@ func test_the_pool_is_capped() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	td.spirit_warmth.add_spare(1000.0)
-	assert_float(td.spirit_warmth.pool).is_equal(Config.SPARE_POOL_MAX)
+	assert_float(td.spirit_warmth.pool).is_equal(SpiritConfig.SPARE_POOL_MAX)
 	td.spirit_warmth.add_spare(-5.0)
-	assert_float(td.spirit_warmth.pool).is_equal(Config.SPARE_POOL_MAX)
+	assert_float(td.spirit_warmth.pool).is_equal(SpiritConfig.SPARE_POOL_MAX)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -119,9 +119,9 @@ func test_the_most_strained_member_is_warmed_first_and_the_content_are_left_alon
 	assert_object(td.spirit_warmth.most_strained()).is_same(low)
 	var before := low.joy
 	var gave := td.spirit_warmth.pour()
-	assert_float(gave).is_equal_approx(Config.SPARE_WARM_RATE * Config.SPARE_WARM_INTERVAL, 0.001)
+	assert_float(gave).is_equal_approx(SpiritConfig.SPARE_WARM_RATE * SpiritConfig.SPARE_WARM_INTERVAL, 0.001)
 	assert_float(low.joy - before).is_equal_approx(gave, 0.001)
-	assert_float(td.spirit_warmth.pool).is_equal_approx(10.0 - gave / Config.SPARE_JOY_PER_SPIRIT, 0.001)
+	assert_float(td.spirit_warmth.pool).is_equal_approx(10.0 - gave / SpiritConfig.SPARE_JOY_PER_SPIRIT, 0.001)
 	assert_float(inner.joy).is_equal(0.1)
 	assert_float(fine.joy).is_equal_approx(fine.joy_needed() * 0.95, 0.001)
 	assert_float(mid.joy).is_equal_approx(mid.joy_needed() * 0.6, 0.001)
@@ -134,7 +134,7 @@ func test_the_most_strained_member_is_warmed_first_and_the_content_are_left_alon
 func test_nobody_under_the_ceiling_means_nothing_is_poured_and_the_pool_is_kept() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
-	_member(td, 0, Config.SPARE_WARM_CEILING + 0.02)
+	_member(td, 0, SpiritConfig.SPARE_WARM_CEILING + 0.02)
 	td.spirit_warmth.add_spare(10.0)
 	assert_object(td.spirit_warmth.most_strained()).is_null()
 	assert_float(td.spirit_warmth.pour()).is_equal(0.0)
@@ -153,7 +153,7 @@ func test_the_pour_runs_at_a_fixed_rate_and_ends_when_the_pool_is_empty() -> voi
 	# 1 s of steps (quarter seconds, exact in floating point): two gifts of 40 joy, not more.
 	for i: int in range(4):
 		given += td.spirit_warmth.step(0.25)
-	assert_float(given).is_equal_approx(Config.SPARE_WARM_RATE * 1.0, 0.001)
+	assert_float(given).is_equal_approx(SpiritConfig.SPARE_WARM_RATE * 1.0, 0.001)
 	assert_float(low.joy - start).is_equal_approx(given, 0.001)
 	# The rest: 20 joy, then it is over.
 	for i: int in range(8):
@@ -217,9 +217,9 @@ func test_the_warm_gift_is_a_glow_on_the_person_in_both_looks_and_goes_when_it_e
 		p.joy = 10.0
 		SpiritWarmth.warm(p, 20.0)
 		assert_int(p.react_kind).is_equal(Person.React.WARM)
-		p.tick(Config.SPARE_GLOW_SECONDS * 0.5)
+		p.tick(SpiritConfig.SPARE_GLOW_SECONDS * 0.5)
 		assert_int(p.react_kind).is_equal(Person.React.WARM)
-		p.tick(Config.SPARE_GLOW_SECONDS)
+		p.tick(SpiritConfig.SPARE_GLOW_SECONDS)
 		assert_int(p.react_kind).is_equal(Person.React.NONE)
 		await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -231,15 +231,15 @@ func test_spare_spirit_from_rescues_at_full_spirit_warms_a_strained_border_in_th
 	await _ring(td, runner, 24, 0.7)
 	var weakest: Person = td.people[5]
 	weakest.joy = weakest.joy_needed() * 0.4
-	td.player.spirit = Config.SPIRIT_MAX
+	td.player.spirit = SpiritConfig.SPIRIT_MAX
 	td.spirit_warmth.pool = 0.0  # the rescues that built the ring spilled some already
 	var before := weakest.joy
-	td.player.add_spirit(Config.SPIRIT_PER_RESCUE)  # as a rescue would, with the meter full
-	assert_float(td.spirit_warmth.pool).is_equal_approx(Config.SPIRIT_PER_RESCUE, 0.001)
+	td.player.add_spirit(SpiritConfig.SPIRIT_PER_RESCUE)  # as a rescue would, with the meter full
+	assert_float(td.spirit_warmth.pool).is_equal_approx(SpiritConfig.SPIRIT_PER_RESCUE, 0.001)
 	await runner.simulate_frames(60 * 4)
 	assert_bool(td.border.members.has(weakest)).is_true()
 	assert_float(weakest.joy).is_greater(before + 100.0)
-	assert_float(td.spirit_warmth.pool).is_less(Config.SPIRIT_PER_RESCUE)
+	assert_float(td.spirit_warmth.pool).is_less(SpiritConfig.SPIRIT_PER_RESCUE)
 	# It is the most strained that got it, not everyone: most of the ring is untouched.
 	var touched := 0
 	for i: int in range(24):
@@ -267,7 +267,7 @@ func test_the_recorder_notes_each_gift() -> void:
 		if parsed is Dictionary and (parsed as Dictionary)["type"] == "spirit_warm":
 			found.append(parsed)
 	assert_int(found.size()).is_equal(1)
-	assert_float(found[0]["joy"]).is_equal_approx(Config.SPARE_WARM_RATE * Config.SPARE_WARM_INTERVAL, 0.1)
+	assert_float(found[0]["joy"]).is_equal_approx(SpiritConfig.SPARE_WARM_RATE * SpiritConfig.SPARE_WARM_INTERVAL, 0.1)
 	assert_float(found[0]["id"]).is_equal(float(td.people.find(p)))
 	assert_float(found[0]["amount"]).is_greater(0.0)
 	assert_float(found[0]["pool"]).is_less(10.0)

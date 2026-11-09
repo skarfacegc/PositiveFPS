@@ -37,7 +37,7 @@ class ImpactTest(unittest.TestCase):
     def test_paths_map_to_their_impact(self):
         want = {
             "scripts/spirit_warmth.gd": "script", "scripts/looks/x.gd": "script", "scripts/spirit_warmth.gd.uid": "none",
-            "scripts/config.gd": "all", "scripts/config_base.gd": "all", "tests/x_test.gd": "suite",
+            "scripts/config.gd": "all", "scripts/border_config.gd": "all", "tests/x_test.gd": "suite",
             "tests/topdown_test_util.gd": "all", "project.godot": "all", "scenes/a.tscn": "all", "a.tres": "all",
             "addons/gdUnit4/x.gd": "all", "README.md": "none", "design/a.png": "none", "IDEAS.md": "none",
             "tools/run_tests.py": "all", "tools/gate.py": "all", "tools/coverage.py": "all", "tools/godot_run.py": "all",

@@ -102,13 +102,13 @@ func tick(delta: float) -> void:
 # Joy was turned away from `p` (Person.joy_blocked): a spark at their chest, and the reason's icon flashes.
 func on_blocked(p: Person, reason: int) -> void:
 	blocked_count += 1
-	var col := Config.SHELTER_COLOUR.lightened(0.5) if reason == Person.Block.SHELTERED else Color(1, 1, 1)
+	var col := MoodConfig.SHELTER_COLOUR.lightened(0.5) if reason == Person.Block.SHELTERED else Color(1, 1, 1)
 	sparks.append(
-		{"pos": p.chest_position(), "left": Config.BLOCK_SPARK_SECONDS, "colour": col, "turn": _rng.randf() * TAU}
+		{"pos": p.chest_position(), "left": MoodConfig.BLOCK_SPARK_SECONDS, "colour": col, "turn": _rng.randf() * TAU}
 	)
 	if sparks.size() > 24:
 		sparks.pop_front()
-	_flash[p] = {"reason": reason, "left": Config.BLOCK_FLASH_SECONDS}
+	_flash[p] = {"reason": reason, "left": MoodConfig.BLOCK_FLASH_SECONDS}
 
 
 # A spirit moment (SpiritMeter.Moment): a ring pulses round the player.
@@ -120,23 +120,29 @@ func pulse_player(kind: int) -> void:
 func on_dim_joy(p: Person) -> void:
 	for d: Dictionary in dim_rings:
 		if d["person"] == p:
-			d["left"] = Config.DIM_RING_SECONDS
+			d["left"] = PeopleConfig.DIM_RING_SECONDS
 			return
 	dim_rings.append(
-		{"person": p, "progress": 0.0, "left": Config.DIM_RING_SECONDS, "feet": Vector2.ZERO, "head": Vector2.ZERO}
+		{
+			"person": p,
+			"progress": 0.0,
+			"left": PeopleConfig.DIM_RING_SECONDS,
+			"feet": Vector2.ZERO,
+			"head": Vector2.ZERO
+		}
 	)
 
 
 # Round 18: a dimmed person's shield popped at `at` (world space, the head of the person it covered). Once per pop.
 func on_shield_pop(at: Vector3) -> void:
 	pop_count += 1
-	pops.append({"pos": at, "left": Config.SHELTER_POP_SECONDS})
+	pops.append({"pos": at, "left": MoodConfig.SHELTER_POP_SECONDS})
 
 
 # Round 18: the filled and hollow pips for `remaining` hits left (index 0 is the first pip; true = filled).
 static func pip_states(remaining: int) -> Array[bool]:
 	var out: Array[bool] = []
-	for i: int in range(Config.SHELTER_HITS):
+	for i: int in range(MoodConfig.SHELTER_HITS):
 		out.append(i < remaining)
 	return out
 
@@ -144,7 +150,7 @@ static func pip_states(remaining: int) -> Array[bool]:
 # Round 18: the alpha an umbrella with `wear` (1 fresh, 0.25 about to pop) is drawn with. The placeholder look
 # never goes below UMBRELLA_MIN_ALPHA; the styled look keeps its own floor.
 static func umbrella_alpha(wear: float, styled: bool) -> float:
-	var floor_alpha := Config.STYLED_UMBRELLA_MIN_ALPHA if styled else Config.UMBRELLA_MIN_ALPHA
+	var floor_alpha := MoodConfig.STYLED_UMBRELLA_MIN_ALPHA if styled else MoodConfig.UMBRELLA_MIN_ALPHA
 	return lerpf(floor_alpha, 1.0, clampf(wear, 0.0, 1.0))
 
 
@@ -152,7 +158,7 @@ static func umbrella_alpha(wear: float, styled: bool) -> float:
 func flash_of(p: Person) -> float:
 	if not _flash.has(p):
 		return 0.0
-	return _num(_flash[p]["left"]) / Config.BLOCK_FLASH_SECONDS
+	return _num(_flash[p]["left"]) / MoodConfig.BLOCK_FLASH_SECONDS
 
 
 # The marker of `p`, or an empty Dictionary when they are not faltering.
@@ -192,10 +198,10 @@ func _update_markers() -> void:
 		if not p.is_rescued or not p.is_faltering():
 			continue
 		now[p] = true
-		var line := p.joy_needed() * Config.MEMBER_FALTER_FRACTION
+		var line := p.joy_needed() * BorderConfig.MEMBER_FALTER_FRACTION
 		var near: Array[Vector3] = []
 		for g: Vector3 in mids:
-			if GloomSim.flat_dist(g, p.global_position) <= Config.GAP_TRACK_RADIUS:
+			if GloomSim.flat_dist(g, p.global_position) <= BorderConfig.GAP_TRACK_RADIUS:
 				near.append(g)
 		_gaps_near[p] = near
 		(
@@ -216,7 +222,7 @@ func _update_markers() -> void:
 		var links: Array[Vector3] = []
 		var near_gaps: Array = _gaps_near.get(p, [])
 		links.assign(near_gaps)
-		closes.append({"pos": p.global_position, "left": Config.FALTER_CLOSED_SECONDS, "links": links})
+		closes.append({"pos": p.global_position, "left": HudConfig.FALTER_CLOSED_SECONDS, "links": links})
 	for p: Person in _gaps_near.keys():
 		if not now.has(p):
 			_gaps_near.erase(p)
@@ -243,17 +249,17 @@ func _update_leak(delta: float) -> void:
 		return
 	# Only gaps near the view leak motes (the rest could not be seen).
 	var half := main.view_half_extents()
-	var reach := maxf(half.x, half.y) + Config.LEAK_VIEW_MARGIN
+	var reach := maxf(half.x, half.y) + BorderConfig.LEAK_VIEW_MARGIN
 	var at := main.player.global_position
 	for gi: int in range(mids.size()):
 		if GloomSim.flat_dist(mids[gi], at) > reach:
 			continue
 		var u := urg[gi] if gi < urg.size() else 0.0
-		var rate := float(Config.LEAK_MOTES_PER_GAP) / Config.LEAK_LIFE_SECONDS * lerpf(0.7, 2.0, u)
+		var rate := float(BorderConfig.LEAK_MOTES_PER_GAP) / BorderConfig.LEAK_LIFE_SECONDS * lerpf(0.7, 2.0, u)
 		var acc: float = _spawn_acc.get(gi, 0.0) + rate * delta
 		while acc >= 1.0:
 			acc -= 1.0
-			if motes.size() < Config.LEAK_MOTES_MAX:
+			if motes.size() < BorderConfig.LEAK_MOTES_MAX:
 				motes.append(_new_mote(mids[gi], u))
 		_spawn_acc[gi] = acc
 
@@ -264,9 +270,9 @@ func _new_mote(gap: Vector3, urgency: float) -> Dictionary:
 	var side := Vector3(-out.z, 0.0, out.x)
 	var start := gap + out * _rng.randf_range(0.4, 1.4) + side * _rng.randf_range(-1.3, 1.3)
 	start.y = 0.5
-	var speed := Config.LEAK_SPEED * _rng.randf_range(0.8, 1.2) * lerpf(1.0, 1.5, urgency)
+	var speed := BorderConfig.LEAK_SPEED * _rng.randf_range(0.8, 1.2) * lerpf(1.0, 1.5, urgency)
 	var vel := -out * speed + side * _rng.randf_range(-0.4, 0.4)
-	return {"pos": start, "vel": vel, "age": 0.0, "life": Config.LEAK_LIFE_SECONDS * _rng.randf_range(0.8, 1.2)}
+	return {"pos": start, "vel": vel, "age": 0.0, "life": BorderConfig.LEAK_LIFE_SECONDS * _rng.randf_range(0.8, 1.2)}
 
 
 # Round 14: each dimmed person's ring follows them and fills with their joy toward the rescue line.
@@ -309,7 +315,7 @@ func _update_icons(delta: float) -> void:
 			continue
 		for k: int in range(kinds.size()):
 			var kind := kinds[k]
-			var offset := (float(k) - float(kinds.size() - 1) * 0.5) * (Config.MOOD_ICON_SIZE + 6.0)
+			var offset := (float(k) - float(kinds.size() - 1) * 0.5) * (MoodConfig.MOOD_ICON_SIZE + 6.0)
 			var lift := 0.0
 			if kind == MoodIcons.Kind.CLOUD and p.glum_up:
 				lift = 1.0
@@ -319,7 +325,9 @@ func _update_icons(delta: float) -> void:
 			# Round 15: an umbrella shows how much of its shield is left (the shielder's hits), so it fades per hit.
 			var wear := p.shielder.shield_left_frac() if p.shielder != null else 1.0
 			# Round 18: the pips count the same hits (SHELTER_HITS minus those taken).
-			var pips := Config.SHELTER_HITS if p.shielder == null else Config.SHELTER_HITS - p.shielder.shield_hits
+			var pips := (
+				MoodConfig.SHELTER_HITS if p.shielder == null else MoodConfig.SHELTER_HITS - p.shielder.shield_hits
+			)
 			icons.append(
 				{
 					"person": p,
@@ -349,7 +357,7 @@ func _update_tethers() -> void:
 			var p := people[j]
 			if p == q or p.is_rescued or not p.sheltered or GloomSim.is_dimmed(p):
 				continue
-			if GloomSim.flat_dist(p.global_position, q.global_position) > Config.SHELTER_RADIUS:
+			if GloomSim.flat_dist(p.global_position, q.global_position) > MoodConfig.SHELTER_RADIUS:
 				continue
 			var link := {"a": q.chest_position(), "b": p.chest_position()}
 			now[i * 1000 + j] = link
@@ -357,7 +365,7 @@ func _update_tethers() -> void:
 	for key: int in _links.keys():
 		if not now.has(key):
 			var old: Dictionary = _links[key]
-			snaps.append({"a": old["a"], "b": old["b"], "left": Config.TETHER_SNAP_SECONDS})
+			snaps.append({"a": old["a"], "b": old["b"], "left": MoodConfig.TETHER_SNAP_SECONDS})
 	_links = now
 
 
@@ -372,7 +380,7 @@ func _update_regrow() -> void:
 			. append(
 				{
 					"person": p,
-					"progress": clampf(1.0 - p.shield_down_left / Config.SHELTER_REGROW, 0.0, 1.0),
+					"progress": clampf(1.0 - p.shield_down_left / MoodConfig.SHELTER_REGROW, 0.0, 1.0),
 					"feet": main.world_to_screen(p.global_position),
 					"head": main.world_to_screen(p.global_position + Vector3(0, 3.0, 0)),
 				}
@@ -440,7 +448,7 @@ func _draw_motes() -> void:
 	for m: Dictionary in motes:
 		var t: float = _num(m["age"]) / _num(m["life"])
 		var pos: Vector3 = m["pos"]
-		var col := Config.LEAK_COLOUR
+		var col := BorderConfig.LEAK_COLOUR
 		col.a = 0.75 * minf(t / 0.15, 1.0) * (1.0 - t)
 		draw_circle(main.world_to_screen(pos), 2.5 + 3.5 * t, col)
 
@@ -450,14 +458,14 @@ func _draw_tethers() -> void:
 	for t: Dictionary in tethers:
 		var a := main.world_to_screen(_vec3(t["a"]))
 		var b := main.world_to_screen(_vec3(t["b"]))
-		draw_line(a, b, Config.SHELTER_TETHER_COLOUR, Config.SHELTER_TETHER_WIDTH, true)
-		draw_circle(a, Config.SHELTER_TETHER_WIDTH, Config.SHELTER_TETHER_COLOUR)
-		draw_circle(b, Config.SHELTER_TETHER_WIDTH, Config.SHELTER_TETHER_COLOUR)
+		draw_line(a, b, MoodConfig.SHELTER_TETHER_COLOUR, MoodConfig.SHELTER_TETHER_WIDTH, true)
+		draw_circle(a, MoodConfig.SHELTER_TETHER_WIDTH, MoodConfig.SHELTER_TETHER_COLOUR)
+		draw_circle(b, MoodConfig.SHELTER_TETHER_WIDTH, MoodConfig.SHELTER_TETHER_COLOUR)
 	for s: Dictionary in snaps:
-		var f: float = _num(s["left"]) / Config.TETHER_SNAP_SECONDS
+		var f: float = _num(s["left"]) / MoodConfig.TETHER_SNAP_SECONDS
 		var a := main.world_to_screen(_vec3(s["a"]))
 		var b := main.world_to_screen(_vec3(s["b"]))
-		var col := Config.TETHER_COLOUR
+		var col := MoodConfig.TETHER_COLOUR
 		col.a = 0.8 * f
 		var gap := (1.0 - f) * 14.0
 		var dir := (b - a).normalized() if (b - a).length() > 1.0 else Vector2.RIGHT
@@ -472,9 +480,9 @@ func _draw_tethers() -> void:
 
 func _draw_closes() -> void:
 	for c: Dictionary in closes:
-		var f: float = _num(c["left"]) / Config.FALTER_CLOSED_SECONDS
+		var f: float = _num(c["left"]) / HudConfig.FALTER_CLOSED_SECONDS
 		var at := main.world_to_screen(_vec3(c["pos"]))
-		var col := Config.FALTER_SEAL_COLOUR
+		var col := HudConfig.FALTER_SEAL_COLOUR
 		col.a = f
 		for g: Vector3 in c["links"]:
 			var seal := col
@@ -497,11 +505,11 @@ func _draw_dim_rings() -> void:
 		var centre := (feet + head) * 0.5 + Vector2(0, 6)
 		var prog: float = d["progress"]
 		var track := Color(0.1, 0.08, 0.14, 0.45 * alpha)
-		draw_arc(centre, Config.FALTER_RING_RADIUS, 0.0, TAU, 40, track, 6.0, true)
+		draw_arc(centre, HudConfig.FALTER_RING_RADIUS, 0.0, TAU, 40, track, 6.0, true)
 		if prog > 0.0:
-			var pc := Config.BORDER_GAP_COLOUR.lerp(Config.FALTER_SEAL_COLOUR, prog)
+			var pc := BorderConfig.BORDER_GAP_COLOUR.lerp(HudConfig.FALTER_SEAL_COLOUR, prog)
 			pc.a = alpha
-			draw_arc(centre, Config.FALTER_RING_RADIUS, -PI * 0.5, -PI * 0.5 + TAU * prog, 40, pc, 6.0, true)
+			draw_arc(centre, HudConfig.FALTER_RING_RADIUS, -PI * 0.5, -PI * 0.5 + TAU * prog, 40, pc, 6.0, true)
 
 
 # Round 18: a small canopy over each sheltered person's head (placeholder look; the umbrella icon sits under it).
@@ -516,14 +524,14 @@ func _draw_canopies() -> void:
 		if ic["kind"] != MoodIcons.Kind.UMBRELLA or not canopy_shown():
 			continue
 		var pos: Vector2 = ic["pos"]
-		var base := pos + Vector2(0, -Config.SHELTER_CANOPY_LIFT)
-		var half := Config.SHELTER_CANOPY_WIDTH * 0.5
+		var base := pos + Vector2(0, -MoodConfig.SHELTER_CANOPY_LIFT)
+		var half := MoodConfig.SHELTER_CANOPY_WIDTH * 0.5
 		var pts := PackedVector2Array()
 		for i: int in range(13):
 			var a := PI + PI * float(i) / 12.0
 			pts.append(base + Vector2(cos(a) * half, sin(a) * half * 0.6))
-		draw_colored_polygon(pts, Config.SHELTER_TETHER_COLOUR)
-		draw_line(base, base + Vector2(0, 5.0), Config.SHELTER_TETHER_COLOUR, 2.0, true)
+		draw_colored_polygon(pts, MoodConfig.SHELTER_TETHER_COLOUR)
+		draw_line(base, base + Vector2(0, 5.0), MoodConfig.SHELTER_TETHER_COLOUR, 2.0, true)
 
 
 # Round 18: a faint countdown ring round a dimmed person whose shield is cooling down (it fills as the cooldown passes).
@@ -533,20 +541,20 @@ func _draw_regrow_rings() -> void:
 		var head: Vector2 = r["head"]
 		var centre := (feet + head) * 0.5 + Vector2(0, 6)
 		var prog: float = r["progress"]
-		var track := Config.SHELTER_TETHER_COLOUR
-		track.a = Config.REGROW_RING_ALPHA * 0.3
-		draw_arc(centre, Config.REGROW_RING_RADIUS, 0.0, TAU, 48, track, Config.REGROW_RING_WIDTH, true)
-		var col := Config.SHELTER_TETHER_COLOUR
-		col.a = Config.REGROW_RING_ALPHA
+		var track := MoodConfig.SHELTER_TETHER_COLOUR
+		track.a = MoodConfig.REGROW_RING_ALPHA * 0.3
+		draw_arc(centre, MoodConfig.REGROW_RING_RADIUS, 0.0, TAU, 48, track, MoodConfig.REGROW_RING_WIDTH, true)
+		var col := MoodConfig.SHELTER_TETHER_COLOUR
+		col.a = MoodConfig.REGROW_RING_ALPHA
 		if prog > 0.0:
 			draw_arc(
 				centre,
-				Config.REGROW_RING_RADIUS,
+				MoodConfig.REGROW_RING_RADIUS,
 				-PI * 0.5,
 				-PI * 0.5 + TAU * prog,
 				48,
 				col,
-				Config.REGROW_RING_WIDTH,
+				MoodConfig.REGROW_RING_WIDTH,
 				true
 			)
 
@@ -555,19 +563,19 @@ func _draw_regrow_rings() -> void:
 # first 40% of the pop, then hollow).
 func _draw_pops() -> void:
 	for pop: Dictionary in pops:
-		var f: float = _num(pop["left"]) / Config.SHELTER_POP_SECONDS
+		var f: float = _num(pop["left"]) / MoodConfig.SHELTER_POP_SECONDS
 		var t := 1.0 - f
 		var at := main.world_to_screen(_vec3(pop["pos"]))
-		var col := Config.SHELTER_TETHER_COLOUR
+		var col := MoodConfig.SHELTER_TETHER_COLOUR
 		col.a = f
-		var radius := lerpf(Config.SHELTER_POP_RING_MIN, Config.SHELTER_POP_RING_MAX, t)
+		var radius := lerpf(MoodConfig.SHELTER_POP_RING_MIN, MoodConfig.SHELTER_POP_RING_MAX, t)
 		draw_arc(at, radius, 0.0, TAU, 40, col, 2.0 + 3.0 * f, true)
 		for k: int in range(6):
 			var a := TAU * float(k) / 6.0 + 0.3
 			var d := Vector2(cos(a), sin(a))
 			draw_line(at + d * (radius * 0.6), at + d * (radius * 0.9), col, 2.0, true)
 		var filled := 1 if t < 0.4 else 0
-		_draw_pips(at + Vector2(0, Config.MOOD_ICON_SIZE * 0.68 + Config.PIP_LIFT), filled, col)
+		_draw_pips(at + Vector2(0, MoodConfig.MOOD_ICON_SIZE * 0.68 + MoodConfig.PIP_LIFT), filled, col)
 
 
 # Round 18: the wear pips of an umbrella: a dot per shield hit, filled while it has hits left, hollow once used. Centred
@@ -576,23 +584,23 @@ func _draw_pips(centre: Vector2, remaining: int, colour: Color) -> void:
 	var states := pip_states(remaining)
 	var n := states.size()
 	for i: int in range(n):
-		var at := centre + Vector2((float(i) - float(n - 1) * 0.5) * Config.PIP_SPACING, 0.0)
+		var at := centre + Vector2((float(i) - float(n - 1) * 0.5) * MoodConfig.PIP_SPACING, 0.0)
 		if states[i]:
-			draw_circle(at, Config.PIP_RADIUS, colour)
+			draw_circle(at, MoodConfig.PIP_RADIUS, colour)
 		else:
 			var hollow := colour
-			hollow.a *= Config.PIP_HOLLOW_ALPHA
-			draw_arc(at, Config.PIP_RADIUS, 0.0, TAU, 12, hollow, 1.5, true)
+			hollow.a *= MoodConfig.PIP_HOLLOW_ALPHA
+			draw_arc(at, MoodConfig.PIP_RADIUS, 0.0, TAU, 12, hollow, 1.5, true)
 
 
 func _draw_marker(m: Dictionary) -> void:
 	var u: float = m["urgency"]
 	var feet: Vector2 = m["feet"]
 	var head: Vector2 = m["head"]
-	var wave := 0.5 - 0.5 * cos(TAU * _clock * lerpf(Config.FALTER_PULSE_HZ_MIN, Config.FALTER_PULSE_HZ_MAX, u))
-	var base := Config.BORDER_GAP_COLOUR.lerp(Color(1.0, 0.85, 0.75), u * 0.6)
+	var wave := 0.5 - 0.5 * cos(TAU * _clock * lerpf(HudConfig.FALTER_PULSE_HZ_MIN, HudConfig.FALTER_PULSE_HZ_MAX, u))
+	var base := BorderConfig.BORDER_GAP_COLOUR.lerp(Color(1.0, 0.85, 0.75), u * 0.6)
 	# The pulsing marker at the feet: a flattened ring that swells with the beat.
-	var radius := Config.FALTER_MARKER_RADIUS * (0.85 + 0.3 * wave) * (1.0 + 0.3 * u)
+	var radius := HudConfig.FALTER_MARKER_RADIUS * (0.85 + 0.3 * wave) * (1.0 + 0.3 * u)
 	var ring := base
 	ring.a = lerpf(0.35, 0.95, wave) * (0.65 + 0.35 * u)
 	var pts := PackedVector2Array()
@@ -606,12 +614,12 @@ func _draw_marker(m: Dictionary) -> void:
 	# The progress ring around the body: fills toward the falter line as joy comes back.
 	var centre := (feet + head) * 0.5 + Vector2(0, 6)
 	var prog: float = m["progress"]
-	draw_arc(centre, Config.FALTER_RING_RADIUS, 0.0, TAU, 40, Color(0.1, 0.08, 0.14, 0.45), 6.0, true)
+	draw_arc(centre, HudConfig.FALTER_RING_RADIUS, 0.0, TAU, 40, Color(0.1, 0.08, 0.14, 0.45), 6.0, true)
 	if prog > 0.0:
-		var pc := Config.BORDER_GAP_COLOUR.lerp(Config.FALTER_SEAL_COLOUR, prog)
-		draw_arc(centre, Config.FALTER_RING_RADIUS, -PI * 0.5, -PI * 0.5 + TAU * prog, 40, pc, 6.0, true)
+		var pc := BorderConfig.BORDER_GAP_COLOUR.lerp(HudConfig.FALTER_SEAL_COLOUR, prog)
+		draw_arc(centre, HudConfig.FALTER_RING_RADIUS, -PI * 0.5, -PI * 0.5 + TAU * prog, 40, pc, 6.0, true)
 	# The "!" badge above the head: bigger and bobbing faster as the gap stays open.
-	var badge := Config.FALTER_BADGE_SIZE * (1.0 + 0.35 * u) * (1.0 + 0.1 * wave)
+	var badge := HudConfig.FALTER_BADGE_SIZE * (1.0 + 0.35 * u) * (1.0 + 0.1 * wave)
 	var badge_col := base
 	badge_col.a = 1.0
 	MoodIcons.draw(self, MoodIcons.Kind.BANG, head + Vector2(0, -22.0 - 4.0 * wave), badge, badge_col)
@@ -624,24 +632,24 @@ func _draw_icon(ic: Dictionary) -> void:
 	var col := MoodIcons.colour_for(kind)
 	var pos: Vector2 = ic["pos"]
 	if lift > 0.0:
-		col = Config.GLUM_UP_ICON_COLOUR
+		col = MoodConfig.GLUM_UP_ICON_COLOUR
 		pos += Vector2(0, -10.0 - 3.0 * sin(_clock * 10.0))
 	col = col.lerp(Color.WHITE, flash)
-	var size := Config.MOOD_ICON_SIZE * (1.0 + 0.8 * flash) * (1.0 + 0.2 * lift)
+	var size := MoodConfig.MOOD_ICON_SIZE * (1.0 + 0.8 * flash) * (1.0 + 0.2 * lift)
 	# Round 15: a worn shield's umbrella shrinks a little (wear 1 fresh, down to 0.25 before it pops). Round 18: it stays
 	# nearly opaque (umbrella_alpha) and the wear is shown by the pips under it instead of a fade.
 	var wear: float = ic.get("wear", 1.0)
 	if kind == MoodIcons.Kind.UMBRELLA:
 		col.a *= umbrella_alpha(wear, Looks.is_styled())
-		size *= lerpf(Config.UMBRELLA_MIN_SCALE, 1.0, wear)
+		size *= lerpf(MoodConfig.UMBRELLA_MIN_SCALE, 1.0, wear)
 	MoodIcons.draw(self, kind, pos, size, col, wear)
 	if kind == MoodIcons.Kind.UMBRELLA:
-		_draw_pips(pos + Vector2(0, size * 0.68 + Config.PIP_LIFT), _int(ic.get("pips", 0)), col)
+		_draw_pips(pos + Vector2(0, size * 0.68 + MoodConfig.PIP_LIFT), _int(ic.get("pips", 0)), col)
 
 
 func _draw_sparks() -> void:
 	for s: Dictionary in sparks:
-		var f: float = _num(s["left"]) / Config.BLOCK_SPARK_SECONDS
+		var f: float = _num(s["left"]) / MoodConfig.BLOCK_SPARK_SECONDS
 		var t := 1.0 - f
 		var at := main.world_to_screen(_vec3(s["pos"]))
 		var col: Color = s["colour"]
@@ -657,13 +665,13 @@ func _draw_player_pulses() -> void:
 	for p: Dictionary in player_pulses:
 		var f: float = _num(p["left"]) / 0.5
 		var kind: int = p["kind"]
-		var col := Config.SPIRIT_GAIN_COLOUR
+		var col := HudConfig.SPIRIT_GAIN_COLOUR
 		var radius := lerpf(70.0, 24.0, f)
 		if kind == SpiritMeter.Moment.SPEND:
-			col = Config.SPIRIT_SPEND_COLOUR
+			col = HudConfig.SPIRIT_SPEND_COLOUR
 			radius = lerpf(24.0, 70.0, f)
 		elif kind == SpiritMeter.Moment.LOSS:
-			col = Config.SPIRIT_LOSS_COLOUR
+			col = HudConfig.SPIRIT_LOSS_COLOUR
 			radius = lerpf(80.0, 22.0, f)
 		col.a = f * 0.9
 		var at := main.world_to_screen(main.player.global_position)

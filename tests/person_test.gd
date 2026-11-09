@@ -14,7 +14,7 @@ func _make_person(affinity: int, pos: Vector3 = Vector3.ZERO, gloom: float = 0.0
 
 func _shots_to_rescue(p: Person, element: int, cap: int = 200) -> int:
 	for i: int in range(cap):
-		p.receive_joy(element, Config.TD_JOY_PER_SHOT, 0.0)
+		p.receive_joy(element, ProjectileConfig.TD_JOY_PER_SHOT, 0.0)
 		if p.is_rescued:
 			return i + 1
 	return -1
@@ -34,7 +34,7 @@ func test_rescued_signal_fires_once() -> void:
 	var count := [0]
 	p.rescued.connect(func() -> void: count[0] += 1)
 	for i: int in range(60):
-		p.receive_joy(1, Config.TD_JOY_PER_SHOT, 0.0)
+		p.receive_joy(1, ProjectileConfig.TD_JOY_PER_SHOT, 0.0)
 	assert_bool(p.is_rescued).is_true()
 	assert_int(count[0]).is_equal(1)
 
@@ -51,7 +51,7 @@ func test_joy_fades_only_after_delay() -> void:
 	p.joy = 500.0
 	p.receive_joy(0, 0.0, 0.0)  # Zero-gain hit: resets the time since last hit.
 	var t := 0.0
-	while t < Config.JOY_FADE_DELAY - 0.2:
+	while t < PeopleConfig.JOY_FADE_DELAY - 0.2:
 		p.tick(0.1)
 		t += 0.1
 	assert_float(p.joy).is_equal_approx(500.0, 0.001)
@@ -70,7 +70,7 @@ func test_drain_relapses_rescued_person() -> void:
 	# Round 24: the drain starts a wobble first; the relapse comes when it has run out (dimmed_waves_test covers it).
 	assert_int(relapses[0]).is_equal(0)
 	assert_bool(p.wobbling).is_true()
-	for i: int in range(int(Config.WOBBLE_SECONDS * 1.3 * 60.0) + 5):
+	for i: int in range(int(PeopleConfig.WOBBLE_SECONDS * 1.3 * 60.0) + 5):
 		p.tick(1.0 / 60.0)
 	assert_int(relapses[0]).is_equal(1)
 	assert_bool(p.is_rescued).is_false()
@@ -90,7 +90,7 @@ func test_rescued_person_can_be_topped_up() -> void:
 	p.receive_joy(0, Config.JOY_MAX, 0.0)
 	p.drain_joy(300.0)
 	var before: float = p.joy
-	p.receive_joy(0, Config.TD_JOY_PER_SHOT, 0.0)
+	p.receive_joy(0, ProjectileConfig.TD_JOY_PER_SHOT, 0.0)
 	assert_float(p.joy).is_greater(before)
 	assert_bool(p.is_rescued).is_true()
 
@@ -109,11 +109,11 @@ func test_level_changes_run_without_errors() -> void:
 func test_each_hit_tier_adds_joy_and_numbers() -> void:
 	# Affinity Music: Music matches, Nature is strong against it, Art is weak.
 	var p: Person = _make_person(0)
-	p.receive_joy(0, Config.TD_JOY_PER_SHOT, 0.0)
+	p.receive_joy(0, ProjectileConfig.TD_JOY_PER_SHOT, 0.0)
 	var after_match: float = p.joy
-	p.receive_joy(2, Config.TD_JOY_PER_SHOT, 0.0)
+	p.receive_joy(2, ProjectileConfig.TD_JOY_PER_SHOT, 0.0)
 	var after_strong: float = p.joy
-	p.receive_joy(1, Config.TD_JOY_PER_SHOT, 0.0)
+	p.receive_joy(1, ProjectileConfig.TD_JOY_PER_SHOT, 0.0)
 	assert_float(after_match).is_greater(0.0)
 	assert_float(after_strong).is_greater(after_match)
 	assert_float(p.joy).is_greater(after_strong)

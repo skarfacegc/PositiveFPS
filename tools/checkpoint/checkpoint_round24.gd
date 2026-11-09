@@ -74,7 +74,7 @@ func _r24_move_player(at: Vector3, frames: int = 40) -> void:
 # Sets a border member's joy so the warning's urgency is `urgency` (0 healthy .. 1 about to falter).
 func _r24_strain(m: Person, urgency: float) -> void:
 	var warn_start := 0.97  # (round 26: the warning constants are gone from Config)
-	var frac := warn_start - urgency * (warn_start - Config.MEMBER_FALTER_FRACTION)
+	var frac := warn_start - urgency * (warn_start - BorderConfig.MEMBER_FALTER_FRACTION)
 	m.joy = m.joy_needed() * frac
 	m._update_visuals()
 
@@ -101,7 +101,7 @@ func _r24_fight(label: String) -> void:
 	_make_dimmed(main.people[ring_count + 31], ring[10].position + out * 1.6 + Vector3(-out.z, 0.0, out.x) * 0.9)
 	# A real gap on the far side from the strained ones: a member below the falter line (the rules run for a moment so
 	# the gap is older than the half second a marker needs and the dimmed people have faded in).
-	ring[15].joy = ring[15].joy_needed() * (Config.MEMBER_FALTER_FRACTION - 0.04)
+	ring[15].joy = ring[15].joy_needed() * (BorderConfig.MEMBER_FALTER_FRACTION - 0.04)
 	_r24_run(45)
 	r24_gap = main.border.gap_midpoints()[0] if main.border.gap_midpoints().size() > 0 else centre
 	await _r24_move_player(centre + Vector3(0.0, 0.0, 1.5))
@@ -149,11 +149,11 @@ func _r24_burst(label: String) -> void:
 		var p: Person = c["person"]
 		var to: Vector3 = c["to"]
 		p.global_position = Vector3(to.x, 0.0, to.z)
-		p.gloom = Config.BURST_LIFT_GLOOM
+		p.gloom = SpiritConfig.BURST_LIFT_GLOOM
 		p.level = Config.gloom_level(p.gloom)
 		p.joy = 0.0
-		p.calm_left = Config.BURST_CALM_SECONDS
-	main.player.look.play_burst(Config.BURST_CLEAR_RADIUS, Config.TD_BURST_TIME)
+		p.calm_left = SpiritConfig.BURST_CALM_SECONDS
+	main.player.look.play_burst(SpiritConfig.BURST_CLEAR_RADIUS, SpiritConfig.TD_BURST_TIME)
 	_r24_run(14)
 	await _r24_shot("fight_burst", label, {}, 3)
 	var lifted: Dictionary = cleared[1]
@@ -167,7 +167,7 @@ func _r24_notice(label: String) -> void:
 	main.intro.notice(Intro.Prompt.BEACON_BLOCKED)
 	main.intro.time_left = main.intro.duration - 1.0  # Past the fade-in: fully shown.
 	await _r24_shot("fight_notice", label, {"rect": Rect2i(240, 180, 800, 140), "scale": 2}, 6)
-	main.intro.notice(Intro.Prompt.BEACON_BLOCKED, Config.BEACON_DIM_TEXT)
+	main.intro.notice(Intro.Prompt.BEACON_BLOCKED, BeaconConfig.BEACON_DIM_TEXT)
 	main.intro.time_left = main.intro.duration - 1.0
 	await _settle(14)
 	main.intro.enabled = false
@@ -184,7 +184,7 @@ func _r24_wobble_and_warming(label: String) -> void:
 	var progress: Array[float] = [0.04, 0.4, 0.72, 0.97]
 	for i: int in range(progress.size()):
 		var m := ring[2 + i]
-		m.joy = m.joy_needed() * Config.RELAPSE_FRACTION * 0.4
+		m.joy = m.joy_needed() * PeopleConfig.RELAPSE_FRACTION * 0.4
 		m._start_wobble()
 		m.wobble_left = m.wobble_total * (1.0 - progress[i])
 		m._update_visuals()
@@ -261,7 +261,7 @@ func _r24_reach(label: String) -> void:
 	main.reach_guide._on_zone_grew(
 		42.0, Vector3(border.centre.x + reach * 1.1, 0.0, border.centre.z + reach * 0.3), 0.3
 	)
-	main.reach_guide._pulse_left = Config.BEACON_PULSE_SECONDS * 0.6
+	main.reach_guide._pulse_left = BeaconConfig.BEACON_PULSE_SECONDS * 0.6
 	await _settle(2)
 	main.reach_guide.sync(border, main.player)
 	await _r24_shot("reach_pulse", label, {}, 1)
@@ -273,8 +273,8 @@ func _r24_reach(label: String) -> void:
 
 # Puts the night at `progress` through first light and moves the front there (the rules are run by hand).
 func _r24_front(progress: float) -> void:
-	main.night.elapsed = Config.NIGHT_LENGTH - Config.FIRST_LIGHT_SECONDS * (1.0 - progress)
-	main._update_light()
+	main.night.elapsed = NightConfig.NIGHT_LENGTH - NightConfig.FIRST_LIGHT_SECONDS * (1.0 - progress)
+	main.camera_rig.update_light()
 	main.hud.set_night_progress(main.night.progress())
 	main.first_light.step(0.0)
 	main.minimap.refresh_clouds(main.people)

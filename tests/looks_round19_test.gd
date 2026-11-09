@@ -22,13 +22,13 @@ func _meshes(look: LandmarkLookStyled) -> int:
 
 
 func test_each_styled_landmark_builds_both_versions_with_its_own_name() -> void:
-	for i: int in range(Config.LANDMARK_NAMES.size()):
+	for i: int in range(LandmarkConfig.LANDMARK_NAMES.size()):
 		var lm := _landmark(i)
 		var look := lm.look as LandmarkLookStyled
 		assert_bool(look.is_styled()).is_true()
 		assert_int(look.ruin.get_child_count()).is_greater(3)
 		assert_int(look.alive.get_child_count()).is_greater(3)
-		assert_str(look._label.text).is_equal(Config.LANDMARK_NAMES[i])
+		assert_str(look._label.text).is_equal(LandmarkConfig.LANDMARK_NAMES[i])
 
 
 func test_the_three_landmarks_have_different_silhouettes() -> void:
@@ -44,10 +44,10 @@ func test_a_held_landmark_is_lit_and_shows_its_boost() -> void:
 	assert_bool(look.is_lit()).is_false()
 	assert_bool(look._beam.visible).is_false()
 	assert_bool(look.ruin.visible).is_true()
-	lm.update(Config.BORDER_LANDMARK_HOLD * 0.5, true)
+	lm.update(LandmarkConfig.BORDER_LANDMARK_HOLD * 0.5, true)
 	assert_bool(look.alive.visible).is_true()
 	assert_str(look._label.text).contains("Bell tower 50%")
-	lm.update(Config.BORDER_LANDMARK_HOLD, true)
+	lm.update(LandmarkConfig.BORDER_LANDMARK_HOLD, true)
 	assert_bool(look.is_lit()).is_true()
 	assert_bool(look._beam.visible).is_true()
 	assert_bool(look.ruin.visible).is_false()
@@ -64,7 +64,7 @@ func test_held_cues_exist_for_the_bandstand_and_the_garden() -> void:
 	for i: int in [Landmarks.BANDSTAND, Landmarks.GARDEN]:
 		var lm := _landmark(i)
 		var look := lm.look as LandmarkLookStyled
-		lm.update(Config.BORDER_LANDMARK_HOLD, true)
+		lm.update(LandmarkConfig.BORDER_LANDMARK_HOLD, true)
 		assert_int(look._motes.size()).is_equal(LandmarkLookStyled.MOTES)
 		assert_bool(look._motes[0].visible).is_true()
 
@@ -112,10 +112,10 @@ func test_the_styled_minimap_marks_the_beacon_and_unheld_landmarks_apart() -> vo
 	var look := MinimapLookStyled.new()
 	assert_bool(look.landmark_state_colour(true).is_equal_approx(look.landmark_colour())).is_true()
 	assert_bool(look.landmark_state_colour(false).is_equal_approx(look.landmark_colour())).is_false()
-	assert_bool(look.beacon_colour().is_equal_approx(Config.BEACON_COLOUR)).is_false()
+	assert_bool(look.beacon_colour().is_equal_approx(BeaconConfig.BEACON_COLOUR)).is_false()
 	assert_float(look.halo_colour("beacon").a).is_greater(0.0)
 	var plain := MinimapLookPlaceholder.new()
-	assert_bool(plain.beacon_colour().is_equal_approx(Config.BEACON_COLOUR)).is_true()
+	assert_bool(plain.beacon_colour().is_equal_approx(BeaconConfig.BEACON_COLOUR)).is_true()
 	assert_float(plain.halo_colour("landmark").a).is_equal(0.0)
 	var map: Minimap = auto_free(Minimap.new())
 	map.size = Vector2(144, 144)

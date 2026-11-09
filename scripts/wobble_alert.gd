@@ -44,7 +44,7 @@ func setup(hud: Hud, minimap: Control) -> void:
 func _process(delta: float) -> void:
 	_clock += delta
 	_since += delta
-	if _since >= Config.WOBBLE_ALERT_REFRESH:
+	if _since >= HudConfig.WOBBLE_ALERT_REFRESH:
 		update_now()
 	elif not _shown.is_empty():
 		queue_redraw()
@@ -57,10 +57,10 @@ func update_now() -> void:
 	_shown.clear()
 	var screen := get_viewport_rect().size
 	if main != null and _hud != null and main.running and screen.x >= 400.0 and screen.y >= 300.0:
-		var tips := safe_rect(screen).grow(-Config.WOBBLE_ALERT_REACH)
+		var tips := safe_rect(screen).grow(-HudConfig.WOBBLE_ALERT_REACH)
 		if tips.size.x > 0.0 and tips.size.y > 0.0:
-			var clusters := group(_off_screen_entries(screen), Config.WOBBLE_ALERT_CLUSTER_RADIUS)
-			for ci: int in range(mini(clusters.size(), Config.WOBBLE_ALERT_MAX)):
+			var clusters := group(_off_screen_entries(screen), HudConfig.WOBBLE_ALERT_CLUSTER_RADIUS)
+			for ci: int in range(mini(clusters.size(), HudConfig.WOBBLE_ALERT_MAX)):
 				var cluster: Dictionary = clusters[ci]
 				var centre: Vector3 = cluster["pos"]
 				var placed := tip_for(main.world_to_screen(centre), screen, tips)
@@ -171,7 +171,9 @@ static func _flat_distance(a: Vector3, b: Vector3) -> float:
 
 # The pulse rate (per second) for a wobble at `urgency` (0 just begun, 1 about to relapse).
 static func hz_for(urgency: float) -> float:
-	return lerpf(Config.WOBBLE_ALERT_PULSE_HZ_CALM, Config.WOBBLE_ALERT_PULSE_HZ_URGENT, clampf(urgency, 0.0, 1.0))
+	return lerpf(
+		HudConfig.WOBBLE_ALERT_PULSE_HZ_CALM, HudConfig.WOBBLE_ALERT_PULSE_HZ_URGENT, clampf(urgency, 0.0, 1.0)
+	)
 
 
 # The pulse at clock time `t` for `urgency`: 0 at rest, 1 at the top of each beat.
@@ -181,7 +183,7 @@ static func pulse_at(t: float, urgency: float) -> float:
 
 # The pointer's colour: the warm amber, brighter as the pulse rises and as the wobble nears its end.
 static func colour_at(urgency: float, pulse: float) -> Color:
-	var col := Config.WOBBLE_ALERT_COLOUR
+	var col := HudConfig.WOBBLE_ALERT_COLOUR
 	col.a = lerpf(0.55 + 0.35 * clampf(urgency, 0.0, 1.0), 1.0, pulse)
 	return col
 
@@ -194,8 +196,8 @@ func _draw() -> void:
 		var count: int = s["count"]
 		var urgency: float = s["urgency"]
 		var pulse := pulse_at(_clock, urgency)
-		var ring := Config.WOBBLE_ALERT_RING * (1.0 + Config.WOBBLE_ALERT_PULSE_GROW * pulse)
-		var centre := tip - dir * (Config.WOBBLE_ALERT_ARROW + Config.WOBBLE_ALERT_RING)
+		var ring := HudConfig.WOBBLE_ALERT_RING * (1.0 + HudConfig.WOBBLE_ALERT_PULSE_GROW * pulse)
+		var centre := tip - dir * (HudConfig.WOBBLE_ALERT_ARROW + HudConfig.WOBBLE_ALERT_RING)
 		var col := colour_at(urgency, pulse)
 		if Looks.is_styled():
 			_draw_styled(centre, tip, dir, ring, col)
@@ -203,8 +205,8 @@ func _draw() -> void:
 			draw_circle(centre, ring, Color(col.r, col.g, col.b, col.a * 0.2))
 			draw_arc(centre, ring, 0.0, TAU, 24, col, 2.0, true)
 			var side := Vector2(-dir.y, dir.x)
-			var base := tip - dir * Config.WOBBLE_ALERT_ARROW
-			var a := Config.WOBBLE_ALERT_ARROW * 0.6
+			var base := tip - dir * HudConfig.WOBBLE_ALERT_ARROW
+			var a := HudConfig.WOBBLE_ALERT_ARROW * 0.6
 			draw_colored_polygon(PackedVector2Array([tip, base + side * a, base - side * a]), col)
 		if count > 1:
 			var shade := StyleUi.INK if Looks.is_styled() else Color(0.0, 0.0, 0.0, col.a)
@@ -214,7 +216,7 @@ func _draw() -> void:
 				str(count),
 				HORIZONTAL_ALIGNMENT_LEFT,
 				-1,
-				Config.WOBBLE_ALERT_FONT_SIZE,
+				HudConfig.WOBBLE_ALERT_FONT_SIZE,
 				shade
 			)
 
@@ -227,8 +229,8 @@ func _draw_styled(centre: Vector2, tip: Vector2, dir: Vector2, ring: float, col:
 	StyleUi.ring(self, centre, ring, cell, edge, 2)
 	StyleUi.ring(self, centre, ring, cell, col, 1)
 	var side := Vector2(-dir.y, dir.x)
-	var base := tip - dir * Config.WOBBLE_ALERT_ARROW
-	var a := Config.WOBBLE_ALERT_ARROW * 0.6
+	var base := tip - dir * HudConfig.WOBBLE_ALERT_ARROW
+	var a := HudConfig.WOBBLE_ALERT_ARROW * 0.6
 	StyleUi.poly(self, PackedVector2Array([tip, base + side * (a + cell), base - side * (a + cell)]), cell, edge)
 	StyleUi.poly(self, PackedVector2Array([tip, base + side * a, base - side * a]), cell, col)
 

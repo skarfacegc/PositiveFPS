@@ -15,10 +15,10 @@ func _landmark(index: int) -> Landmark:
 
 
 func test_the_boost_lines_say_what_each_boost_does_in_short_words() -> void:
-	assert_array(Config.LANDMARK_BOOST_TEXT).is_equal(
+	assert_array(LandmarkConfig.LANDMARK_BOOST_TEXT).is_equal(
 		["music x2", "nature x2", "gloom slowed x0.4 nearby", "art (no boost yet)"]
 	)
-	for text: String in Config.LANDMARK_BOOST_TEXT:
+	for text: String in LandmarkConfig.LANDMARK_BOOST_TEXT:
 		assert_int(text.length()).is_less_equal(26)
 
 
@@ -34,7 +34,7 @@ func test_the_held_panel_line_reads_name_colon_boost() -> void:
 	var lms: Landmarks = auto_free(Landmarks.new())
 	add_child(lms)
 	lms.build()
-	lms.items[Landmarks.BANDSTAND].update(Config.BORDER_LANDMARK_HOLD, true)
+	lms.items[Landmarks.BANDSTAND].update(LandmarkConfig.BORDER_LANDMARK_HOLD, true)
 	assert_array(lms.held_lines()).is_equal(["Bandstand: music x2"])
 
 
@@ -46,12 +46,12 @@ func test_a_claim_and_a_loss_each_raise_a_notice_on_the_hud() -> void:
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
 	var garden := td.landmarks.items[Landmarks.GARDEN]
-	garden.update(Config.BORDER_LANDMARK_HOLD, true)
+	garden.update(LandmarkConfig.BORDER_LANDMARK_HOLD, true)
 	assert_str(td.hud.alert_label.text).is_equal("Claimed the Garden: nature x2")
-	assert_that(td.hud.alert_label.get_theme_color("font_color")).is_equal(Config.LANDMARK_CLAIM_COLOUR)
+	assert_that(td.hud.alert_label.get_theme_color("font_color")).is_equal(LandmarkConfig.LANDMARK_CLAIM_COLOUR)
 	garden.update(0.1, false)
 	assert_str(td.hud.alert_label.text).is_equal("Lost the Garden boost: nature x2")
-	assert_that(td.hud.alert_label.get_theme_color("font_color")).is_equal(Config.LANDMARK_LOSS_COLOUR)
+	assert_that(td.hud.alert_label.get_theme_color("font_color")).is_equal(LandmarkConfig.LANDMARK_LOSS_COLOUR)
 	assert_float(td.hud.alert_label.modulate.a).is_equal_approx(1.0, 0.001)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
@@ -84,7 +84,7 @@ func test_the_landmark_pulses_when_it_is_claimed_and_when_it_is_lost() -> void:
 	assert_bool(garden.look is LandmarkLookPlaceholder).is_true()
 	var look := garden.look as LandmarkLookPlaceholder
 	assert_bool(look.pulse_running()).is_false()
-	garden.update(Config.BORDER_LANDMARK_HOLD, true)
+	garden.update(LandmarkConfig.BORDER_LANDMARK_HOLD, true)
 	assert_bool(look.pulse_running()).is_true()
 	await runner.simulate_frames(2)
 	assert_bool(look.pulse_running()).is_true()
@@ -98,7 +98,10 @@ func test_the_placeholder_minimap_marks_a_held_landmark_apart_from_one_not_held(
 	var look := MinimapLookPlaceholder.new()
 	assert_bool(look.landmark_state_colour(true).is_equal_approx(look.landmark_colour())).is_true()
 	assert_bool(look.landmark_state_colour(false).is_equal_approx(look.landmark_colour())).is_false()
-	assert_bool(look.landmark_state_colour(false).is_equal_approx(Config.TD_MINIMAP_LANDMARK_UNHELD_COLOUR)).is_true()
+	(
+		assert_bool(look.landmark_state_colour(false).is_equal_approx(HudConfig.TD_MINIMAP_LANDMARK_UNHELD_COLOUR))
+		. is_true()
+	)
 
 
 func test_the_base_minimap_look_draws_held_and_unheld_landmarks_in_one_colour() -> void:

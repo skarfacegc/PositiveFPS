@@ -9,7 +9,7 @@ extends Control
 enum Kind { LANDMARKS, DAWN, ALERT, CUE, RESCUED, BURST, TARGET, TARGETING, KEYS }
 
 var kind: int = Kind.LANDMARKS
-# LANDMARKS: which landmarks are held, in Config.LANDMARK_NAMES order.
+# LANDMARKS: which landmarks are held, in LandmarkConfig.LANDMARK_NAMES order.
 var held: Array[bool] = []
 # DAWN: the end screen's title, detail text and rating (empty when the round was lost).
 var title: String = ""

@@ -10,7 +10,7 @@ enum Moment { GAIN, SPEND, LOSS }
 
 const POPUP_FONT_SIZE := 26
 
-var spirit: float = Config.SPIRIT_START
+var spirit: float = SpiritConfig.SPIRIT_START
 var is_dim: bool = false
 # The flash over the bar (0 to 1) and its colour, and the floating numbers: {"text", "colour", "left"}.
 var flash: float = 0.0
@@ -23,10 +23,10 @@ var _dirty: bool = true
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	offset_left = -Config.SPIRIT_METER_WIDTH * 0.5
-	offset_right = Config.SPIRIT_METER_WIDTH * 0.5
+	offset_left = -HudConfig.SPIRIT_METER_WIDTH * 0.5
+	offset_right = HudConfig.SPIRIT_METER_WIDTH * 0.5
 	offset_top = -110.0
-	offset_bottom = -110.0 + Config.SPIRIT_METER_HEIGHT
+	offset_bottom = -110.0 + HudConfig.SPIRIT_METER_HEIGHT
 
 
 # Sets the numbers it draws and redraws.
@@ -45,7 +45,7 @@ func moment(amount: float, kind: int) -> void:
 	flash_colour = colour
 	var sign_text := "+" if amount > 0.0 else "−"
 	popups.append(
-		{"text": "%s%d" % [sign_text, roundi(absf(amount))], "colour": colour, "left": Config.SPIRIT_MOMENT_SECONDS}
+		{"text": "%s%d" % [sign_text, roundi(absf(amount))], "colour": colour, "left": HudConfig.SPIRIT_MOMENT_SECONDS}
 	)
 	if popups.size() > 4:
 		popups.pop_front()
@@ -54,10 +54,10 @@ func moment(amount: float, kind: int) -> void:
 static func _moment_colour(kind: int) -> Color:
 	match kind:
 		Moment.GAIN:
-			return Config.SPIRIT_GAIN_COLOUR
+			return HudConfig.SPIRIT_GAIN_COLOUR
 		Moment.SPEND:
-			return Config.SPIRIT_SPEND_COLOUR
-	return Config.SPIRIT_LOSS_COLOUR
+			return HudConfig.SPIRIT_SPEND_COLOUR
+	return HudConfig.SPIRIT_LOSS_COLOUR
 
 
 # Advances the flash and the floating numbers.
@@ -76,15 +76,15 @@ func tick(delta: float) -> void:
 
 # The x (in the meter's own pixels) of the tick for `value` spirit.
 func tick_x(value: float) -> float:
-	return size.x * clampf(value / Config.SPIRIT_MAX, 0.0, 1.0)
+	return size.x * clampf(value / SpiritConfig.SPIRIT_MAX, 0.0, 1.0)
 
 
 func burst_tick_x() -> float:
-	return tick_x(Config.BURST_SPIRIT_COST)
+	return tick_x(SpiritConfig.BURST_SPIRIT_COST)
 
 
 func dim_tick_x() -> float:
-	return tick_x(Config.DIM_EXIT_SPIRIT)
+	return tick_x(SpiritConfig.DIM_EXIT_SPIRIT)
 
 
 # The meter's clock (seconds), which paces the dim tick's pulse.
@@ -111,7 +111,7 @@ func _draw() -> void:
 	back.border_color = Color(0.93, 0.87, 0.72, 0.7)
 	back.set_border_width_all(2)
 	draw_style_box(back, bar.grow(2.0))
-	var fill_w := size.x * clampf(spirit / Config.SPIRIT_MAX, 0.0, 1.0)
+	var fill_w := size.x * clampf(spirit / SpiritConfig.SPIRIT_MAX, 0.0, 1.0)
 	var fill_col := Color(0.62, 0.62, 0.68) if is_dim else Color(1.0, 0.82, 0.36)
 	if fill_w > 1.0:
 		var fill := StyleBoxFlat.new()
@@ -129,7 +129,7 @@ func _draw() -> void:
 # The two ticks: the burst cost (a line and a small burst glyph above) and the dim exit (a line and a moon below).
 func _draw_ticks(h: float) -> void:
 	var bx := burst_tick_x()
-	var can := not is_dim and spirit >= Config.BURST_SPIRIT_COST
+	var can := not is_dim and spirit >= SpiritConfig.BURST_SPIRIT_COST
 	var burst_col := Color(1.0, 0.95, 0.75) if can else Color(0.85, 0.5, 0.45)
 	draw_line(Vector2(bx, -5.0), Vector2(bx, h + 2.0), burst_col, 2.0)
 	var gc := Vector2(bx, -14.0)
@@ -153,7 +153,7 @@ func _draw_popups() -> void:
 	var font := ThemeDB.fallback_font
 	for p: Dictionary in popups:
 		var left: float = p["left"]
-		var t := 1.0 - left / Config.SPIRIT_MOMENT_SECONDS
+		var t := 1.0 - left / HudConfig.SPIRIT_MOMENT_SECONDS
 		var shown_text: String = p["text"]
 		var col: Color = p["colour"]
 		col.a = clampf(left / 0.4, 0.0, 1.0)

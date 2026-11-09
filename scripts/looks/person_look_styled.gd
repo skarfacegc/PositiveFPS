@@ -90,8 +90,8 @@ func _sync_body() -> void:
 			# Checkpoint 5: a shake that grows as the wobble runs out (the greying is in _apply_body_light). Round 25:
 			# gentler, now that the wobble has a marker on the ground instead of a closing ring.
 			var shake := 0.3 + 0.5 * wobble_prog
-			_holders[Kind.JOYFUL].rotation.z = wave * Config.WOBBLE_SWAY * 0.45 * shake
-			_holders[Kind.JOYFUL].rotation.y = sin(seconds * Config.WOBBLE_RATE * 1.7) * 0.2 * shake
+			_holders[Kind.JOYFUL].rotation.z = wave * PeopleConfig.WOBBLE_SWAY * 0.45 * shake
+			_holders[Kind.JOYFUL].rotation.y = sin(seconds * PeopleConfig.WOBBLE_RATE * 1.7) * 0.2 * shake
 	else:
 		var soot: Node3D = _parts[Kind.DIMMED]["soot"]
 		soot.rotation.y = seconds * 0.5
@@ -111,7 +111,7 @@ func _pose_brace(shown: int) -> void:
 	var lean := brace_lean(subject.brace_dir, subject.brace, visual.global_transform.basis)
 	var shake := 0.0
 	if subject.brace > 0.5:
-		shake = sin(clock * 40.0) * Config.PUSH_BRACE_SHAKE * (subject.brace - 0.5) * 2.0
+		shake = sin(clock * 40.0) * PushConfig.PUSH_BRACE_SHAKE * (subject.brace - 0.5) * 2.0
 	# The joyful body sets its own sway (rotation.z) each frame before this runs, so the lean adds to it.
 	var base_z := holder.rotation.z if shown == Kind.JOYFUL else 0.0
 	holder.rotation.x = lean.x
@@ -124,7 +124,7 @@ static func brace_lean(dir: Vector3, amount: float, frame: Basis) -> Vector2:
 	if amount <= 0.01 or dir == Vector3.ZERO:
 		return Vector2.ZERO
 	var local := frame.inverse() * dir
-	var lean := amount * Config.PUSH_BRACE_LEAN
+	var lean := amount * PushConfig.PUSH_BRACE_LEAN
 	return Vector2(local.z * lean, -local.x * lean)
 
 
@@ -164,7 +164,7 @@ func _style_glint() -> void:
 
 # The guarded wedge: a honey fan with a solid ink edge and a cream rim; denser and whiter while a shot lands.
 func _style_guard_wedge() -> void:
-	_wedge_style = StyleCues.wedge_material(Config.GUARDED_WEDGE_RADIUS, Config.GUARDED_ARC_DEG)
+	_wedge_style = StyleCues.wedge_material(MoodConfig.GUARDED_WEDGE_RADIUS, MoodConfig.GUARDED_ARC_DEG)
 	guard_wedge.material_override = _wedge_style
 
 
@@ -187,9 +187,12 @@ func play_ripple(color: Color) -> void:
 	var t := create_tween()
 	t.set_parallel(true)
 	t.tween_property(
-		ring, "scale", Vector3(Config.STAGE_RIPPLE_RADIUS, 1.0, Config.STAGE_RIPPLE_RADIUS), Config.STAGE_RIPPLE_SECONDS
+		ring,
+		"scale",
+		Vector3(PeopleConfig.STAGE_RIPPLE_RADIUS, 1.0, PeopleConfig.STAGE_RIPPLE_RADIUS),
+		PeopleConfig.STAGE_RIPPLE_SECONDS
 	)
-	t.tween_method(set_fade, 1.0, 0.0, Config.STAGE_RIPPLE_SECONDS)
+	t.tween_method(set_fade, 1.0, 0.0, PeopleConfig.STAGE_RIPPLE_SECONDS)
 	t.chain().tween_callback(ring.queue_free)
 
 
@@ -252,7 +255,7 @@ func _apply_body_light() -> void:
 	var glow_q := roundi(_last_glow * 10.0)
 	var wobble_q := roundi(wobble_prog * 20.0) + 1 if wobbling else 0
 	var warm_q := roundi(frac * 20.0) if k != Kind.JOYFUL else 0
-	var which := 1 if _react_colour == Config.BURST_FX_COLOUR else 0
+	var which := 1 if _react_colour == SpiritConfig.BURST_FX_COLOUR else 0
 	# Round 25: a dimmed person outside the border is tinted toward the ground grey (0 to 5 steps).
 	var out_q := roundi(outside_fade * 5.0) if k == Kind.DIMMED else 0
 	var key := k + 3 * (react_q + 21 * (glow_q + 11 * (wobble_q + 22 * (warm_q + 21 * (which + 2 * out_q)))))
@@ -275,12 +278,12 @@ func _apply_body_light() -> void:
 	var emit_base := 0.0
 	if k == Kind.DIMMED:
 		tid = 4 + clampi(subject.affinity, 0, 2)
-		amount = Config.CP5_WARM_TINT * frac
+		amount = StyleConfig.CP5_WARM_TINT * frac
 		emit_base = frac * 0.3
 		if out_q > 0:
 			# Round 25: the lower contrast outside the border: the coat is greyed toward the ground tone.
 			tid = 3
-			amount = Config.EDGE_OUT_FADE * float(out_q) / 5.0
+			amount = BorderConfig.EDGE_OUT_FADE * float(out_q) / 5.0
 	if wobbling:
 		tid = 3
 		amount = lerpf(0.45, 1.0, wobble_prog) * 0.9

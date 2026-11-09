@@ -30,7 +30,7 @@ static func kind_for_block(reason: int) -> int:
 
 # The usual colour of an icon kind.
 static func colour_for(kind: int) -> Color:
-	return Config.MOOD_ICON_COLOURS[clampi(kind, 0, Config.MOOD_ICON_COLOURS.size() - 1)]
+	return MoodConfig.MOOD_ICON_COLOURS[clampi(kind, 0, MoodConfig.MOOD_ICON_COLOURS.size() - 1)]
 
 
 # Draws icon `kind` on `ci`: a badge with the glyph inside, `size` pixels wide, centred on `centre`.

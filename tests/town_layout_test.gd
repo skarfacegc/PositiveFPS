@@ -6,7 +6,7 @@ extends GdUnitTestSuite
 
 func _blocks() -> Array[Vector3]:
 	var out: Array[Vector3] = []
-	out.assign(TopDownMain.BLOCK_POSITIONS)
+	out.assign(Plaza.BLOCK_POSITIONS)
 	return out
 
 
@@ -14,7 +14,7 @@ func test_there_are_sixteen_to_twenty_four_blocks_inside_the_walls_that_do_not_o
 	var blocks := _blocks()
 	assert_int(blocks.size()).is_between(16, 24)
 	var half := float(Config.TD_PLAZA_SIZE) * 0.5
-	var size := TopDownMain.BLOCK_SIZE
+	var size := Plaza.BLOCK_SIZE
 	for i: int in range(blocks.size()):
 		assert_float(absf(blocks[i].x) + size.x * 0.5).is_less(half - 2.0)
 		assert_float(absf(blocks[i].z) + size.z * 0.5).is_less(half - 2.0)
@@ -30,7 +30,7 @@ func test_blocks_stand_in_rows_beside_the_streets_and_face_them() -> void:
 		var f := TownLayout.facing(c)
 		assert_float(f.length()).is_equal_approx(1.0, 0.001)
 		# The block's face toward the street is clear of the street: the pavement strip lies between them.
-		var face := Vector3(c.x, 0.0, c.z) + f * TopDownMain.BLOCK_SIZE.x * 0.5
+		var face := Vector3(c.x, 0.0, c.z) + f * Plaza.BLOCK_SIZE.x * 0.5
 		assert_bool(TownLayout.on_street(face, 0.0)).is_false()
 		assert_bool(TownLayout.on_street(face, 2.0)).is_true()
 		# The block itself stands off the streets.
@@ -41,7 +41,7 @@ func test_the_start_and_the_first_border_ring_sit_on_the_crossing() -> void:
 	assert_bool(TownLayout.on_street(Vector3.ZERO)).is_true()
 	assert_bool(TownLayout.on_square(Vector3.ZERO)).is_true()
 	# The smallest border ring (BORDER_MIN_RADIUS) fits the crossing without touching a block.
-	var ring := Config.BORDER_MIN_RADIUS
+	var ring := RoundLoopConfig.BORDER_MIN_RADIUS
 	for c: Vector3 in _blocks():
 		var nearest := Vector2(maxf(absf(c.x) - 2.0, 0.0), maxf(absf(c.z) - 2.0, 0.0)).length()
 		assert_float(nearest).is_greater(ring + 2.0)
@@ -63,8 +63,8 @@ func test_lamps_stand_inside_the_walls_on_the_pavement_and_off_the_blocks() -> v
 	var spots := TownLayout.lamp_spots()
 	assert_int(spots.size()).is_greater(16)
 	for at: Vector3 in spots:
-		assert_float(absf(at.x)).is_less_equal(half - Config.TOWN_EDGE_CLEAR)
-		assert_float(absf(at.z)).is_less_equal(half - Config.TOWN_EDGE_CLEAR)
+		assert_float(absf(at.x)).is_less_equal(half - TownConfig.TOWN_EDGE_CLEAR)
+		assert_float(absf(at.z)).is_less_equal(half - TownConfig.TOWN_EDGE_CLEAR)
 		assert_bool(TownLayout.on_street(at, 1.0)).is_true()
 		for c: Vector3 in _blocks():
 			assert_bool(absf(at.x - c.x) < 2.0 and absf(at.z - c.z) < 2.0).is_false()
@@ -77,9 +77,9 @@ func test_every_landmark_and_every_block_front_can_be_walked_to() -> void:
 	var blocked := {}
 	var obstacles: Array[Vector3] = []
 	obstacles.append_array(_blocks())
-	obstacles.append_array(Config.LANDMARK_POSITIONS)
+	obstacles.append_array(LandmarkConfig.LANDMARK_POSITIONS)
 	for o: Vector3 in obstacles:
-		var reach := TopDownMain.BLOCK_SIZE.x * 0.5 + 0.5
+		var reach := Plaza.BLOCK_SIZE.x * 0.5 + 0.5
 		for x: int in range(floori(o.x - reach), ceili(o.x + reach) + 1):
 			for z: int in range(floori(o.z - reach), ceili(o.z + reach) + 1):
 				blocked[Vector2i(x, z)] = true
@@ -95,7 +95,7 @@ func test_every_landmark_and_every_block_front_can_be_walked_to() -> void:
 				continue
 			seen[next] = true
 			queue.append(next)
-	for at: Vector3 in Config.LANDMARK_POSITIONS:
+	for at: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
 		# A cell next to the landmark's block on the side toward the start.
 		var toward := -Vector2(at.x, at.z).normalized()
 		var spot := Vector2i(roundi(at.x + toward.x * 4.0), roundi(at.z + toward.y * 4.0))

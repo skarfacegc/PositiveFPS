@@ -55,7 +55,7 @@ func cooldown_left(p: Person) -> float:
 func _can_start(p: Person, player: TopDownPlayer) -> bool:
 	if not GloomSim.is_dimmed(p) or player.is_dim or not player.active or _cooldown.has(p):
 		return false
-	return GloomSim.flat_dist(p.global_position, player.global_position) <= Config.GRAB_RANGE
+	return GloomSim.flat_dist(p.global_position, player.global_position) <= SpiritConfig.GRAB_RANGE
 
 
 func _advance_windup(p: Person, player: TopDownPlayer, delta: float) -> void:
@@ -64,20 +64,20 @@ func _advance_windup(p: Person, player: TopDownPlayer, delta: float) -> void:
 		return
 	var t: float = _windup[p] + delta
 	_aim(p, player)
-	if t < Config.GRAB_WINDUP:
+	if t < SpiritConfig.GRAB_WINDUP:
 		_windup[p] = t
-		p.grab_frac = t / Config.GRAB_WINDUP
+		p.grab_frac = t / SpiritConfig.GRAB_WINDUP
 		return
 	_windup.erase(p)
 	p.grab_frac = 0.0
 	p.grab_lunging = true
-	_cooldown[p] = Config.GRAB_COOLDOWN
+	_cooldown[p] = SpiritConfig.GRAB_COOLDOWN
 	var reach := clampf(
-		GloomSim.flat_dist(p.global_position, player.global_position) - Config.GRAB_LUNGE_STOP,
+		GloomSim.flat_dist(p.global_position, player.global_position) - SpiritConfig.GRAB_LUNGE_STOP,
 		0.0,
-		Config.GRAB_LUNGE_DISTANCE
+		SpiritConfig.GRAB_LUNGE_DISTANCE
 	)
-	_lunge[p] = {"from": p.position, "to": p.position + p.grab_toward * reach, "left": Config.GRAB_LUNGE_TIME}
+	_lunge[p] = {"from": p.position, "to": p.position + p.grab_toward * reach, "left": SpiritConfig.GRAB_LUNGE_TIME}
 
 
 # Moves the grabber along its lunge; when it ends, the grab lands or misses.
@@ -86,7 +86,7 @@ func _advance_lunge(p: Person, player: TopDownPlayer, delta: float) -> void:
 	var left: float = lunge["left"] - delta
 	var from: Vector3 = lunge["from"]
 	var to: Vector3 = lunge["to"]
-	var t := 1.0 - clampf(left / Config.GRAB_LUNGE_TIME, 0.0, 1.0)
+	var t := 1.0 - clampf(left / SpiritConfig.GRAB_LUNGE_TIME, 0.0, 1.0)
 	p.position = from.lerp(to, t)
 	if left > 0.0:
 		lunge["left"] = left
@@ -97,10 +97,10 @@ func _advance_lunge(p: Person, player: TopDownPlayer, delta: float) -> void:
 
 # The lunge ended: the grab lands when the player is still in reach, otherwise it misses.
 func _resolve(p: Person, player: TopDownPlayer) -> void:
-	if GloomSim.flat_dist(p.global_position, player.global_position) > Config.GRAB_HIT_RANGE:
+	if GloomSim.flat_dist(p.global_position, player.global_position) > SpiritConfig.GRAB_HIT_RANGE:
 		grab_avoided.emit(p)
 		return
-	player.lose_spirit(Config.GRAB_SPIRIT_DRAIN)
+	player.lose_spirit(SpiritConfig.GRAB_SPIRIT_DRAIN)
 	grab_landed.emit(p)
 
 

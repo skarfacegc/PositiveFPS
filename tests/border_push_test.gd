@@ -13,7 +13,7 @@ func _border() -> Border:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, R, Config.BORDER_SAMPLES)
+	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, R, RoundLoopConfig.BORDER_SAMPLES)
 	border.active = true
 	return border
 
@@ -59,7 +59,7 @@ func test_a_dimmed_person_leaning_on_the_line_dents_it_there_and_nowhere_else() 
 func test_people_inside_far_away_or_not_dimmed_do_not_push() -> void:
 	var border := _border()
 	var inside := _pusher(Vector3(R - 2.0, 0.0, 0.0))
-	var far := _pusher(Vector3(R + Config.PUSH_LEAN_RANGE + 2.0, 0.0, 0.0))
+	var far := _pusher(Vector3(R + PushConfig.PUSH_LEAN_RANGE + 2.0, 0.0, 0.0))
 	var light := _pusher(Vector3(R + 0.8, 0.0, 3.0))
 	light.gloom = 0.1
 	var rescued := _pusher(Vector3(R + 0.8, 0.0, -3.0))
@@ -80,7 +80,7 @@ func test_a_stronger_night_and_more_pushers_dent_deeper_and_a_weakened_pusher_le
 	_run(border, one, 3.0, 2.0)
 	assert_float(border.push.dent[_east(border)]).is_greater(plain + 0.2)
 	border.push.reset()
-	one[0].push_mult = Config.PUSH_WEAKEN_MIN
+	one[0].push_mult = PushConfig.PUSH_WEAKEN_MIN
 	_run(border, one, 3.0, 1.0)
 	assert_float(border.push.dent[_east(border)]).is_less(plain - 0.2)
 	border.push.reset()
@@ -105,8 +105,8 @@ func test_the_dent_deepens_no_faster_than_the_give_speed() -> void:
 	var border := _border()
 	var people: Array[Person] = [_pusher(Vector3(R + 0.8, 0.0, 0.0)), _pusher(Vector3(R + 0.8, 0.0, 0.3))]
 	_run(border, people, 1.0, 2.0)
-	assert_float(border.push.dent[_east(border)]).is_less_equal(Config.PUSH_GIVE_SPEED * 1.0 + 0.01)
-	assert_float(border.push.dent[_east(border)]).is_greater(Config.PUSH_GIVE_SPEED * 0.9)
+	assert_float(border.push.dent[_east(border)]).is_less_equal(PushConfig.PUSH_GIVE_SPEED * 1.0 + 0.01)
+	assert_float(border.push.dent[_east(border)]).is_greater(PushConfig.PUSH_GIVE_SPEED * 0.9)
 
 
 func test_the_line_springs_back_when_nothing_pushes() -> void:
@@ -115,7 +115,7 @@ func test_the_line_springs_back_when_nothing_pushes() -> void:
 	border.push.dent[i] = 1.5
 	var nobody: Array[Person] = []
 	_run(border, nobody, 1.0)
-	assert_float(border.push.dent[i]).is_equal_approx(1.5 - Config.PUSH_SPRING_SPEED, 0.05)
+	assert_float(border.push.dent[i]).is_equal_approx(1.5 - PushConfig.PUSH_SPRING_SPEED, 0.05)
 	_run(border, nobody, 3.0)
 	assert_float(border.push.dent[i]).is_equal(0.0)
 
@@ -138,7 +138,7 @@ func test_a_joy_hit_on_a_member_by_the_break_counts_as_mending_its_ends() -> voi
 	var border := _border()
 	var member := _member(border, Vector3(R, 0.0, 0.0))
 	var nobody: Array[Person] = []
-	border.push.dent[_east(border)] = Config.PUSH_BREAK_DEPTH + 0.3
+	border.push.dent[_east(border)] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	_run(border, nobody, 0.1)
 	assert_int(border.push.breaks.size()).is_equal(1)
 	assert_bool(border.push.breaks[0]["joyed"]).is_false()
@@ -153,18 +153,18 @@ func test_past_the_depth_limit_the_line_snaps_once_and_tells_the_border() -> voi
 	border.line_broke.connect(func(pos: Vector3) -> void: seen.append(pos))
 	var nobody: Array[Person] = []
 	var i := _east(border)
-	border.push.dent[i] = Config.PUSH_BREAK_DEPTH - 0.2
+	border.push.dent[i] = PushConfig.PUSH_BREAK_DEPTH - 0.2
 	_run(border, nobody, 0.05)
 	assert_int(border.push.breaks.size()).is_equal(0)
-	border.push.dent[i] = Config.PUSH_BREAK_DEPTH + 0.3
+	border.push.dent[i] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	_run(border, nobody, 0.05)
 	assert_int(border.push.breaks.size()).is_equal(1)
 	assert_int(seen.size()).is_equal(1)
 	assert_bool(border.push.segment_broken(i)).is_true()
-	assert_bool(border.push.segment_broken(i + Config.PUSH_BREAK_HALF)).is_true()
-	assert_bool(border.push.segment_broken(i + Config.PUSH_BREAK_HALF + 3)).is_false()
+	assert_bool(border.push.segment_broken(i + PushConfig.PUSH_BREAK_HALF)).is_true()
+	assert_bool(border.push.segment_broken(i + PushConfig.PUSH_BREAK_HALF + 3)).is_false()
 	# The deep dent beside it does not open a second break.
-	border.push.dent[i + 1] = Config.PUSH_BREAK_DEPTH + 0.3
+	border.push.dent[i + 1] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	_run(border, nobody, 0.05)
 	assert_int(border.push.breaks.size()).is_equal(1)
 	assert_int(border.push.break_points().size()).is_equal(1)
@@ -178,7 +178,7 @@ func test_a_break_mends_when_nobody_dimmed_is_near_and_a_member_by_it_has_had_jo
 	border.line_mended.connect(func(_pos: Vector3, seconds: float) -> void: mended.append(seconds))
 	var pusher := _pusher(Vector3(R + 2.0, 0.0, 0.0))
 	var people: Array[Person] = [pusher]
-	border.push.dent[_east(border)] = Config.PUSH_BREAK_DEPTH + 0.3
+	border.push.dent[_east(border)] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	_run(border, people, 0.2)
 	assert_int(border.push.breaks.size()).is_equal(1)
 	# A dimmed person still near the break: it stays, even with joy.
@@ -196,10 +196,10 @@ func test_a_break_mends_when_nobody_dimmed_is_near_and_a_member_by_it_has_had_jo
 func test_a_break_nobody_helps_mends_by_itself_after_a_long_quiet_time() -> void:
 	var border := _border()
 	var nobody: Array[Person] = []
-	border.push.dent[_east(border)] = Config.PUSH_BREAK_DEPTH + 0.3
+	border.push.dent[_east(border)] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	_run(border, nobody, 0.2)
 	assert_int(border.push.breaks.size()).is_equal(1)
-	_run(border, nobody, Config.PUSH_MEND_AUTO - 1.0)
+	_run(border, nobody, PushConfig.PUSH_MEND_AUTO - 1.0)
 	assert_int(border.push.breaks.size()).is_equal(1)
 	_run(border, nobody, 2.0)
 	assert_int(border.push.breaks.size()).is_equal(0)
@@ -208,7 +208,7 @@ func test_a_break_nobody_helps_mends_by_itself_after_a_long_quiet_time() -> void
 func test_pushers_walk_through_a_break_and_push_nothing_there() -> void:
 	var border := _border()
 	var nobody: Array[Person] = []
-	border.push.dent[_east(border)] = Config.PUSH_BREAK_DEPTH + 0.3
+	border.push.dent[_east(border)] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	_run(border, nobody, 0.1)
 	var people: Array[Person] = [_pusher(Vector3(R + 0.8, 0.0, 0.0))]
 	_run(border, people, 0.5)
@@ -218,8 +218,8 @@ func test_pushers_walk_through_a_break_and_push_nothing_there() -> void:
 func test_the_tide_wave_pushes_the_side_it_comes_from() -> void:
 	var border := _border()
 	var nobody: Array[Person] = []
-	border.push.set_wave(0.0, Config.TIDE_HALF_WIDTH, Config.TIDE_PUSH)
-	assert_float(border.push.wave[_east(border)]).is_equal_approx(Config.TIDE_PUSH, 0.001)
+	border.push.set_wave(0.0, NightConfig.TIDE_HALF_WIDTH, NightConfig.TIDE_PUSH)
+	assert_float(border.push.wave[_east(border)]).is_equal_approx(NightConfig.TIDE_PUSH, 0.001)
 	assert_float(border.push.wave[_west(border)]).is_equal(0.0)
 	_run(border, nobody, 1.0)
 	assert_float(border.push.dent[_east(border)]).is_greater(0.3)
@@ -267,7 +267,7 @@ func test_a_member_at_a_break_braces_fully() -> void:
 	var border := _border()
 	var member := _member(border, Vector3(R, 0.0, 0.0))
 	var nobody: Array[Person] = []
-	border.push.dent[_east(border)] = Config.PUSH_BREAK_DEPTH + 0.3
+	border.push.dent[_east(border)] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	_run(border, nobody, 1.0)
 	assert_float(member.brace).is_equal(1.0)
 
@@ -275,9 +275,9 @@ func test_a_member_at_a_break_braces_fully() -> void:
 func test_a_sealed_stretch_takes_no_dent() -> void:
 	var border := _border()
 	border._sealed.clear()
-	for i: int in range(Config.BORDER_SAMPLES):
+	for i: int in range(RoundLoopConfig.BORDER_SAMPLES):
 		border._sealed.append(1.0)
-	border.push.set_wave(0.0, Config.TIDE_HALF_WIDTH, Config.TIDE_PUSH)
+	border.push.set_wave(0.0, NightConfig.TIDE_HALF_WIDTH, NightConfig.TIDE_PUSH)
 	var nobody: Array[Person] = []
 	_run(border, nobody, 1.0)
 	assert_float(border.push.deepest).is_equal(0.0)
@@ -301,7 +301,7 @@ func test_the_border_bends_its_loop_inward_where_it_is_dented_and_a_flat_line_is
 	border.members.clear()
 	border.update(rescued, DT, 1.0)
 	var flat := border.polygon.duplicate()
-	assert_int(flat.size()).is_equal(Config.BORDER_SAMPLES)
+	assert_int(flat.size()).is_equal(RoundLoopConfig.BORDER_SAMPLES)
 	var i := border.push.sample_of(Vector3(R, 0.0, 0.0))
 	border.push.dent[i] = 1.0
 	border.update(rescued, DT, 1.0)
@@ -332,10 +332,10 @@ func test_a_deep_dent_just_beside_a_break_does_not_open_a_second_one() -> void:
 	var border := _border()
 	var nobody: Array[Person] = []
 	var i := _east(border)
-	border.push.dent[i] = Config.PUSH_BREAK_DEPTH + 0.3
+	border.push.dent[i] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	_run(border, nobody, 0.02)
-	var beside := i + 2 * Config.PUSH_BREAK_HALF + 1
-	border.push.dent[beside] = Config.PUSH_BREAK_DEPTH + 0.3
+	var beside := i + 2 * PushConfig.PUSH_BREAK_HALF + 1
+	border.push.dent[beside] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	_run(border, nobody, 0.02)
 	assert_int(border.push.breaks.size()).is_equal(1)
 
@@ -344,7 +344,7 @@ func test_a_break_with_no_loop_to_stand_on_is_placed_at_the_centre() -> void:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	var nobody: Array[Person] = []
-	border.push.dent[5] = Config.PUSH_BREAK_DEPTH + 0.3
+	border.push.dent[5] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	_run(border, nobody, 0.02)
 	assert_int(border.push.breaks.size()).is_equal(1)
 	assert_vector(border.push.break_points()[0]).is_equal(border.centre)

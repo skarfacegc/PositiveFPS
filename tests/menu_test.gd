@@ -196,14 +196,14 @@ func test_leaving_a_level_for_real_restarts_it_or_returns_to_the_menu() -> void:
 	await runner.simulate_frames(10)
 	var first: TopDownMain = get_tree().current_scene as TopDownMain
 	assert_object(first).is_not_null()
-	first._leave_level("restart", "")
+	first.level_end.leave("restart", "")
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var second: TopDownMain = get_tree().current_scene as TopDownMain
 	assert_object(second).is_not_null()
 	assert_bool(second != first).is_true()
 	assert_str(_current_scene_path()).is_equal(TOP_DOWN)
-	second._leave_level("menu", MENU)
+	second.level_end.leave("menu", MENU)
 	await get_tree().process_frame
 	await get_tree().process_frame
 	assert_str(_current_scene_path()).is_equal(MENU)
