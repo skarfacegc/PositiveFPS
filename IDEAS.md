@@ -66,8 +66,8 @@ placeholder, `tide_pointer` still is.
 - Open question: should the recorder rename `gap_open` / `gap_close` to `break_*`? (#23)
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Tug of war's push and pull. (#22)
-- 0.3.2 Prop styling (built 2026-11-08, In review, awaiting the playtest; plan and built notes below): lamp styling
-  (#49), bench styling (#50), bunting wires above the player (#42). The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
+- 0.3.2 Prop styling (built and played 2026-11-08, all three accepted, Done; plan, built and playtest notes below):
+  lamp styling (#49), bench styling (#50), bunting wires above the player (#42). The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
 
 **Watch in the next playtest** (no issue: questions for the interview, not work):
 - Checkpoint 6's notice banner under the night bar and the styled target ring have no full-frame screenshot yet.
@@ -81,8 +81,8 @@ placeholder, `tide_pointer` still is.
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** 0.3.2 Prop styling (#42, #49, #50) is built (2026-11-08) and In review: playtest it next. Then 0.4 Tug of war
-(plan below, and on the board).
+**Next:** 0.3.2 Prop styling (#42, #49, #50) is built and played (2026-11-08), all accepted: close it when the user
+calls the target done. Then 0.4 Tug of war (plan below, and on the board).
 0.3 Living town is done (2026-11-07) and 0.3.1 Living town fixes is done (2026-11-08, playtest 4 below), both internal
 only: no release.
 
@@ -477,7 +477,16 @@ or writes the rules. New constants are in the "0.3.2 Prop styling" block of `con
   scope for 0.3.2: ask the user.
 - The benches don't match the buildings' shading and outline beyond the toon boxes.
 - Check the cool lamp light in the gloom, the warm light inside the zone, and the bunting above the player.
-- #42, #49 and #50 are In review until the user accepts them.
+- #42, #49 and #50 were In review until the playtest below.
+
+## 0.3.2 Prop styling, playtest 5 (2026-11-08) (#42, #49, #50)
+
+Played `1fb5a53` in the styled look (recording `20261108-235246` in the playtest copy): a win in 3:00 (seed 42, 60
+people), 40 rescued, 1 first light finished (20 lifted), 12 gaps, 5 relapses, 2 bursts, 3 beacons, 1 landmark (Garden).
+- Wires (#42): look good. Accepted, Done.
+- Benches (#50): acceptable. Accepted, Done. (The shading and outline still differ from the buildings; not pursued.)
+- Lamps (#49): good. Accepted, Done.
+- Still open: the bright orange plank near the start is a stall or planter; restyling it was left to the user's call.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
