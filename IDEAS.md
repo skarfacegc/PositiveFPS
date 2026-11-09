@@ -81,8 +81,9 @@ placeholder, `tide_pointer` still is.
 - Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
   the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
 
-**Next:** 0.3.2 Prop styling (#42, #49, #50) is done and released as `v0.3.2` (2026-11-09). New in Backlog from its
-playtest: the orange plank (#51) and the town layout (#52). Then 0.4 Tug of war (plan below, and on the board).
+**Next:** 0.3.2 Prop styling (#42, #49, #50) is done and released as `v0.3.2` (2026-11-09). Next target:
+**0.3.3 Town layout** (Ready, plan below): town layout (#52), the orange plank (#51), the denser layout and Gallery
+(#17), tooling (#5 to #9, #20, #23) and code health (#19, #21). Then 0.4 Tug of war (plan below, and on the board).
 0.3 Living town is done (2026-11-07) and 0.3.1 Living town fixes is done (2026-11-08, playtest 4 below), both internal
 only: no release.
 
@@ -491,11 +492,25 @@ people), 40 rescued, 1 first light finished (20 lifted), 12 gaps, 5 relapses, 2 
   buildings in an organised arrangement (#52, Backlog, M). Needs a design talk first (streets, rows, squares?).
 - Released as `v0.3.2` (2026-11-09) on GitHub: asset `PositiveFPS-3d52b58.7z`. Milestone 0.3.2 closed.
 
-## Town layout design (2026-11-09) (#52, #51)
+## 0.3.3 Town layout plan (2026-11-09) (#52, #51, #17, #5, #6, #7, #8, #9, #19, #20, #21, #23)
+
+Targeted 2026-11-09 with the user (Ready, milestone "0.3.3 Town layout"). The town layout is the centre; the small tooling
+and code-health items ride along in the same pass (batch small items; most are Haiku-sized).
+- **Town layout** (#52, L, with #51 XS): the design below. **#17** (M) moved here from 0.4 Tug of war: the denser town
+  layout and the fourth landmark (Gallery) with the landmarks pulled in to 18 to 32 m of the start (see the 0.4 plan,
+  "Landmarks unlock defences; denser layout"). In 0.3.3 the Gallery is placed and claimable only; its dent-fade
+  protection and the defence unlocks stay in 0.4, which needs the dents and defences.
+- **Tooling** (from the 0.4 "Quick wins", unchanged text there): #5 and #6 (S), #7, #8, #9 (XS); plus #20 (agent dashboard
+  shows finished agents as running) and #23 (recorder `gap_*` to `break_*`: a decision first) (XS each).
+- **Code health:** #19 (remove unused code, XS) and #21 (minimap redraw spike, S).
+- Order: the tooling and code-health items first (no look change), then the layout, which needs shots and a bot-night
+  check. One Sonnet agent for the layout; one Haiku pass for the small items; parts in separate worktrees if run together.
+
+### Town layout design (#52, #51)
 
 Design talk after the v0.3.2 release. Today the ten buildings (`TopDownMain.BLOCK_POSITIONS`) are hand-placed at scattered
 spots, and the plaza props sit on an even lattice (`StyleProps.layout_plaza`) unrelated to them: items are good but
-read as scattered. Decisions (interview, 2026-11-09), not yet scheduled (Backlog, no milestone):
+read as scattered. Decisions (interview, 2026-11-09):
 - **Shape: streets and rows.** A main street plus cross streets; buildings line them and face the street.
 - **Buildings: more and denser,** about 16 to 24 blocks (the 0.4 plan already wants buildings and landmarks denser).
 - **Props follow the streets:** lamps at regular spacing along the kerbs, benches and planters beside buildings or at a
@@ -505,7 +520,7 @@ read as scattered. Decisions (interview, 2026-11-09), not yet scheduled (Backlog
   landmarks kept reachable.
 - Open for the plan: street plan sketch (shots first, as for a look-focused target), how the border and the start
   plaza sit on the streets, the orange stall or planter restyle (#51) rides along.
-- Size: L (was M). Best built before or beside 0.4 Tug of war, since both touch where buildings stand.
+- Size: L (was M). Built in 0.3.3, before 0.4 Tug of war, since both touch where buildings stand.
 
 ## 0.4 Tug of war plan (2026-11-07)
 
@@ -538,6 +553,8 @@ so an agent tuning one system searches both.
 fast tier's map are keyed by file path, so it needs a remap tool first; low value for the risk.
 
 ### Tug of war: Quick wins, build speed and upkeep (#5 to #9)
+
+Moved to 0.3.3 Town layout (2026-11-09); the text stays here.
 
 1. **Stop Godot importing tool output** (#5). `.godot/` is 1.4 GB: Godot imports every gdUnit4 report under `reports/` (267
    folders, one logo per report page; 15,395 paths in `reports/determinism-2` alone). `run_tests.py`'s freshness check
@@ -607,7 +624,7 @@ so the beacon is replaced. Buildings and landmarks should be denser.
      a cooldown).
    A defence left outside the line goes quiet (no effect) and its staff drains like any member until the line takes it
    back. Defaults: `DEFENCE_MAX` 4 in total; any rescued person can staff any type (no element matching).
-5. **Landmarks unlock defences (#16); denser layout (#17).**
+5. **Landmarks unlock defences (#16); denser layout (#17, moved to 0.3.3 Town layout on 2026-11-09).**
    - Capturing a landmark (held 3 s, as now) unlocks its defence type for the rest of the night; nothing is unlocked
      at the start. The unlock shows in the slim banner and the cue panel.
    - Add a fourth landmark, the **Gallery** (art), and move the Bandstand and Bell tower closer: today they are about
