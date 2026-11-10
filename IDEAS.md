@@ -294,6 +294,13 @@ rescue pips (#10, #11; `take_block.gd`, `rescue_pips.gd`, `take_block_test`). Af
 determinism passed, baseline updated. Nothing loosened. Not done: there is no bot-night tool, so no tuning by bot
 nights; the checkpoint screenshot scripts still reference removed border internals (#57).
 
+**Pass 2b, Styled grid (#58, #57; 2026-11-10).** At the start of the pass 2 playtest the user asked to see the grid
+styled before judging it. A look-focused pass, so the styled look and checkpoint shots may change. One Sonnet agent:
+fix the checkpoint screenshot scripts (#57); style the grid town's built blocks (tight groups of houses filling each
+cell, in the existing pixel-diorama style), walls versus gates on the line, the take-a-block preview and the rescue
+pips, and the minimap; new checkpoint shots of the grid. Original art only. The placeholder look and the rules do not
+change. Then the playtest restarts styled.
+
 **What stays as it is.** Joy, elements and moods; the gloom's phases and arrivals; the burst; spirit and spirit warmth;
 wobble and relapse; first light; the dawn rating; the cue panel and the slim banner; both looks.
 
