@@ -7,7 +7,7 @@ at its top, plus the map from old round numbers to versions). This file keeps th
 the current targets' plans. To find code use `SOURCE_MAP.md`
 (`python tools/source_map.py`); for where things live and how to brief an agent use `ARCHITECTURE.md`.
 
-## Current state (as of 2026-11-09, after 0.4 pass 1 Reorg)
+## Current state (as of 2026-11-09, after 0.4 pass 2 Grid and Line)
 
 **What the game is.** A gentle top-down territory game in Godot 4.7 (GDScript, strict typing). Dimmed people slowly take
 over a plaza; the player rescues them with joy, and the rescued form a living border that holds the gloom back and paints
@@ -15,13 +15,17 @@ the land inside. One night per level, dusk to dawn (about 3 minutes); reaching d
 Tone: warm and gentle, joy shared and never a cure. Player-facing text uses the gloom terms (wistful, gloomy, dimmed),
 never "dark people". Art is original, technique-level inspiration only.
 
-**Mechanics as they stand (round 26, physical push).**
+**Mechanics as they stand (0.4 pass 2: walls and gates on a town grid).**
 - **Joy and elements:** music, art and nature (a soft cycle: matched 2x, strong 1.5x, weak 1x). Pointing at a person fires
   automatically; a person needs enough joy to be rescued (grace, then the border). Moods: guarded (front-only joy),
   skittish (flees), glum (x3 when looking up), sheltered (umbrella shield, four hits).
 - **Gloom:** unrescued people go wistful, gloomy, then dimmed. Dimmed people lean on the border and reach for the player.
   The night has phases: calm opening, rising, midnight (hardest, dimmed sinks staggered by `DIM_ARRIVAL_MIN_GAP`), easing.
   Two gloom tides a night (rising, midnight) are a visible wave of fog with figures that rolls in and shoves its side.
+- **Zone and line (0.4 pass 2):** the zone is a set of held grid cells (`scripts/zone.gd`); the line is its outline.
+  Along a held block's face it is a **wall** (firm, needs nobody); across a street mouth or a square's open side it is a
+  **gate**, the only place the gloom can push. Members stand only on gates (about one per 3.7 m, shared out when
+  short). Dimmed people walk the streets to the nearest gate. The push below now happens per gate.
 - **Border (physical push):** only visible things push: dimmed people leaning on the line from outside, and a tide's wave.
   The line bends inward where pushed (the loop dents; members brace and lean) and springs back when relieved. Past
   `PUSH_BREAK_DEPTH` (2.4 m of dent) it breaks: a gap made by pushing. Pushers walk through and drain people and erode
@@ -31,12 +35,13 @@ never "dark people". Art is original, technique-level inspiration only.
   gated (`RELAPSE_GATE_GAP`). Model and open questions: "Round 26 build" below.
 - **Spirit:** 0 to 100, start 50; +20 a rescue. At 0 the player goes dim (half speed, no fire, border loses heart). Spare
   spirit at a full meter pools and warms the most strained border member (`spirit_warmth.gd`).
-- **Spirit actions:** beacon (50): hold E to aim a zone preview, release to place, right-click cancels; the zone stretches
-  toward it and the arm stays, limited by headcount. G or Q (30, 8 s cooldown) bursts: lifts dimmed people nearby, pushes
+- **Spirit actions:** take a block (25, `TAKE_SPIRIT_COST`): hold E and point at a cell next to the zone to preview its
+  new gates, release to take it, right-click cancels; refused when spirit or people are short. Rescue pips: each rescue
+  fills a pip on its cell, and at 3 (`TAKE_RESCUES`) a cell next to the zone joins by itself. G or Q (30, 8 s cooldown) bursts: lifts dimmed people nearby, pushes
   back those on the border line and lets the line near the burst spring back. There is no patch action any more.
-- **Town (0.3.3):** 20 blocks in rows along a main street (z=0) and a cross street (x=0), 10 m wide, meeting at the start
-  (`scripts/town_layout.gd`). Lamps on the kerbs, stalls on the start square, a bench and planter in front of each block.
-  Border members and rescued people steer around block footprints, and a post (a block on the border) holds one slot.
+- **Town grid (0.4 pass 2):** 5 by 5 cells of 12 m with 10 m streets (`scripts/town_grid.gd`). The middle cell is the
+  start square, the four diagonal cells next to it are landmark squares, the other 20 are solid built blocks (for the
+  player too). Posts are gone (walls replace them).
 - **Landmarks:** Bandstand, Garden, Bell Tower and Gallery, one at each street end, 26 to 32 m from the start (the Gallery is
   placed and claimable only, no boost, no styled art yet). Holding one (3 s inside the border) boosts joy; the third dawn
   light needs 75% rescued and 2 landmarks.
@@ -46,7 +51,7 @@ never "dark people". Art is original, technique-level inspiration only.
   spirit meter (glows when G can be used). Prompts and notices are one slim banner under the night bar, one at a time.
   Strain markers, strain rings and the border warning are gone.
 
-**Controls.** WASD move, Shift run, mouse to point, hold E / release E beacon (right-click cancels), G or Q
+**Controls.** WASD move, Shift run, mouse to point, hold E / release E take a block (right-click cancels), G or Q
 burst, F2 targeting mode, mouse wheel zoom, F3 debug, F4 switch look, R restart, M menu. Menu: Play (Enter, 1, click), Look.
 
 **Look modes.** Placeholder (default, plain shapes, what the tests run) and styled (pixel-diorama 3D: toon, outline, ground
@@ -79,13 +84,16 @@ placeholder, `tide_pointer` still is.
   recording whether the third light is earned.
 - Difficulty is tuned only by bot nights (knobs `TIDE_PUSH` 2.0, `PUSH_PER_PERSON`, `PUSH_BREAK_DEPTH`).
 - Whether Embrace gets noticed (it did not in the round 25 playtests).
-- Until 0.4 replaces the beacon: the second arm is much shorter than the first (7.3 m against 34.2 m at 24 people), and
-  the limited preview checkpoint shot uses "inside the zone already", not a dimmed block.
+- Pass 2 (walls and gates): does the town now tell you where to look and what to do next? Is 25 spirit or 3 rescues the
+  right price for a block? Do solid blocks and 10 m streets feel roomy or cramped? From the tests: two dimmed people
+  together break a gate in about 25 to 30 s; one alone never does.
+- Auto-join by pips ignores whether there are people for the new gates (the plan said it should check); "enough
+  people" for E counts all rescued, since members are capped at the slot count. Thin lines are #12 in pass 3.
 
 **Recorder:** breaks are logged as `break_open` / `break_close` (#23); the analyser still reads the old `gap_*` names.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
-**0.4 Walls and gates**, pass 1 Reorg built (In review); pass 2 Grid and Line next (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates**, passes 1 Reorg and 2 Grid and Line built (In review); pass 2 needs a playtest, then pass 3 (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -278,6 +286,13 @@ is kept so they change little.
    A defence whose gate closes (its street is now inside the zone) is handed back and its staff rejoin the line.
 9. **Landmarks unlock defences** (#16). A landmark is claimed by holding its square for 3 s, as now, and unlocks its
    defence type for the rest of the night. The third dawn light still needs 75% rescued and 2 landmarks.
+
+**Pass 2 built (2026-11-09; merged `5fc6d93` Grid and Line, then Take a block; In review).** Sonnet built the grid,
+the zone and the gate line (#55, #56) and removed the round loop, posts, the beacon and its reach guide (14 test files,
+about 107 tests, removed with them; 7 rewritten; `zone_test`, `border_gates_test` new). Haiku built take a block and
+rescue pips (#10, #11; `take_block.gd`, `rescue_pips.gd`, `take_block_test`). After the merge: gate 793 tests in 191 s,
+determinism passed, baseline updated. Nothing loosened. Not done: there is no bot-night tool, so no tuning by bot
+nights; the checkpoint screenshot scripts still reference removed border internals (#57).
 
 **What stays as it is.** Joy, elements and moods; the gloom's phases and arrivals; the burst; spirit and spirit warmth;
 wobble and relapse; first light; the dawn rating; the cue panel and the slim banner; both looks.
