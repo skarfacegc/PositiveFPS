@@ -79,11 +79,6 @@ func cloud_colour() -> Color:
 	return Color(0, 0, 0, 0)
 
 
-# Round 19: the colour of the spirit beacon's marker (the same pale blue in both looks until the styled one).
-func beacon_colour() -> Color:
-	return BeaconConfig.BEACON_COLOUR
-
-
 func player_colour() -> Color:
 	return Color.WHITE
 
@@ -92,7 +87,7 @@ func view_colour() -> Color:
 	return Color.WHITE
 
 
-# The outline round a marker of this kind ("member", "dimmed", "landmark", "beacon" or "player"). Alpha 0 means none.
+# The outline round a marker of this kind ("member", "dimmed", "landmark" or "player"). Alpha 0 means none.
 func halo_colour(_kind: String) -> Color:
 	return Color(0, 0, 0, 0)
 

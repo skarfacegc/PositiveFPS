@@ -1,8 +1,8 @@
 extends GdUnitTestSuite
 
-# Graphics checkpoint 4: the styled look of the round 20 pieces (the reach guide, the minimap clouds, the landmark
-# pulse, the alert banner) and the round 19 flag fixes. Headless uses a dummy renderer, so these check state and
-# geometry; the screenshots (tools/checkpoint_shots.py --set round20) check the look.
+# Graphics checkpoint 4: the styled look of the round 20 pieces (the minimap clouds, the landmark pulse, the alert
+# banner; the reach guide and the beacon went in 0.4) and the round 19 flag fixes. Headless uses a dummy renderer, so
+# these check state and geometry; the screenshots (tools/checkpoint_shots.py --set round20) check the look.
 
 
 func after_test() -> void:
@@ -11,96 +11,6 @@ func after_test() -> void:
 
 # --- The round 20 pieces in the styled look
 # ---------------------------------------------------------------------------
-
-
-func _formed() -> Dictionary:
-	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
-	await runner.simulate_frames(10)
-	var td: TopDownMain = runner.scene()
-	TopDownTestUtil.send_everyone_away(td)
-	td.border.buildings.clear()
-	for i: int in range(6):
-		var a := TAU * float(i) / 6.0
-		var p: Person = td.people[i]
-		TopDownTestUtil.place(p, Vector3(-6, 0, 4) + Vector3(cos(a) * 4.0, 0.0, sin(a) * 4.0), p.affinity, 0.0)
-		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
-	await runner.simulate_frames(60)
-	td.player.add_spirit(100.0)
-	return {"td": td, "runner": runner}
-
-
-func _visible_count(guide: StyleReach) -> int:
-	var n := 0
-	for node: MeshInstance3D in guide._all:
-		if node.visible:
-			n += 1
-	return n
-
-
-func test_the_styled_reach_guide_shows_the_zone_preview_and_the_travel() -> void:
-	var s: Dictionary = await _formed()
-	var td: TopDownMain = s["td"]
-	var runner: GdUnitSceneRunner = s["runner"]
-	td.set_look(Looks.Mode.STYLED)
-	await runner.simulate_frames(3)
-	var guide: StyleReach = td.reach_guide._styled
-	assert_object(guide).is_not_null()
-	# Graphics checkpoint 5: no aim, nothing; aim within reach while E is held: the zone outline (not limited).
-	# Checkpoint 5 follow-up: no fill, and nothing at all while E is up.
-	td.player._has_aim = false
-	td.reach_guide.sync(td.border, td.player)
-	assert_int(_visible_count(guide)).is_equal(0)
-	var reach: float = td.border.stretch_info()["max"]
-	td.player._aim_point = td.border.centre + Vector3(reach * 0.95, 0.0, 0.0)
-	td.player._has_aim = true
-	TopDownTestUtil.release_e(td)
-	td.reach_guide.sync(td.border, td.player)
-	assert_bool(guide.showing_preview).is_false()
-	assert_int(_visible_count(guide)).is_equal(0)
-	TopDownTestUtil.press_e(td)
-	td.reach_guide.sync(td.border, td.player)
-	assert_bool(guide.showing_preview).is_true()
-	assert_bool(guide.showing_limited).is_false()
-	assert_bool(guide._line.visible).is_true()
-	assert_bool(guide._cross.visible).is_false()
-	# A beacon beyond the reach: the travel (only the word), then, once it arrives, nothing (round 22: no hold).
-	td.border.place_beacon(td.border.centre + Vector3(reach * 3.0, 0.0, 0.0))
-	# Round 23: the tip walks at the new pull speed, so it has not arrived after 20 frames (a third of a second) here.
-	await runner.simulate_frames(20)
-	td.reach_guide.sync(td.border, td.player)
-	assert_bool(guide.showing_travel).is_true()
-	# Checkpoint 7: no centre-to-tip line, no tip disc and no dashes during the travel.
-	assert_int(_visible_count(guide)).is_equal(0)
-	# Round 22: there is no hold any more: once the tip has arrived the travel is gone.
-	await runner.simulate_frames(1500)
-	td.reach_guide.sync(td.border, td.player)
-	assert_bool(guide.showing_travel).is_false()
-	# Back to the placeholder look: the styled pieces hide.
-	td.set_look(Looks.Mode.PLACEHOLDER)
-	await runner.simulate_frames(3)
-	assert_int(_visible_count(guide)).is_equal(0)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_the_styled_reach_guide_hides_without_a_border() -> void:
-	Looks.set_mode(Looks.Mode.STYLED)
-	var guide := StyleReach.new()
-	var root: Node3D = auto_free(Node3D.new())
-	guide.build(root)
-	var border: Border = auto_free(Border.new())
-	var player: TopDownPlayer = auto_free(TopDownPlayer.new())
-	add_child(player)
-	guide.sync(border, player)
-	assert_int(_visible_count(guide)).is_equal(0)
-
-
-func test_the_preview_stops_at_the_reach() -> void:
-	var inside := ReachGuide.preview(Vector2.ZERO, Vector2(5, 0), 10.0)
-	assert_bool(inside["capped"]).is_false()
-	assert_vector(inside["end"]).is_equal(Vector2(5, 0))
-	var past := ReachGuide.preview(Vector2.ZERO, Vector2(0, 30), 10.0)
-	assert_bool(past["capped"]).is_true()
-	assert_vector(past["end"]).is_equal_approx(Vector2(0, 10), Vector2(0.001, 0.001))
 
 
 func test_the_styled_minimap_draws_dusk_clouds_on_top_of_the_ground() -> void:
@@ -190,17 +100,6 @@ func test_the_styled_look_skips_the_canopy_over_a_sheltered_head() -> void:
 	assert_bool(FeedbackLayer.canopy_shown()).is_true()
 	Looks.set_mode(Looks.Mode.STYLED)
 	assert_bool(FeedbackLayer.canopy_shown()).is_false()
-
-
-func test_the_beacon_dashes_are_bigger_with_an_ink_edge() -> void:
-	Looks.set_mode(Looks.Mode.STYLED)
-	var root: Node3D = auto_free(Node3D.new())
-	var dashes := StyleBeacon.build_dashes(root)
-	assert_int(dashes.size()).is_equal(StyleBeacon.DASHES)
-	var size := (dashes[0].mesh as BoxMesh).size
-	assert_float(size.x).is_greater_equal(1.0)
-	assert_float(size.z).is_greater_equal(0.3)
-	assert_int(dashes[0].get_child_count()).is_equal(1)
 
 
 func test_the_bandstand_ruin_is_lighter_than_it_was() -> void:

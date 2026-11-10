@@ -60,14 +60,14 @@ static func run(people: Array[Person], at: Vector3, border: Border) -> Dictionar
 	return {"cleared": cleared, "lifted": cleared.size(), "joy_hits": hits}
 
 
-# Where a person at `from` ends up: away from the border's centre, far enough to be outside the line by the push.
+# Where a person at `from` ends up: out through the nearest gate (its outward normal), far enough to be outside the
+# line by the push.
 static func _pushed(border: Border, from: Vector3) -> Vector3:
-	var out := Vector3(from.x - border.centre.x, 0.0, from.z - border.centre.z)
-	if out.length() < 0.01:
-		out = Vector3.RIGHT
+	var way := border.out_at(from)
+	var out := Vector3(way.x, 0.0, way.y)
 	var dist := distance_to_line(border, from)
 	var inside := Geometry2D.is_point_in_polygon(Vector2(from.x, from.z), border.polygon)
 	var push := SpiritConfig.BURST_PUSH_DISTANCE + (dist if inside else 0.0)
 	var to := from + out.normalized() * push
-	var lim := RoundLoopConfig.BORDER_MAP_LIMIT
+	var lim := BorderConfig.BORDER_MAP_LIMIT
 	return Vector3(clampf(to.x, -lim, lim), from.y, clampf(to.z, -lim, lim))

@@ -51,11 +51,11 @@ func _start(recording: bool = false) -> Dictionary:
 
 # `count` rescued people standing in a ring (they form the border), each with `joy_share` of the joy they need.
 func _ring(td: TopDownMain, runner: GdUnitSceneRunner, count: int, joy_share: float) -> void:
-	var r := BorderCentre.circle_radius(count)
+	var r := 3.0  # Inside the start square (0.4): they walk out to its gates and form the line there.
 	for i: int in range(count):
 		var a := TAU * float(i) / float(count)
 		var p: Person = td.people[i]
-		TopDownTestUtil.place(p, CENTRE + Vector3(cos(a) * r, 0.0, sin(a) * r), p.affinity, 0.0)
+		TopDownTestUtil.place(p, Vector3(cos(a) * r, 0.0, sin(a) * r), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
 	await runner.simulate_frames(300)
 	for i: int in range(count):

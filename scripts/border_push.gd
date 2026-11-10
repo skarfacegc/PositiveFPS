@@ -1,28 +1,29 @@
 class_name BorderPush
 extends RefCounted
 
-# Round 26, physical push. The only things that push the border are visible: dimmed people leaning on the line from
-# outside, and a gloom tide (a wave of fog with figures in it) shoving the side it rolls in from. Everything is kept per
-# angle sample round the centre (RoundLoopConfig.BORDER_SAMPLES, the same samples the loop is built from):
-#  - force: what pushes there this frame (pushers spread along the loop as a bell, plus the tide's `wave`);
-#  - dent: how far the line is shoved inward there, in metres. It follows force x PUSH_DENT_PER_FORCE, deepening at
+# Round 26, physical push; 0.4 (#56): it lives on gates. The only things that push the line are visible: dimmed people
+# leaning on a gate from outside, and a gloom tide (a wave of fog with figures in it) shoving the side it rolls in from.
+# Walls hold firm: nothing leans on them and they never dent. Everything is kept per point of the traced line (Border.
+# polygon; a gate has a point every BorderConfig.GATE_POINT_STEP metres):
+#  - force: what pushes there this frame (pushers spread along their gate as a bell, plus the tide's `wave`);
+#  - dent: how far the gate is shoved inward there, in metres. It follows force x PUSH_DENT_PER_FORCE, deepening at
 #    PUSH_GIVE_SPEED and springing back at PUSH_SPRING_SPEED when relieved;
-#  - calm: joy at a bending member, or a burst, calms a spot: its force is cut and the line springs back faster.
-# Past PUSH_BREAK_DEPTH the line snaps: a break (PUSH_BREAK_HALF samples either side). A break is a gap that pushing
-# made: Border marks its polygon segments as gap, so dimmed people walk through. It mends when no dimmed person is near
-# it and a member near it has had joy since it opened (or after PUSH_MEND_AUTO seconds clear; see Config).
-# Border applies `dent` to the loop it builds, so the polygon, the members' slots and the painted land all follow.
+#  - calm: joy at a bending member, or a burst, calms a spot: its force is cut and the gate springs back faster.
+# Past PUSH_BREAK_DEPTH the gate snaps: a break (PUSH_BREAK_HALF points either side, never past the gate's own ends). A
+# break is a gap that pushing made: Border marks its segments as gap, so dimmed people walk through. It mends when no
+# dimmed person is near it and a member near it has had joy since it opened (or after PUSH_MEND_AUTO seconds clear).
+# Border applies `dent` to the polygon it builds, so the line, the members' places and the painted land all follow.
 
 var b: Border
-# Metres the line is shoved inward at each sample.
+# Metres the gate is shoved inward at each point.
 var dent: Array[float] = []
-# True at the samples a break holds open.
+# True at the points a break holds open.
 var broken: Array[bool] = []
-# Open breaks: {"at": sample, "age": s, "joyed": bool, "clear": s without a dimmed person near}.
+# Open breaks: {"at": point, "age": s, "joyed": bool, "clear": s without a dimmed person near}.
 var breaks: Array[Dictionary] = []
-# The tide's force at each sample (set by GloomTide.update through set_wave; cleared by clear_wave).
+# The tide's force at each point (set by GloomTide.update through set_wave; cleared by clear_wave).
 var wave: Array[float] = []
-# Pushers leaning on the line this frame, and the deepest dent now.
+# Pushers leaning on a gate this frame, and the deepest dent now.
 var pushers: int = 0
 var deepest: float = 0.0
 var _force: Array[float] = []
@@ -35,9 +36,13 @@ func _init(border: Border) -> void:
 	reset()
 
 
-# Back to a flat line with nothing pushing (a new border, or no border).
+# Back to flat gates with nothing pushing (a new border, or no border).
 func reset() -> void:
-	var n := RoundLoopConfig.BORDER_SAMPLES
+	resize(b.point_count())
+
+
+# Fresh state for `n` points of the line.
+func resize(n: int) -> void:
 	dent.clear()
 	broken.clear()
 	wave.clear()
@@ -55,17 +60,54 @@ func reset() -> void:
 	deepest = 0.0
 
 
-# The sample nearest the direction of `pos` from the border's centre.
+# The line was traced again (the zone changed): keeps dents, calm and breaks at the points that are still there.
+func carry(old_pts: PackedVector2Array, new_pts: PackedVector2Array) -> void:
+	var old_dent := dent.duplicate()
+	var old_broken := broken.duplicate()
+	var old_calm := _calm.duplicate()
+	var old_breaks := breaks.duplicate(true)
+	resize(new_pts.size())
+	var lookup: Dictionary = {}
+	for i: int in range(new_pts.size()):
+		lookup[_key(new_pts[i])] = i
+	for i: int in range(mini(old_pts.size(), old_dent.size())):
+		var k: int = lookup.get(_key(old_pts[i]), -1)
+		if k >= 0 and b.point_dentable(k):
+			dent[k] = old_dent[i]
+			broken[k] = old_broken[i]
+			_calm[k] = old_calm[i]
+	for br: Dictionary in old_breaks:
+		var was: int = br["at"]
+		var k: int = lookup.get(_key(old_pts[was]), -1) if was < old_pts.size() else -1
+		if k >= 0 and b.point_dentable(k):
+			br["at"] = k
+			breaks.append(br)
+
+
+func _key(p: Vector2) -> Vector2i:
+	return Vector2i(roundi(p.x * 10.0), roundi(p.y * 10.0))
+
+
+# Makes the arrays fit the line (after the line changed under a caller that holds no reference to it).
+func _fit() -> void:
+	if dent.size() != b.point_count():
+		resize(b.point_count())
+
+
+# The point of the line nearest to `pos`.
 func sample_of(pos: Vector3) -> int:
-	var n := dent.size()
-	return posmod(roundi(atan2(pos.z - b.centre.z, pos.x - b.centre.x) / TAU * float(n)), n)
+	return b.nearest_point(Vector2(pos.x, pos.z))
 
 
-# The tide pushes the samples within `half_width` of `angle` with up to `force` (a cosine taper to the sides).
+# The tide pushes the points of gates within `half_width` of `angle` (seen from the zone's centre) with up to `force` (a
+# cosine taper to the sides).
 func set_wave(angle: float, half_width: float, force: float) -> void:
-	var n := wave.size()
-	for i: int in range(n):
-		var d := absf(angle_difference(TAU * float(i) / float(n), angle))
+	_fit()
+	for i: int in range(wave.size()):
+		if not b.point_dentable(i):
+			wave[i] = 0.0
+			continue
+		var d := absf(angle_difference(b.point_angle(i), angle))
 		wave[i] = force * cos(d / half_width * PI * 0.5) if d < half_width else 0.0
 
 
@@ -76,7 +118,16 @@ func clear_wave() -> void:
 
 # How bent the line is at `pos`, 0 (flat) to 1 (at the break depth): what the ribbon colours and a member braces by.
 func bend_at(pos: Vector3) -> float:
+	if dent.is_empty():
+		return 0.0
 	return clampf(dent[sample_of(pos)] / PushConfig.PUSH_BREAK_DEPTH, 0.0, 1.0)
+
+
+# How bent the line is at point `i`.
+func bend_of_point(i: int) -> float:
+	if i < 0 or i >= dent.size():
+		return 0.0
+	return clampf(dent[i] / PushConfig.PUSH_BREAK_DEPTH, 0.0, 1.0)
 
 
 # True when polygon segment `j` lies in a break.
@@ -84,8 +135,9 @@ func segment_broken(j: int) -> bool:
 	return j >= 0 and j < broken.size() and broken[j]
 
 
-# One frame. Called by Border.update before the loop is built, so the dent it makes is in this frame's polygon.
+# One frame. Called by Border.update before the polygon is built, so the dent it makes is in this frame's polygon.
 func update(people: Array[Person], delta: float, strength: float) -> void:
+	_fit()
 	var n := dent.size()
 	for i: int in range(n):
 		_force[i] = wave[i] * strength
@@ -99,10 +151,10 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 		deepest = maxf(deepest, dent[i])
 
 
-# Dimmed people outside the line, close enough to lean on it, add their force at the sample they stand at.
+# Dimmed people outside a gate, close enough to lean on it, add their force at the point they stand at.
 func _push_from_people(people: Array[Person], strength: float, delta: float) -> void:
 	pushers = 0
-	var sigma := PushConfig.PUSH_SPREAD / (TAU / float(dent.size()))
+	var sigma := PushConfig.PUSH_SPREAD_METRES / BorderConfig.GATE_POINT_STEP
 	for p: Person in people:
 		if p.is_rescued:
 			continue
@@ -113,7 +165,7 @@ func _push_from_people(people: Array[Person], strength: float, delta: float) -> 
 			p.brace = move_toward(p.brace, 0.0, PushConfig.PUSH_BRACE_SMOOTH * delta)
 
 
-# Works out whether `p` leans on an intact stretch; if so adds the force and sets their lean. Returns true then.
+# Works out whether `p` leans on an intact gate; if so adds the force and sets their lean. Returns true then.
 func _lean(p: Person, strength: float, sigma: float, delta: float) -> bool:
 	var p2 := Vector2(p.position.x, p.position.z)
 	if Geometry2D.is_point_in_polygon(p2, b.polygon):
@@ -121,7 +173,7 @@ func _lean(p: Person, strength: float, sigma: float, delta: float) -> bool:
 	var near := b._nearest_on_loop(p2)
 	var dist: float = near["dist"]
 	var seg: int = near["seg"]
-	if dist > PushConfig.PUSH_LEAN_RANGE or b.is_sealed(seg) or segment_broken(seg):
+	if dist > PushConfig.PUSH_LEAN_RANGE or b.is_wall(seg) or segment_broken(seg):
 		return false
 	pushers += 1
 	var force := PushConfig.PUSH_PER_PERSON * strength * p.push_mult * (1.0 - 0.4 * dist / PushConfig.PUSH_LEAN_RANGE)
@@ -129,12 +181,19 @@ func _lean(p: Person, strength: float, sigma: float, delta: float) -> bool:
 	if who != null:
 		var share := clampf(who.joy / maxf(who.joy_needed(), 0.001), 0.0, 1.0)
 		force *= 1.0 + PushConfig.PUSH_SOFT_BONUS * (1.0 - share)
-	var i := sample_of(p.position)
+	# The force spreads as a bell along the gate, measured in metres from where they lean (not from the nearest point, so
+	# two people leaning side by side add up at the same spot however the points fall).
+	var line_point: Vector2 = near["point"]
+	var i := b.nearest_point(line_point)
+	var gate := b.point_gate(i)
 	var reach := ceili(3.0 * sigma)
 	var n := dent.size()
+	var metres := sigma * BorderConfig.GATE_POINT_STEP
 	for off: int in range(-reach, reach + 1):
-		_force[posmod(i + off, n)] += force * exp(-float(off * off) / (2.0 * sigma * sigma))
-	var line_point: Vector2 = near["point"]
+		var k := posmod(i + off, n)
+		if b.point_gate(k) == gate:
+			var d := b.polygon[k].distance_to(line_point)
+			_force[k] += force * exp(-d * d / (2.0 * metres * metres))
 	var to_line := line_point - p2
 	if to_line.length() > 0.001:
 		p.brace_dir = Vector3(to_line.x, 0.0, to_line.y).normalized()
@@ -158,8 +217,10 @@ func _read_joy(delta: float) -> void:
 		_calm[i] = maxf(0.0, _calm[i] - delta / PushConfig.PUSH_CALM_SECONDS)
 
 
-# Calms the samples within `spread` of the one nearest `pos` (a joy hit on a member, or a burst).
+# Calms the points within `spread` of the one nearest `pos` (a joy hit on a member, or a burst).
 func calm_at(pos: Vector3, amount: float, spread: int) -> void:
+	if _calm.is_empty():
+		return
 	var n := _calm.size()
 	var i := sample_of(pos)
 	for off: int in range(-spread, spread + 1):
@@ -167,7 +228,7 @@ func calm_at(pos: Vector3, amount: float, spread: int) -> void:
 		_calm[k] = maxf(_calm[k], amount * (1.0 - 0.25 * float(absi(off))))
 
 
-# A burst at `at` relieves the line within PUSH_BURST_REACH of it: the force there is cut and the line springs back.
+# A burst at `at` relieves the line within PUSH_BURST_REACH of it: the force there is cut and the gate springs back.
 func relieve(at: Vector3) -> void:
 	if not b.active:
 		return
@@ -182,7 +243,7 @@ func _move_dents(delta: float) -> void:
 		var calm := _calm[i]
 		var cut := 1.0 - PushConfig.PUSH_CALM_CUT * calm
 		var target := 0.0
-		if not b.is_sealed(i):
+		if b.point_dentable(i):
 			target = minf(_force[i] * cut * PushConfig.PUSH_DENT_PER_FORCE, PushConfig.PUSH_DENT_MAX)
 		if target > dent[i]:
 			dent[i] = minf(target, dent[i] + PushConfig.PUSH_GIVE_SPEED * delta)
@@ -212,16 +273,29 @@ func _update_breaks(people: Array[Person], delta: float) -> void:
 
 func _near_break(i: int) -> bool:
 	var n := broken.size()
+	var gate := b.point_gate(i)
 	for off: int in range(-2 * PushConfig.PUSH_BREAK_HALF - 1, 2 * PushConfig.PUSH_BREAK_HALF + 2):
-		if broken[posmod(i + off, n)]:
+		var k := posmod(i + off, n)
+		if broken[k] and b.point_gate(k) == gate:
 			return true
 	return false
 
 
-func _open_break(i: int) -> void:
+# The points a break at `i` covers: PUSH_BREAK_HALF either side, but only those on the same gate.
+func _span(i: int) -> Array[int]:
 	var n := broken.size()
+	var gate := b.point_gate(i)
+	var out: Array[int] = []
 	for off: int in range(-PushConfig.PUSH_BREAK_HALF, PushConfig.PUSH_BREAK_HALF + 1):
-		broken[posmod(i + off, n)] = true
+		var k := posmod(i + off, n)
+		if b.point_gate(k) == gate:
+			out.append(k)
+	return out
+
+
+func _open_break(i: int) -> void:
+	for k: int in _span(i):
+		broken[k] = true
 	var br := {"at": i, "age": 0.0, "joyed": false, "clear": 0.0}
 	breaks.append(br)
 	var spot := _break_point(br)
@@ -230,10 +304,8 @@ func _open_break(i: int) -> void:
 
 func _mend(k: int) -> void:
 	var br: Dictionary = breaks[k]
-	var n := broken.size()
 	var i: int = br["at"]
-	for off: int in range(-PushConfig.PUSH_BREAK_HALF, PushConfig.PUSH_BREAK_HALF + 1):
-		var at := posmod(i + off, n)
+	for at: int in _span(i):
 		broken[at] = false
 		dent[at] = minf(dent[at], PushConfig.PUSH_BREAK_DEPTH * 0.5)  # Mended: half sprung back, not at the limit.
 	var spot := _break_point(br)
@@ -242,7 +314,7 @@ func _mend(k: int) -> void:
 	b.line_mended.emit(spot, open_for)
 
 
-# Where a break is on the ground (the loop's point at its middle sample).
+# Where a break is on the ground (the line's point at its middle).
 func _break_point(br: Dictionary) -> Vector3:
 	var i: int = br["at"]
 	if i < b.polygon.size():
@@ -264,10 +336,11 @@ func _flat(a: Vector3, c: Vector3) -> float:
 # Members brace against the dent at their spot: lean outward, planted, struggling more as it deepens.
 func _brace_members(delta: float) -> void:
 	var step := PushConfig.PUSH_BRACE_SMOOTH * delta
+	if dent.is_empty():
+		return
 	for m: Person in b.members:
-		var out := Vector3(m.position.x - b.centre.x, 0.0, m.position.z - b.centre.z)
-		if out.length() > 0.01:
-			m.brace_dir = out.normalized()
+		var out := b.out_at(m.position)
+		m.brace_dir = Vector3(out.x, 0.0, out.y)
 		var i := sample_of(m.position)
 		var want := clampf(maxf(dent[i] / PushConfig.PUSH_BREAK_DEPTH, _force[i] * 0.25), 0.0, 1.0)
 		if broken[i]:

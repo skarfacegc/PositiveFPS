@@ -1,8 +1,9 @@
 extends GdUnitTestSuite
 
-# Graphics checkpoint 3: the styled look of the round 19 pieces (the spirit beacon, the four landmarks, the landmark
-# panel and the dawn rating screen). Headless uses a dummy renderer, so these check that everything builds, shows the
-# right state and draws without errors; the screenshots (tools/checkpoint_shots.py --set round19) check the look.
+# Graphics checkpoint 3: the styled look of the round 19 pieces (the four landmarks, the landmark panel and the dawn
+# rating screen; the spirit beacon went in 0.4). Headless uses a dummy renderer, so these check that everything
+# builds, shows the right state and draws without errors; the screenshots (tools/checkpoint_shots.py --set round19)
+# check the look.
 
 
 func after_test() -> void:
@@ -69,66 +70,34 @@ func test_held_cues_exist_for_the_bandstand_and_the_garden() -> void:
 		assert_bool(look._motes[0].visible).is_true()
 
 
-func test_a_styled_landmark_block_draws_nothing_itself_but_keeps_its_post_marker() -> void:
+func test_a_styled_landmark_block_draws_nothing_itself() -> void:
 	Looks.set_mode(Looks.Mode.STYLED)
 	var td: TopDownMain = auto_free(TopDownMain.new())
 	add_child(td)
 	var block: Building = td.border.landmark_buildings[0]
 	var look := block.look as BuildingLookStyled
 	assert_object(look.industrial).is_null()
-	block.post = true
-	look.set_post(true)
 	look.sync()
-	assert_bool(look._lantern.visible).is_true()
+	assert_object(look.industrial).is_null()
 
 
-func test_the_beacon_marker_swaps_looks_and_lays_a_pull_line() -> void:
-	var marker: BeaconMarker = auto_free(BeaconMarker.new())
-	add_child(marker)
-	assert_bool(marker._parts.is_empty()).is_true()
-	Looks.set_mode(Looks.Mode.STYLED)
-	marker.rebuild_look()
-	assert_bool(marker._parts.is_empty()).is_false()
-	marker.sync(Vector3(20, 0, 0), 0.1, Vector3(0, 0, 0))
-	assert_bool(marker.visible).is_true()
-	var shown := 0
-	for d: MeshInstance3D in marker._dashes:
-		if d.visible:
-			shown += 1
-	assert_int(shown).is_greater(3)
-	marker.sync(Vector3.INF, 0.1, Vector3.ZERO)
-	assert_bool(marker.visible).is_false()
-	# A beacon at the centre has no line; going back to the placeholder look restores its pillar.
-	marker.sync(Vector3(0, 0, 0), 0.1, Vector3(0, 0, 0))
-	for d: MeshInstance3D in marker._dashes:
-		assert_bool(d.visible).is_false()
-	Looks.set_mode(Looks.Mode.PLACEHOLDER)
-	marker.rebuild_look()
-	assert_bool(marker._parts.is_empty()).is_true()
-	assert_int(marker.get_child_count()).is_equal(2)
-
-
-func test_the_styled_minimap_marks_the_beacon_and_unheld_landmarks_apart() -> void:
+func test_the_styled_minimap_marks_unheld_landmarks_apart() -> void:
 	var look := MinimapLookStyled.new()
 	assert_bool(look.landmark_state_colour(true).is_equal_approx(look.landmark_colour())).is_true()
 	assert_bool(look.landmark_state_colour(false).is_equal_approx(look.landmark_colour())).is_false()
-	assert_bool(look.beacon_colour().is_equal_approx(BeaconConfig.BEACON_COLOUR)).is_false()
-	assert_float(look.halo_colour("beacon").a).is_greater(0.0)
 	var plain := MinimapLookPlaceholder.new()
-	assert_bool(plain.beacon_colour().is_equal_approx(BeaconConfig.BEACON_COLOUR)).is_true()
 	assert_float(plain.halo_colour("landmark").a).is_equal(0.0)
 	var map: Minimap = auto_free(Minimap.new())
 	map.size = Vector2(144, 144)
 	add_child(map)
 	Looks.set_mode(Looks.Mode.STYLED)
 	map.rebuild_look()
-	map.beacon_pos = Vector2(10, 5)
-	map.held_landmarks = [true, false, false]
-	map.landmark_pts = PackedVector2Array([Vector2(20, 20), Vector2(-20, 20), Vector2(0, -30)])
+	map.held_landmarks = [true, false, false, false]
+	map.landmark_pts = PackedVector2Array([Vector2(20, 20), Vector2(-20, 20), Vector2(0, -30), Vector2(30, 0)])
 	map._render()
 	map.queue_redraw()
 	await get_tree().process_frame
-	assert_bool(map.beacon_pos != Vector2.INF).is_true()
+	assert_int(map.landmark_pts.size()).is_equal(4)
 
 
 func test_the_end_screen_data_the_dawn_panel_draws() -> void:

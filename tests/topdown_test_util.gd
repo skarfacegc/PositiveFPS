@@ -5,7 +5,8 @@ extends RefCounted
 
 const SCENE := "res://topdown.tscn"
 # Where people are parked while a test is not using them: far from the player and out of the way.
-const FAR := Vector3(30, 0, -30) * Config.WORLD_SCALE  # Round 13a: scaled with the plaza (still inside the walls).
+# 0.4: the crossing of two streets in the far corner (a built block stands everywhere else).
+const FAR := Vector3(33, 0, -33)
 # The window size every level test runs at. The gdUnit4 CLI shrinks the window to 64x64, which puts the player and the
 # test spots off screen, so a suite must not rely on another suite having set the size first (suites run in separate
 # processes in tools/run_tests.py).
@@ -115,27 +116,35 @@ static func blooms(td: TopDownMain) -> Array[Bloom]:
 	return out
 
 
-# Checkpoint 5 follow-up: E is hold to aim, release to place, and right-click cancels. These send the event through
-# TopDownMain's own input handler (the same mapped actions a key or button press would reach), so tests that
-# drive the level without a scene runner use the game's own code. Tests that press real keys use the runner.
-static func press_e(td: TopDownMain) -> void:
-	td._unhandled_input(_key_event(KEY_E, true))
+# 0.4 (#56): a Border with no level around it, owned by `suite`, holding the start square (and the cells given, taken in
+# order), active, its line traced and used as its own polygon, the way Border.update would on its first frame.
+static func bare_border(suite: GdUnitTestSuite, cells: Array[Vector2i] = []) -> Border:
+	var border: Border = suite.auto_free(Border.new())
+	suite.add_child(border)
+	border.setup(null)
+	for c: Vector2i in cells:
+		border.zone.take(c)
+	border.active = true
+	border._trace()
+	border.polygon = border._base.duplicate()
+	border._mark_gaps()
+	return border
 
 
-static func release_e(td: TopDownMain) -> void:
-	td._unhandled_input(_key_event(KEY_E, false))
-
-
-static func cancel_aim(td: TopDownMain) -> void:
-	var ev := InputEventMouseButton.new()
-	ev.button_index = MOUSE_BUTTON_RIGHT
-	ev.pressed = true
-	td._unhandled_input(ev)
-
-
-static func _key_event(code: Key, pressed: bool) -> InputEventKey:
-	var ev := InputEventKey.new()
-	ev.keycode = code
-	ev.physical_keycode = code
-	ev.pressed = pressed
-	return ev
+# 0.4 (#56): the level with `count` people rescued on the start square (a ring of radius 3 round the start), the night
+# at midnight and everyone else parked far away; returns {"runner", "td"} after `frames` frames, enough for the
+# members to walk to their places on the gates. Used by the border tests that need a settled line.
+static func settled_level(suite: GdUnitTestSuite, count: int, frames: int = 600) -> Dictionary:
+	var runner: GdUnitSceneRunner = await level_runner(suite)
+	await runner.simulate_frames(10)
+	var td: TopDownMain = runner.scene()
+	send_everyone_away(td)
+	td.player.global_position = Vector3.ZERO
+	for i: int in range(count):
+		var a := TAU * float(i) / float(maxi(count, 1))
+		var p: Person = td.people[i]
+		place(p, Vector3(cos(a) * 3.0, 0.0, sin(a) * 3.0), p.affinity, 0.0)
+		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
+	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
+	await runner.simulate_frames(frames)
+	return {"runner": runner, "td": td}

@@ -244,12 +244,12 @@ func test_a_dimmed_person_with_nobody_to_chase_drifts_to_the_territory_edge() ->
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)
 	var rescued: Person = td.people[0]
-	TopDownTestUtil.place(rescued, Vector3(-26, 0, -26) * Config.WORLD_SCALE, 0, 0.0)
+	TopDownTestUtil.place(rescued, Vector3(-33, 0, -33), 0, 0.0)
 	rescued.receive_joy(0, Config.JOY_MAX, 0.0)
 	var dimmed: Person = td.people[1]
-	# About 105 m from the rescued person (round 13a: scaled spots, clear of the scaled blocks), well outside the pursuit
-	# search radius.
-	TopDownTestUtil.place(dimmed, Vector3(26, 0, 26) * Config.WORLD_SCALE, 0, 0.9)
+	# 66 m from the rescued person along the same street (0.4: the blocks are solid, so a straight walk needs a street
+	# and the diagonal is not one), well outside the pursuit search radius.
+	TopDownTestUtil.place(dimmed, Vector3(33, 0, -33), 0, 0.9)
 
 	await runner.simulate_frames(150)
 	assert_bool(td.ground.has_edge()).is_true()

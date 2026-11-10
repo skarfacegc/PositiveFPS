@@ -39,7 +39,7 @@ mode was retired.)
   nearby cluster; it pulses faster as the wobble runs out), and each wobbler is a pulsing blip on the minimap.
 - **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered (its pips count the four hits left) · ! = faltering. The night
   introduces them one at a time, with a short one-time prompt each.
-- **Keys:** WASD move · Shift run · hold E to aim a spirit beacon, release E to place it (right-click cancels) · G or Q
+- **Keys:** WASD move · Shift run · G or Q
   joy burst · Mouse point at people (F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look ·
   R restart · M menu
 
@@ -54,41 +54,34 @@ mode was retired.)
 The game opens a menu with one **Play** button. Press **Enter**, **1** or click Play to start the level. The border
 variants were retired in round 10; the organic push is the border.
 
-In the level: WASD to move, the mouse to point at people, **hold E** to aim the zone and **release E** to place a beacon, **G** or **Q**
-for a joy burst. A small cue beside the spirit meter glows when G can be used right now. Press **M** at any time to go back
+In the level: WASD to move, the mouse to point at people, **G** or **Q** for a joy burst (E is free until you can take a block). A small cue beside the spirit meter glows when G can be used right now. Press **M** at any time to go back
 to the menu. **R** restarts the level.
 
 ## The living border
 
-- **The centre forms by itself.** It is the average position of the rescued people. There is no pre-placed heart.
-- **Three people make a border.** The rescued people stand evenly spaced along it, 2.6 m apart (the outermost ones are
-  the border; the rest stand inside). A stretch longer than 3.5 m is a **gap**, which glows coral and pulses softly.
-  Gaps let the gloom through.
-- **Posts.** A beautified block on the line (or the landmark, once beautified) is a **post**: it has a warm lantern and
-  a golden ring, and it holds three people's worth of border, so the loop needs three fewer people. Segments beside a
-  post are never gaps.
-- **The gloom is held back.** Dimmed people outside the border cannot cross a solid (gold) stretch. Pressing on an intact
-  stretch pushes them back, and it drains the nearest border person a little (a quarter of the rate through a gap).
-  Through a gap they can get in, and they drain the nearest border person at the full rate.
-- **Relapses open holes.** A border person who relapses steps out, and the others shuffle to close the gap. With too
-  few people, the gaps stay open.
-- **Local gaps (round 12b).** A gap can open at one stretch. A border person drained below 75% of their joy **falters**:
-  they step back half a metre and the stretch on both sides of them glows as a gap. Gaps also open everywhere when the
-  loop is stretched too wide. Neighbours do not smooth a faltering stretch away at once: after 3 s a spare inside person
-  takes the place, if there is one. Shooting joy at the faltering person (they flicker and show "!") closes the gap.
-  Dimmed people prefer the newest, outermost part of the border, and they walk right up to the line to press it, so a
-  push on one person is a push on one stretch.
+- **The town is a grid (0.4).** Five by five cells of 12 m with 10 m streets between them. The middle cell is the start
+  square, the four cells next to it on the diagonals are the landmark squares, and the other twenty are solid built
+  blocks that nobody walks through.
+- **The zone is the cells you hold.** It starts as the start square, once three people are rescued. Its line is the
+  outline of the cells you hold: along the face of a held block (or the map's edge) it is a **wall**, which holds
+  firm and needs nobody; across a street mouth, or along the open side of a held square, it is a **gate**.
+- **People stand on the gates.** The rescued stand across the gates, about 3.7 m apart (a street mouth takes about 3, an
+  open square side about 4); with fewer people than that they spread wider. The rest stand inside.
+- **The gloom is held back at the gates.** Dimmed people head along the streets for the nearest gate, and lean on it
+  from outside: it bends inward where they push, and past a depth it **breaks**, which glows coral and pulses softly.
+  Through a break they can get in, and they drain the nearest border person at the full rate. Pressing on an intact
+  gate also drains the nearest border person a little (a quarter of the rate). Joy at a bending person, or a burst,
+  calms the spot, and a break mends once nobody dimmed is near it and someone beside it has had joy.
+- **Relapses.** A border person who relapses steps out through their gate, and the others spread to fill the places.
 - **Inside the border the land changes.** The ground is painted warm (it fills in slowly), and blocks inside are
   beautified after a few seconds. A grey person deep inside the border lightens instead of dimming.
-- **The border stays put (round 19).** Once it forms, its centre no longer follows you or the people who push it. Press
-  **hold E** to see the zone a beacon would make at the mouse, and **release E** to place a **spirit beacon** there (50 spirit, one at a time, a new one replaces the old and costs again; right-click while holding cancels with nothing spent):
-  the zone stretches toward it (about 1.7 m a second, up to what your people can hold; about 34 m from its centre at 24 people) and the arm stays,
-  so you build a shape over the night. Rescue more people to expand further; lose people and the zone draws in
-  from its longest arms once the body has squeezed to its smallest. A stretch stops short of dimmed people, and E is refused with a reason if it can't be held.
-- **Three landmarks** stand far from the start, so you need beacons to reach them: the **bandstand** (music joy x2),
-  the **garden** (nature joy x2) and the **bell tower** (border members within 17 m lose 60% less to the gloom).
-  Beautify one inside the border and keep it for 3 seconds to hold it; it loses its boost the moment the border drops
-  it. The top right lists the landmarks you hold; an arrow at the screen edge points to each one you do not hold.
+- **The zone stays on the start square for now.** Growing it block by block is the next pass; until then the line is
+  the start square's four gates.
+- **Four landmarks** stand in their own squares on the diagonals next to the start: the **bandstand** (music joy x2),
+  the **garden** (nature joy x2), the **bell tower** (border members within 17 m lose 60% less to the gloom) and the
+  **gallery** (no boost yet). Hold the square inside the line for 3 seconds to hold the landmark; it loses its boost the
+  moment the line drops it. The top right lists the landmarks you hold; an arrow at the screen edge points to each one
+  you do not hold.
 - **Losing**: if the border has formed and fewer than three people are rescued, the border falls.
 - **Calm opening**: the first quarter of the night is calm (almost no grey pressure), then it builds toward midnight.
   Dimmed people arrive sooner than they did, then ease off: the last third of the night is gentler.
@@ -139,16 +132,16 @@ element, and F3 labels it above the person.
 
 ## Controls
 
-- **WASD** move, **Shift** run, **hold E** to aim a spirit beacon at the mouse (the zone's outline shows only while E is held), **release E** to place it (50 spirit); the zone stretches toward it and the arm stays. **Right-click** while holding E cancels.
+- **WASD** move, **Shift** run. (E is unbound for now; "Take a block" comes next.)
 - **Click** a person to lock on (in lock-on mode). The default is **hover**: the person under the mouse becomes the
   target. **F2** cycles the modes: lock-on, hover (default) and auto (the most urgent person in range).
 - Every shot uses the target's element, so it is always a best match. Music is quick and small, art is slow and big
   (it splashes), nature is a floating flower that blooms where it lands.
 - **G** or **Q** joy burst (8 s cooldown, costs 30 spirit): dimmed people pressing the border within 8 m are pushed back
   4 m and lifted to gloomy (streaks show it; the HUD says how many are in reach), border folk in range get a joy top-up,
-  and used within 4 m of the border it also shoves the line outward toward you.
-- **F3** toggles the debug overlay: cover (`c`) and protection (`p`) above each person, a label per border segment (its
-  spacing, and GAP where it is one), and the member, inner, post and night numbers at the top left, and the live floor-effect counts (for example
+  and it calms the gates near it so they spring back.
+- **F3** toggles the debug overlay: cover (`c`) and protection (`p`) above each person, a label per gate (how many
+  people it needs, and GAP where a break is open), and the member, inner, gate and night numbers at the top left, and the live floor-effect counts (for example
   `floor fx 12/40: ring 2, splat 3`, against the cap of 40). Off by default. If F3 does
   nothing on your keyboard, the F-row may be set to media keys: try Fn+F3.
 - **Mouse wheel** zooms the view in and out (a closer or wider look at the plaza; the labels keep their size on screen).

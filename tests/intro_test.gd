@@ -224,16 +224,10 @@ func test_the_glum_and_sheltered_prompts_have_their_icons() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_tide_and_beacon_prompts_have_their_icons() -> void:
+func test_the_tide_and_line_prompts_have_their_icons() -> void:
 	assert_int(Intro.icon_for(Intro.Prompt.TIDE)).is_equal(MoodIcons.Kind.CLOUD)
-	var beacon_ids: Array[int] = [
-		Intro.Prompt.BEACON_SPIRIT,
-		Intro.Prompt.BEACON_BORDER,
-		Intro.Prompt.BEACON_BLOCKED,
-		Intro.Prompt.BEACON_FELL_BACK,
-		Intro.Prompt.ZONE_PULLED_IN,
-	]
-	for id: int in beacon_ids:
+	var line_ids: Array[int] = [Intro.Prompt.BREAK, Intro.Prompt.PUSH]
+	for id: int in line_ids:
 		assert_int(Intro.icon_for(id)).is_equal(MoodIcons.Kind.BANG)
 
 

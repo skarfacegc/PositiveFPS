@@ -5,32 +5,32 @@ extends RefCounted
 # where people may stand. Owns the level's seeded random numbers (spawn spots, then the crowd's wandering).
 # TopDownMain builds it as `plaza`.
 
-# Obstacle blocks are 4 x 2 x 4. Their centres are fixed (0.3.3, #52: twenty blocks in rows along a main street
-# (z = 0) and a cross street (x = 0), both 10 m wide, see TownLayout), and the middle (the start) stays clear.
-# Main street, north row, then south row (x = -38, -22, -14, 14, 22, 38); then the cross street, west and east rows
-# (z = -22, -15, 15, 22).
-const BLOCK_SIZE := Vector3(4, 2, 4)
+# Walls and gates: Grid (0.4, #55). The twenty built blocks are the cells of the town grid (TownGrid) that are not the
+# start square or a landmark square: each is a 12 x 3 x 12 solid block (a tight group of houses filling its cell), and
+# the streets between them are 10 m wide. The centres are TownGrid.cell_centre of TownGrid.block_cells(), row by row
+# (a test keeps this list and the grid in step).
+const BLOCK_SIZE := Vector3(12, 3, 12)
 const BLOCK_POSITIONS: Array[Vector3] = [
-	Vector3(-38, 1, -8),
-	Vector3(-22, 1, -8),
-	Vector3(-14, 1, -8),
-	Vector3(14, 1, -8),
-	Vector3(22, 1, -8),
-	Vector3(38, 1, -8),
-	Vector3(-38, 1, 8),
-	Vector3(-22, 1, 8),
-	Vector3(-14, 1, 8),
-	Vector3(14, 1, 8),
-	Vector3(22, 1, 8),
-	Vector3(38, 1, 8),
-	Vector3(-8, 1, -22),
-	Vector3(-8, 1, -15),
-	Vector3(-8, 1, 15),
-	Vector3(-8, 1, 22),
-	Vector3(8, 1, -22),
-	Vector3(8, 1, -15),
-	Vector3(8, 1, 15),
-	Vector3(8, 1, 22),
+	Vector3(-44, 1.5, -44),
+	Vector3(-22, 1.5, -44),
+	Vector3(0, 1.5, -44),
+	Vector3(22, 1.5, -44),
+	Vector3(44, 1.5, -44),
+	Vector3(-44, 1.5, -22),
+	Vector3(0, 1.5, -22),
+	Vector3(44, 1.5, -22),
+	Vector3(-44, 1.5, 0),
+	Vector3(-22, 1.5, 0),
+	Vector3(22, 1.5, 0),
+	Vector3(44, 1.5, 0),
+	Vector3(-44, 1.5, 22),
+	Vector3(0, 1.5, 22),
+	Vector3(44, 1.5, 22),
+	Vector3(-44, 1.5, 44),
+	Vector3(-22, 1.5, 44),
+	Vector3(0, 1.5, 44),
+	Vector3(22, 1.5, 44),
+	Vector3(44, 1.5, 44),
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
 
@@ -89,7 +89,7 @@ func register_buildings(border: Border) -> void:
 		var is_landmark := lm_index >= 0
 		var size := LandmarkConfig.LANDMARK_SIZES[lm_index] if is_landmark else BLOCK_SIZE
 		var colour := LandmarkConfig.LANDMARK_COLOURS[lm_index] if is_landmark else BLOCK_COLOUR
-		border.register_building(body, Vector2(BLOCK_SIZE.x, BLOCK_SIZE.z) * 0.5, is_landmark, size, colour)
+		border.register_building(body, Vector2(size.x, size.z) * 0.5, is_landmark, size, colour)
 
 
 # Creates a static body with a box collision shape (the drawing is done by looks).
@@ -158,8 +158,10 @@ func near_block(p: Vector3, margin: float) -> bool:
 	for block: Vector3 in BLOCK_POSITIONS:
 		if absf(p.x - block.x) < reach and absf(p.z - block.z) < reach:
 			return true
-	for lm: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
-		if absf(p.x - lm.x) < reach and absf(p.z - lm.z) < reach:
+	for k: int in range(LandmarkConfig.LANDMARK_POSITIONS.size()):
+		var lm := LandmarkConfig.LANDMARK_POSITIONS[k]
+		var lm_reach := LandmarkConfig.LANDMARK_SIZES[k].x * 0.5 + margin
+		if absf(p.x - lm.x) < lm_reach and absf(p.z - lm.z) < lm_reach:
 			return true
 	return false
 

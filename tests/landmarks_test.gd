@@ -38,7 +38,7 @@ func test_there_are_four_landmarks_with_names_boosts_and_a_short_hold() -> void:
 
 
 func test_landmarks_are_inside_the_map_clear_of_blocks_and_each_other_and_near_the_start() -> void:
-	var lim := RoundLoopConfig.BORDER_MAP_LIMIT
+	var lim := BorderConfig.BORDER_MAP_LIMIT
 	var count := LandmarkConfig.LANDMARK_POSITIONS.size()
 	for i: int in range(count):
 		var at := LandmarkConfig.LANDMARK_POSITIONS[i]
@@ -46,22 +46,23 @@ func test_landmarks_are_inside_the_map_clear_of_blocks_and_each_other_and_near_t
 		# Inside the map, with the whole block on the floor.
 		assert_float(absf(at.x) + half).is_less(lim)
 		assert_float(absf(at.z) + half).is_less(lim)
-		# 0.3.3 (#17): every landmark is 18 to 32 m from the start, so reaching one takes a pull or two, not a trek.
+		# 0.4 (#55): every landmark stands in the middle of a square on a diagonal next to the start, about 31 m away.
 		var d := Vector2(at.x, at.z).length()
-		assert_float(d).is_between(TownConfig.LANDMARK_NEAREST, TownConfig.LANDMARK_FARTHEST)
-		# Clear of every ordinary block (a block is 4 wide: keep a wide margin) and of each other.
+		assert_float(d).is_between(30.0, 32.0)
+		# Clear of every ordinary block (a block is 12 wide and stands in its own cell) and of each other.
 		for block: Vector3 in Plaza.BLOCK_POSITIONS:
-			assert_float(Vector2(at.x - block.x, at.z - block.z).length()).is_greater(8.0)
+			assert_float(Vector2(at.x - block.x, at.z - block.z).length()).is_greater_equal(22.0 - 0.001)
 		for j: int in range(i + 1, count):
 			var other := LandmarkConfig.LANDMARK_POSITIONS[j]
-			assert_float(Vector2(at.x - other.x, at.z - other.z).length()).is_greater(20.0)
+			assert_float(Vector2(at.x - other.x, at.z - other.z).length()).is_greater_equal(44.0 - 0.001)
 
 
-func test_the_landmarks_stand_on_different_sides_of_the_start_on_the_streets() -> void:
+func test_the_landmarks_stand_in_their_own_squares_one_on_each_diagonal_of_the_start() -> void:
 	var sides := {}
 	for at: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
-		# One at the end of each arm of the two streets.
-		assert_bool(TownLayout.on_street(at, -2.0)).is_true()
+		# In the middle of a square, off every street.
+		assert_bool(TownLayout.on_street(at)).is_false()
+		assert_bool(TownGrid.is_block(TownGrid.cell_of(at))).is_false()
 		sides[Vector2i(int(signf(at.x)), int(signf(at.z)))] = true
 	assert_int(sides.size()).is_equal(4)
 
@@ -203,17 +204,20 @@ func test_a_dim_player_recovers_near_each_landmark_before_a_border_exists() -> v
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_a_ring_round_the_garden_claims_it_and_the_hud_panel_and_boost_follow() -> void:
+func test_holding_the_garden_square_claims_it_and_the_hud_panel_and_boost_follow() -> void:
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
 	TopDownTestUtil.send_everyone_away(td)
-	var garden := LandmarkConfig.LANDMARK_POSITIONS[Landmarks.GARDEN]
 	for i: int in range(3):
 		var a := TAU * float(i) / 3.0
 		var p: Person = td.people[i]
-		TopDownTestUtil.place(p, garden + Vector3(cos(a) * 2.5, 0.0, sin(a) * 2.5), p.affinity, 0.0)
+		TopDownTestUtil.place(p, Vector3(cos(a) * 3.0, 0.0, sin(a) * 3.0), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
+	# 0.4: a landmark is held with its square: the zone takes the block west of the start, then the Garden square
+	# north of it.
+	td.border.zone.take(Vector2i(1, 2))
+	td.border.zone.take(TownConfig.TOWN_LANDMARK_CELLS[Landmarks.GARDEN])
 	var frames := 0
 	while not td.landmarks.is_held(Landmarks.GARDEN) and frames < 1500:
 		await runner.simulate_frames(1)

@@ -125,7 +125,6 @@ func attach(main: TopDownMain) -> bool:
 	main.player.dim_changed.connect(_on_player_dim)
 	main.grabs.grab_landed.connect(_on_grab_landed)
 	main.grabs.grab_avoided.connect(_on_grab_avoided)
-	main.beacon_placed.connect(_on_beacon_placed)
 	main.spirit_warmth.warmed.connect(_on_spirit_warm)
 	main.embrace.started.connect(_on_embrace_start)
 	main.embrace.lifted.connect(_on_embrace_lift)
@@ -133,11 +132,6 @@ func attach(main: TopDownMain) -> bool:
 	main.gloom_tide.tide_warned.connect(_on_tide_warned)  # Round 25: gloom tides.
 	main.gloom_tide.tide_started.connect(_on_tide_started)
 	main.gloom_tide.tide_ended.connect(_on_tide_ended)
-	main.border.beacon_reached.connect(_on_beacon_reached)
-	main.border.stretch_started.connect(_on_stretch_started)
-	main.border.zone_grew.connect(_on_zone_grew)
-	main.border.zone_shrunk.connect(_on_zone_shrunk)
-	main.border.stretch_ended.connect(func(reason: String) -> void: emit_event("stretch_end", {"reason": reason}))
 	for lm: Landmark in main.landmarks.items:
 		lm.claimed.connect(_on_landmark.bind(lm, "landmark_claimed"))
 		lm.lost.connect(_on_landmark.bind(lm, "landmark_lost"))
@@ -161,51 +155,8 @@ func attach(main: TopDownMain) -> bool:
 	return true
 
 
-func _on_beacon_placed(pos: Vector3, cost: float, spirit_after: float) -> void:
-	emit_event("beacon_placed", {"pos": _pos(pos), "cost": cost, "spirit_after": snappedf(spirit_after, 0.1)})
-
-
 func _on_landmark(lm: Landmark, type: String) -> void:
 	emit_event(type, {"name": lm.landmark_name(), "held": _main.landmarks.held_count()})
-
-
-func _on_beacon_reached() -> void:
-	var tip: Vector3 = _main.border.stretch_info()["tip"]
-	emit_event("beacon_reached", {"pos": _pos(tip)})
-
-
-# Round 20: a stretch began (where the tip is aimed and how far it can go). Round 22: a finished stretch keeps its arm
-# (`zone_grow`: ground gained in square metres) and, when people are lost, the arms retreat (`zone_shrink`: ground
-# lost).
-func _on_stretch_started(beacon: Vector3, tip_target: Vector3) -> void:
-	var reach: float = _main.border.stretch_info()["max"]
-	emit_event(
-		"zone_stretch", {"beacon": _pos(beacon), "tip_target": _pos(tip_target), "max_reach": snappedf(reach, 0.1)}
-	)
-
-
-func _on_zone_grew(gain: float, tip: Vector3, angle: float) -> void:
-	emit_event(
-		"zone_grow",
-		{
-			"tip": _pos(tip),
-			"gain": snappedf(gain, 0.1),
-			"angle": snappedf(angle, 0.01),
-			"people": _main.rescued_count,
-			"zone": snappedf(BorderCentre.polygon_area(_main.border.polygon), 0.1)
-		}
-	)
-
-
-func _on_zone_shrunk(lost: float) -> void:
-	emit_event(
-		"zone_shrink",
-		{
-			"lost": snappedf(lost, 0.1),
-			"people": _main.rescued_count,
-			"zone": snappedf(BorderCentre.polygon_area(_main.border.polygon), 0.1)
-		}
-	)
 
 
 # Round 25: a gloom tide's warning, start and end, with its side (the compass name and the angle) and how many rescued
@@ -370,7 +321,7 @@ func _sample() -> void:
 	var poly := border.polygon
 	for j: int in range(poly.size()):
 		var seg := poly[j].distance_to(poly[(j + 1) % poly.size()])
-		if border.is_sealed(j):
+		if border.is_wall(j):  # A wall is the old "sealed" length; the open length is the gates.
 			sealed_len += seg
 		else:
 			open_len += seg
@@ -380,6 +331,8 @@ func _sample() -> void:
 		"border_open": snappedf(open_len, 0.1),
 		"border_sealed": snappedf(sealed_len, 0.1),
 		"members": border.members.size(),
+		"cells": border.zone.held.size(),
+		"gates": border.zone.gates.size(),
 		"gaps": ids.size(),
 		"gap_regions": border.gap_region_count(),
 		"gap_ids": ids,

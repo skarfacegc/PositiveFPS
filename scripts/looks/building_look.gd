@@ -2,8 +2,7 @@ class_name BuildingLook
 extends Node3D
 
 # The look of one block the border can beautify. The rules (building.gd) own the inside time, the tint, `beautified`
-# and `post`; this node draws the block on its body from that state. A subclass overrides _build, sync, set_post and
-# is_styled.
+# this node draws the block on its body from that state. A subclass overrides _build, sync and is_styled.
 
 var subject: Building
 var body: StaticBody3D
@@ -28,11 +27,6 @@ func is_styled() -> bool:
 
 # Reads the building's state (tint, beautified) and updates what is drawn.
 func sync(_delta: float = 0.0) -> void:
-	pass
-
-
-# Shows or hides the post visuals.
-func set_post(_on: bool) -> void:
 	pass
 
 

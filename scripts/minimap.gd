@@ -26,8 +26,6 @@ var dimmed_pts := PackedVector2Array()
 var landmark_pts := PackedVector2Array()
 # Round 19: which of them are held right now (set by the level before each refresh).
 var held_landmarks: Array[bool] = []
-# Round 19: the spirit beacon (Vector2.INF when there is none).
-var beacon_pos := Vector2.INF
 var player_pos := Vector2.ZERO
 var view_pts := PackedVector2Array()
 # Buildings: each block's footprint (world rectangle) and whether it is beautified (warm).
@@ -151,7 +149,7 @@ func refresh_from(
 	seal_flags.clear()
 	for j: int in range(border.polygon.size()):
 		gap_flags.append(border.segment_is_gap(j))
-		seal_flags.append(border.is_sealed(j))
+		seal_flags.append(border.is_wall(j))  # A wall is drawn in the look's seal colour.
 	gap_markers.clear()
 	var mids := border.gap_midpoints_cached()
 	var urgencies := border.gap_urgencies()
@@ -165,8 +163,6 @@ func refresh_from(
 	for p: Person in people:
 		if not p.is_rescued and GloomSim.is_dimmed(p):
 			dimmed_pts.append(Vector2(p.position.x, p.position.z))
-	var bp := border.beacon_pos()
-	beacon_pos = Vector2.INF if bp == Vector3.INF else Vector2(bp.x, bp.z)
 	landmark_pts = PackedVector2Array()
 	for at: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
 		landmark_pts.append(Vector2(at.x, at.z))
@@ -456,12 +452,6 @@ func _render() -> void:
 			var unheld_ring := look.unheld_landmark_ring_colour()
 			if unheld_ring.a > 0.0:
 				_ring(landmark_pts[k], HudConfig.TD_MINIMAP_LANDMARK_UNHELD_RING_RADIUS, unheld_ring)
-	if beacon_pos != Vector2.INF:
-		var beacon_halo := look.halo_colour("beacon")
-		if beacon_halo.a > 0.0:
-			_ring(beacon_pos, 4.3, beacon_halo)
-		_ring(beacon_pos, 3.4, look.beacon_colour())
-		_marker(beacon_pos, 1.4, look.beacon_colour(), "beacon")
 	_marker(player_pos, 2.2, look.player_colour(), "player")
 	for k: int in range(view_pts.size()):
 		_line(view_pts[k], view_pts[(k + 1) % view_pts.size()], look.view_colour())

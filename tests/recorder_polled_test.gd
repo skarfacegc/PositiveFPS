@@ -130,9 +130,10 @@ func test_the_sample_counts_stages_rescued_shelter_guards_pressers_and_the_seale
 	var glum: Person = td.people[4]
 	TopDownTestUtil.place(glum, Vector3(-30, 0, -30), 0, 0.5)
 	glum.level = 1
-	# A square loop of four sides, the first one sealed by the map edge.
-	td.border.polygon = PackedVector2Array([Vector2(-10, -10), Vector2(10, -10), Vector2(10, 10), Vector2(-10, 10)])
-	td.border._sealed = [1.0, 0.0, 0.0, 0.0] as Array[float]
+	# The start square and the block east of it: five gates (56 m) and three walls (36 m).
+	td.border.zone.take(Vector2i(3, 2))
+	td.border._trace()
+	td.border.polygon = td.border._base.duplicate()
 	rec._sample()
 	var sample := _of_type(_events(td), "sample").back() as Dictionary
 	var stages: Dictionary = sample["stages"]
@@ -146,8 +147,10 @@ func test_the_sample_counts_stages_rescued_shelter_guards_pressers_and_the_seale
 	assert_float(sample["sheltered"]).is_equal(1.0)
 	assert_float(sample["guarded"]).is_equal(1.0)
 	assert_float(sample["pressers"]).is_equal(1.0)
-	assert_float(sample["border_sealed"]).is_equal_approx(20.0, 0.01)
-	assert_float(sample["border_open"]).is_equal_approx(60.0, 0.01)
+	assert_float(sample["border_sealed"]).is_equal_approx(36.0, 0.01)  # The walls.
+	assert_float(sample["border_open"]).is_equal_approx(56.0, 0.01)  # The gates.
+	assert_float(sample["cells"]).is_equal(2.0)
+	assert_float(sample["gates"]).is_equal(5.0)
 
 
 func test_gaps_still_open_when_the_session_ends_are_closed_as_cut_short() -> void:
@@ -229,34 +232,12 @@ func test_dawn_is_the_win_with_a_rating_a_loss_is_logged_and_a_finished_session_
 	assert_str(_read_file(td2).back()["outcome"]).is_equal("loss")
 
 
-func test_beacons_and_landmarks_are_logged() -> void:
+func test_landmarks_are_logged() -> void:
 	var s: Dictionary = await _start(true)
 	var td: TopDownMain = s["td"]
-	td.beacon_placed.emit(Vector3(10, 0, -4), 30.0, 20.0)
-	td.border.beacon_reached.emit()
-	td.border.stretch_started.emit(Vector3(10, 0, -4), Vector3(9, 0, -3))
-	td.border.zone_grew.emit(41.5, Vector3(9, 0, -3), 0.5)
-	td.border.zone_shrunk.emit(12.0)
 	td.landmarks.items[1].claimed.emit()
 	td.landmarks.items[1].lost.emit()
 	var events := _events(td)
-	var placed := _of_type(events, "beacon_placed")
-	assert_int(placed.size()).is_equal(1)
-	assert_float(placed[0]["cost"]).is_equal(30.0)
-	assert_float(placed[0]["spirit_after"]).is_equal(20.0)
-	assert_array(placed[0]["pos"]).is_equal([10.0, -4.0])
-	assert_int(_of_type(events, "beacon_reached").size()).is_equal(1)
-	var stretch := _of_type(events, "zone_stretch")
-	assert_int(stretch.size()).is_equal(1)
-	assert_array(stretch[0]["beacon"]).is_equal([10.0, -4.0])
-	assert_array(stretch[0]["tip_target"]).is_equal([9.0, -3.0])
-	var grow := _of_type(events, "zone_grow")
-	assert_int(grow.size()).is_equal(1)
-	assert_array(grow[0]["tip"]).is_equal([9.0, -3.0])
-	assert_float(grow[0]["gain"]).is_equal(41.5)
-	var shrink := _of_type(events, "zone_shrink")
-	assert_int(shrink.size()).is_equal(1)
-	assert_float(shrink[0]["lost"]).is_equal(12.0)
 	assert_str(_of_type(events, "landmark_claimed")[0]["name"]).is_equal("Garden")
 	assert_str(_of_type(events, "landmark_lost")[0]["name"]).is_equal("Garden")
 	await TopDownTestUtil.leave_loaded_scene(td)

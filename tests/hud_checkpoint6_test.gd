@@ -134,7 +134,7 @@ func test_a_long_notice_shrinks_its_text_to_fit_the_banner() -> void:
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
-	td.intro.notice(Intro.Prompt.BEACON_BLOCKED, "A very long reason for a refusal, " + "word ".repeat(30))
+	td.intro.notice(Intro.Prompt.SPIRIT_LOW, "A very long reason for a refusal, " + "word ".repeat(30))
 	await runner.simulate_frames(20)
 	assert_float(td.prompts._rect.size.x).is_less_equal(HudConfig.CP6_BANNER_MAX_WIDTH)
 	assert_int(td.prompts.font_px).is_less(HudConfig.NOTICE_FONT_SIZE)
@@ -149,7 +149,7 @@ func test_a_notice_moves_down_below_the_alert_so_the_two_never_overlap_in_both_l
 	for mode: int in [Looks.Mode.PLACEHOLDER, Looks.Mode.STYLED]:
 		await _look(s, mode)
 		td.hud.show_alert("Someone lost their joy!")
-		td.intro.notice(Intro.Prompt.BEACON_BLOCKED)
+		td.intro.notice(Intro.Prompt.SPIRIT_LOW)
 		await runner.simulate_frames(10)
 		var alert := Rect2(0.0, HudConfig.CP6_BANNER_TOP, SCREEN.x, HudConfig.CP6_BANNER_HEIGHT)
 		assert_bool(td.hud.alert_showing()).is_true()

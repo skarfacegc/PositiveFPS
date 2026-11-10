@@ -52,6 +52,10 @@ func update_people(delta: float) -> void:
 			var desired := Vector3.ZERO
 			if to.length() > _stop_distance(p, target_p):
 				desired = to.normalized()
+				# 0.4 (#56): a dimmed person outside the line heads for the nearest gate along the streets (blocks are solid).
+				var route := main.border.route_to_gate(p.global_position)
+				if route != Vector3.ZERO:
+					desired = route
 			_steer(p, desired, PeopleConfig.TD_DIMMED_DRIFT_SPEED, delta)
 		elif GloomSim.is_dimmed(p) and main.ground.has_edge():
 			var to_edge: Vector3 = main.ground.nearest_edge_point(p.global_position) - p.global_position
@@ -59,6 +63,9 @@ func update_people(delta: float) -> void:
 			var edge_desired := Vector3.ZERO
 			if to_edge.length() > GroundConfig.TD_EDGE_REACH:
 				edge_desired = to_edge.normalized()
+				var route := main.border.route_to_gate(p.global_position)  # 0.4: round the solid blocks, by the streets.
+				if route != Vector3.ZERO:
+					edge_desired = route
 			_steer(p, edge_desired, PeopleConfig.TD_DIMMED_DRIFT_SPEED, delta)
 		else:
 			_steer(p, _wander_dir(p, delta), PeopleConfig.TD_WANDER_SPEED, delta)

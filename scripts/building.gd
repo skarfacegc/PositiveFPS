@@ -3,9 +3,8 @@ extends RefCounted
 
 # One block the border can beautify. It is beautified after BORDER_BUILDING_SECONDS with enough of its footprint inside
 # the border (see Border). Its tint fades toward warm over BORDER_TINT_SECONDS. Mechanical blocks keep their grey.
-# Round 10: a beautified block on the border line is a post (see Border.post_count). How a block looks (its box or
-# its styled buildings, the lantern and ring of a post) is its look (scripts/looks/building_look.gd); this script only
-# keeps the rules state the look reads: tint, beautified and post.
+# How a block looks (its box or its styled buildings) is its look (scripts/looks/building_look.gd); this script only
+# keeps the rules state the look reads: tint and beautified. (0.4 removed the posts.)
 
 var centre := Vector2.ZERO
 var half := Vector2.ONE
@@ -15,8 +14,6 @@ var inside_time: float = 0.0
 # 0 (mechanical grey) to 1 (fully beautified colour).
 var tint: float = 0.0
 var beautified: bool = false
-# True while the border counts this block as a post (see Border._assign_members).
-var post: bool = false
 var look: BuildingLook
 var _body: StaticBody3D
 var _size := Vector3.ONE
@@ -37,13 +34,6 @@ func rebuild_look() -> void:
 		_body.remove_child(look)
 		look.queue_free()
 	_make_look()
-
-
-# Shows or hides the post visuals, and records whether this block is a post.
-func set_post(on: bool) -> void:
-	post = on
-	if look != null:
-		look.set_post(on)
 
 
 # `inside_fraction` is the share of the footprint (0..1) inside the border this frame.

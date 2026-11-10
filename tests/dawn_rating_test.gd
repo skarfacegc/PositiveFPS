@@ -82,12 +82,15 @@ func test_dawn_rates_what_is_held_thirty_people_and_a_landmark_make_two_lights()
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
-	var bandstand := LandmarkConfig.LANDMARK_POSITIONS[Landmarks.BANDSTAND]
 	for i: int in range(30):
 		var a := TAU * float(i) / 30.0
 		var p: Person = td.people[i]
-		TopDownTestUtil.place(p, bandstand + Vector3(cos(a) * 6.0, 0.0, sin(a) * 6.0), p.affinity, 0.0)
+		TopDownTestUtil.place(p, Vector3(cos(a) * 3.0, 0.0, sin(a) * 3.0), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
+	# The zone takes the block north of the start, then the Bandstand square beside it (0.4: a landmark is held with
+	# its cell).
+	td.border.zone.take(Vector2i(2, 1))
+	td.border.zone.take(TownConfig.TOWN_LANDMARK_CELLS[Landmarks.BANDSTAND])
 	var frames := 0
 	while not td.landmarks.is_held(Landmarks.BANDSTAND) and frames < 2400:
 		await runner.simulate_frames(1)

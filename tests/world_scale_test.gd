@@ -15,45 +15,6 @@ func _rescue_ring(td: TopDownMain, count: int, r: float) -> void:
 	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 
 
-func _organic_border() -> Border:
-	var border: Border = auto_free(Border.new())
-	add_child(border)
-	border.setup(null)
-	return border
-
-
-func _ring(n: int, r: float) -> Array[Person]:
-	var out: Array[Person] = []
-	for i: int in range(n):
-		var a := TAU * float(i) / float(n)
-		var p: Person = auto_free(Person.new())
-		p.position = Vector3(cos(a) * r, 0.0, sin(a) * r)
-		p.is_rescued = true
-		p.joy = Config.JOY_MAX
-		out.append(p)
-	return out
-
-
-# The area inside a settled loop of `n` people (centre fixed at the origin), in square metres.
-func _settled_area(n: int, r: float) -> float:
-	var border := _organic_border()
-	border._has_centre = true
-	border.centre = Vector3.ZERO
-	var rescued := _ring(n, r)
-	for i: int in range(400):
-		border.update(rescued, 1.0 / 60.0, 1.0)
-	return absf(_polygon_area(border.polygon))
-
-
-func _polygon_area(pts: PackedVector2Array) -> float:
-	var sum := 0.0
-	for i: int in range(pts.size()):
-		var a := pts[i]
-		var b := pts[(i + 1) % pts.size()]
-		sum += a.x * b.y - b.x * a.y
-	return sum * 0.5
-
-
 # --- The constants -----------------------------------------------------------------------------------------------
 
 
@@ -71,8 +32,8 @@ func test_the_plaza_is_a_hundred_metres_and_the_ground_grid_matches() -> void:
 	# Every block and the landmark are inside the walls, and the start area stays clear of them.
 	var half := Config.TD_PLAZA_SIZE / 2.0
 	for pos: Vector3 in Plaza.BLOCK_POSITIONS:
-		assert_float(absf(pos.x)).is_less(half - 6.0)
-		assert_float(absf(pos.z)).is_less(half - 6.0)
+		assert_float(absf(pos.x)).is_less_equal(half - 6.0)  # 0.4: a 12 m block fills its cell, flush with the wall.
+		assert_float(absf(pos.z)).is_less_equal(half - 6.0)
 		assert_float(Vector2(pos.x, pos.z).length()).is_greater(12.0)
 	for lm: Vector3 in LandmarkConfig.LANDMARK_POSITIONS:
 		assert_float(Vector2(lm.x, lm.z).length()).is_greater(12.0)
@@ -90,14 +51,8 @@ func test_territory_constants_scale_and_interaction_constants_do_not() -> void:
 	# Territory: the old (round 12) value times WORLD_SCALE.
 	var territory: Dictionary = {
 		"BORDER_TARGET_SPACING": [BorderConfig.BORDER_TARGET_SPACING, 2.6],
-		"BORDER_MAX_GAP": [BorderConfig.BORDER_MAX_GAP, 3.5],
-		"BORDER_PUSH": [RoundLoopConfig.BORDER_PUSH, 2.4],
-		"BORDER_MIN_RADIUS": [RoundLoopConfig.BORDER_MIN_RADIUS, 3.0],
-		"BORDER_POST_REACH": [BeaconConfig.BORDER_POST_REACH, 2.0],
 		"BORDER_EDGE_BAND": [BorderConfig.BORDER_EDGE_BAND, 1.0],
 		"BORDER_OUTWARD_STEP": [BorderConfig.BORDER_OUTWARD_STEP, 1.0],
-		"BORDER_INNER_SPACING": [BorderConfig.BORDER_INNER_SPACING, 0.7],
-		"BORDER_SHOVE_AMOUNT": [RoundLoopConfig.BORDER_SHOVE_AMOUNT, 1.5],
 		"TD_COVER_RADIUS": [GroundConfig.TD_COVER_RADIUS, 3.0],
 		"TD_ERODE_RADIUS": [GroundConfig.TD_ERODE_RADIUS, 2.0],
 		"ZONE_RADIUS": [PeopleConfig.ZONE_RADIUS, 6.0],
@@ -114,15 +69,13 @@ func test_territory_constants_scale_and_interaction_constants_do_not() -> void:
 		var now: float = pair[0]
 		var old: float = pair[1]
 		assert_float(now / (old * s)).override_failure_message(key).is_equal_approx(1.0, 0.001)
-	# 0.3.3: the landmarks and blocks are placed in metres on the street plan (not scaled), 18 to 32 m from the start.
-	assert_float(LandmarkConfig.LANDMARK_POSITIONS[0].x).is_equal_approx(30.0, 0.0001)
-	assert_float(LandmarkConfig.LANDMARK_POSITIONS[0].z).is_equal_approx(0.0, 0.0001)
+	# 0.4: the landmarks and blocks are placed in metres on the town grid (not scaled): 12 m cells, 10 m streets.
+	assert_float(LandmarkConfig.LANDMARK_POSITIONS[0].x).is_equal_approx(22.0, 0.0001)
+	assert_float(LandmarkConfig.LANDMARK_POSITIONS[0].z).is_equal_approx(-22.0, 0.0001)
 	# A per-metre rate shrinks by the same factor, so the same fraction of the way gives the same rate.
 	assert_float(PeopleConfig.GLOOM_GROWTH_PER_METER * s).is_equal_approx(0.0008, 0.000001)
 	# Round numbers from the brief.
 	assert_float(BorderConfig.BORDER_TARGET_SPACING).is_equal_approx(3.71, 0.01)
-	assert_float(BorderConfig.BORDER_MAX_GAP).is_equal_approx(5.0, 0.01)
-	assert_float(RoundLoopConfig.BORDER_PUSH).is_equal_approx(3.43, 0.01)
 
 	# Interaction and bodies: exactly the round 12 values.
 	assert_float(PlayerConfig.TD_AUTO_RANGE).is_equal(10.0)
@@ -136,10 +89,8 @@ func test_territory_constants_scale_and_interaction_constants_do_not() -> void:
 	assert_float(ProjectileConfig.TD_FLOWER_SPEED).is_equal(9.0)
 	assert_float(SpiritConfig.TD_BURST_RADIUS).is_equal(5.5)
 	assert_float(BorderConfig.BORDER_PRESS_RANGE).is_equal(1.5)
-	assert_float(RoundLoopConfig.BORDER_PUSH_WIDTH).is_equal(0.5)
-	assert_float(RoundLoopConfig.BORDER_SHOVE_RANGE).is_equal(4.0)
 	assert_float(PeopleConfig.TD_DIMMED_STOP_DISTANCE).is_equal(2.5)
-	assert_vector(Plaza.BLOCK_SIZE).is_equal(Vector3(4, 2, 4))
+	assert_vector(Plaza.BLOCK_SIZE).is_equal(Vector3(12, 3, 12))
 	assert_vector(LandmarkConfig.BORDER_LANDMARK_SIZE).is_equal(Vector3(4, 3.5, 4))
 
 	# Speeds: about 10% faster, not scaled by 1.43.
@@ -169,60 +120,12 @@ func test_the_camera_is_nineteen_and_a_half_metres_tall_and_the_ten_metre_ring_f
 # --- The rules behave the same, bigger ----------------------------------------------------------------------------
 
 
-# n people hold a loop of about n x spacing, so the area it encloses goes with spacing squared: WORLD_SCALE squared
-# (about 2.04) times the area at the round 12 spacing.
-func test_the_same_people_enclose_about_twice_the_area() -> void:
-	var s := Config.WORLD_SCALE
-	for n: int in [8, 12, 20]:
-		var old_perimeter := float(n) * 2.6
-		var old_area := old_perimeter * old_perimeter / (4.0 * PI)
-		var ratio := _settled_area(n, 4.0 * s) / old_area
-		assert_float(ratio).override_failure_message("n=%d ratio %f" % [n, ratio]).is_between(
-			s * s * 0.85, s * s * 1.15
-		)
-
-
-func test_overextending_at_the_new_scale_opens_gaps_everywhere() -> void:
-	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
-	await runner.simulate_frames(5)
-	var td: TopDownMain = runner.scene()
-	_rescue_ring(td, 4, 2.0 * Config.WORLD_SCALE)
-	await runner.simulate_frames(600)
-	assert_bool(td.border.active).is_true()
-	assert_int(td.border.gap_count()).is_equal(td.border.segment_gap.size())
-	assert_int(td.border.gap_region_count()).is_equal(1)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-# Two dimmed people press one member of a healthy border: exactly one local gap opens, within a reasonable time. The
-# time in frames is printed so the round notes can quote it.
-func test_two_pressers_open_exactly_one_local_gap_at_the_new_scale() -> void:
-	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
-	await runner.simulate_frames(5)
-	var td: TopDownMain = runner.scene()
-	_rescue_ring(td, 20, 7.0 * Config.WORLD_SCALE)
-	await runner.simulate_frames(600)
-	var border: Border = td.border
-	assert_bool(border.active).is_true()
-	assert_int(border.member_count).is_equal(20)
-	assert_int(border.gap_count()).is_equal(0)
-
-	var target: Person = border.members[7]
-	var out := Vector3(target.position.x - border.centre.x, 0.0, target.position.z - border.centre.z).normalized()
-	var side := Vector3(-out.z, 0.0, out.x)
-	TopDownTestUtil.place(td.people[20], target.position + out * 1.2, 1, 0.95)
-	TopDownTestUtil.place(td.people[21], target.position + out * 1.2 + side * 0.6, 2, 0.95)
-	var frames := 0
-	while border.gap_region_count() == 0 and frames < 1800:
-		await runner.simulate_frames(1)
-		frames += 1
-	print("WORLD_SCALE local gap opened after %d frames (%.1f s)" % [frames, float(frames) / 60.0])
-	assert_int(border.gap_region_count()).is_equal(1)
-	# Round 14: the second presser waits DIM_ARRIVAL_MIN_GAP (6 s) for the midnight stagger, so the gap comes later.
-	assert_int(frames).is_less(1500)
-	assert_int(border.gap_count()).is_between(1, 3)
-	assert_int(border.gap_count()).is_less(border.segment_gap.size() / 2)
-	await TopDownTestUtil.leave_loaded_scene(td)
+# Gates need their width over the territory spacing members (a 12 m square side 4, a 10 m street mouth 3).
+func test_a_gate_asks_for_its_width_over_the_scaled_spacing() -> void:
+	var z := Zone.new()
+	assert_int(z.members_needed()).is_equal(16)
+	assert_int(ceili(12.0 / BorderConfig.BORDER_TARGET_SPACING)).is_equal(4)
+	assert_int(ceili(10.0 / BorderConfig.BORDER_TARGET_SPACING)).is_equal(3)
 
 
 # --- Performance --------------------------------------------------------------------------------------------------
@@ -270,9 +173,9 @@ func test_spawn_spots_keep_clear_of_the_centre_blocks_and_each_other() -> void:
 	var none: Array[Vector3] = []
 	assert_bool(td.plaza.spot_ok(Vector3(PeopleConfig.TD_SPAWN_CENTRE_CLEAR - 0.5, 0, 0), none)).is_false()
 	assert_bool(td.plaza.spot_ok(Plaza.BLOCK_POSITIONS[0] * Vector3(1, 0, 1), none)).is_false()
-	var near: Array[Vector3] = [Vector3(20, 0, 0)]
-	assert_bool(td.plaza.spot_ok(Vector3(20 + PeopleConfig.TD_SPAWN_SPACING - 0.5, 0, 0), near)).is_false()
-	assert_bool(td.plaza.spot_ok(Vector3(20 + PeopleConfig.TD_SPAWN_SPACING + 0.5, 0, 0), near)).is_true()
+	var near: Array[Vector3] = [Vector3(11, 0, 11)]  # A street crossing: no block within reach of the spots tried.
+	assert_bool(td.plaza.spot_ok(Vector3(11 + PeopleConfig.TD_SPAWN_SPACING - 0.5, 0, 11), near)).is_false()
+	assert_bool(td.plaza.spot_ok(Vector3(11 + PeopleConfig.TD_SPAWN_SPACING + 0.5, 0, 11), near)).is_true()
 	td.level_end.end_round("Test")
 	assert_bool(td.running).is_false()
 	td.level_end.end_round("Again")

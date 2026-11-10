@@ -79,21 +79,25 @@ func test_street_props_stand_on_the_streets_clear_of_blocks_landmarks_the_start_
 			var on_it := absf(p.pos.x - lm.x) < 2.0 and absf(p.pos.z - lm.z) < 2.0
 			assert_bool(on_it).is_false()
 		assert_float(p.pos.length()).is_greater_equal(TownConfig.TOWN_STALL_OFFSET)
-		assert_float(absf(p.pos.x)).is_less_equal(half - TownConfig.TOWN_EDGE_CLEAR)
-		assert_float(absf(p.pos.z)).is_less_equal(half - TownConfig.TOWN_EDGE_CLEAR)
+		assert_float(absf(p.pos.x)).is_less_equal(half - 4.0)
+		assert_float(absf(p.pos.z)).is_less_equal(half - 4.0)
 
 
 func test_lamps_stand_at_regular_spacing_along_the_kerbs_and_stalls_ring_the_square() -> void:
 	var lamps := 0
 	var stalls := 0
 	var along_main: Array[float] = []
+	var lines: Array[float] = [-33.0, -11.0, 11.0, 33.0]  # The centre lines of the four streets.
 	for p: StyleProps.Prop in _plaza():
 		if p.kind == StyleProps.Kind.LAMP:
 			lamps += 1
-			var on_main := is_equal_approx(absf(p.pos.z), TownConfig.TOWN_KERB_OFFSET)
-			var on_cross := is_equal_approx(absf(p.pos.x), TownConfig.TOWN_KERB_OFFSET)
-			assert_bool(on_main or on_cross).is_true()
-			if on_main and p.pos.z > 0.0 and p.pos.x > 0.0:
+			var on_x := false
+			var on_z := false
+			for line: float in lines:
+				on_x = on_x or is_equal_approx(absf(p.pos.x - line), TownConfig.TOWN_KERB_OFFSET)
+				on_z = on_z or is_equal_approx(absf(p.pos.z - line), TownConfig.TOWN_KERB_OFFSET)
+			assert_bool(on_x or on_z).is_true()
+			if is_equal_approx(p.pos.z, 11.0 + TownConfig.TOWN_KERB_OFFSET):
 				along_main.append(p.pos.x)
 		else:
 			stalls += 1
@@ -103,9 +107,11 @@ func test_lamps_stand_at_regular_spacing_along_the_kerbs_and_stalls_ring_the_squ
 	assert_int(stalls).is_equal(4)
 	assert_int(lamps).is_equal(TownLayout.lamp_spots().size())
 	along_main.sort()
-	assert_bool(along_main.size() >= 3).is_true()
+	assert_int(along_main.size()).is_equal(5)  # One per cell along the street.
 	for i: int in range(1, along_main.size()):
-		assert_float(along_main[i] - along_main[i - 1]).is_equal_approx(TownConfig.TOWN_LAMP_SPACING, 0.001)
+		assert_float(along_main[i] - along_main[i - 1]).is_equal_approx(
+			TownConfig.TOWN_CELL_SIZE + TownConfig.TOWN_STREET_WIDTH, 0.001
+		)
 
 
 func test_each_blocks_bench_and_planter_stand_between_it_and_its_street() -> void:
