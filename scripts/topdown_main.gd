@@ -12,9 +12,6 @@ extends Node3D
 # LevelEvents, DimGate, CoverUpdate, DimRecovery, LevelEnd, LookSwitch and the systems below). New features attach with
 # `X.attach(main)` and are called from here by name; they should not add logic to this file.
 
-# Round 19: a spirit beacon was placed (where, its cost, and the spirit left).
-signal beacon_placed(pos: Vector3, cost: float, spirit_after: float)
-
 var ground: PaintedGround
 var player: TopDownPlayer
 var camera: Camera3D
@@ -30,8 +27,6 @@ var wobble_alert: WobbleAlert  # Checkpoint 5: the edge pointers toward off-scre
 var spirit_warmth: SpiritWarmth  # Checkpoint 5: spare spirit warms the border.
 var embrace: Embrace  # Round 25: unrescued people inside the border are lifted by those around them.
 var gloom_tide: GloomTide  # Round 25: two gloom tides a night (warning, fog edge, drain on the facing members).
-var beacon_marker: BeaconMarker  # Round 19: the beacon in the world (both looks).
-var reach_guide: ReachGuide  # Round 20: the placeholder look's reach ring, preview and tip travel.
 var landmarks: Landmarks  # Round 19: the three landmarks and their boosts.
 var rating: Dictionary = {}  # Round 19: the dawn rating, set when the night ends (see DawnRating).
 # Round 12a: the grabs of dimmed people (see grabs.gd).
@@ -98,11 +93,6 @@ func _ready() -> void:
 	add_child(landmarks)
 	landmarks.build()
 	events.wire_landmarks(landmarks)
-	beacon_marker = BeaconMarker.new()
-	add_child(beacon_marker)
-	reach_guide = ReachGuide.new()
-	add_child(reach_guide)
-	events.wire_border(border)
 
 	grabs = Grabs.new()
 	add_child(grabs)
@@ -111,7 +101,6 @@ func _ready() -> void:
 
 	player = TopDownPlayer.new()
 	add_child(player)
-	player.burst_fired.connect(border.shove)
 	player.burst_fired.connect(events.on_burst_fired)
 	player.dim_changed.connect(events.on_player_dim_changed)
 	grabs.grab_landed.connect(events.on_grab_landed)
@@ -165,8 +154,6 @@ func _process(delta: float) -> void:
 	landmarks.update(delta, border)
 	landmarks.apply_boosts(people, border)
 	level_hud.update_landmarks()
-	beacon_marker.sync(border.beacon_pos(), delta, border.centre)
-	reach_guide.sync(border, player)
 	level_hud.update_spirit_hud()
 	level_hud.update_target_mood()
 	intro.check_level(self, delta)
@@ -174,13 +161,6 @@ func _process(delta: float) -> void:
 	if level_hud.debug_on:
 		level_hud.update_debug_hint()
 	level_end.check()
-
-
-# Snag round: losing the window's focus while E is held cancels the aim, with nothing spent (BeaconPlacement.cancel), so
-# the preview cannot stay up when the release happens in another window.
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and reach_guide != null:
-		BeaconPlacement.cancel(self)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -193,20 +173,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if frame != _look_frame:
 			_look_frame = frame
 			toggle_look()
-	elif event.is_action_pressed("place_beacon"):
-		# Checkpoint 5 follow-up: hold E to aim (BeaconPlacement.press); the beacon goes down on release.
-		BeaconPlacement.press(self)
-	elif event.is_action_released("place_beacon"):
-		BeaconPlacement.release(self)
-	elif event.is_action_pressed("cancel_beacon"):
-		BeaconPlacement.cancel(self)
 	elif event.is_action_pressed("zoom_in") or event.is_action_pressed("zoom_out"):
 		camera_rig.handle_zoom(event)
-
-
-# Round 19: E. See BeaconPlacement.
-func try_place_beacon() -> bool:
-	return BeaconPlacement.try_place(self)
 
 
 # F4: flips between the placeholder and the styled look without touching the game state.

@@ -223,8 +223,8 @@ func test_recovery_grows_with_depth_stops_outside_and_a_dim_player_deep_inside_l
 	assert_float(deep).is_equal_approx(SpiritConfig.DIM_RECOVER_RATE, 0.01)
 
 	# Half the edge band inside the line: depth protection 0.5 (round 13a: the band is 1 m x WORLD_SCALE).
-	var edge := Vector2(td.border.polygon[0].x, td.border.polygon[0].y)
-	var inward := (Vector2(centre.x, centre.z) - edge).normalized()
+	var edge := td.border.polygon[td.border.nearest_point(Vector2(6.0, 0.0))]  # The middle of the east gate.
+	var inward := Vector2(-1.0, 0.0)
 	var shallow_pt := edge + inward * (0.5 * BorderConfig.BORDER_EDGE_BAND)
 	td.player.global_position = Vector3(shallow_pt.x, 0.0, shallow_pt.y)
 	var shallow := td.dim_recovery.rate()
@@ -317,11 +317,7 @@ func test_a_dim_player_makes_the_border_dim_and_lose_ground_faster() -> void:
 
 # One dimmed person presses a bare border for one second: how much joy its members lose in all.
 func _press_loss(dim: bool) -> float:
-	var border: Border = auto_free(Border.new())
-	add_child(border)
-	border.setup(null)
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES)
-	border.active = true
+	var border := TopDownTestUtil.bare_border(self)
 	var rescued: Array[Person] = []
 	for i: int in range(14):
 		var p: Person = auto_free(Person.new())
@@ -335,7 +331,7 @@ func _press_loss(dim: bool) -> float:
 	var presser: Person = auto_free(Person.new())
 	add_child(presser)
 	presser.gloom = 0.95
-	presser.position = Vector3(6.0, 0.0, 0.0)
+	presser.position = Vector3(6.8, 0.0, 0.0)  # Just outside the east gate.
 	border.set_player_dim(dim)
 	var everyone: Array[Person] = [presser]
 	everyone.append_array(rescued)

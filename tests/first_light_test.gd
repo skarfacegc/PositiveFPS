@@ -308,7 +308,9 @@ func test_the_minimap_gets_the_front_and_tints_the_lit_ground() -> void:
 	var img: Image = td.minimap._image
 	var res := Minimap.RESOLUTION
 	# A pixel in the lit part and one in the unlit centre; then the same map redrawn without the front.
-	var lit_at := Vector2i(int(res * 0.12), res / 2)
+	# (A spot in the street at the far left, not on a block: a block is drawn over the ground tint.)
+	var lit_px: Vector2 = td.minimap._to_px(Vector2(-40.0, -11.0))
+	var lit_at := Vector2i(int(lit_px.x), int(lit_px.y))
 	var unlit_at := Vector2i(res / 2, res / 2 + 3)
 	var lit := img.get_pixelv(lit_at)
 	var unlit := img.get_pixelv(unlit_at)

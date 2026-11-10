@@ -55,9 +55,12 @@ func test_the_minimap_is_a_circle_top_left_about_a_fifth_of_the_screen() -> void
 func test_the_minimap_model_shows_the_border_gaps_members_landmark_and_player() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
-	# Four rescued people: too few for the loop, so it has gaps.
-	_rescue_ring(td, Vector3(0, 0, 0), 4.0, 4)
-	await (s["runner"] as GdUnitSceneRunner).simulate_frames(120)
+	# Four rescued people on the start square, and a break pushed open in the east gate.
+	_rescue_ring(td, Vector3(0, 0, 0), 3.0, 4)
+	var runner: GdUnitSceneRunner = s["runner"]
+	await runner.simulate_frames(120)
+	td.border.push.dent[td.border.push.sample_of(Vector3(6, 0, 0))] = PushConfig.PUSH_BREAK_DEPTH + 0.4
+	await runner.simulate_frames(6)
 	_refresh(td)
 	var mm := td.minimap
 	assert_int(mm.border_pts.size()).is_equal(td.border.polygon.size())
@@ -80,10 +83,11 @@ func test_the_minimap_marks_dimmed_people_and_refreshes_about_ten_times_a_second
 	_refresh(td)
 	assert_int(td.minimap.dimmed_pts.size()).is_equal(1)
 	# A dimmed person in the plaza corner is on the map's data but outside its circle, so no pixel is drawn there.
-	TopDownTestUtil.place(td.people[1], TopDownTestUtil.FAR, 0, 1.0)
+	var far_corner := Vector3(45, 0, -45)
+	TopDownTestUtil.place(td.people[1], far_corner, 0, 1.0)
 	_refresh(td)
 	assert_int(td.minimap.dimmed_pts.size()).is_equal(2)
-	var corner := td.minimap._to_px(Vector2(TopDownTestUtil.FAR.x, TopDownTestUtil.FAR.z))
+	var corner := td.minimap._to_px(Vector2(far_corner.x, far_corner.z))
 	assert_float(td.minimap._image.get_pixel(int(corner.x), int(corner.y)).a).is_equal(0.0)
 	# The tick is due once a refresh interval has passed, and not before.
 	td.minimap._timer = 0.0
@@ -137,26 +141,20 @@ func test_the_gap_pulse_follows_its_formula_over_time() -> void:
 	assert_float(border.pulse()).is_equal_approx(expected, 0.0001)
 
 
-func test_a_gap_glows_coral_and_intact_stretches_stay_gold() -> void:
-	var border: Border = auto_free(Border.new())
-	add_child(border)
-	border.setup(null)
-	border.polygon = BorderShape.circle_polygon(Vector2.ZERO, 4.0, RoundLoopConfig.BORDER_SAMPLES)
-	border.active = true
-	var ring: Array[Person] = []
-	for i: int in range(4):
-		var a := TAU * float(i) / 4.0
-		var p: Person = auto_free(Person.new())
-		add_child(p)
-		p.position = Vector3(cos(a) * 4.0, 0.0, sin(a) * 4.0)
-		p.is_rescued = true
-		ring.append(p)
-	border._assign_members(ring)
-	assert_bool(border.segment_is_gap(0)).is_true()
-	assert_float(border.segment_colour(0).r).is_equal_approx(BorderConfig.BORDER_GAP_COLOUR.r, 0.001)
+func test_a_break_glows_coral_and_intact_stretches_stay_gold() -> void:
+	var border := TopDownTestUtil.bare_border(self)
+	var east := border.push.sample_of(Vector3(6.0, 0.0, 0.0))
+	border.push.dent[east] = PushConfig.PUSH_BREAK_DEPTH + 0.3
+	var nobody: Array[Person] = []
+	border.push.update(nobody, 0.02, 1.0)
+	border._mark_gaps()
+	assert_bool(border.segment_is_gap(east)).is_true()
+	assert_float(border.segment_colour(east).r).is_equal_approx(BorderConfig.BORDER_GAP_COLOUR.r, 0.001)
 	assert_int(border.gap_midpoints().size()).is_equal(border.gap_count())
 	# A segment that is not a gap keeps the gold line colour.
-	assert_float(border.segment_colour(0).g).is_not_equal(BorderConfig.BORDER_INTACT_COLOUR.g)
+	var west := border.push.sample_of(Vector3(-6.0, 0.0, 0.0))
+	assert_bool(border.segment_is_gap(west)).is_false()
+	assert_float(border.segment_colour(west).g).is_equal_approx(BorderConfig.BORDER_INTACT_COLOUR.g, 0.001)
 
 
 func test_the_player_marker_is_saffron_and_no_person_shares_its_colour() -> void:

@@ -14,10 +14,13 @@ const BORDER_LANDMARK_COLOUR := Color(0.78, 0.66, 0.6)
 # bell tower, gallery. (The gallery has no boost yet.)
 const LANDMARK_NAMES: Array[String] = ["Bandstand", "Garden", "Bell tower", "Gallery"]
 
-# 0.3.3 (#17): four landmarks, one at the end of each street arm, 18 to 32 m from the start (see "Town layout").
+# Walls and gates: Grid (0.4, #55): four landmarks, each standing in the middle of its own square, the four diagonal
+# cells next to the start square (about 31 m from the start; see TownConfig.TOWN_LANDMARK_CELLS and TownGrid).
 const LANDMARK_POSITIONS: Array[Vector3] = [
-	Vector3(30, 0, 0), Vector3(-26, 0, 0), Vector3(0, 0, 32), Vector3(0, 0, -30)
+	Vector3(22, 0, -22), Vector3(-22, 0, -22), Vector3(22, 0, 22), Vector3(-22, 0, 22)
 ]
+# The colour of a held landmark's pillar and disc in the placeholder look.
+const LANDMARK_LIT_COLOUR := Color(1.0, 0.85, 0.45)
 
 # Collision size (footprint 4 x 4 like the other blocks) and plain colour of each landmark's block.
 const LANDMARK_SIZES: Array[Vector3] = [Vector3(4, 2.6, 4), Vector3(4, 1.0, 4), Vector3(4, 7.0, 4), Vector3(4, 3.2, 4)]

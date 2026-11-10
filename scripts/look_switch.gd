@@ -15,7 +15,6 @@ static func apply(main: TopDownMain, new_mode: int) -> void:
 	for b: Building in main.border.buildings:
 		b.rebuild_look()
 	main.landmarks.rebuild_look()
-	main.beacon_marker.rebuild_look()
 	main.highlight.apply_look()
 	main.player.rebuild_look()
 	for p: Person in main.people:

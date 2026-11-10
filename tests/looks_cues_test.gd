@@ -118,7 +118,7 @@ func test_styled_grab_ring_glint_and_ripple() -> void:
 	node.queue_free()
 
 
-func test_the_styled_border_marks_the_sealed_map_edge() -> void:
+func test_the_styled_border_marks_a_wall() -> void:
 	var s: Dictionary = await _start(true)
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -127,14 +127,12 @@ func test_the_styled_border_marks_the_sealed_map_edge() -> void:
 	var look := td.border.look as BorderLookStyled
 	for strip: EdgeStrip in look.strips:
 		for w: float in strip.seal:
-			assert_float(w).is_equal(0.0)
-	# Seal the whole loop by hand (the rule: Border.is_sealed, a sealed stretch is never a gap) and rebuild: the ribbon is
-	# one closed strip and marks the stretch sealed (honey).
-	var n := td.border.polygon.size()
-	td.border._sealed.clear()
-	for j: int in range(n):
-		td.border._sealed.append(1.0)
-		td.border._sample_gap[j] = false
+			assert_float(w).is_equal(0.0)  # The start square alone has gates on every side.
+	# Take the block east of the start: its three outer faces are wall. Rebuild: the ribbon marks them honey.
+	td.border.zone.take(Vector2i(3, 2))
+	td.running = true
+	await runner.simulate_frames(3)
+	td.running = false
 	look._last_frame = -100000
 	look.refresh()
 	var sealed_points := 0
@@ -144,10 +142,10 @@ func test_the_styled_border_marks_the_sealed_map_edge() -> void:
 	assert_int(look.strips.size()).is_equal(1)
 	assert_int(sealed_points).is_greater(0)
 	assert_object(look._ribbon.mesh).is_not_null()
-	# The minimap draws sealed stretches in the look's seal colour: the same as an intact stretch in the placeholder.
+	# The minimap draws walls in the look's seal colour: the same as an intact stretch in the placeholder.
 	td.minimap.refresh_from(td.ground, td.border, td.people, Vector3.ZERO, Vector3.ZERO, Vector2(10, 10))
 	assert_int(td.minimap.seal_flags.size()).is_equal(td.minimap.border_pts.size())
-	assert_bool(td.minimap.seal_flags[0]).is_true()
+	assert_bool(td.minimap.seal_flags.has(true)).is_true()
 	var plain := MinimapLookPlaceholder.new()
 	var styled := MinimapLookStyled.new()
 	assert_bool(plain.seal_colour().is_equal_approx(plain.line_colour(false))).is_true()

@@ -15,13 +15,15 @@ extends RefCounted
 # opened (PUSH_MEND_NEEDS_JOY; with it off, or after PUSH_MEND_AUTO seconds clear, it mends by itself).
 const PUSH_PER_PERSON := 1.0
 const PUSH_LEAN_RANGE := 1.8  # Metres outside the line a dimmed person still leans on it.
-const PUSH_SPREAD := 0.2  # Radians: one standard deviation of a pusher's force along the loop.
+# Walls and gates: Line (0.4, #56). The push lives on gates only. Everything is kept per point of the traced line (a
+# gate has a point every BorderConfig.GATE_POINT_STEP metres), so a spread is in metres and a break is in points.
+const PUSH_SPREAD_METRES := 1.6  # Metres: one standard deviation of a pusher's force along a gate.
 const PUSH_DENT_PER_FORCE := 0.85
 const PUSH_DENT_MAX := 3.2
 const PUSH_BREAK_DEPTH := 2.4  # Metres of dent at which the line snaps.
 const PUSH_GIVE_SPEED := 0.55
 const PUSH_SPRING_SPEED := 0.9
-const PUSH_BREAK_HALF := 1  # Samples either side of the deepest one that open (the break is 2 x this + 1 samples wide).
+const PUSH_BREAK_HALF := 1  # Points either side of the deepest one that open (the break is 2 x this + 1 points wide).
 const PUSH_JOY_WEAKEN := 0.4
 const PUSH_WEAKEN_MIN := 0.25
 const PUSH_WEAKEN_RECOVER := 0.06

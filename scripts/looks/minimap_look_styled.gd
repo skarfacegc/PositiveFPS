@@ -93,11 +93,6 @@ func first_light(part: String, col: Color, px: int, py: int) -> Color:
 	return INK
 
 
-# The spirit beacon: the teal-white of its flame in the world, outlined like the other markers.
-func beacon_colour() -> Color:
-	return Color("#9cf0dc")
-
-
 func player_colour() -> Color:
 	return Color("#ffe27a")
 

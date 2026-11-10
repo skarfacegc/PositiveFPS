@@ -151,7 +151,23 @@ func test_the_warning_comes_about_15_seconds_before_the_tide() -> void:
 # A border that exists only as far as the tide cares: active, centred on the origin, with a body radius of 10 m.
 func _pretend_border(td: TopDownMain) -> void:
 	td.border.active = true
+	td.border._trace()  # The start square's line, so the push has points for the wave to shove.
+	td.border.polygon = td.border._base.duplicate()
 	td.border.body_radius = 10.0
+
+
+# The dentable point of the line whose direction from the centre is nearest `angle` (or, with `away`, farthest from it).
+func _gate_point_toward(td: TopDownMain, angle: float, away: bool = false) -> int:
+	var best := -1
+	var best_d := INF
+	for i: int in range(td.border.point_count()):
+		if not td.border.point_dentable(i):
+			continue
+		var d := absf(angle_difference(td.border.point_angle(i), angle + (PI if away else 0.0)))
+		if d < best_d:
+			best_d = d
+			best = i
+	return best
 
 
 func test_a_passing_tide_does_not_drain_anyone_by_itself() -> void:
@@ -190,15 +206,15 @@ func test_the_wave_shoves_only_the_side_it_comes_from_and_only_while_it_passes()
 	var tide: Dictionary = td.gloom_tide.tides[0]
 	var start: float = tide["start"]
 	var angle: float = tide["angle"]
-	var facing_sample: int = td.border.push.sample_of(td.border.centre + Vector3(cos(angle), 0.0, sin(angle)) * 5.0)
-	var away_sample: int = td.border.push.sample_of(td.border.centre - Vector3(cos(angle), 0.0, sin(angle)) * 5.0)
+	var facing_sample := _gate_point_toward(td, angle)
+	var away_sample := _gate_point_toward(td, angle, true)
 	_at(td, start - 60.0)
 	assert_float(td.border.push.wave[facing_sample]).is_equal(0.0)
 	_at(td, start + 0.5)  # The front is still far out: no shove yet.
 	assert_float(td.gloom_tide.wave_force).is_equal(0.0)
 	_at(td, start + NightConfig.TIDE_SECONDS * 0.6)
 	assert_float(td.gloom_tide.wave_force).is_equal_approx(NightConfig.TIDE_PUSH, 0.001)
-	assert_float(td.border.push.wave[facing_sample]).is_between(NightConfig.TIDE_PUSH * 0.95, NightConfig.TIDE_PUSH)
+	assert_float(td.border.push.wave[facing_sample]).is_between(NightConfig.TIDE_PUSH * 0.8, NightConfig.TIDE_PUSH)
 	assert_float(td.border.push.wave[away_sample]).is_equal(0.0)
 	_at(td, start + NightConfig.TIDE_SECONDS + 1.0)
 	assert_float(td.border.push.wave[facing_sample]).is_equal(0.0)

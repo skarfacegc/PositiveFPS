@@ -38,7 +38,7 @@ func sync() -> void:
 	_disc.scale = Vector3(frac, 1.0, frac)
 	var name_text := subject.landmark_name()
 	var held := subject.is_held()
-	_pillar_mat.albedo_color = BeaconConfig.BORDER_BEACON_COLOUR if held else UNHELD_COLOUR
+	_pillar_mat.albedo_color = LandmarkConfig.LANDMARK_LIT_COLOUR if held else UNHELD_COLOUR
 	_shape_mat.albedo_color = LandmarkConfig.LANDMARK_COLOURS[subject.index] if held else UNHELD_COLOUR
 	if held:
 		_label.text = "%s HELD: %s" % [name_text, subject.boost_text()]
@@ -84,7 +84,7 @@ func _build() -> void:
 	disc.height = 0.03
 	_disc.mesh = disc
 	_disc.position = Vector3(0, 0.04, 0)
-	_disc.material_override = _unshaded(BeaconConfig.BORDER_BEACON_COLOUR)
+	_disc.material_override = _unshaded(LandmarkConfig.LANDMARK_LIT_COLOUR)
 	add_child(_disc)
 
 	_label = Label3D.new()

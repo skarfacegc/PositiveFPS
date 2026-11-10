@@ -1,8 +1,10 @@
+# gdlint: ignore=max-public-methods
 extends GdUnitTestSuite
 
-# The living border in the real top-down level (round 9): forming, slots, gaps, holding gloom, relapse, painting
-# inside, buildings and the landmark. Most rescues are direct (receive_joy) so the rules are checked quickly. The
-# rescue and the F3 key go through real input, as a player would. Unit-level checks use the Border and Building classes.
+# The living border in the real top-down level (round 9), on the town grid since 0.4 (#55, #56): forming on the start
+# square, members on gates, holding gloom, relapse, painting inside, buildings and the landmark. Most rescues are direct
+# (receive_joy) so the rules are checked quickly. The rescue and the F3 key go through real input, as a player would.
+# Unit-level checks use the Border and Building classes.
 
 
 func _start() -> Dictionary:
@@ -19,21 +21,12 @@ func _rescue(p: Person, spot: Vector3) -> void:
 	p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
 
 
-# `n` spots evenly spaced on a circle of radius `r` around `c`.
-func _ring(c: Vector3, r: float, n: int) -> Array[Vector3]:
-	var out: Array[Vector3] = []
-	for i: int in range(n):
-		var a := TAU * float(i) / float(n)
-		out.append(c + Vector3(cos(a) * r, 0.0, sin(a) * r))
-	return out
-
-
 # Rescues the first `count` people, standing on a ring of radius `r` around `c`. Returns them.
 func _rescue_ring(td: TopDownMain, c: Vector3, r: float, count: int) -> Array[Person]:
-	var spots := _ring(c, r, count)
 	var out: Array[Person] = []
 	for i: int in range(count):
-		_rescue(td.people[i], spots[i])
+		var a := TAU * float(i) / float(count)
+		_rescue(td.people[i], c + Vector3(cos(a) * r, 0.0, sin(a) * r))
 		out.append(td.people[i])
 	return out
 
@@ -47,13 +40,18 @@ func _click_to_lock(runner: GdUnitSceneRunner, td: TopDownMain, person: Person) 
 	await runner.simulate_frames(2)
 
 
-# A Border with no level around it, for the unit-level checks. The loop is set by the test.
-func _bare_border(loop: PackedVector2Array) -> Border:
+# A Border with no level around it, for the unit-level checks: the zone as given (the start square when no cells), the
+# line traced and drawn as its own polygon.
+func _bare_border(cells: Array[Vector2i] = []) -> Border:
 	var border: Border = auto_free(Border.new())
 	add_child(border)
 	border.setup(null)
-	border.polygon = loop
+	for c: Vector2i in cells:
+		border.zone.take(c)
 	border.active = true
+	border._trace()
+	border.polygon = border._base.duplicate()
+	border._mark_gaps()
 	return border
 
 
@@ -68,7 +66,7 @@ func _people(count: int) -> Array[Person]:
 	return out
 
 
-# --- Forming, centre and slots ------------------------------------------------------------------------------
+# --- Forming, centre and gates ------------------------------------------------------------------------------
 
 
 func test_no_border_until_three_are_rescued() -> void:
@@ -82,40 +80,64 @@ func test_no_border_until_three_are_rescued() -> void:
 	assert_int(td.border.polygon.size()).is_equal(0)
 
 
-func test_border_forms_after_three_rescues_and_the_centre_is_their_centroid() -> void:
+func test_the_border_forms_on_the_start_square_after_three_rescues() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	var made := _rescue_ring(td, Vector3(4, 0, -4), 2.0, 3)
+	_rescue_ring(td, Vector3(4, 0, -4), 1.5, 3)
 	await runner.simulate_frames(120)
 	assert_bool(td.border.active).is_true()
-	var sum := Vector3.ZERO
-	for p: Person in made:
-		sum += Vector3(p.position.x, 0.0, p.position.z)
-	var centroid := sum / 3.0
-	assert_float(Vector2(td.border.centre.x - centroid.x, td.border.centre.z - centroid.z).length()).is_less(0.6)
+	assert_int(td.border.zone.held.size()).is_equal(1)
+	assert_vector(td.border.centre).is_equal(Vector3.ZERO)
+	# The line is the start square's outline: a point every 2 m along four 12 m gates.
+	assert_int(td.border.polygon.size()).is_equal(24)
+	assert_float(td.border.perimeter).is_equal(48.0)
+	for pt: Vector2 in td.border.polygon:
+		assert_float(maxf(absf(pt.x), absf(pt.y))).is_equal_approx(6.0, 0.001)
 
 
-func test_members_walk_to_their_slots_and_the_loop_is_closed() -> void:
+func test_members_walk_to_their_places_on_the_gates() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	_rescue_ring(td, Vector3(0, 0, 0), 4.0, 6)
-	await runner.simulate_frames(240)
+	_rescue_ring(td, Vector3(0, 0, 0), 3.0, 8)
+	await runner.simulate_frames(300)
 	var border: Border = td.border
-	assert_int(border.member_count).is_equal(6)
+	assert_int(border.member_count).is_equal(8)
 	assert_int(border.inner_count).is_equal(0)
+	var per_gate: Dictionary = {}
 	for p: Person in border.members:
 		var target: Vector3 = border._targets[p]
 		assert_float(Vector2(p.position.x - target.x, p.position.z - target.z).length()).is_less(0.15)
-	assert_float(BorderShape.perimeter_of(border.polygon)).is_greater(0.0)
+		# On the line: the square's outline is the box |x| = 6 or |z| = 6.
+		assert_float(maxf(absf(p.position.x), absf(p.position.z))).is_equal_approx(6.0, 0.2)
+		var gate: int = border.zone.nearest_gate(Vector2(p.position.x, p.position.z))["id"]
+		per_gate[gate] = (per_gate.get(gate, 0) as int) + 1
+	assert_int(per_gate.size()).is_equal(4)  # Shared out: two to each of the four gates.
+	for gate: int in per_gate:
+		assert_int(per_gate[gate] as int).is_equal(2)
+
+
+func test_members_beyond_what_the_gates_need_stand_inside_on_open_ground() -> void:
+	var s: Dictionary = await _start()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	_rescue_ring(td, Vector3(0, 0, 0), 3.0, 20)
+	await runner.simulate_frames(400)
+	var border: Border = td.border
+	assert_int(border.required_members()).is_equal(16)
+	assert_int(border.member_count).is_equal(16)
+	assert_int(border.inner_count).is_equal(4)
+	for p: Person in border.inner:
+		assert_bool(BorderShape.is_inside(border.polygon, Vector2(p.position.x, p.position.z))).is_true()
+		assert_float(maxf(absf(p.position.x), absf(p.position.z))).is_less(6.0 - BorderConfig.GATE_INNER_INSET + 0.3)
 
 
 func test_three_locked_rescues_by_real_clicks_form_the_border() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	var spots: Array[Vector3] = [Vector3(-3, 0, -6), Vector3(0, 0, -7), Vector3(3, 0, -6)]
+	var spots: Array[Vector3] = [Vector3(-3, 0, -4), Vector3(0, 0, -5), Vector3(3, 0, -4)]
 	for i: int in range(3):
 		TopDownTestUtil.place(td.people[i], spots[i], td.people[i].affinity, 0.0)
 	for i: int in range(3):
@@ -131,117 +153,147 @@ func test_three_locked_rescues_by_real_clicks_form_the_border() -> void:
 	assert_int(td.border.member_count).is_equal(3)
 
 
-# --- Slots, inner members and gaps (unit-level: the loop is set directly) -----------------------------------
+# --- Gates and gaps (unit-level: the line is traced directly) -----------------------------------------------------
 
 
-func test_slot_and_inner_counts_follow_the_formula() -> void:
-	# Round 13a: all sizes here are times WORLD_SCALE, so the counts are the same. A circle of radius 3 (perimeter
-	# about 18.85) has 8 slots at 2.6 m (round 11). Twelve people: eight border members, four inner.
-	var loop := BorderShape.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, RoundLoopConfig.BORDER_SAMPLES)
-	var border := _bare_border(loop)
-	var people := _people(12)
+func test_few_people_spread_over_the_gates_and_the_line_is_still_intact() -> void:
+	var border := _bare_border()
+	var people := _people(3)
 	var rescued: Array[Person] = []
-	for i: int in range(12):
-		people[i].position = Vector3(
-			cos(float(i)) * 3.0 * Config.WORLD_SCALE, 0.0, sin(float(i)) * 3.0 * Config.WORLD_SCALE
-		)
+	for i: int in range(3):
+		people[i].position = Vector3(float(i), 0.0, 0.0)
+		people[i].is_rescued = true
 		rescued.append(people[i])
 	border._assign_members(rescued)
-	assert_int(border.member_count).is_equal(8)
-	assert_int(border.inner_count).is_equal(4)
-	assert_float(border.spacing).is_equal_approx(BorderShape.perimeter_of(loop) / 8.0, 0.001)
-	assert_int(border.gap_count()).is_equal(0)
-
-
-func test_fewer_people_than_slots_spread_out_and_leave_gaps() -> void:
-	# Four people on a radius 3 loop: all four are border members, spaced about 4.7 m apart (over the 3.5 m limit).
-	var border := _bare_border(
-		BorderShape.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, RoundLoopConfig.BORDER_SAMPLES)
-	)
-	var people := _people(4)
-	var rescued: Array[Person] = []
-	for i: int in range(4):
-		people[i].position = Vector3(
-			cos(float(i)) * 3.0 * Config.WORLD_SCALE, 0.0, sin(float(i)) * 3.0 * Config.WORLD_SCALE
-		)
-		rescued.append(people[i])
-	border._assign_members(rescued)
-	assert_int(border.member_count).is_equal(4)
-	assert_int(border.inner_count).is_equal(0)
-	assert_float(border.spacing).is_equal_approx(BorderShape.perimeter_of(border.polygon) / 4.0, 0.001)
-	assert_int(border.gap_count()).is_equal(4)
-
-
-func test_gaps_are_drawn_in_their_own_colour() -> void:
-	var border := _bare_border(
-		BorderShape.circle_polygon(Vector2.ZERO, 3.0 * Config.WORLD_SCALE, RoundLoopConfig.BORDER_SAMPLES)
-	)
-	var people := _people(4)
-	var rescued: Array[Person] = []
-	for i: int in range(4):
-		people[i].position = Vector3(
-			cos(float(i)) * 3.0 * Config.WORLD_SCALE, 0.0, sin(float(i)) * 3.0 * Config.WORLD_SCALE
-		)
-		rescued.append(people[i])
-	border._assign_members(rescued)
-	assert_bool(border.segment_is_gap(0)).is_true()
-	assert_bool(border.segment_colour(0).is_equal_approx(BorderConfig.BORDER_INTACT_COLOUR)).is_false()
-
-	var intact := _bare_border(
-		BorderShape.circle_polygon(Vector2.ZERO, 5.0 * Config.WORLD_SCALE, RoundLoopConfig.BORDER_SAMPLES)
-	)
-	var more := _people(14)
-	var more_rescued: Array[Person] = []
-	for i: int in range(14):
-		more[i].position = Vector3(
-			cos(float(i)) * 5.0 * Config.WORLD_SCALE, 0.0, sin(float(i)) * 5.0 * Config.WORLD_SCALE
-		)
-		more_rescued.append(more[i])
-	intact._assign_members(more_rescued)
-	assert_bool(intact.segment_is_gap(0)).is_false()
-	assert_bool(intact.segment_colour(0).is_equal_approx(BorderConfig.BORDER_INTACT_COLOUR)).is_true()
+	assert_int(border.member_count).is_equal(3)
+	assert_int(border.slot_count).is_equal(16)
+	assert_int(border.gap_count()).is_equal(0)  # A thin line is not a broken one (the next pass makes it dent sooner).
+	assert_bool(border.segment_is_gap(0)).is_false()
+	assert_bool(border.segment_colour(0).is_equal_approx(BorderConfig.BORDER_INTACT_COLOUR)).is_true()
+	assert_float(border.spacing).is_equal_approx(48.0 / 3.0, 0.001)
 
 
 # --- Holding gloom ---------------------------------------------------------------------------------------
 
 
-func test_a_dimmed_person_outside_is_stopped_at_an_intact_line() -> void:
-	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES))
-	var people := _people(14)
-	var rescued: Array[Person] = []
-	for i: int in range(14):
-		people[i].position = Vector3(cos(float(i)) * 5.0, 0.0, sin(float(i)) * 5.0)
-		rescued.append(people[i])
-	border._assign_members(rescued)
-	# Walk from outside (x = 8) toward the centre along a line through the middle of one stretch.
-	var from := Vector3(8.0, 0.0, 0.33)
+func test_a_dimmed_person_outside_is_stopped_at_an_intact_gate() -> void:
+	var border := _bare_border()
+	# Walk from outside (x = 9) toward the middle along a line through the east gate.
+	var from := Vector3(9.0, 0.0, 0.33)
 	var to := Vector3(3.0, 0.0, 0.33)
 	var stopped := border.clip_move(from, to)
-	assert_float(stopped.x).is_greater(4.8)
-	assert_float(stopped.x).is_less(5.05)
+	assert_float(stopped.x).is_greater(5.9)
+	assert_float(stopped.x).is_less(6.1)
 	assert_bool(border.line_blocks(from, to)).is_true()
 
 
-func test_a_dimmed_person_passes_through_a_gap() -> void:
-	# Three members on a radius 5 loop are 10.5 m apart: every stretch is a gap, so nothing holds the dimmed person back.
-	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES))
-	var people := _people(3)
-	var rescued: Array[Person] = []
-	for i: int in range(3):
-		people[i].position = Vector3(cos(float(i) * 2.0) * 5.0, 0.0, sin(float(i) * 2.0) * 5.0)
-		rescued.append(people[i])
-	border._assign_members(rescued)
-	var from := Vector3(8.0, 0.0, 0.33)
+func test_a_dimmed_person_outside_is_stopped_at_a_wall_too() -> void:
+	var border := _bare_border([Vector2i(3, 2)])
+	var from := Vector3(31.0, 0.0, 0.33)
+	var to := Vector3(25.0, 0.0, 0.33)
+	assert_bool(border.line_blocks(from, to)).is_true()
+	assert_float(border.clip_move(from, to).x).is_greater(27.9)
+
+
+func test_a_dimmed_person_passes_through_a_break() -> void:
+	var border := _bare_border()
+	var east := border.push.sample_of(Vector3(6.0, 0.0, 0.0))
+	border.push.dent[east] = PushConfig.PUSH_BREAK_DEPTH + 0.3
+	var nobody: Array[Person] = []
+	border.push.update(nobody, 0.02, 1.0)
+	border._mark_gaps()
+	assert_int(border.gap_count()).is_equal(1)
+	var from := Vector3(9.0, 0.0, 0.33)
 	var to := Vector3(3.0, 0.0, 0.33)
 	assert_bool(border.clip_move(from, to).is_equal_approx(to)).is_true()
 	assert_bool(border.line_blocks(from, to)).is_false()
+	# Beside the break the gate still holds.
+	assert_bool(border.line_blocks(Vector3(9.0, 0.0, -5.0), Vector3(3.0, 0.0, -5.0))).is_true()
 
 
-func test_a_dimmed_person_inside_the_loop_is_not_held() -> void:
-	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 5.0, RoundLoopConfig.BORDER_SAMPLES))
+func test_a_dimmed_person_inside_the_line_is_not_held() -> void:
+	var border := _bare_border()
 	var from := Vector3(1.0, 0.0, 0.0)
 	var to := Vector3(2.0, 0.0, 0.0)
 	assert_bool(border.clip_move(from, to).is_equal_approx(to)).is_true()
+
+
+func test_gloom_pressing_on_a_gate_drains_the_nearest_member_and_a_wall_is_not_pressed() -> void:
+	var border := _bare_border([Vector2i(3, 2)])
+	var people := _people(2)
+	var member: Person = people[0]
+	member.is_rescued = true
+	member.joy = Config.JOY_MAX
+	member.position = Vector3(-6.0, 0.0, 0.0)
+	border.members.append(member)
+	var pusher: Person = people[1]
+	pusher.gloom = 1.0
+	pusher.position = Vector3(-6.8, 0.0, 0.0)  # Outside the start square's west gate.
+	var list: Array[Person] = [member, pusher]
+	var before := member.joy
+	border._press_gloom(list, 0.5, 1.0)
+	assert_float(member.joy).is_less(before)  # An intact gate: the drain is a fraction of the gap rate.
+	assert_float(pusher.position.x).is_less(-6.8)  # And the pusher is held off outward.
+	member.joy = before
+	pusher.position = Vector3(28.8, 0.0, 0.0)  # Outside the block's east face (a wall).
+	border._press_gloom(list, 0.5, 1.0)
+	assert_float(member.joy).is_equal(before)
+	assert_float(pusher.position.x).is_equal_approx(28.8, 0.001)
+
+
+func test_gloom_at_a_break_drains_the_nearest_member_at_the_full_rate() -> void:
+	var border := _bare_border()
+	var people := _people(2)
+	var member: Person = people[0]
+	member.is_rescued = true
+	member.joy = Config.JOY_MAX
+	member.position = Vector3(6.0, 0.0, 0.0)
+	border.members.append(member)
+	var pusher: Person = people[1]
+	pusher.gloom = 1.0
+	pusher.position = Vector3(6.8, 0.0, 0.0)
+	var list: Array[Person] = [member, pusher]
+	border._press_gloom(list, 0.5, 1.0)
+	var intact_loss := Config.JOY_MAX - member.joy
+	member.joy = Config.JOY_MAX
+	pusher.position = Vector3(6.8, 0.0, 0.0)
+	var east := border.push.sample_of(Vector3(6.0, 0.0, 0.0))
+	border.push.broken[east] = true
+	border.push.broken[east - 1] = true
+	border._mark_gaps()
+	border._press_gloom(list, 0.5, 1.0)
+	var break_loss := Config.JOY_MAX - member.joy
+	assert_float(intact_loss).is_greater(0.0)
+	assert_float(break_loss).is_greater(intact_loss * 3.0)  # The full rate, not the intact fraction of it.
+	assert_float(pusher.position.x).is_equal_approx(6.8, 0.001)  # And at a break nobody is pushed back.
+
+
+func test_a_gate_that_springs_back_sweeps_a_pusher_out_but_not_a_wall_or_a_break_or_someone_far_in() -> void:
+	var border := _bare_border([Vector2i(3, 2)])
+	var people := _people(3)
+	var near_gate: Person = people[0]
+	near_gate.gloom = 1.0
+	near_gate.position = Vector3(-5.9, 0.0, 0.0)  # A little inside the west gate.
+	var far_in: Person = people[1]
+	far_in.gloom = 1.0
+	far_in.position = Vector3(-1.0, 0.0, 0.0)
+	var by_wall: Person = people[2]
+	by_wall.gloom = 1.0
+	by_wall.position = Vector3(27.8, 0.0, 0.0)  # A little inside the block's east face, a wall.
+	var list: Array[Person] = [near_gate, far_in, by_wall]
+	border._press_gloom(list, 0.1, 1.0)
+	assert_float(near_gate.position.x).is_less(-6.0)
+	assert_vector(far_in.position).is_equal(Vector3(-1.0, 0.0, 0.0))
+	assert_vector(by_wall.position).is_equal(Vector3(27.8, 0.0, 0.0))
+	# Inside beside a break, a person stays where they are.
+	var inside_break: Person = people[2]
+	inside_break.position = Vector3(-5.9, 0.0, 3.0)
+	var at := border.push.sample_of(Vector3(-6.0, 0.0, 3.0))
+	border.push.broken[at] = true
+	border.push.broken[at - 1] = true
+	border._mark_gaps()
+	border._press_gloom(list, 0.1, 1.0)
+	assert_float(inside_break.position.x).is_equal_approx(-5.9, 0.001)
 
 
 # --- Relapse and too few people -----------------------------------------------------------------------------
@@ -251,7 +303,7 @@ func test_a_relapsed_member_leaves_and_the_others_reshuffle() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	var made := _rescue_ring(td, Vector3(0, 0, 0), 4.0, 5)
+	var made := _rescue_ring(td, Vector3(0, 0, 0), 3.0, 5)
 	await runner.simulate_frames(120)
 	assert_int(td.border.member_count).is_equal(5)
 	var leaver: Person = made[0]
@@ -262,23 +314,6 @@ func test_a_relapsed_member_leaves_and_the_others_reshuffle() -> void:
 	assert_bool(leaver.is_rescued).is_false()
 	assert_int(td.border.member_count).is_equal(4)
 	assert_bool(td.border.members.has(leaver)).is_false()
-
-
-func test_too_few_people_for_the_loop_leave_gaps_and_the_gaps_persist() -> void:
-	# Four people on the smallest circle (radius 3, perimeter 18.85) are 4.7 m apart: over the limit, so gaps.
-	var s: Dictionary = await _start()
-	var runner: GdUnitSceneRunner = s["runner"]
-	var td: TopDownMain = s["td"]
-	var made := _rescue_ring(td, Vector3(0, 0, 0), 4.0, 4)
-	await runner.simulate_frames(120)
-	assert_int(td.border.member_count).is_equal(4)
-	assert_int(td.border.gap_count()).is_greater(0)
-	# With one fewer person the gaps are still there.
-	made[0].grace_left = 0.0
-	made[0].drain_joy(Config.JOY_MAX)
-	await runner.simulate_frames(120)
-	assert_bool(td.border.active).is_true()
-	assert_int(td.border.gap_count()).is_greater(0)
 
 
 func test_losing_the_border_by_relapse_below_three_ends_the_level() -> void:
@@ -296,14 +331,22 @@ func test_losing_the_border_by_relapse_below_three_ends_the_level() -> void:
 	assert_str(td.hud.end_label.text).contains("The border fell")
 
 
+func test_a_member_who_relapses_steps_out_through_the_gate() -> void:
+	var border := _bare_border()
+	var p: Person = _people(1)[0]
+	p.position = Vector3(6.0, 0.0, 0.0)
+	border.on_relapse(p)
+	assert_float(p.position.x).is_equal_approx(6.0 + BorderConfig.BORDER_OUTWARD_STEP, 0.001)
+
+
 # --- Inside the border --------------------------------------------------------------------------------------
 
 
-func test_tiles_inside_the_loop_paint_in_over_time_and_outside_stays_grey() -> void:
+func test_tiles_inside_the_line_paint_in_over_time_and_outside_stays_grey() -> void:
 	var ground: PaintedGround = auto_free(PaintedGround.new())
 	add_child(ground)
 	ground.setup(40, GroundConfig.TD_GROUND_SPREAD_SPEED, GroundConfig.TD_GROUND_FADE_SPEED, true)
-	ground.set_region(BorderShape.circle_polygon(Vector2.ZERO, 6.0, RoundLoopConfig.BORDER_SAMPLES))
+	ground.set_region(_bare_border().polygon)
 	var none: Array[Person] = []
 	for i: int in range(10):
 		ground.update_paint(none, 0.11)
@@ -314,8 +357,8 @@ func test_tiles_inside_the_loop_paint_in_over_time_and_outside_stays_grey() -> v
 	assert_float(ground.paint_weight_at(Vector3(15.0, 0.0, 0.0))).is_equal(0.0)
 
 
-func test_a_grey_person_inside_the_loop_lightens_and_one_outside_dims() -> void:
-	var border := _bare_border(BorderShape.circle_polygon(Vector2.ZERO, 6.0, RoundLoopConfig.BORDER_SAMPLES))
+func test_a_grey_person_inside_the_line_lightens_and_one_outside_dims() -> void:
+	var border := _bare_border()
 	var people := _people(2)
 	var inside: Person = people[0]
 	inside.position = Vector3(0.0, 0.0, 0.0)
@@ -333,6 +376,15 @@ func test_a_grey_person_inside_the_loop_lightens_and_one_outside_dims() -> void:
 	assert_float(inside.gloom).is_less(0.5)
 	assert_float(outside.gloom).is_greater(0.5)
 	assert_bool(inside.is_rescued).is_false()
+
+
+func test_cover_is_the_depth_inside_a_gate_and_a_wall_gives_full_cover() -> void:
+	var border := _bare_border([Vector2i(3, 2)])
+	assert_float(border.cover_at(Vector3(-5.99, 0.0, 0.0))).is_less(0.05)  # On the west gate.
+	assert_float(border.cover_at(Vector3(-5.0, 0.0, 0.0))).is_between(0.5, 0.95)  # A metre in: most of the way there.
+	assert_float(border.cover_at(Vector3(0.0, 0.0, 0.0))).is_equal(1.0)
+	assert_float(border.cover_at(Vector3(27.5, 0.0, 0.0))).is_equal(1.0)  # By the block's east face: a wall.
+	assert_float(border.cover_at(Vector3(40.0, 0.0, 0.0))).is_equal(0.0)  # Outside.
 
 
 # --- Buildings and the landmark -----------------------------------------------------------------------------
@@ -364,18 +416,24 @@ func test_landmark_hold_grows_then_resets_when_not_beautified() -> void:
 	assert_bool(lm.is_held()).is_true()
 
 
-func test_a_held_landmark_no_longer_ends_the_level() -> void:
-	# Round 19: three people around the bandstand enclose it (the loop is a radius-3 circle around its centre). After the
-	# claim hold it is held, and the level keeps running (before round 19 holding the landmark won).
+func test_a_block_and_a_landmark_square_inside_the_line_are_beautified_and_held() -> void:
+	# The Bandstand square (3, 1) is held through the block north of the start: once both cells are in the zone, the
+	# block is beautified (its whole footprint is inside) and the landmark is claimed after the hold, and the level
+	# runs on.
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	_rescue_ring(td, LandmarkConfig.LANDMARK_POSITIONS[0], 2.5, 3)
+	_rescue_ring(td, Vector3(0, 0, 0), 3.0, 16)
+	td.border.zone.take(Vector2i(2, 1))
+	td.border.zone.take(Vector2i(3, 1))
 	var frames := 0
 	while not td.landmarks.items[0].is_held() and frames < 1500:
 		await runner.simulate_frames(1)
 		frames += 1
 	assert_bool(td.landmarks.items[0].is_held()).is_true()
+	assert_int(td.border.beautified_building_count()).is_greater_equal(2)  # The block and the landmark's own.
+	assert_bool(td.border.landmark_beautified(0)).is_true()
+	assert_bool(td.border.landmark_beautified(1)).is_false()  # The Garden square is not in the zone.
 	await runner.simulate_frames(180)
 	assert_bool(td.running).is_true()
 	assert_bool(td.hud.end_panel.visible).is_false()
@@ -384,7 +442,7 @@ func test_a_held_landmark_no_longer_ends_the_level() -> void:
 # --- F3 through the menu and real keys ----------------------------------------------------------------------
 
 
-func test_f3_from_the_menu_shows_the_border_labels() -> void:
+func test_f3_from_the_menu_shows_the_gate_labels() -> void:
 	get_window().size = Vector2i(1280, 720)
 	await get_tree().process_frame
 	var menu: GdUnitSceneRunner = scene_runner("res://menu.tscn")
@@ -402,36 +460,5 @@ func test_f3_from_the_menu_shows_the_border_labels() -> void:
 	assert_bool(td.level_hud.debug_on).is_true()
 	assert_bool(td.hud.debug_hint_label.visible).is_true()
 	assert_str(td.hud.debug_hint_label.text).contains("border")
-	assert_int(td.border.visible_debug_label_count()).is_greater(0)
+	assert_int(td.border.visible_debug_label_count()).is_equal(4)
 	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-# Round 10: the joy burst used within BORDER_SHOVE_RANGE of the line shoves it outward toward the player.
-func _radius_toward(border: Border, dir: Vector2) -> float:
-	var c := Vector2(border.centre.x, border.centre.z)
-	var best_r := 0.0
-	var best_dot := -INF
-	for p2: Vector2 in border.polygon:
-		var v := p2 - c
-		var d := v.normalized().dot(dir)
-		if d > best_dot:
-			best_dot = d
-			best_r = v.length()
-	return best_r
-
-
-func test_the_joy_burst_near_the_border_bulges_it_toward_the_player() -> void:
-	var s: Dictionary = await _start()
-	var runner: GdUnitSceneRunner = s["runner"]
-	var td: TopDownMain = s["td"]
-	_rescue_ring(td, Vector3.ZERO, 4.0, 8)
-	await runner.simulate_frames(300)
-	var before := _radius_toward(td.border, Vector2.RIGHT)
-	# Stand 2 m outside the line, to the east, and use the joy burst (G) with real input.
-	td.player.global_position = Vector3(before + 2.0, 0.0, 0.0)
-	await runner.simulate_frames(2)
-	runner.simulate_key_pressed(KEY_G)
-	await runner.simulate_frames(120)
-	var after := _radius_toward(td.border, Vector2.RIGHT)
-	assert_float(after - before).is_greater(0.8)
-	assert_float(after - before).is_less(1.8)

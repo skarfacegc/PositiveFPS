@@ -11,24 +11,10 @@ extends RefCounted
 # With `enabled` false (the default in automated tests, see Config.intro_on()) everything is available at once and
 # no prompt ever shows.
 
-enum Prompt {
-	BREAK,  # Round 26: the line broke (was GAP): the first break gets a prompt.
-	GUARDED,
-	SKITTISH,
-	GLUM,
-	SHELTERED,
-	SPIRIT_LOW,
-	DIM,
-	DIM_HELP,
-	BEACON_SPIRIT,
-	BEACON_BORDER,
-	BEACON_BLOCKED,
-	BEACON_FELL_BACK,
-	ZONE_PULLED_IN,
-	FIRST_LIGHT,  # Snag round: the notice when first light starts (first_light.gd).
-	TIDE,  # Round 25: the notice when a gloom tide is coming (gloom_tide.gd; the words name the side).
-	PUSH  # Round 26: the first time the line bends under a push.
-}
+# BREAK is the first time the line breaks (round 26, was GAP), FIRST_LIGHT the notice when first light starts
+# (first_light.gd), TIDE the notice that a gloom tide is coming (gloom_tide.gd; the words name the side) and PUSH the
+# first time the line bends under a push. (0.4 removed the beacon prompts.)
+enum Prompt { BREAK, GUARDED, SKITTISH, GLUM, SHELTERED, SPIRIT_LOW, DIM, DIM_HELP, FIRST_LIGHT, TIDE, PUSH }
 
 var enabled: bool = true
 var night: NightCycle
@@ -194,16 +180,6 @@ static func text_for(id: int) -> String:
 			return "Spirit low: rescue people to refill"
 		Prompt.DIM_HELP:
 			return PeopleConfig.DIM_HELP_TEXT
-		Prompt.BEACON_SPIRIT:
-			return BeaconConfig.BEACON_NO_SPIRIT_TEXT
-		Prompt.BEACON_BORDER:
-			return BeaconConfig.BEACON_NO_BORDER_TEXT
-		Prompt.BEACON_BLOCKED:
-			return BeaconConfig.BEACON_BLOCKED_TEXT
-		Prompt.BEACON_FELL_BACK:
-			return BeaconConfig.BEACON_FELL_BACK_TEXT
-		Prompt.ZONE_PULLED_IN:
-			return BeaconConfig.BEACON_PULLED_IN_TEXT
 		Prompt.FIRST_LIGHT:
 			return NightConfig.FIRST_LIGHT_TEXT
 		Prompt.TIDE:
@@ -226,6 +202,4 @@ static func icon_for(id: int) -> int:
 			return MoodIcons.Kind.UMBRELLA
 		Prompt.TIDE:
 			return MoodIcons.Kind.CLOUD
-		Prompt.BEACON_SPIRIT, Prompt.BEACON_BORDER, Prompt.BEACON_BLOCKED, Prompt.BEACON_FELL_BACK, Prompt.ZONE_PULLED_IN:
-			return MoodIcons.Kind.BANG
 	return MoodIcons.Kind.NONE

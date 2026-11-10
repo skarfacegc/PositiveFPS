@@ -283,15 +283,15 @@ func test_through_the_real_frames_a_wistful_person_in_a_real_loop_is_rescued() -
 	var td: TopDownMain = runner.scene()
 	TopDownTestUtil.send_everyone_away(td)
 	var count := 12
-	var r := BorderCentre.circle_radius(count)
+	var r := 3.0  # Inside the start square, where the line is (0.4); they walk out to its gates.
 	for i: int in range(count):
 		var a := TAU * float(i) / float(count)
 		var m: Person = td.people[i]
-		TopDownTestUtil.place(m, CENTRE + Vector3(cos(a) * r, 0.0, sin(a) * r), m.affinity, 0.0)
+		TopDownTestUtil.place(m, Vector3(cos(a) * r, 0.0, sin(a) * r), m.affinity, 0.0)
 		m.receive_joy(m.affinity, Config.JOY_MAX, 0.0)
 	await runner.simulate_frames(300)
 	var p: Person = td.people[count]
-	TopDownTestUtil.place(p, CENTRE, p.affinity, 0.1)
+	TopDownTestUtil.place(p, Vector3.ZERO, p.affinity, 0.1)
 	var before := td.rescued_count
 	await runner.simulate_frames(roundi((EmbraceConfig.EMBRACE_STEP_SECONDS + 1.0) * 60.0))
 	assert_bool(p.is_rescued).is_true()

@@ -20,16 +20,6 @@ func wire_landmarks(landmarks: Landmarks) -> void:
 		lm.lost.connect(on_landmark_lost.bind(lm))
 
 
-# The border's stretch ending early, and the zone pulling in, are noticed in the prompt bar.
-func wire_border(border: Border) -> void:
-	var main := _main
-	border.stretch_ended.connect(
-		func(why: String) -> void:
-			main.intro.notice(Intro.Prompt.BEACON_FELL_BACK, BeaconConfig.BEACON_FELL_BACK_TEXT + ": " + why)
-	)
-	border.zone_pulling_in.connect(func() -> void: main.intro.notice(Intro.Prompt.ZONE_PULLED_IN))
-
-
 # Round 12b: someone sank or lifted a stage. The minimap shows a brief blip where a person became dimmed.
 func on_stage_changed(_from_level: int, to_level: int, p: Person) -> void:
 	if to_level >= 2 and not p.is_rescued:

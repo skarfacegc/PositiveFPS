@@ -238,44 +238,13 @@ func test_an_empty_cue_draws_nothing() -> void:
 	assert_bool(ci.is_inside_tree()).is_false()
 
 
-func test_the_styled_reach_preview_marks_a_limited_zone_and_tags_a_stretch() -> void:
-	var s: Dictionary = await _ring_level(16, 6.0)
-	var td: TopDownMain = s["td"]
-	var runner: GdUnitSceneRunner = s["runner"]
-	td.player.add_spirit(100.0)
-	td.set_look(Looks.Mode.STYLED)
-	await runner.simulate_frames(3)
-	var guide: StyleReach = td.reach_guide._styled
-	# Aimed at a spot already inside the zone the plan has a reason, with E held: the preview is a thin coral outline and a
-	# cross at the tip (Checkpoint 5 follow-up: no fill, no hatching, no tip disc).
-	var dir := Vector3(1, 0, 0)
-	var edge: float = td.border.stretch_info()["radius"]
-	td.player._aim_point = td.border.centre + dir * (edge * 0.5)
-	td.player._has_aim = true
-	TopDownTestUtil.press_e(td)
-	td.reach_guide.sync(td.border, td.player)
-	assert_bool(guide.showing_preview).is_true()
-	assert_bool(guide.showing_limited).is_true()
-	assert_bool(guide._cross.visible).is_true()
-	assert_bool(guide._tip_disc.visible).is_false()
-	# A finished stretch draws the wave and the ring until the pulse ends, and then hides them.
-	td.reach_guide._on_zone_grew(30.0, td.border.centre + dir * 9.0, 0.0)
-	td.reach_guide.sync(td.border, td.player)
-	assert_bool(guide._pulse_ring.visible).is_true()
-	assert_bool(guide._wave.visible).is_true()
-	guide.end_pulse()
-	assert_bool(guide._pulse_ring.visible).is_false()
-	td.set_look(Looks.Mode.PLACEHOLDER)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
 func test_the_styled_notice_and_the_burst_ring_are_built_without_the_placeholder_marks() -> void:
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	td.set_look(Looks.Mode.STYLED)
 	td.intro.enabled = true
-	td.intro.notice(Intro.Prompt.BEACON_BLOCKED)
+	td.intro.notice(Intro.Prompt.SPIRIT_LOW)
 	td.intro.time_left = td.intro.duration
 	await runner.simulate_frames(10)
 	assert_bool(td.prompts.big).is_true()
@@ -301,48 +270,6 @@ func test_the_motes_fit_their_room_even_at_a_corner_of_the_front() -> void:
 	assert_int(lights.mote_count()).is_equal(0)
 
 
-func test_the_reach_ribbons_skip_degenerate_segments() -> void:
-	var guide := StyleReach.new()
-	var root: Node3D = auto_free(Node3D.new())
-	guide.build(root)
-	var mesh := ImmediateMesh.new()
-	guide._ribbon(mesh, PackedVector2Array([Vector2.ZERO]), false, 0.5, 0.0)
-	assert_int(mesh.get_surface_count()).is_equal(0)
-	guide._ribbon(mesh, PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2(2, 0)]), false, 0.5, 0.0)
-	assert_int(mesh.get_surface_count()).is_equal(1)
-	var pairs: Array[Vector2] = [Vector2.ZERO, Vector2.ZERO, Vector2(1, 1), Vector2(3, 1)]
-	guide._ribbon_pairs(mesh, pairs, 0.5, 0.0)
-	assert_int(mesh.get_surface_count()).is_equal(1)
-
-
-func test_the_stretching_tag_shows_hides_and_ignores_repeats() -> void:
-	Looks.set_mode(Looks.Mode.STYLED)
-	var tag: StyleReachTag = auto_free(StyleReachTag.new())
-	add_child(tag)
-	tag.show_at("", Vector2(10, 10))
-	assert_bool(tag.visible).is_false()
-	tag.show_at(StyleReach.WORDS, Vector2(100, 100))
-	assert_bool(tag.visible).is_true()
-	tag.show_at(StyleReach.WORDS, Vector2(100, 100))
-	assert_str(tag.text).is_equal(StyleReach.WORDS)
-	await await_idle_frame()
-	tag.show_at("", Vector2.ZERO)
-	assert_bool(tag.visible).is_false()
-	tag.hide_tag()
-	assert_str(tag.text).is_equal("")
-
-
-func test_the_stretching_tag_draws_nothing_in_the_placeholder_look() -> void:
-	Looks.set_mode(Looks.Mode.PLACEHOLDER)
-	var tag: StyleReachTag = auto_free(StyleReachTag.new())
-	add_child(tag)
-	tag.text = StyleReach.WORDS
-	tag._draw()
-	tag.text = ""
-	tag._draw()
-	assert_str(tag.text).is_equal("")
-
-
 func test_a_styled_border_hides_its_ribbon_when_it_is_not_live() -> void:
 	var s: Dictionary = await _ring_level(16, 6.0)
 	var td: TopDownMain = s["td"]
@@ -364,10 +291,9 @@ func test_a_styled_border_hides_its_ribbon_when_it_is_not_live() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_a_styled_burst_with_no_parent_is_ignored_and_the_beacon_colour_is_teal() -> void:
+func test_a_styled_burst_with_no_parent_is_ignored() -> void:
 	var look := PlayerLookStyled.new()
 	var player: TopDownPlayer = auto_free(TopDownPlayer.new())
 	look.subject = player
 	look.play_burst(5.0, 0.3)
 	look.free()
-	assert_bool(MinimapLookStyled.new().beacon_colour().is_equal_approx(Color("#9cf0dc"))).is_true()

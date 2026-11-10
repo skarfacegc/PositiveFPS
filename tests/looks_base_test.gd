@@ -25,7 +25,6 @@ func test_base_looks_have_do_nothing_defaults() -> void:
 	player.free()
 	var building := BuildingLook.new()
 	building.sync()
-	building.set_post(true)
 	building._build()
 	assert_bool(building.is_styled()).is_false()
 	building.free()

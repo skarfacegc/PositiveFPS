@@ -115,17 +115,18 @@ func test_projectile_fired_at_a_target_behind_a_block_fizzles_on_the_block() -> 
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)
-	# The first block (-38, -8) is 4 m wide. The target stands just beyond it, to the north.
-	var block := Plaza.BLOCK_POSITIONS[0] * Vector3(1, 0, 1)
+	# The bell tower (a 4 x 7 x 4 block, 0.4: in the middle of its own square) is between the player and the target. The
+	# target stands on its near (south) side, where the camera sees them, and the player on the far side.
+	var block := LandmarkConfig.LANDMARK_POSITIONS[Landmarks.BELL_TOWER] * Vector3(1, 0, 1)
 	var target: Person = td.people[0]
-	TopDownTestUtil.place(target, block + Vector3(0, 0, -3.5), 0, 0.0)
-	td.player.global_position = block + Vector3(0, 0, 4.0)
+	TopDownTestUtil.place(target, block + Vector3(0, 0, 3.5), 0, 0.0)
+	td.player.global_position = block + Vector3(0, 0, -4.0)
 	await runner.simulate_frames(2)
 
 	await TopDownTestUtil.select_mode(runner, td, Config.TargetingMode.LOCK_ON)
-	runner.simulate_mouse_move(TopDownTestUtil.screen_of(td, target.global_position))
-	await runner.simulate_frames(2)
-	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	# (The lock is set directly: the camera is still catching up with the player's jump across the town, so a click at the
+	# target's screen spot would land elsewhere. The lock-on click itself is tested in targeting_test.)
+	td.player._set_target(target)
 	await runner.simulate_frames(40)
 	assert_object(td.player.target).is_same(target)
 	assert_int(TopDownTestUtil.projectiles(td).size()).is_greater(0)

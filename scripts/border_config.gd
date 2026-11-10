@@ -6,15 +6,23 @@ extends RefCounted
 # Rescued people needed before a border forms. Below this count the border collapses once it has formed.
 const BORDER_MIN_PEOPLE := 3
 
-# Members stand this far apart along the border, in metres. The slot count is perimeter / this, rounded up. Round 10:
-# 3.0 (was 2.2), so growing is easier.
+# Walls and gates: Line (0.4, #56). The line is the outline of the zone (Zone); only its gates carry members and the
+# push. A gate has a point of the traced line every GATE_POINT_STEP metres (so a dent shows); a gate needs its length
+# over BORDER_TARGET_SPACING members, rounded up (a 10 m street mouth 3, a 12 m square side 4). People who are not on
+# a gate stand on the zone's open ground, GATE_INNER_INSET metres in from the edges of its rectangles.
+const GATE_POINT_STEP := 2.0
+const BORDER_MAP_LIMIT := Config.TD_PLAZA_SIZE / 2.0 - Config.TD_EDGE_MARGIN  # People stay inside this (x and z).
+const GATE_INNER_INSET := 2.4
+const BORDER_SWEEP_BAND := 0.35  # A dimmed person caught this close inside an intact gate is swept back outside it.
+const GATE_MOUTH_OUTSIDE := 3.0  # Metres outside a gate's middle: where a dimmed person heading for the gate aims.
+const GATE_MOUTH_REACH := 4.0  # Within this many metres of a gate a dimmed person is at its mouth: straight on.
+
+# Members stand this far apart along a gate, in metres. A gate's member count is its length / this, rounded up. Round
+# 10: 3.0 (was 2.2), so growing is easier.
 const BORDER_TARGET_SPACING := 2.6 * Config.WORLD_SCALE
 
 # Members walk to their slot at this speed, in metres per second.
 const BORDER_WALK_SPEED := 3.0
-
-# A stretch of border between two members longer than this is a gap: gloom can pass through it.
-const BORDER_MAX_GAP := 3.5 * Config.WORLD_SCALE
 
 # A dimmed person outside the border drains the nearest member within this distance, in metres.
 const BORDER_PRESS_RANGE := 1.5
@@ -22,11 +30,8 @@ const BORDER_PRESS_RANGE := 1.5
 # Cover from the border: 0 on the line, 1 this many metres inside it (so a grey person there can be lightened).
 const BORDER_EDGE_BAND := 1.0 * Config.WORLD_SCALE
 
-# A member who relapses steps this far outward from the centre (metres).
+# A member who relapses steps this far outward through their gate (metres).
 const BORDER_OUTWARD_STEP := 1.0 * Config.WORLD_SCALE
-
-# Inner members (rescued people beyond the slot count) stand in a spiral this much apart, in metres.
-const BORDER_INNER_SPACING := 0.7 * Config.WORLD_SCALE
 
 # A building is beautified after this many seconds with at least this fraction of its footprint inside the border.
 const BORDER_BUILDING_SECONDS := 3.0
@@ -63,11 +68,8 @@ const BORDER_PUSHBACK_SPEED := 0.35
 # rate (gaps keep the full rate). It makes the border feel at risk again without letting it fall to one press.
 const BORDER_INTACT_DRAIN_FRACTION := 0.25
 
-# Edge pressure: dimmed people prefer the newest and outermost stretch of the border. A stretch's score is
-# EDGE_RECENCY_WEIGHT x how recently it advanced (1 just pushed, 0 after EDGE_RECENT_SECONDS) plus the rest x how far
-# out it is (0 innermost, 1 outermost). A score of 1 is worth EDGE_PRESSURE_REACH metres of walking.
-const EDGE_RECENT_SECONDS := 60.0
-const EDGE_RECENCY_WEIGHT := 0.6
+# Edge pressure: dimmed people prefer a member whose gate is already giving. A gate's score is how bent it is there
+# (Border.edge_pressure, 0 flat to 1 at the break depth); a score of 1 is worth EDGE_PRESSURE_REACH metres of walking.
 const EDGE_PRESSURE_REACH := 12.0 * Config.WORLD_SCALE
 
 # Protection values closer than this count as equal when a dimmed person picks a target.
@@ -97,16 +99,8 @@ const LEAK_LIFE_SECONDS := 1.8
 # Members walk at BORDER_WALK_SPEED, but at most this many times their distance to the slot per second (they ease in).
 const BORDER_ARRIVE_GAIN := 4.0
 
-# A slot offset is kept unless another one cuts the total walk by more than this share (no swaps on small changes).
-const BORDER_SLOT_HYSTERESIS := 0.15
-
 # Round 26: the burst cue works out its count (and fades the people outside) every BORDER_WARN_INTERVAL seconds.
 const BORDER_WARN_INTERVAL := 0.1
-
-# End flicker: the loop is eased to exactly n x BORDER_TARGET_SPACING, which is where the slot count steps from n to
-# n + 1, so noise in the length flipped the member count every frame or two. The count now holds until the length is
-# BORDER_SLOT_COUNT_HOLD of a slot past the step (either way).
-const BORDER_SLOT_COUNT_HOLD := 0.35
 
 # The border is one ribbon through its members; pushes bow it inward; one marker per trouble spot (at most four); dimmed
 # people outside it are drawn faded; the patch, burst and gift effects are short and replace each other.

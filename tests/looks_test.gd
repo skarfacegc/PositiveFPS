@@ -258,10 +258,6 @@ func test_a_styled_building_dissolves_to_the_whimsical_version_when_beautified()
 	for i: int in range(2):
 		b.update(1.0, 1.0)
 	assert_bool(look.industrial.visible).is_false()
-	b.set_post(true)
-	assert_bool(look._lantern.visible).is_true()
-	b.set_post(false)
-	assert_bool(look._lantern.visible).is_false()
 	b.update(1.0, 0.0)
 	b.update(3.0, 0.0)
 	assert_bool(look.industrial.visible).is_true()
@@ -296,8 +292,15 @@ func test_the_styled_border_draws_a_ribbon_with_motes_and_breaks_it_at_gaps() ->
 	assert_bool(td.border.active).is_true()
 	assert_bool(look._ribbon.visible).is_true()
 	assert_int(look._mesh.get_surface_count()).is_equal(0 if look.strips.is_empty() else 1)
-	# Five people on the smallest loop leave stretches open: the ribbon is broken into separate pieces (or empty), never
-	# one closed loop.
+	# With no break the ribbon is one closed loop along the line (0.4: thin gates are not gaps).
+	assert_int(td.border.gap_count()).is_equal(0)
+	assert_int(look.strips.size()).is_equal(1)
+	assert_bool(look.strips[0].closed).is_true()
+	# A break splits it into separate open pieces, never one closed loop.
+	td.border.push.dent[td.border.push.sample_of(td.border.members[0].position)] = PushConfig.PUSH_BREAK_DEPTH + 0.4
+	await runner.simulate_frames(6)
+	look._last_frame = -100000
+	look.refresh()
 	assert_int(td.border.gap_count()).is_greater(0)
 	for strip: EdgeStrip in look.strips:
 		assert_bool(strip.closed).is_false()

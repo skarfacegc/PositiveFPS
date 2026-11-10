@@ -103,12 +103,3 @@ func test_the_tide_fog_edge_is_drawn_on_the_rim_toward_the_tide() -> void:
 	m.tide_fog = Vector2(1.0, 0.0)
 	m._render()
 	assert_int(_count_not_equal(m, before)).is_greater(10)
-
-
-func test_the_beacon_gets_a_halo_ring_in_the_styled_look() -> void:
-	var m := _styled_map()
-	m._render()
-	var before := m._image.get_data()
-	m.beacon_pos = Vector2(10.0, 10.0)
-	m._render()
-	assert_int(_count_not_equal(m, before)).is_greater(10)

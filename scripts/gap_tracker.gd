@@ -1,44 +1,26 @@
 class_name GapTracker
 extends RefCounted
 
-# Round 13b: how long each open gap of the border has been open. The border hands over its gap flags and gap middles
-# every update; a gap keeps its age while its slot stays a gap (same slot count as last frame), or else is matched to
-# the nearest gap of last frame within GAP_TRACK_RADIUS. New gaps start at zero. (Plain arrays, no per-gap objects: it
-# runs every frame.)
+# Round 13b: how long each open gap of the border has been open. The border hands over its gap middles every update (one
+# per break); a gap seen again within GAP_TRACK_RADIUS of where an old one was last frame is that gap and keeps its age
+# (plus the time since), and a new one starts at zero. (Plain arrays, no per-gap objects: it runs every frame.)
 
 # How urgent each gap is, 0 (just opened) to 1 (open GAP_URGENCY_SECONDS or more), in the border's gap order.
 var urgencies: Array[float] = []
-# Last frame's gap middles and their ages in seconds (parallel arrays), and each slot's age (-1 when not a gap).
+# Last frame's gap middles and their ages in seconds (parallel arrays).
 var positions: Array[Vector3] = []
 var ages := PackedFloat32Array()
-var _slot_age := PackedFloat32Array()
 
 
-# Carries the ages over by `delta`. `flags` are the border's segment_gap flags, `mids` its gap middles (one per
-# true flag).
-func update(flags: Array[bool], mids: Array[Vector3], delta: float) -> void:
-	var same_slots := flags.size() == _slot_age.size()
-	var slot_age := PackedFloat32Array()
-	slot_age.resize(flags.size())
+# Carries the ages over by `delta`. `mids` are the border's gap middles.
+func update(mids: Array[Vector3], delta: float) -> void:
 	var new_ages := PackedFloat32Array()
 	var urgent: Array[float] = []
 	var taken: Dictionary = {}
-	var n := 0
-	for k: int in range(flags.size()):
-		if not flags[k]:
-			slot_age[k] = -1.0
-			continue
-		var age := 0.0
-		if same_slots:
-			if _slot_age[k] >= 0.0:
-				age = _slot_age[k] + delta
-		else:
-			age = _nearest_old_age(mids[n], taken, delta)
-		slot_age[k] = age
+	for mid: Vector3 in mids:
+		var age := _nearest_old_age(mid, taken, delta)
 		new_ages.append(age)
 		urgent.append(clampf(age / BorderConfig.GAP_URGENCY_SECONDS, 0.0, 1.0))
-		n += 1
-	_slot_age = slot_age
 	ages = new_ages
 	positions = mids
 	urgencies = urgent

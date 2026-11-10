@@ -2,56 +2,46 @@
 class_name Border
 extends Node3D
 
-# The living border (round 9, organic push only since round 10). Rescued people organise themselves into a loop around
-# a centre (the smoothed centroid of the rescued). The loop has a radius per angle, pushed outward where each person
-# was rescued, and wrapped around blocks. The rules:
-#   - the outermost rescued people are the border members, one per slot evenly spaced along the loop; the rest stand
-#     inside (inner members). A stretch between members that is longer than BORDER_MAX_GAP is a gap.
-#   - gloom outside cannot cross an intact stretch: it presses against the line and drains the nearest member.
-#     Through a gap it can pass.
-#   - inside the loop the ground is painted (see PaintedGround.set_region) and blocks are beautified (see Building).
-#   - protection is the depth inside the loop (see cover_at).
+# The living border (round 9; rebuilt for the town grid in 0.4, #55 and #56). The zone is the set of town cells you hold
+# (Zone); the line is its outline, split into walls (the face of a held built block, the map's edge: firm, need nobody)
+# and gates (an open side of a held square, a street mouth). The rules:
+#   - rescued people stand across the gates, spread at BORDER_TARGET_SPACING (fewer people: wider); everyone else is an
+#     inner member and stands on the zone's open ground (see border_slots.gd);
+#   - gloom outside cannot cross an intact stretch: dimmed people lean on a gate, it bends inward, and it breaks past
+#     PUSH_BREAK_DEPTH (see border_push.gd). A break is a gap: gloom passes through it until it mends;
+#   - inside the line the ground is painted (see PaintedGround.set_region) and blocks are beautified (see Building);
+#   - protection is the depth inside a gate (see cover_at); a wall gives full cover.
+# `polygon` is the traced outline with a point every GATE_POINT_STEP metres along each gate, shoved inward where a
+# gate is dented. It is what the other scripts read, with `members`, `segment_gap`, `cover_at`, `line_blocks`,
+# `clip_move` and `push.dent`.
 
-# Round 19/20: the stretch's tip reached the beacon (or the maximum reach); a beacon was placed.
-# Round 22: no snap. A finished stretch keeps its arm: `zone_grew` (area gained in square metres, the tip, the stretch's
-# angle); people were lost and the arms retreat: `zone_pulling_in` (starts), `zone_shrunk` (area lost, when it ends).
-signal beacon_reached
-signal stretch_started(beacon: Vector3, tip_target: Vector3)
-signal zone_grew(gain: float, tip: Vector3, angle: float)
-signal zone_pulling_in
-signal zone_shrunk(lost: float)
-# Round 21: a stretch ended without a snap because the border could no longer support it (`reason` is plain words).
-signal stretch_ended(reason: String)
 # Round 26: the line snapped under a push (`pos` is the middle of the break), and a break mended (`seconds` open).
 signal line_broke(pos: Vector3)
 signal line_mended(pos: Vector3, seconds: float)
 
-# Inner members are placed on a golden-angle spiral, so they spread out without a random number.
-const GOLDEN_ANGLE := 2.39996323
-
+# The zone: the cells held and the line they make. The next pass grows and shrinks it (`zone.take`, `zone.lose`).
+var zone: Zone = Zone.new()
+# The middle of the held cells (a tide is seen from here), and the mean distance of the gates from it.
 var centre := Vector3.ZERO
-# Round 22: the mean radius of the body circle (the smoothed radii times the size factor) in the last loop built.
 var body_radius: float = 0.0
-# True once at least BORDER_MIN_PEOPLE are rescued. Below that there is no loop.
+# True once at least BORDER_MIN_PEOPLE are rescued. Below that there is no line.
 var active: bool = false
 # True once the border has been active. After that, falling below BORDER_MIN_PEOPLE means the border fell.
 var formed: bool = false
+# The length of all the gates in metres, and the distance between neighbouring members on them (that over the members).
 var perimeter: float = 0.0
-# Distance between neighbouring border members, in metres (perimeter / border members).
 var spacing: float = 0.0
-# Checkpoint 5: the slot count the loop holds, with hysteresis (BorderShape.held_slot_count); 0 until the first update.
+# The members the gates ask for together (Zone.members_needed) while the border is active.
 var slot_count: int = 0
 var member_count: int = 0
-# Beautified buildings on the line that count as posts (see BorderSlots). Each holds BORDER_POST_WORTH slots.
-var post_count: int = 0
 var inner_count: int = 0
-# The loop, as (x, z) points in order around the centre. Empty when there is no border.
+# The line, as (x, z) points in order (clockwise). Empty when there is no border.
 var polygon := PackedVector2Array()
 var members: Array[Person] = []
-# Round 13b: every rescued person who is faltering as of the last update (members, benched and others).
+# Round 13b: every rescued person who is faltering as of the last update (members and others).
 var faltering: Array[Person] = []
 var inner: Array[Person] = []
-# One entry per slot segment: true when that stretch is a gap.
+# One entry per polygon segment (segment j runs from polygon[j] to polygon[j + 1]): true while a break holds it open.
 var segment_gap: Array[bool] = []
 var buildings: Array[Building] = []
 # The block footprints as a flat list (BorderShape.footprints), for the walks; read it through boxes().
@@ -65,59 +55,45 @@ var player_dim: bool = false
 
 # The look: draws the line, the haze and the gap glow from the state above (see scripts/looks/border_look.gd).
 var look: BorderLook
-# Round 26: the physical push (border_push.gd): the dent in the line and its breaks.
-var push: BorderPush = BorderPush.new(self)
+# Round 26: the physical push (border_push.gd): the dent in the gates and their breaks. (Made in _init, after the line's
+# arrays, which it reads when it is made.)
+var push: BorderPush
 var _ground: PaintedGround
-var _has_centre: bool = false
-# Rescued people whose outward push has not been applied yet (see on_rescue).
-var _pending_pushes: Array[Person] = []
-# Where each post stands on the loop (world positions), from the last update. They pull the centre (see
-# _update_centre).
-var _post_points: Array[Vector3] = []
-# Organic: the radius per angle before smoothing, and the size factor that eases toward the target perimeter.
-var _raw_radii: Array[float] = []
-var _scale: float = 1.0
-# One entry per polygon segment (sample j runs from polygon[j] to polygon[j + 1]): true when it lies in a gap.
-var _sample_gap: Array[bool] = []
-# Cumulative arc length at each polygon point, plus the total at the end (so it has one more entry than polygon).
-var _arc: Array[float] = []
-# Round 16: per polygon segment, how much of it lies along the map edge, 0..1 (1 = sealed: closed by the map, needs no
-# slots and is never a gap; it fades in over BORDER_SEAL_BAND so the open length never jumps). _open is the cumulative
-# OPEN length at each polygon point (a sealed segment adds nothing), with the total at the end. Slots are spaced evenly
-# along the open length, starting at _phase.
-var _sealed: Array[float] = []
-var _open: Array[float] = []
-var _phase: float = 0.0
+# The traced line without dents, and per point: the gate it starts (-1 on a wall) and whether a dent may move it. Per
+# segment: the gate it belongs to (-1 for a wall). Per gate: its first point and how many points it has.
+var _base := PackedVector2Array()
+var _pt_gate: Array[int] = []
+var _pt_dentable: Array[bool] = []
+var _seg_gate: Array[int] = []
+var _gate_first: Array[int] = []
+var _gate_points: Array[int] = []
+var _built_version: int = -1
 # Where each rescued person should stand: Person -> Vector3.
 var _targets: Dictionary = {}
 # Person -> the corner (Vector2) they are heading round while a detour is on (see _move_members).
 var _detour: Dictionary = {}
 var _time: float = 0.0
 var _strength: float = 1.0
-# Round 12b: per angle sample, the time the raw radius was last pushed outward (a rescue or a shove), so dimmed people
-# can prefer the newest stretch (see edge_pressure).
-var _pushed_at: Array[float] = []
 # Seconds each border member has been faltering (drained below MEMBER_FALTER_FRACTION; the "!" cue reads it).
 var _falter_age: Dictionary = {}
 # Round 13b: the age of each open gap (see gap_tracker.gd) and the gap middles as of the last update.
 var _tracker := GapTracker.new()
 var _mids_cache: Array[Vector3] = []
-# Round 18: the slot code (layout, who stands where, gaps) lives in border_slots.gd.
+# Round 18: the slot code (who stands where) lives in border_slots.gd.
 var _slots: BorderSlots = BorderSlots.new(self)
-# Round 19: the centre and the spirit beacon (border_centre.gd).
-var _centre_ctl: BorderCentre = BorderCentre.new(self)
+# Goal tile -> distance (in tiles) of every walkable tile from it; the town never changes, so it is kept.
+var _flow: Dictionary = {}
 var _debug_on: bool = false
 var _debug_labels: Array[Label3D] = []
+
+
+func _init() -> void:
+	push = BorderPush.new(self)
 
 
 # Gets the border ready: the ground it paints and the line it draws.
 func setup(ground: PaintedGround) -> void:
 	_ground = ground
-	_raw_radii.clear()
-	_pushed_at.clear()
-	for i: int in range(RoundLoopConfig.BORDER_SAMPLES):
-		_raw_radii.append(RoundLoopConfig.BORDER_MIN_RADIUS)
-		_pushed_at.append(-1.0e9)
 	_make_look()
 
 
@@ -156,32 +132,31 @@ func register_building(
 		landmark_buildings.append(b)
 
 
-# Call every frame, before people move. Recomputes the centre, the loop, the slots and the gaps, moves the rescued
-# people to their places, beautifies blocks, drains members from gloom outside and updates the ground and the line.
+# Call every frame, before people move. Traces the line when the zone changed, applies the push, places the members on
+# the gates, beautifies blocks, drains members from gloom outside and updates the ground and the line.
 func update(people: Array[Person], delta: float, strength: float) -> void:
 	_time += delta
 	_strength = strength
 	var rescued: Array[Person] = []
-	_centre_ctl.dimmed.clear()
 	for p: Person in people:
 		if p.is_rescued:
 			rescued.append(p)
-		elif GloomSim.is_dimmed(p):
-			_centre_ctl.dimmed.append(Vector2(p.position.x, p.position.z))  # Round 21: the tip keeps clear of them.
-	_update_centre(rescued, delta)
-	_apply_pending_pushes()
+	centre = zone.centre()
 	_update_falter(rescued, delta)
-	var n := rescued.size()
-	active = n >= BorderConfig.BORDER_MIN_PEOPLE
+	active = rescued.size() >= BorderConfig.BORDER_MIN_PEOPLE
 	if active:
 		formed = true
-		_raw_radii = BorderShape.relax_radii(_raw_radii, _sealed, delta)
-		BorderShape.trim_to_map(_raw_radii, centre, _scale)
-		push.update(people, delta, strength)  # Round 26: pushed by what is outside; the dent goes into the loop below.
-		polygon = _organic_polygon(Vector2(centre.x, centre.z), n, delta)
+		if _built_version != zone.version:
+			_trace()
+		push.update(people, delta, strength)  # Round 26: pushed by what is outside; the dent goes into the line below.
+		polygon = _dented()
+		_mark_gaps()
 	else:
 		polygon = PackedVector2Array()
+		segment_gap.clear()
 		push.reset()
+		_base = PackedVector2Array()
+		_built_version = -1
 	_assign_members(rescued)
 	_move_members(delta)
 	_update_buildings(delta)
@@ -193,63 +168,178 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 		_update_debug_labels()
 
 
-# A rescued person was made. The border pushes outward at the angle they were rescued from. The push is applied on the
-# next update, once the centre is known (see _apply_pending_pushes).
-func on_rescue(p: Person) -> void:
-	_pending_pushes.append(p)
+# A rescued person was made. (The next pass credits the cell they belong to here: "Rescues pull the line".)
+func on_rescue(_p: Person) -> void:
+	pass
 
 
-# Applies the outward push of every rescue still waiting for one, at the angle from the centre to that person. Before
-# this fix a push was measured from the person's own spot when no centre existed yet, so the first rescues (and any
-# made in the same frame) all pushed toward angle 0, and the loop then drifted east. A person standing exactly on the
-# centre waits until the centre has moved off them, so no push is ever aimed at an arbitrary angle.
-func _apply_pending_pushes() -> void:
-	var waiting: Array[Person] = []
-	for p: Person in _pending_pushes:
-		if not p.is_rescued:
-			continue
-		var to := Vector2(p.position.x - centre.x, p.position.z - centre.z)
-		if to.length() < 0.05:
-			waiting.append(p)
-			continue
-		_push_at(atan2(to.y, to.x), RoundLoopConfig.BORDER_PUSH)
-	_pending_pushes = waiting
-
-
-# Adds a Gaussian bump of `amount` metres to the raw radius at angle `ang` (the same bump for a rescue and a shove).
-func _push_at(ang: float, amount: float) -> void:
-	for i: int in range(RoundLoopConfig.BORDER_SAMPLES):
-		var a := TAU * float(i) / float(RoundLoopConfig.BORDER_SAMPLES)
-		var d := wrapf(a - ang, -PI, PI)
-		var bump := exp(-d * d / (2.0 * RoundLoopConfig.BORDER_PUSH_WIDTH * RoundLoopConfig.BORDER_PUSH_WIDTH))
-		_raw_radii[i] += amount * bump
-		if bump >= 0.5 and i < _pushed_at.size():
-			_pushed_at[i] = _time
-
-
-# A member relapsed: they step out from the centre and leave the border (the slots reshuffle on the next update).
+# A member relapsed: they step out through the gate and leave the border (the slots reshuffle on the next update).
 func on_relapse(p: Person) -> void:
-	var out := Vector3(p.position.x - centre.x, 0.0, p.position.z - centre.z)
-	if out.length() < 0.01:
-		out = Vector3.RIGHT
-	p.position += out.normalized() * BorderConfig.BORDER_OUTWARD_STEP
+	var out := out_at(p.position)
+	p.position += Vector3(out.x, 0.0, out.y) * BorderConfig.BORDER_OUTWARD_STEP
 
 
-# How protected a person at `pos` is by the border: 0 outside and on the line, 1 BORDER_EDGE_BAND metres inside.
+# ---- The traced line
+# ---------------------------------------------------------------------------------------------------
+
+
+# Traces the zone's outline into points: a corner for each wall, and a point every GATE_POINT_STEP metres along each
+# gate.
+func _trace() -> void:
+	var old_base := _base
+	_base = PackedVector2Array()
+	_pt_gate.clear()
+	_pt_dentable.clear()
+	_seg_gate.clear()
+	_gate_first.clear()
+	_gate_points.clear()
+	perimeter = 0.0
+	for _g: Dictionary in zone.gates:
+		_gate_first.append(-1)
+		_gate_points.append(0)
+	for run: Dictionary in zone.runs:
+		var a: Vector2 = run["a"]
+		var c: Vector2 = run["b"]
+		var gate_id: int = run["gate_id"]
+		if gate_id < 0:
+			_base.append(a)
+			_pt_gate.append(-1)
+			_pt_dentable.append(false)
+			_seg_gate.append(-1)
+			continue
+		var count := maxi(1, ceili(a.distance_to(c) / BorderConfig.GATE_POINT_STEP - 0.001))
+		_gate_first[gate_id] = _base.size()
+		_gate_points[gate_id] = count
+		perimeter += a.distance_to(c)
+		for k: int in range(count):
+			_base.append(a.lerp(c, float(k) / float(count)))
+			_pt_gate.append(gate_id)
+			_pt_dentable.append(k > 0)
+			_seg_gate.append(gate_id)
+	_built_version = zone.version
+	var sum := 0.0
+	var seen := 0
+	for i: int in range(_base.size()):
+		if _pt_gate[i] >= 0 or zone.gates.is_empty():
+			sum += _base[i].distance_to(Vector2(centre.x, centre.z))
+			seen += 1
+	body_radius = sum / float(maxi(seen, 1))
+	push.carry(old_base, _base)
+
+
+# The traced line with the gates' dents applied: a dented point moves inward by its dent.
+func _dented() -> PackedVector2Array:
+	var pts := _base.duplicate()
+	for i: int in range(mini(pts.size(), push.dent.size())):
+		var d := push.dent[i]
+		if d > 0.001 and _pt_dentable[i]:
+			var gate: Dictionary = zone.gates[_pt_gate[i]]
+			var out: Vector2 = gate["out"]
+			pts[i] -= out * d
+	return pts
+
+
+func _mark_gaps() -> void:
+	segment_gap.clear()
+	for j: int in range(polygon.size()):
+		segment_gap.append(push.segment_broken(j))
+
+
+# How many points the traced line has now (0 when there is no border).
+func point_count() -> int:
+	return _base.size()
+
+
+# True when a dent may move point `i` (it lies on a gate and is not the gate's first corner).
+func point_dentable(i: int) -> bool:
+	return i >= 0 and i < _pt_dentable.size() and _pt_dentable[i]
+
+
+# The gate that starts at point `i`, or -1 on a wall (and out of range).
+func point_gate(i: int) -> int:
+	return _pt_gate[i] if i >= 0 and i < _pt_gate.size() else -1
+
+
+# The angle (radians) of base point `i` as seen from the zone's centre.
+func point_angle(i: int) -> float:
+	return (_base[i] - Vector2(centre.x, centre.z)).angle()
+
+
+# The index of the point of the line nearest to the ground point `p2` (0 when there is no line).
+func nearest_point(p2: Vector2) -> int:
+	var pts := polygon if not polygon.is_empty() else _base
+	var best := 0
+	var best_d := INF
+	for i: int in range(pts.size()):
+		var d := pts[i].distance_squared_to(p2)
+		if d < best_d:
+			best_d = d
+			best = i
+	return best
+
+
+# True when segment `j` runs along a wall (not a gate).
+func is_wall(j: int) -> bool:
+	return j >= 0 and j < _seg_gate.size() and _seg_gate[j] < 0
+
+
+# The gate segment `j` belongs to, or -1 on a wall.
+func segment_gate(j: int) -> int:
+	return _seg_gate[j] if j >= 0 and j < _seg_gate.size() else -1
+
+
+# The point of gate `g` at fraction `t` (0 to 1) of its way along (clockwise), on the dented line.
+func gate_point(g: int, t: float) -> Vector2:
+	if g < 0 or g >= _gate_first.size() or _gate_first[g] < 0 or polygon.size() < 3:
+		return Vector2(centre.x, centre.z)
+	var count := _gate_points[g]
+	var u := clampf(t, 0.0, 1.0) * float(count)
+	var k := mini(floori(u), count - 1)
+	var i0 := _gate_first[g] + k
+	var n := polygon.size()
+	return polygon[i0 % n].lerp(polygon[(i0 + 1) % n], u - float(k))
+
+
+# The unit direction pointing out of the zone through the gate nearest to the ground point `pos`.
+func out_at(pos: Vector3) -> Vector2:
+	var g := zone.nearest_gate(Vector2(pos.x, pos.z))
+	if g.is_empty():
+		return Vector2.RIGHT
+	var out: Vector2 = g["out"]
+	return out
+
+
+# The members the gates ask for together.
+func required_members() -> int:
+	return zone.members_needed()
+
+
+# ---- Reading the line
+# ---------------------------------------------------------------------------------------------------
+
+
+# How protected a person at `pos` is by the border: 0 outside and on a gate, 1 BORDER_EDGE_BAND metres inside (a wall
+# protects fully).
 func cover_at(pos: Vector3) -> float:
 	if not active:
 		return 0.0
 	var p2 := Vector2(pos.x, pos.z)
 	if not Geometry2D.is_point_in_polygon(p2, polygon):
 		return 0.0
-	return clampf(BorderShape.distance_to_line(polygon, p2) / BorderConfig.BORDER_EDGE_BAND, 0.0, 1.0)
+	var best := INF
+	var n := polygon.size()
+	for j: int in range(n):
+		if _seg_gate[j] < 0:
+			continue
+		best = minf(best, Geometry2D.get_closest_point_to_segment(p2, polygon[j], polygon[(j + 1) % n]).distance_to(p2))
+	return clampf(best / BorderConfig.BORDER_EDGE_BAND, 0.0, 1.0)
 
 
-# The first crossing (closest to `a2`) between the move a2 -> b2 and an intact stretch of the loop, or null.
+# The first crossing (closest to `a2`) between the move a2 -> b2 and an intact stretch of the line, or null.
 func _crossing(a2: Vector2, b2: Vector2) -> Variant:
 	if not active:
 		return null
-	return BorderShape.first_crossing(polygon, _sample_gap, a2, b2)
+	return BorderShape.first_crossing(polygon, segment_gap, a2, b2)
 
 
 # True when the straight move from `a` to `b` crosses an intact stretch of the border.
@@ -258,7 +348,7 @@ func line_blocks(a: Vector3, b: Vector3) -> bool:
 
 
 # A dimmed person outside the border moves from `from` toward `to`. If the move crosses an intact stretch, it stops just
-# short of the line. Otherwise (inside, or through a gap) the move is unchanged.
+# short of the line. Otherwise (inside, or through a break) the move is unchanged.
 func clip_move(from: Vector3, to: Vector3) -> Vector3:
 	if not active:
 		return to
@@ -268,12 +358,70 @@ func clip_move(from: Vector3, to: Vector3) -> Vector3:
 		return to
 	var hit: Variant = _crossing(a2, b2)
 	if hit == null:
+		# A person hugging a gate that is bending can slide in along its edge without a step crossing it: that is not a
+		# way in either, unless the nearest stretch is a break.
+		if Geometry2D.is_point_in_polygon(b2, polygon) and not segment_is_gap(_nearest_on_loop(b2)["seg"] as int):
+			return Vector3(from.x, to.y, from.z)
 		return to
 	var h: Vector2 = hit
 	var dir := (b2 - a2).normalized()
 	var stop_dist := maxf(0.0, a2.distance_to(h) - 0.05)
 	var stop := a2 + dir * stop_dist
 	return Vector3(stop.x, to.y, stop.y)
+
+
+# The direction a dimmed person at `pos` outside the line walks to get to the nearest gate along the streets, or
+# Vector3.ZERO when they are already at the gate's mouth (or there is no line or no way). The route is the tile lattice
+# of the town: each frame step to the neighbouring walkable tile that is nearer a gate's mouth.
+func route_to_gate(pos: Vector3) -> Vector3:
+	if not active or zone.gates.is_empty() or BorderShape.is_inside(polygon, Vector2(pos.x, pos.z)):
+		return Vector3.ZERO
+	var mouth := zone.nearest_gate(Vector2(pos.x, pos.z))
+	var ga: Vector2 = mouth["a"]
+	var gb: Vector2 = mouth["b"]
+	var here2 := Vector2(pos.x, pos.z)
+	if Geometry2D.get_closest_point_to_segment(here2, ga, gb).distance_to(here2) <= BorderConfig.GATE_MOUTH_REACH:
+		return Vector3.ZERO  # Already at the gate's mouth: no more going round.
+	var mid: Vector2 = mouth["mid"]
+	var out: Vector2 = mouth["out"]
+	var goal := mid + out * BorderConfig.GATE_MOUTH_OUTSIDE
+	var here := TownGrid.tile_of(pos)
+	var there := TownGrid.tile_of(Vector3(goal.x, 0.0, goal.y))
+	if here == there:
+		return Vector3.ZERO
+	var step := _next_tile(here, there)
+	var c := TownGrid.tile_centre(step.x, step.y)
+	var to := Vector3(c.x - pos.x, 0.0, c.z - pos.z)
+	return to.normalized() if to.length() > 0.01 else Vector3.ZERO
+
+
+# The first tile on a shortest walk over walkable tiles from `from` to `to` (`from` itself when there is none).
+func _next_tile(from: Vector2i, to: Vector2i) -> Vector2i:
+	if not _flow.has(to):
+		var field: Dictionary = {to: 0}
+		var queue: Array[Vector2i] = [to]
+		var head := 0
+		while head < queue.size():
+			var cur := queue[head]
+			head += 1
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var nxt := cur + d
+				if field.has(nxt) or not TownGrid.tile_walkable(nxt.x, nxt.y):
+					continue
+				var steps: int = field[cur]
+				field[nxt] = steps + 1
+				queue.append(nxt)
+		_flow[to] = field
+	var dist: Dictionary = _flow[to]
+	var best := from
+	var best_d: int = dist.get(from, 1000000)
+	for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var nxt := from + d
+		var nd: int = dist.get(nxt, 1000000)
+		if nd < best_d:
+			best_d = nd
+			best = nxt
+	return best
 
 
 # The colour of polygon segment `j` right now: intact gold, or a flickering grey and red when it is a gap.
@@ -283,26 +431,13 @@ func segment_colour(j: int) -> Color:
 	return BorderConfig.BORDER_INTACT_COLOUR
 
 
-# Round 24: the outline alpha of segment `j` (1 except along an arm that is pulling in; see BorderCentre.outline_alpha).
-func segment_fade(j: int) -> float:
-	var n := polygon.size()
-	if n < 3 or not _centre_ctl.is_retreating():
-		return 1.0
-	return _centre_ctl.outline_alpha(polygon[j], polygon[(j + 1) % n])
-
-
 func segment_is_gap(j: int) -> bool:
-	return j >= 0 and j < _sample_gap.size() and _sample_gap[j]
+	return j >= 0 and j < segment_gap.size() and segment_gap[j]
 
 
-# The middle of each gap, in world coordinates (the points the off-screen gap arrows point at).
+# The middle of each break, in world coordinates (the points the off-screen gap arrows point at).
 func gap_midpoints() -> Array[Vector3]:
-	var out: Array[Vector3] = []
-	for k: int in range(segment_gap.size()):
-		if segment_gap[k]:
-			var mid := _point_at_open(_phase + (float(k) + 0.5) * spacing)
-			out.append(Vector3(mid.x, 0.0, mid.y))
-	return out
+	return push.break_points()
 
 
 # The gap middles as of the last update(), for the things that read them every frame (do not change the result).
@@ -314,10 +449,10 @@ func gap_midpoints_cached() -> Array[Vector3]:
 # gap) and starts new ones at zero.
 func _update_gap_ages(delta: float) -> void:
 	_mids_cache = gap_midpoints()
-	_tracker.update(segment_gap, _mids_cache, delta)
+	_tracker.update(_mids_cache, delta)
 
 
-# How urgent each open gap is, 0 (just opened) to 1 (open GAP_URGENCY_SECONDS or more), in gap_midpoints() order.
+# How urgent each gap is, 0 (just opened) to 1 (open GAP_URGENCY_SECONDS or more), in gap_midpoints() order.
 func gap_urgencies() -> Array[float]:
 	return _tracker.urgencies
 
@@ -353,34 +488,17 @@ static func gap_pulse(t: float) -> float:
 	return 0.5 - 0.5 * cos(TAU * t / BorderConfig.BORDER_GAP_PULSE_SECONDS)
 
 
-# Round 12b: how much a dimmed person wants to press at the border member standing at `pos`, 0 to 1. It mixes how
-# recently that stretch advanced (EDGE_RECENCY_WEIGHT; 1 just pushed, 0 after EDGE_RECENT_SECONDS) with how far out it
-# is compared with the rest of the loop. 0 when there is no border.
+# Round 12b: how much a dimmed person wants to press at the border member standing at `pos`, 0 to 1: how bent the gate
+# is there (the gloom goes where it is already giving). 0 when there is no border.
 func edge_pressure(pos: Vector3) -> float:
-	if not active or _raw_radii.is_empty():
+	if not active:
 		return 0.0
-	var n := _raw_radii.size()
-	var to := Vector2(pos.x - centre.x, pos.z - centre.z)
-	var i := posmod(roundi(atan2(to.y, to.x) / TAU * float(n)), n)
-	var recency := clampf(1.0 - (_time - _pushed_at[i]) / BorderConfig.EDGE_RECENT_SECONDS, 0.0, 1.0)
-	var lo: float = _raw_radii.min()
-	var hi: float = _raw_radii.max()
-	var outer := 0.5
-	if hi - lo > 0.01:
-		outer = (_raw_radii[i] - lo) / (hi - lo)
-	return BorderConfig.EDGE_RECENCY_WEIGHT * recency + (1.0 - BorderConfig.EDGE_RECENCY_WEIGHT) * outer
+	return push.bend_at(pos)
 
 
-# How many separate gaps the loop has: runs of neighbouring gap segments count once (a whole open loop counts as one).
+# How many separate breaks the line has.
 func gap_region_count() -> int:
-	var m := segment_gap.size()
-	var runs := 0
-	for k: int in range(m):
-		if segment_gap[k] and not segment_gap[(k + m - 1) % m]:
-			runs += 1
-	if runs == 0 and gap_count() > 0:
-		return 1
-	return runs
+	return push.breaks.size()
 
 
 # True when `p` is a border member who is faltering right now.
@@ -388,12 +506,9 @@ func is_faltering(p: Person) -> bool:
 	return members.has(p) and p.is_faltering()
 
 
+# How many breaks are open.
 func gap_count() -> int:
-	var n := 0
-	for g: bool in segment_gap:
-		if g:
-			n += 1
-	return n
+	return push.breaks.size()
 
 
 # True while landmark block number `index` (LandmarkConfig.LANDMARK_NAMES order) is beautified.
@@ -409,7 +524,7 @@ func beautified_building_count() -> int:
 	return n
 
 
-# F3: shows a label per slot segment with its spacing (and GAP). debug_summary gives the counts.
+# F3: shows a label per gate with its members and what it needs. debug_summary gives the counts.
 func set_debug(on: bool) -> void:
 	_debug_on = on
 	if not on:
@@ -432,125 +547,13 @@ func debug_summary() -> String:
 	if not active:
 		return "border: none yet"
 	return (
-		"border, members %d, inner %d, posts %d, spacing %.1f m, gaps %d, night x%.2f"
-		% [member_count, inner_count, post_count, spacing, gap_count(), _strength]
+		"border, members %d, inner %d, gates %d, spacing %.1f m, gaps %d, night x%.2f"
+		% [member_count, inner_count, zone.gates.size(), spacing, gap_count(), _strength]
 	)
 
 
-# ---- Loop variants
+# ---- Members
 # ---------------------------------------------------------------------------------------------------
-
-
-# Per angle, the smoothed radius times the size factor. A block on the ray that the radius reaches is wrapped: the
-# sample jumps to just beyond the far side of the block, so buildings end up inside the loop.
-func _organic_polygon(c2: Vector2, n: int, delta: float) -> PackedVector2Array:
-	var smooth: Array[float] = BorderShape.smoothed_radii(_raw_radii)
-	var count := RoundLoopConfig.BORDER_SAMPLES
-	var radii: Array[float] = []
-	var extra: Array[float] = []
-	var body := 0.0
-	for r0: float in smooth:
-		body += r0 * _scale / float(count)
-	body_radius = body
-	var arm_ring := _centre_ctl.arm_ring(body)
-	for i: int in range(count):
-		var a := TAU * float(i) / float(count)
-		var r: float = maxf(smooth[i] * _scale, _centre_ctl.stretch_radius(a, body))  # Round 20: the stretched tip.
-		if not arm_ring.is_empty():
-			r = maxf(r, arm_ring[i])  # Round 22: the arms kept from finished stretches.
-		var block := BorderShape.first_block_along(buildings, c2, Vector2(cos(a), sin(a)))
-		var wrapped := r
-		if block.x > 0.0 and block.x < r:
-			wrapped = maxf(r, block.y + 0.5)
-		radii.append(r)
-		extra.append(wrapped - r)
-	# Round 18: a block seen by one or two rays used to leave a one-sample spike, a neck narrower than the spacing. The
-	# extra radius it asks for now spreads to the neighbouring samples as a tent BORDER_WRAP_TENT samples wide each side.
-	var pts := PackedVector2Array()
-	for i: int in range(count):
-		var lift := 0.0
-		for off: int in range(-RoundLoopConfig.BORDER_WRAP_TENT, RoundLoopConfig.BORDER_WRAP_TENT + 1):
-			var share := 1.0 - float(absi(off)) / float(RoundLoopConfig.BORDER_WRAP_TENT + 1)
-			lift = maxf(lift, extra[posmod(i + off, count)] * share)
-		var a := TAU * float(i) / float(count)
-		pts.append(c2 + Vector2(cos(a), sin(a)) * (radii[i] + lift))
-	# Round 16: the map edge seals the territory. Points beyond the edge are pulled onto it, and a segment between two
-	# points on the same edge is sealed: it counts as closed border, so nobody stands on it and the loop's size is
-	# measured by its open length only (the loop grows elsewhere to make up for it).
-	_sealed = BorderShape.clamp_to_map(pts)
-	BorderShape.drop_short_seals(pts, _sealed, RoundLoopConfig.BORDER_MIN_SEAL_RUN)
-	# Soft normalisation: ease the size so the open perimeter moves toward n x spacing (never below the smallest circle).
-	var raw := BorderShape.open_perimeter_of(pts, _sealed)
-	var circle := BorderShape.circle_polygon(c2, RoundLoopConfig.BORDER_MIN_RADIUS, RoundLoopConfig.BORDER_SAMPLES)
-	var smallest := BorderShape.perimeter_of(circle)
-	var target := maxf(float(n) * BorderConfig.BORDER_TARGET_SPACING, smallest)
-	if raw > 0.001:
-		var desired := clampf(_scale * target / raw, BorderShape.SCALE_FLOOR, 5.0)
-		if _centre_ctl.has_arms() or _centre_ctl.stretching:
-			# Round 22: the body never squeezes below BEACON_BODY_MIN of the plain radius. When the arms still make the loop
-			# too long at that size (people were lost) they retreat (BorderCentre.pull_in); otherwise a pull-in is over.
-			var min_scale := BeaconConfig.BEACON_BODY_MIN * BorderCentre.circle_radius(n) * _scale / maxf(body, 0.001)
-			desired = maxf(desired, min_scale)
-			# Round 23: the scale never goes under its floor (0.2), so for a small head count min_scale lies below it and
-			# the old test (scale <= min_scale x 1.03) was never true: nothing pulled in. The test is now against the
-			# floor the scale can really reach, with room for the lag of the ease.
-			var squeezed := maxf(min_scale, BorderShape.SCALE_FLOOR) * BeaconConfig.BEACON_PULL_IN_SQUEEZE
-			if raw > target * (1.0 + BeaconConfig.BEACON_PULL_IN_TOLERANCE) and _scale <= squeezed:
-				_centre_ctl.pull_in(delta, body, raw / target)
-			else:
-				_centre_ctl.settled()
-		_scale = lerpf(_scale, desired, clampf(delta / RoundLoopConfig.BORDER_NORMALISE_SECONDS, 0.0, 1.0))
-	# Round 26: the push bows the line inward where it is shoved (after the size is worked out, so the size factor does not
-	# grow the loop back out to cancel the dent).
-	for i: int in range(mini(count, pts.size())):
-		var d := push.dent[i]
-		if d <= 0.001 or _sealed[i] > 0.5:
-			continue
-		var inward := c2 - pts[i]
-		var reach := inward.length()
-		if reach > 0.01:
-			pts[i] += inward / reach * minf(d, reach * 0.6)
-	return pts
-
-
-# ---- Centre, members and slots
-# ---------------------------------------------------------------------------------------
-
-
-# Round 19/20: puts the spirit beacon at `pos` (clamped inside the map); the zone stretches toward it. One at a time.
-func place_beacon(pos: Vector3) -> void:
-	_centre_ctl.place(pos)
-
-
-# Where the beacon is, or Vector3.INF when there is none.
-func beacon_pos() -> Vector3:
-	return _centre_ctl.beacon
-
-
-func has_beacon() -> bool:
-	return _centre_ctl.has_beacon()
-
-
-# Round 20: the stretch (see BorderCentre): is one under way, where is its tip, and how far from the centre can it go.
-func stretch_info() -> Dictionary:
-	var c := _centre_ctl
-	return {
-		"on": c.stretching,
-		"tip": c.tip,
-		"arms": c.has_arms(),
-		"max": c.max_distance(),
-		"radius": BorderCentre.circle_radius(member_count + inner_count),
-	}
-
-
-# Round 21: what a stretch toward `aim` would do now (see BorderCentre.plan_toward): reach, outline, reason, refused.
-func plan_stretch(aim: Vector3) -> Dictionary:
-	return _centre_ctl.plan_toward(aim)
-
-
-# Round 19/20: the centre is handled by BorderCentre (anchored once the border forms; a beacon stretches the zone).
-func _update_centre(rescued: Array[Person], delta: float) -> void:
-	_centre_ctl.update(rescued, delta)
 
 
 # Round 12b: tracks how long each border member has been faltering (the "!" cue and the urgency read it). A member who
@@ -567,85 +570,8 @@ func _update_falter(rescued: Array[Person], delta: float) -> void:
 	_falter_age = ages
 
 
-# The members the loop needs now: the slots its perimeter holds, less BORDER_POST_WORTH for each post.
-func required_members() -> int:
-	var slots := slot_count if slot_count > 0 else BorderShape.slot_count_for(perimeter)
-	return maxi(0, slots - BeaconConfig.BORDER_POST_WORTH * post_count)
-
-
-# The beautified buildings the loop passes within BORDER_POST_REACH of. Each entry has the building and the arc length
-# of the nearest loop point. At most as many as leave BORDER_MIN_PEOPLE slots for people.
-func _find_posts(slots_total: int, held: Array[Building] = []) -> Array[Dictionary]:
-	var out: Array[Dictionary] = []
-	var cap := (slots_total - BorderConfig.BORDER_MIN_PEOPLE) / BeaconConfig.BORDER_POST_WORTH
-	for b: Building in buildings:
-		if not b.beautified or out.size() >= cap:
-			continue
-		var near := _nearest_loop_point_to_box(b)
-		# Round 18: a block that was a post last frame stays one out to BORDER_POST_HOLD x the reach, so a loop edge that sits
-		# right at the reach does not flip the post on and off (each flip re-slots the whole ring).
-		var reach := BeaconConfig.BORDER_POST_REACH * (BeaconConfig.BORDER_POST_HOLD if held.has(b) else 1.0)
-		if near.x <= reach:
-			out.append({"building": b, "arc": near.y})
-	return out
-
-
-# The distance from a building's footprint to the nearest loop point, and that point's arc length: Vector2(distance,
-# arc).
-func _nearest_loop_point_to_box(b: Building) -> Vector2:
-	var best := Vector2(INF, 0.0)
-	for j: int in range(polygon.size()):
-		var d := BorderShape.box_distance(polygon[j], b.centre, b.half)
-		if d < best.x:
-			best = Vector2(d, _arc[j])
-	return best
-
-
-# Round 16: true when polygon segment `j` runs along the map edge (fully closed by the map).
-func is_sealed(j: int) -> bool:
-	return j >= 0 and j < _sealed.size() and _sealed[j] >= 0.999
-
-
-# ---- Slot code (see border_slots.gd)
-# ----------------------------------------------------------------------------------
-
-
 func _assign_members(rescued: Array[Person]) -> void:
 	_slots.assign_members(rescued)
-
-
-static func nearest_free_slot(pos2: Vector2, slots: Array[Vector2], taken: Array[bool]) -> int:
-	return BorderSlots.nearest_free_slot(pos2, slots, taken)
-
-
-func _ordered_slots(list: Array[Person], slots: Array[Vector2], taken: Array[bool]) -> Array[int]:
-	return _slots.ordered_slots(list, slots, taken)
-
-
-func _grid_phase(list: Array[Person]) -> float:
-	return _slots.grid_phase(list)
-
-
-func _point_at_arc(s: float) -> Vector2:
-	return _slots.point_at_arc(s)
-
-
-func _point_at_open(s: float) -> Vector2:
-	return _slots.point_at_open(s)
-
-
-func _open_of_arc(a: float) -> float:
-	return _slots.open_of_arc(a)
-
-
-func _mean_radius() -> float:
-	if polygon.is_empty():
-		return RoundLoopConfig.BORDER_MIN_RADIUS
-	var c2 := Vector2(centre.x, centre.z)
-	var total := 0.0
-	for p2: Vector2 in polygon:
-		total += p2.distance_to(c2)
-	return total / float(polygon.size())
 
 
 # The block footprints (BorderShape.footprints), rebuilt when blocks were added or removed.
@@ -694,30 +620,27 @@ func _move_members(delta: float) -> void:
 				_detour[p] = way
 
 
-# Blocks: the share of each footprint inside the loop (sampled on a 5 x 5 grid) drives their beautifying.
+# Blocks: the share of each footprint inside the line (sampled on a 5 x 5 grid, a little in from its edge so a held
+# block whose face is the line counts as inside) drives their beautifying.
 func _update_buildings(delta: float) -> void:
 	for b: Building in buildings:
 		var frac := 0.0
 		if active:
 			var inside := 0
+			var h := b.half - Vector2(0.2, 0.2)
 			for ix: int in range(5):
 				for iz: int in range(5):
-					var pt := (
-						b.centre
-						+ Vector2(
-							lerpf(-b.half.x, b.half.x, float(ix) / 4.0), lerpf(-b.half.y, b.half.y, float(iz) / 4.0)
-						)
-					)
+					var pt := b.centre + Vector2(lerpf(-h.x, h.x, float(ix) / 4.0), lerpf(-h.y, h.y, float(iz) / 4.0))
 					if Geometry2D.is_point_in_polygon(pt, polygon):
 						inside += 1
 			frac = float(inside) / 25.0
 		b.update(delta, frac)
 
 
-# Dimmed people pressing on the border (outside, within BORDER_PRESS_RANGE of the line). On an intact stretch they are
-# pushed outward at BORDER_PUSHBACK_SPEED, and the nearest member drains at BORDER_INTACT_DRAIN_FRACTION of the rate
-# (round 11). At a gap they drain the nearest member at the full rate, scaled by the night strength. Dimmed people
-# inside are handled by GloomSim.
+# Dimmed people pressing on the border (outside, within BORDER_PRESS_RANGE of a gate). On an intact gate they are pushed
+# outward at BORDER_PUSHBACK_SPEED, and the nearest member drains at BORDER_INTACT_DRAIN_FRACTION of the rate (round
+# 11). At a break they drain the nearest member at the full rate, scaled by the night strength. A wall is never pressed.
+# Dimmed people inside are handled by GloomSim.
 func _press_gloom(people: Array[Person], delta: float, strength: float) -> void:
 	if not active:
 		return
@@ -727,14 +650,15 @@ func _press_gloom(people: Array[Person], delta: float, strength: float) -> void:
 			continue
 		var p2 := Vector2(p.position.x, p.position.z)
 		if Geometry2D.is_point_in_polygon(p2, polygon):
+			_sweep_out(p)
 			continue
 		var near := _nearest_on_loop(p2)
 		var dist: float = near["dist"]
 		if dist > BorderConfig.BORDER_PRESS_RANGE:
 			continue
 		var seg: int = near["seg"]
-		if is_sealed(seg):
-			continue  # Round 16: the map edge is closed border; nothing presses on it.
+		if is_wall(seg):
+			continue  # A wall holds firm; nothing presses on it.
 		if segment_is_gap(seg):
 			var best := _nearest_member(p.position)
 			if best != null:
@@ -743,17 +667,30 @@ func _press_gloom(people: Array[Person], delta: float, strength: float) -> void:
 			var point: Vector2 = near["point"]
 			var out := p2 - point
 			if out.length() < 0.001:
-				out = p2 - Vector2(centre.x, centre.z)
-			if out.length() < 0.001:
-				continue
+				continue  # Exactly on the line: nothing to push away from.
 			var best_intact := _nearest_member(p.position)
 			if best_intact != null:
 				best_intact.drain_joy(rate * BorderConfig.BORDER_INTACT_DRAIN_FRACTION)
 			var move := out.normalized() * BorderConfig.BORDER_PUSHBACK_SPEED * delta
-			var lim := RoundLoopConfig.BORDER_MAP_LIMIT
+			var lim := BorderConfig.BORDER_MAP_LIMIT
 			p.position = Vector3(
 				clampf(p.position.x + move.x, -lim, lim), p.position.y, clampf(p.position.z + move.y, -lim, lim)
 			)
+
+
+# A gate that springs back sweeps outward over a dimmed person pressing on it: someone caught within
+# BORDER_SWEEP_BAND of an intact gate on its inner side is put back just outside it (a break is the only way in).
+func _sweep_out(p: Person) -> void:
+	var p2 := Vector2(p.position.x, p.position.z)
+	var near := _nearest_on_loop(p2)
+	var dist: float = near["dist"]
+	var seg: int = near["seg"]
+	if dist > BorderConfig.BORDER_SWEEP_BAND or seg < 0 or is_wall(seg) or segment_is_gap(seg):
+		return
+	var point: Vector2 = near["point"]
+	var out := out_at(p.position)
+	var to := point + out * 0.06
+	p.position = Vector3(to.x, p.position.y, to.y)
 
 
 # The border member nearest to `pos`, or null when there are none.
@@ -768,8 +705,7 @@ func _nearest_member(pos: Vector3) -> Person:
 	return best
 
 
-# The nearest point on the loop to `p2`: a Dictionary with "dist" (metres), "point" (Vector2) and "seg" (segment
-# index).
+# The nearest point on the line to `p2`: a Dictionary with "dist" (metres), "point" (Vector2) and "seg" (segment index).
 func _nearest_on_loop(p2: Vector2) -> Dictionary:
 	var best := {"dist": INF, "point": p2, "seg": -1}
 	var n := polygon.size()
@@ -782,24 +718,7 @@ func _nearest_on_loop(p2: Vector2) -> Dictionary:
 	return best
 
 
-# The joy burst shoves the border outward toward the player when they are within BORDER_SHOVE_RANGE of the line. It
-# uses the same bump as a rescue, divided by the size factor so that it shows as about BORDER_SHOVE_AMOUNT metres on
-# the line.
-func shove(at: Vector3) -> void:
-	if not active:
-		return
-	var p2 := Vector2(at.x, at.z)
-	var near := _nearest_on_loop(p2)
-	var dist: float = near["dist"]
-	if dist > RoundLoopConfig.BORDER_SHOVE_RANGE:
-		return
-	var to := p2 - Vector2(centre.x, centre.z)
-	if to.length() < 0.001:
-		return
-	_push_at(atan2(to.y, to.x), RoundLoopConfig.BORDER_SHOVE_AMOUNT / maxf(_scale, 0.01))
-
-
-# The ground inside the loop is painted by the region (paint edge uses its own painted region instead).
+# The ground inside the line is painted by the region (paint edge uses its own painted region instead).
 func _update_ground() -> void:
 	if _ground == null:
 		return
@@ -820,7 +739,8 @@ func _draw_lines() -> void:
 
 
 func _update_debug_labels() -> void:
-	var m := segment_gap.size()
+	var gates: Array[Dictionary] = zone.gates
+	var m := gates.size()
 	while _debug_labels.size() < m:
 		var lbl := Label3D.new()
 		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -834,6 +754,7 @@ func _update_debug_labels() -> void:
 		var lbl := _debug_labels[k]
 		lbl.visible = k < m
 		if k < m:
-			var mid := _point_at_open(_phase + (float(k) + 0.5) * spacing)
+			var mid: Vector2 = gates[k]["mid"]
+			var need: int = gates[k]["need"]
 			lbl.position = Vector3(mid.x, 2.0, mid.y)
-			lbl.text = "%.1f m%s" % [spacing, " GAP" if segment_gap[k] else ""]
+			lbl.text = "gate %d, needs %d%s" % [k, need, " GAP" if push.breaks.size() > 0 else ""]
