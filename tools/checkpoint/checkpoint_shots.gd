@@ -490,17 +490,14 @@ func _time_frames(frames: int) -> float:
 const R19_NAMES: Array[String] = ["bandstand", "garden", "bell"]
 const R19_SHEET_PAIRS: Array[String] = [
 	"overview",
-	"beacon_closeup",
 	"bandstand_held",
 	"garden_held",
 	"bell_held",
 	"landmark_hud",
-	"minimap_beacon",
 	"dawn_3",
 	"dawn_1"
 ]
 
-var r19_beacon := Vector3.ZERO
 var r19_views: Array[Dictionary] = []
 
 
@@ -545,8 +542,6 @@ func _build_round19_scenario() -> void:
 		main._process(1.0 / 60.0)
 	main.running = false
 	main.player.spirit = 80.0
-	main.border.place_beacon(main.border.centre + Vector3(14.0, 0.0, 5.0))
-	r19_beacon = main.border.beacon_pos()
 	# Two wistful people beside each landmark, for scale.
 	for k: int in range(R19_NAMES.size()):
 		for j: int in range(2):
@@ -565,10 +560,8 @@ func _build_round19_scenario() -> void:
 
 
 func _make_round19_views() -> void:
-	var mid_beacon := main.border.centre.lerp(r19_beacon, 0.5)
 	r19_views = [
 		{"name": "overview", "prep": "overview"},
-		{"name": "beacon_closeup", "prep": "beacon", "world": mid_beacon, "size": Vector2i(640, 360), "scale": 2},
 	]
 	for k: int in range(R19_NAMES.size()):
 		var at: Vector3 = LandmarkConfig.LANDMARK_POSITIONS[k]
@@ -585,7 +578,6 @@ func _make_round19_views() -> void:
 				}
 			)
 	r19_views.append({"name": "landmark_hud", "prep": "hud", "rect": Rect2i(980, 70, 300, 200), "scale": 3})
-	r19_views.append({"name": "minimap_beacon", "prep": "hud", "rect": Rect2i(10, 10, 270, 270), "scale": 3})
 	r19_views.append({"name": "dawn_3", "prep": "dawn", "arg": 3})
 	r19_views.append({"name": "dawn_2", "prep": "dawn", "arg": 2})
 	r19_views.append({"name": "dawn_1", "prep": "dawn", "arg": 1})
@@ -597,18 +589,12 @@ func _r19_prepare(prep: String, arg: int) -> void:
 	main.hud.end_panel.visible = false
 	var held: Array[bool] = [false, false, false]
 	var claiming := -1
-	var show_beacon := false
 	var focus := ring_centre + Vector3(0.5, 0.0, 1.5)
 	if prep == "overview":
 		held = [true, false, false]
-		show_beacon = true
-		focus = main.border.centre.lerp(r19_beacon, 0.4)
-	elif prep == "beacon":
-		show_beacon = true
-		focus = main.border.centre.lerp(r19_beacon, 0.5)
+		focus = main.border.centre
 	elif prep == "hud":
 		held = [true, false, true]
-		show_beacon = true
 	elif prep == "dawn":
 		held = [true, true, arg >= 3]
 	elif prep.begins_with("landmark_"):
@@ -620,7 +606,6 @@ func _r19_prepare(prep: String, arg: int) -> void:
 			claiming = arg
 	main.player.global_position = Vector3(focus.x, 0.0, focus.z)
 	_r19_landmark_states(held, claiming)
-	main.beacon_marker.sync(main.border.beacon_pos() if show_beacon else Vector3.INF, 0.3, main.border.centre)
 	if prep == "dawn":
 		_r19_show_end(arg)
 

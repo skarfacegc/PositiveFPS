@@ -21,7 +21,6 @@ func _run_round24() -> void:
 		var label := Looks.mode_name().to_lower()
 		await _r24_fight(label)
 		await _r24_wobble_and_warming(label)
-		await _r24_reach(label)
 		await _r24_dawn(label)
 		await _r24_level()
 		await _r20_walk_shots(label)
@@ -125,7 +124,6 @@ func _r24_fight(label: String) -> void:
 	main.running = false
 	main.player._has_aim = false
 	await _r24_burst(label)
-	await _r24_notice(label)
 
 
 # The burst: dimmed people near the loop are lifted, with a streak and a ring each.
@@ -159,19 +157,6 @@ func _r24_burst(label: String) -> void:
 	var lifted: Dictionary = cleared[1]
 	var lifted_at: Vector3 = lifted["to"]
 	await _r24_shot("fight_burst_closeup", label, {"world": lifted_at, "size": Vector2i(426, 240), "scale": 3}, 2)
-
-
-# A refusal notice (E or F pressed where it cannot be done).
-func _r24_notice(label: String) -> void:
-	main.intro.enabled = true
-	main.intro.notice(Intro.Prompt.BEACON_BLOCKED)
-	main.intro.time_left = main.intro.duration - 1.0  # Past the fade-in: fully shown.
-	await _r24_shot("fight_notice", label, {"rect": Rect2i(240, 180, 800, 140), "scale": 2}, 6)
-	main.intro.notice(Intro.Prompt.BEACON_BLOCKED, BeaconConfig.BEACON_DIM_TEXT)
-	main.intro.time_left = main.intro.duration - 1.0
-	await _settle(14)
-	main.intro.enabled = false
-	main.intro.current = -1
 
 
 # ---- The wobble and a dimmed person warming ------------------------------------------------------------------------------------
@@ -208,64 +193,6 @@ func _r24_wobble_and_warming(label: String) -> void:
 
 
 # ---- The shape preview ---------------------------------------------------------------------------------------------------------
-
-
-func _r24_reach(label: String) -> void:
-	await _r24_level()
-	_r20_stage_hud()
-	var border := main.border
-	var centre := border.centre
-	var reach: float = border.stretch_info()["max"]
-	var radius: float = border.stretch_info()["radius"]
-	# The aim is out over open ground past the zone's body, so the preview is the new arm (a thin outline), not a copy of
-	# the zone it already has.
-	var out := Vector3(-1.0, 0.0, 0.3).normalized()
-	var aim := centre + out * (radius + (reach - radius) * 0.4)
-	await _r24_move_player(centre + Vector3(0.0, 0.0, 2.0))
-	# The player's physics tick would take the aim from the real mouse, so the aim is pinned for these shots: `active`
-	# false stops the aim update (the round-end freeze), and it is set back at the end.
-	main.player.active = false
-	_r20_aim(aim)
-	# Checkpoint 5 follow-up: the preview shows only while E is held, so the shots hold E (BeaconPlacement.press).
-	BeaconPlacement.press(main)
-	main.reach_guide.sync(border, main.player)
-	await _r24_shot("reach_preview", label, {}, 8)
-	await _r24_shot("reach_preview_close", label, {"world": aim, "size": Vector2i(426, 240), "scale": 3}, 2)
-	# Limited: the aim is inside the zone the border already has, so nothing can grow there (the quiet "no": a thin coral
-	# outline and a small cross at the tip). The dimmed-people block is covered by stretch_safety_test instead: placing
-	# dimmed people on the tip did not hold the stretch in this scenario.
-	var inside := centre + out * (radius * 0.5)
-	_r20_aim(inside)
-	await _settle(4)
-	main.reach_guide.sync(border, main.player)
-	await _r24_shot("reach_limited", label, {}, 8)
-	# Close-up of the tip, so the thin outline and the small cross can be read at pixel size.
-	await _r24_shot("reach_limited_close", label, {"world": inside, "size": Vector2i(426, 240), "scale": 3}, 2)
-	BeaconPlacement.cancel(main)
-	# Stretching: a beacon far to the east-south, shot as the tip travels.
-	for i: int in range(3):
-		main.people[ring_count + 30 + i].global_position = FAR
-	var target := centre + Vector3(reach * 1.5, 0.0, reach * 0.5)
-	main.border.place_beacon(target)
-	main.beacon_marker.sync(main.border.beacon_pos(), 0.3, main.border.centre)
-	_r24_run(150)
-	main.player.global_position = centre.lerp(main.border.beacon_pos(), 0.4)
-	await _settle(40)
-	main.reach_guide.sync(border, main.player)
-	await _r24_shot("reach_stretching", label, {}, 8)
-	var guard := 0
-	while main.border.stretch_info()["on"] and guard < 40:
-		_r24_run(60)
-		guard += 1
-	# The finish: the wave along the new arm and the ring at the tip, early in the pulse.
-	main.reach_guide._on_zone_grew(
-		42.0, Vector3(border.centre.x + reach * 1.1, 0.0, border.centre.z + reach * 0.3), 0.3
-	)
-	main.reach_guide._pulse_left = BeaconConfig.BEACON_PULSE_SECONDS * 0.6
-	await _settle(2)
-	main.reach_guide.sync(border, main.player)
-	await _r24_shot("reach_pulse", label, {}, 1)
-	main.player.active = true
 
 
 # ---- Focus 2: first light ----------------------------------------------------------------------------------------------------

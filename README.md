@@ -17,6 +17,8 @@ mode was retired.)
 - **Spirit:** Helping people fills it; a joy burst costs some. At zero you go dim. Recover inside your border.
 - **Fighting back:** rings on border folk show where the border is about to break (amber, then red as it gets
   urgent). **G** or **Q** clears dimmed people off the border with a joy burst.
+- **Rescues pull the line:** each cell beside your border shows pips. Rescuing someone who belongs to that cell fills
+  one; at three the cell joins the border without E. **E** takes a cell yourself, for spirit.
 - **Wobble, burst and first light (round 24):** a border person who is drained too far **wobbles** (greys and sways) for
   about five seconds before they relapse, and a joy hit in that time saves them. A joy burst lifts every dimmed person
   near you, and joy wins a dimmed person back faster. In the last 45 seconds **first light** closes in as a ring from
@@ -40,7 +42,7 @@ mode was retired.)
 - **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered (its pips count the four hits left) · ! = faltering. The night
   introduces them one at a time, with a short one-time prompt each.
 - **Keys:** WASD move · Shift run · G or Q
-  joy burst · Mouse point at people (F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look ·
+  joy burst · **E** = take a block (hold, point, release; right-click cancels) · Mouse point at people (F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look ·
   R restart · M menu
 
 ## How to run
@@ -54,7 +56,7 @@ mode was retired.)
 The game opens a menu with one **Play** button. Press **Enter**, **1** or click Play to start the level. The border
 variants were retired in round 10; the organic push is the border.
 
-In the level: WASD to move, the mouse to point at people, **G** or **Q** for a joy burst (E is free until you can take a block). A small cue beside the spirit meter glows when G can be used right now. Press **M** at any time to go back
+In the level: WASD to move, the mouse to point at people, **G** or **Q** for a joy burst **E** takes a block: hold it, point at a cell next to your border, release (right-click cancels). A small cue beside the spirit meter glows when G can be used right now. Press **M** at any time to go back
 to the menu. **R** restarts the level.
 
 ## The living border

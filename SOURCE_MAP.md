@@ -10,49 +10,49 @@ extends Node3D | 2 const | A flower patch left where a nature projectile stopped
 ### scripts/border.gd (Border)
 extends Node3D | 0 const | The living border (round 9; rebuilt for the town grid in 0.4, #55 and #56). The zone is the set of town cel...
 signals: line_broke(pos: Vector3), line_mended(pos: Vector3, seconds: float)
-- L95 `setup(ground: PaintedGround) -> void` - Gets the border ready: the ground it paints and the line it draws.
-- L101 `rebuild_look() -> void` - Swaps the look in place (F4).
-- L117 `register_building(body: StaticBody3D, half: Vector2, is_landmark: bool, size: Vector3 = Vector3.ZERO, colour: Color = Color(0.6, 0.6, 0.62)) -> void` - Registers a block the border can beautify. `half` is the half-size of its footprint in x and z.
-- L137 `update(people: Array[Person], delta: float, strength: float) -> void` - Call every frame, before people move. Traces the line when the zone changed, applies the push, places the m...
-- L172 `on_rescue(_p: Person) -> void` - A rescued person was made. (The next pass credits the cell they belong to here: "Rescues pull the line".)
-- L177 `on_relapse(p: Person) -> void` - A member relapsed: they step out through the gate and leave the border (the slots reshuffle on the next upd...
-- L249 `point_count() -> int` - How many points the traced line has now (0 when there is no border).
-- L254 `point_dentable(i: int) -> bool` - True when a dent may move point `i` (it lies on a gate and is not the gate's first corner).
-- L259 `point_gate(i: int) -> int` - The gate that starts at point `i`, or -1 on a wall (and out of range).
-- L264 `point_angle(i: int) -> float` - The angle (radians) of base point `i` as seen from the zone's centre.
-- L269 `nearest_point(p2: Vector2) -> int` - The index of the point of the line nearest to the ground point `p2` (0 when there is no line).
-- L282 `is_wall(j: int) -> bool` - True when segment `j` runs along a wall (not a gate).
-- L287 `segment_gate(j: int) -> int` - The gate segment `j` belongs to, or -1 on a wall.
-- L292 `gate_point(g: int, t: float) -> Vector2` - The point of gate `g` at fraction `t` (0 to 1) of its way along (clockwise), on the dented line.
-- L304 `out_at(pos: Vector3) -> Vector2` - The unit direction pointing out of the zone through the gate nearest to the ground point `pos`.
-- L313 `required_members() -> int` - The members the gates ask for together.
-- L323 `cover_at(pos: Vector3) -> float` - How protected a person at `pos` is by the border: 0 outside and on a gate, 1 BORDER_EDGE_BAND metres inside...
-- L346 `line_blocks(a: Vector3, b: Vector3) -> bool` - True when the straight move from `a` to `b` crosses an intact stretch of the border.
-- L352 `clip_move(from: Vector3, to: Vector3) -> Vector3` - A dimmed person outside the border moves from `from` toward `to`. If the move crosses an intact stretch, it...
-- L376 `route_to_gate(pos: Vector3) -> Vector3` - The direction a dimmed person at `pos` outside the line walks to get to the nearest gate along the streets, or
-- L428 `segment_colour(j: int) -> Color` - The colour of polygon segment `j` right now: intact gold, or a flickering grey and red when it is a gap.
-- L434 `segment_is_gap(j: int) -> bool`
-- L439 `gap_midpoints() -> Array[Vector3]` - The middle of each break, in world coordinates (the points the off-screen gap arrows point at).
-- L444 `gap_midpoints_cached() -> Array[Vector3]` - The gap middles as of the last update(), for the things that read them every frame (do not change the result).
-- L456 `gap_urgencies() -> Array[float]` - How urgent each gap is, 0 (just opened) to 1 (open GAP_URGENCY_SECONDS or more), in gap_midpoints() order.
-- L461 `falter_urgency(p: Person) -> float` - Urgency (0 to 1) of a faltering rescued person: how long they have faltered, over GAP_URGENCY_SECONDS.
-- L467 `pulse() -> float` - The gap pulse right now (see gap_pulse).
-- L472 `set_player_dim(dim: bool) -> void` - Round 12a: a dim player makes the troupe lose heart. The border loses ground DIM_LOSS_MULT times faster and...
-- L478 `flicker() -> float` - How bright the line and haze are drawn: 1 normally, pulsing between DIM_FLICKER_MIN and 1 while the player...
-- L487 `static gap_pulse(t: float) -> float` - The gap pulse at time `t`: 0 at its trough, 1 at its peak, once every BORDER_GAP_PULSE_SECONDS. It is a cos...
-- L493 `edge_pressure(pos: Vector3) -> float` - Round 12b: how much a dimmed person wants to press at the border member standing at `pos`, 0 to 1: how bent...
-- L500 `gap_region_count() -> int` - How many separate breaks the line has.
-- L505 `is_faltering(p: Person) -> bool` - True when `p` is a border member who is faltering right now.
-- L510 `gap_count() -> int` - How many breaks are open.
-- L515 `landmark_beautified(index: int = 0) -> bool` - True while landmark block number `index` (LandmarkConfig.LANDMARK_NAMES order) is beautified.
-- L519 `beautified_building_count() -> int`
-- L528 `set_debug(on: bool) -> void` - F3: shows a label per gate with its members and what it needs. debug_summary gives the counts.
-- L538 `visible_debug_label_count() -> int` - How many debug labels are showing right now.
-- L546 `debug_summary() -> String`
-- L578 `boxes() -> PackedFloat32Array` - The block footprints (BorderShape.footprints), rebuilt when blocks were added or removed.
+- L97 `setup(ground: PaintedGround) -> void` - Gets the border ready: the ground it paints and the line it draws.
+- L103 `rebuild_look() -> void` - Swaps the look in place (F4).
+- L119 `register_building(body: StaticBody3D, half: Vector2, is_landmark: bool, size: Vector3 = Vector3.ZERO, colour: Color = Color(0.6, 0.6, 0.62)) -> void` - Registers a block the border can beautify. `half` is the half-size of its footprint in x and z.
+- L139 `update(people: Array[Person], delta: float, strength: float) -> void` - Call every frame, before people move. Traces the line when the zone changed, applies the push, places the m...
+- L175 `on_rescue(p: Person) -> void` - A rescued person was made: the cell they belong to fills a pip, and joins the zone at TAKE_RESCUES (RescueP...
+- L180 `on_relapse(p: Person) -> void` - A member relapsed: they step out through the gate and leave the border (the slots reshuffle on the next upd...
+- L252 `point_count() -> int` - How many points the traced line has now (0 when there is no border).
+- L257 `point_dentable(i: int) -> bool` - True when a dent may move point `i` (it lies on a gate and is not the gate's first corner).
+- L262 `point_gate(i: int) -> int` - The gate that starts at point `i`, or -1 on a wall (and out of range).
+- L267 `point_angle(i: int) -> float` - The angle (radians) of base point `i` as seen from the zone's centre.
+- L272 `nearest_point(p2: Vector2) -> int` - The index of the point of the line nearest to the ground point `p2` (0 when there is no line).
+- L285 `is_wall(j: int) -> bool` - True when segment `j` runs along a wall (not a gate).
+- L290 `segment_gate(j: int) -> int` - The gate segment `j` belongs to, or -1 on a wall.
+- L295 `gate_point(g: int, t: float) -> Vector2` - The point of gate `g` at fraction `t` (0 to 1) of its way along (clockwise), on the dented line.
+- L307 `out_at(pos: Vector3) -> Vector2` - The unit direction pointing out of the zone through the gate nearest to the ground point `pos`.
+- L316 `required_members() -> int` - The members the gates ask for together.
+- L326 `cover_at(pos: Vector3) -> float` - How protected a person at `pos` is by the border: 0 outside and on a gate, 1 BORDER_EDGE_BAND metres inside...
+- L349 `line_blocks(a: Vector3, b: Vector3) -> bool` - True when the straight move from `a` to `b` crosses an intact stretch of the border.
+- L355 `clip_move(from: Vector3, to: Vector3) -> Vector3` - A dimmed person outside the border moves from `from` toward `to`. If the move crosses an intact stretch, it...
+- L379 `route_to_gate(pos: Vector3) -> Vector3` - The direction a dimmed person at `pos` outside the line walks to get to the nearest gate along the streets, or
+- L431 `segment_colour(j: int) -> Color` - The colour of polygon segment `j` right now: intact gold, or a flickering grey and red when it is a gap.
+- L437 `segment_is_gap(j: int) -> bool`
+- L442 `gap_midpoints() -> Array[Vector3]` - The middle of each break, in world coordinates (the points the off-screen gap arrows point at).
+- L447 `gap_midpoints_cached() -> Array[Vector3]` - The gap middles as of the last update(), for the things that read them every frame (do not change the result).
+- L459 `gap_urgencies() -> Array[float]` - How urgent each gap is, 0 (just opened) to 1 (open GAP_URGENCY_SECONDS or more), in gap_midpoints() order.
+- L464 `falter_urgency(p: Person) -> float` - Urgency (0 to 1) of a faltering rescued person: how long they have faltered, over GAP_URGENCY_SECONDS.
+- L470 `pulse() -> float` - The gap pulse right now (see gap_pulse).
+- L475 `set_player_dim(dim: bool) -> void` - Round 12a: a dim player makes the troupe lose heart. The border loses ground DIM_LOSS_MULT times faster and...
+- L481 `flicker() -> float` - How bright the line and haze are drawn: 1 normally, pulsing between DIM_FLICKER_MIN and 1 while the player...
+- L490 `static gap_pulse(t: float) -> float` - The gap pulse at time `t`: 0 at its trough, 1 at its peak, once every BORDER_GAP_PULSE_SECONDS. It is a cos...
+- L496 `edge_pressure(pos: Vector3) -> float` - Round 12b: how much a dimmed person wants to press at the border member standing at `pos`, 0 to 1: how bent...
+- L503 `gap_region_count() -> int` - How many separate breaks the line has.
+- L508 `is_faltering(p: Person) -> bool` - True when `p` is a border member who is faltering right now.
+- L513 `gap_count() -> int` - How many breaks are open.
+- L518 `landmark_beautified(index: int = 0) -> bool` - True while landmark block number `index` (LandmarkConfig.LANDMARK_NAMES order) is beautified.
+- L522 `beautified_building_count() -> int`
+- L531 `set_debug(on: bool) -> void` - F3: shows a label per gate with its members and what it needs. debug_summary gives the counts.
+- L541 `visible_debug_label_count() -> int` - How many debug labels are showing right now.
+- L549 `debug_summary() -> String`
+- L581 `boxes() -> PackedFloat32Array` - The block footprints (BorderShape.footprints), rebuilt when blocks were added or removed.
 
 ### scripts/border_config.gd (BorderConfig)
-extends RefCounted | 59 const | The living border: members, slots, gaps, ribbon, edge pressure, zone control around blocks.
+extends RefCounted | 61 const | The living border: members, slots, gaps, ribbon, edge pressure, zone control around blocks.
 
 ### scripts/border_push.gd (BorderPush)
 extends RefCounted | 0 const | Round 26, physical push; 0.4 (#56): it lives on gates. The only things that push the line are visible: dimm...
@@ -391,16 +391,16 @@ extends RefCounted | 0 const | What the level does when something happens: a per
 
 ### scripts/level_hud.gd (LevelHud)
 extends RefCounted | 2 const | Builds the level's screen-space layer and keeps it up to date: the HUD with the minimap, the landmark point...
-- L24 `build() -> void` - The HUD, the minimap (top-left circle, a fifth of the screen width) and the off-screen gap arrows (round 10...
-- L62 `start() -> void` - After the systems that draw on the HUD exist: the hint line, the targeting mode and the starting numbers.
-- L76 `update_readability(delta: float) -> void` - Each frame: the off-screen gap arrows. The minimap picture is refreshed about 10 times a second (see Minima...
-- L104 `update_landmarks() -> void` - The landmark panel: which are held and what they give.
-- L109 `update_spirit_hud() -> void`
-- L117 `update_target_mood() -> void` - Round 12b: the target's mood next to its element on the HUD ("Target: Music (guarded)").
-- L126 `update_feedback(delta: float) -> void` - Every frame, also after the round ends: the overlays advance and redraw.
-- L136 `toggle_debug() -> void` - F3: flips the debug overlay. The player reads the key and emits debug_toggled.
-- L142 `set_debug(on: bool) -> void` - Turns the F3 debug overlay on or off: cover and protection labels above each person, border labels on the l...
-- L151 `update_debug_hint() -> void`
+- L25 `build() -> void` - The HUD, the minimap (top-left circle, a fifth of the screen width) and the off-screen gap arrows (round 10...
+- L63 `start() -> void` - After the systems that draw on the HUD exist: the hint line, the targeting mode and the starting numbers.
+- L77 `update_readability(delta: float) -> void` - Each frame: the off-screen gap arrows. The minimap picture is refreshed about 10 times a second (see Minima...
+- L105 `update_landmarks() -> void` - The landmark panel: which are held and what they give.
+- L110 `update_spirit_hud() -> void`
+- L118 `update_target_mood() -> void` - Round 12b: the target's mood next to its element on the HUD ("Target: Music (guarded)").
+- L127 `update_feedback(delta: float) -> void` - Every frame, also after the round ends: the overlays advance and redraw.
+- L137 `toggle_debug() -> void` - F3: flips the debug overlay. The player reads the key and emits debug_toggled.
+- L143 `set_debug(on: bool) -> void` - Turns the F3 debug overlay on or off: cover and protection labels above each person, border labels on the l...
+- L152 `update_debug_hint() -> void`
 
 ### scripts/look_switch.gd (LookSwitch)
 extends RefCounted | 0 const | F4: switches the level to `new_mode` (Looks.Mode) in place. Every object keeps its rules state and rebuilds...
@@ -831,7 +831,7 @@ extends Node | 5 const | The camera and post-process pipeline, the one switch be
 
 ### scripts/menu.gd
 extends Control | 5 const | The start menu: a title, one Play button, the Look toggle and a "How to play" panel. Play is the button,
-- L97 `look_text() -> String` - The text of the look button.
+- L100 `look_text() -> String` - The text of the look button.
 
 ### scripts/minimap.gd (Minimap)
 extends Control | 2 const | The round minimap (round 10), top-left, about TD_MINIMAP_WIDTH_FRACTION of the screen width. It shows the w...
@@ -971,6 +971,12 @@ extends RefCounted | 0 const | Round 24: the gate a wobbling person asks before 
 - L12 `advance(delta: float) -> void`
 - L17 `allow() -> bool` - True (and takes the slot) when enough time has passed since the last relapse.
 
+### scripts/rescue_pips.gd (RescuePips)
+extends RefCounted | 0 const | Walls and gates: Rescues pull the line (#11). A rescued person who belongs to a cell next to the zone (the...
+- L15 `on_rescue(zone: Zone, pos: Vector3) -> Array[Vector2i]` - A rescued person was made at ground point `pos`. Returns the cells that joined the zone (empty when none).
+- L33 `prune(zone: Zone) -> void` - Clears the pips of every cell that is held now or is no longer next to the zone.
+- L42 `filled(cell: Vector2i) -> int` - The pips filled on `cell` (0 when none).
+
 ### scripts/spirit_config.gd (SpiritConfig)
 extends RefCounted | 50 const | Spirit, going dim, grabs, the joy burst, spare spirit and the burst's result effects.
 
@@ -998,6 +1004,11 @@ signals: warmed(person: Person, joy: float, spirit: float)
 ### scripts/style_config.gd (StyleConfig)
 extends RefCounted | 95 const | Styled look numbers (scenery, atmosphere, props, ambient life, jog). The rules never read them.
 
+### scripts/take_block.gd (TakeBlock)
+extends Node3D | 4 const | Walls and gates: Take a block (E, #10). Hold E and point at a cell: a placeholder outline shows the cell an...
+- L27 `static attach(main: TopDownMain) -> TakeBlock`
+- L69 `take_now(cell: Vector2i) -> bool` - Takes `cell` for the spirit cost, or refuses with the slim banner. Returns true when the cell was taken. A...
+
 ### scripts/target_highlight.gd (TargetHighlight)
 extends MeshInstance3D | 0 const | The ring under the target's feet: a flat warm disc (placeholder) or the styled ring (StyleTarget). Hidden w...
 - L12 `static attach(main: TopDownMain) -> TargetHighlight`
@@ -1011,13 +1022,13 @@ extends Control | 0 const | Round 25: the gloom tide's edge pointer. A grey ring
 
 ### scripts/topdown_main.gd (TopDownMain)
 extends Node3D | 0 const | The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a...
-- L181 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
-- L186 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
-- L191 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
-- L195 `sun_light() -> DirectionalLight3D`
-- L199 `environment() -> Environment`
-- L203 `view_half_extents() -> Vector2`
-- L208 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
+- L183 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
+- L188 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
+- L193 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
+- L197 `sun_light() -> DirectionalLight3D`
+- L201 `environment() -> Environment`
+- L205 `view_half_extents() -> Vector2`
+- L210 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
 
 ### scripts/topdown_player.gd (TopDownPlayer)
 extends CharacterBody3D | 0 const | The player in top-down mode. WASD moves in world space and the mouse picks an aim point on the floor. The p...
@@ -1178,6 +1189,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 - style_props_032_test (tests/style_props_032_test.gd): 11 tests
 - style_props_plaza_test (tests/style_props_plaza_test.gd): 8 tests
 - style_scenery_test (tests/style_scenery_test.gd): 19 tests
+- take_block_test (tests/take_block_test.gd): 6 tests
 - targeting_test (tests/targeting_test.gd): 11 tests
 - topdown_crowd_test (tests/topdown_crowd_test.gd): 8 tests
 - topdown_mode_test (tests/topdown_mode_test.gd): 10 tests

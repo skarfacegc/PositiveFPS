@@ -19,7 +19,8 @@ static func setup() -> void:
 	_add_action("play", [_key(KEY_1), _key(KEY_ENTER)])
 	# Joy burst: G is the grenade-style key by convention, Q is a second option.
 	_add_action("burst", [_key(KEY_G), _key(KEY_Q)])
-	# E is unbound for now (0.4 pass 2 removed the beacon); the next pass binds "Take a block" to it.
+	# Hold E, point at a cell next to the zone, release to take it (right-click cancels; see TakeBlock).
+	_add_action("take_block", [_key(KEY_E)])
 	# Cycles the targeting mode (lock-on, hover, auto).
 	_add_action("cycle_targeting", [_key(KEY_F2)])
 	# Shows cover and protection above each person, and a hint in the HUD (off by default).

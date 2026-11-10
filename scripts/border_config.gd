@@ -6,6 +6,12 @@ extends RefCounted
 # Rescued people needed before a border forms. Below this count the border collapses once it has formed.
 const BORDER_MIN_PEOPLE := 3
 
+# Walls and gates: Take a block (#10, #11). Holding E and releasing takes the cell pointed at, for TAKE_SPIRIT_COST
+# spirit (refused when spirit is short or the gates need more members than there are). A cell next to the zone fills a
+# pip with each rescued person who belongs to it; at TAKE_RESCUES it joins by itself.
+const TAKE_SPIRIT_COST := 25.0
+const TAKE_RESCUES := 3
+
 # Walls and gates: Line (0.4, #56). The line is the outline of the zone (Zone); only its gates carry members and the
 # push. A gate has a point of the traced line every GATE_POINT_STEP metres (so a dent shows); a gate needs its length
 # over BORDER_TARGET_SPACING members, rounded up (a 10 m street mouth 3, a 12 m square side 4). People who are not on

@@ -38,6 +38,8 @@ var inner_count: int = 0
 # The line, as (x, z) points in order (clockwise). Empty when there is no border.
 var polygon := PackedVector2Array()
 var members: Array[Person] = []
+# Walls and gates: Rescues pull the line (#11). The pips on the cells next to the zone (see RescuePips).
+var pips := RescuePips.new()
 # Round 13b: every rescued person who is faltering as of the last update (members and others).
 var faltering: Array[Person] = []
 var inner: Array[Person] = []
@@ -137,6 +139,7 @@ func register_building(
 func update(people: Array[Person], delta: float, strength: float) -> void:
 	_time += delta
 	_strength = strength
+	pips.prune(zone)
 	var rescued: Array[Person] = []
 	for p: Person in people:
 		if p.is_rescued:
@@ -168,9 +171,9 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 		_update_debug_labels()
 
 
-# A rescued person was made. (The next pass credits the cell they belong to here: "Rescues pull the line".)
-func on_rescue(_p: Person) -> void:
-	pass
+# A rescued person was made: the cell they belong to fills a pip, and joins the zone at TAKE_RESCUES (RescuePips).
+func on_rescue(p: Person) -> void:
+	pips.on_rescue(zone, p.position)
 
 
 # A member relapsed: they step out through the gate and leave the border (the slots reshuffle on the next update).
