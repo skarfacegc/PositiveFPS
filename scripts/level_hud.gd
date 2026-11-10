@@ -6,7 +6,8 @@ extends RefCounted
 # public on TopDownMain (`hud`, `minimap`, `arrows`, `feedback`, ...); TopDownMain builds this as `level_hud`.
 
 const HINT_PLAY := (
-	"WASD move | Shift run | Click to lock on | G/Q burst | hold E to aim, release to place | " + "Right-click cancels"
+	"WASD move | Shift run | Click to lock on | G/Q burst | hold E to take a block, release to take it |"
+	+ "Right-click cancels"
 )
 const HINT := HINT_PLAY + " | R restart | M menu | [F4] look"
 

@@ -22,6 +22,7 @@ var arrows: GapArrows
 var landmark_pointers: LandmarkPointers  # Round 22: the edge pointers toward unheld landmarks (placeholder look).
 var border: Border
 var burst_cue: BurstCue  # Round 22 (round 26: no patches): the burst cue and marks.
+var take_block: TakeBlock  # Walls and gates: hold E to take a block (#10); the rescue pips (#11) are drawn here too.
 var first_light: FirstLight  # Round 24: the dawn front of the last 45 s.
 var wobble_alert: WobbleAlert  # Checkpoint 5: the edge pointers toward off-screen wobblers.
 var spirit_warmth: SpiritWarmth  # Checkpoint 5: spare spirit warms the border.
@@ -115,6 +116,7 @@ func _ready() -> void:
 
 	level_hud.build()
 	burst_cue = BurstCue.attach(self)
+	take_block = TakeBlock.attach(self)
 	first_light = FirstLight.attach(self)
 	wobble_alert = WobbleAlert.attach(self)
 	spirit_warmth = SpiritWarmth.attach(self)

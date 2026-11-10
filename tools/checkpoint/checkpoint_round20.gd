@@ -21,7 +21,6 @@ func _run_round20() -> void:
 		Looks.set_mode(mode)
 		await _r20_new_level()
 		var label := Looks.mode_name().to_lower()
-		await _r20_reach_shots(label)
 		await _r20_walk_shots(label)
 	await _r20_flag_shots()
 	_write_sheets_round20()
@@ -95,7 +94,6 @@ func _r20_snap(view_name: String, label: String, view: Dictionary, aim: Vector3)
 		_r20_hide_alert()
 	for round_i: int in range(2):
 		_r20_aim(aim)
-		main.reach_guide.sync(main.border, main.player)
 		await _settle(10 if round_i == 0 else 3)
 	var full := await _grab()
 	_r20_note(view_name)
@@ -114,61 +112,12 @@ func _r20_note(view_name: String) -> void:
 		r20_names.append(view_name)
 
 
-func _r20_reach_shots(label: String) -> void:
-	var border := main.border
-	var centre := border.centre
-	var reach: float = border.stretch_info()["max"]
-	var inside := centre + Vector3(reach * 0.6, 0.0, -reach * 0.3)
-	var beyond := centre + Vector3(reach * 1.6, 0.0, -reach * 0.5)
-	main.player.global_position = centre + Vector3(0.0, 0.0, 2.0)
-	_r20_stage_hud()
-	await _settle(12)
-	await _r20_snap("reach_in_range", label, {}, inside)
-	await _r20_snap("reach_capped", label, {}, beyond)
-	# The minimap: clouds where the unrescued stand, and the landmarks held and not.
-	var held: Array[bool] = [true, false, true]
-	for i: int in range(held.size()):
-		var lm := main.landmarks.items[i]
-		lm.hold = LandmarkConfig.BORDER_LANDMARK_HOLD if held[i] else 0.0
-		lm.update(0.0, held[i])
-	await _settle(30)
-	main.minimap.refresh_clouds(main.people)
-	main.minimap.held_landmarks = main.landmarks.held_flags()
-	await _settle(8)
-	await _r20_snap("minimap_clouds", label, {"rect": Rect2i(10, 10, 270, 270), "scale": 3}, inside)
-	await _r20_landmark_pulses(label)
-	# A beacon far to the east-south: the tip travels, falls short, holds, then the zone snaps back.
-	var target := centre + Vector3(reach * 1.5, 0.0, reach * 0.5)
-	main.border.place_beacon(target)
-	main.beacon_marker.sync(main.border.beacon_pos(), 0.3, main.border.centre)
-	_r20_run(240)
-	main.beacon_marker.sync(main.border.beacon_pos(), 0.3, main.border.centre)
-	main.player.global_position = centre.lerp(main.border.beacon_pos(), 0.4)
-	await _settle(12)
-	await _r20_snap("zone_travel", label, {}, target)
-	var tip: Vector3 = main.border.stretch_info()["tip"]
-	await _r20_snap("reach_travel_close", label, _r20_world_view(tip, 480, 270, 2), target)
-	var guard := 0
-	while main.border.stretch_info()["on"] and guard < 40:
-		_r20_run(60)
-		guard += 1
-	main.player.global_position = centre.lerp(main.border.beacon_pos(), 0.4)
-	await _settle(12)
-	await _r20_snap("zone_hold", label, {}, target)
-	_r20_run(30)
-	_r20_run(480)
-	main.player.global_position = main.border.centre + Vector3(0.0, 0.0, 2.0)
-	await _settle(12)
-	await _r20_snap("zone_snapped", label, {}, main.border.centre + Vector3(8.0, 0.0, 0.0))
-	await _r20_snap("minimap_after", label, {"rect": Rect2i(10, 10, 270, 270), "scale": 3}, main.border.centre)
-
-
+# The claim and loss of the bandstand: the pulse ring and the notice, a moment after each.
 # A close-up cut around a world point, `w` x `h` window pixels, enlarged `k` times.
 func _r20_world_view(at: Vector3, w: int, h: int, k: int) -> Dictionary:
 	return {"world": at, "size": Vector2i(w, h), "scale": k}
 
 
-# The claim and loss of the bandstand: the pulse ring and the notice, a moment after each.
 func _r20_landmark_pulses(label: String) -> void:
 	var lm := main.landmarks.items[0]
 	var at: Vector3 = LandmarkConfig.LANDMARK_POSITIONS[0]
