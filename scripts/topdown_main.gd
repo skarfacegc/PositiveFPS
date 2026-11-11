@@ -28,7 +28,7 @@ var defences: Defences  # Walls and gates: hold F to plant a defence at a gate (
 var first_light: FirstLight  # Round 24: the dawn front of the last 45 s.
 var wobble_alert: WobbleAlert  # Checkpoint 5: the edge pointers toward off-screen wobblers.
 var spirit_warmth: SpiritWarmth  # Checkpoint 5: spare spirit warms the border.
-var gloom_tide: GloomTide  # Round 25: two gloom tides a night (warning, fog edge, drain on the facing members).
+var gloom_tide: GloomTide  # The night's one surge (warning, fog down one street, push on the gate it meets).
 var landmarks: Landmarks  # Round 19: the three landmarks and their boosts.
 var rating: Dictionary = {}  # Round 19: the dawn rating, set when the night ends (see DawnRating).
 # Round 12a: the grabs of dimmed people (see grabs.gd).

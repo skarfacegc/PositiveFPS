@@ -17,7 +17,7 @@ const HOW_TO_PLAY_TEXT := (
 	+ "the front (the glowing wedge on the ground shows where joy gets in), skittish people flee if you run at them, "
 	+ "and glum people take extra joy when they look up.\n"
 	+ "[b]The gloom:[/b] Dimmed people lean on your border and reach for you (a glowing ring warns of a lunge: step "
-	+ "out of reach), and gloomy tides roll in and shove it. The line bends inward where it is pushed and snaps if "
+	+ "out of reach), and a gloomy surge rolls in and shoves it. The line bends inward where it is pushed and snaps if "
 	+ "pushed too far. Joy at the dimmed ones weakens their push; joy at the bending folk makes them push back.\n"
 	+ "[b]Rescues:[/b] Rescuing people beside your line fills pips on the cell they belong to. "
 	+ "At three pips E takes the filled cell free; an outlined cell costs 25 spirit. The people line under the "
