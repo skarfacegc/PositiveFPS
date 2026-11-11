@@ -60,6 +60,8 @@ var loss_mult: float = 1.0
 var player_dim: bool = false
 # What the last lost cell's gate had when it was lost: {"gate", "members", "need", "seconds"} (the recorder reads it).
 var last_loss: Dictionary = {}
+# Walls and gates: Defences (#15). People who staff a defence leave the line (Defences owns the list).
+var staffed: Array[Person] = []
 
 # The look: draws the line, the haze and the gap glow from the state above (see scripts/looks/border_look.gd).
 var look: BorderLook
@@ -778,7 +780,14 @@ func _update_falter(rescued: Array[Person], delta: float) -> void:
 
 
 func _assign_members(rescued: Array[Person]) -> void:
-	_slots.assign_members(rescued)
+	if staffed.is_empty():
+		_slots.assign_members(rescued)
+		return
+	var on_line: Array[Person] = []
+	for p: Person in rescued:  # Walls and gates: Defences (#15). A defence's staff are not on the line.
+		if not staffed.has(p):
+			on_line.append(p)
+	_slots.assign_members(on_line)
 
 
 # The block footprints (BorderShape.footprints), rebuilt when blocks were added or removed.

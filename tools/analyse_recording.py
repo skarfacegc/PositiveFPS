@@ -261,7 +261,8 @@ def report(res, folder):
     add("LANDMARKS: %d claimed, %d lost" % (claims, len(lm_events) - claims))
     for e in lm_events:
         add("  t=%.0f s  %s %s (%s held)" % (e["t"], e.get("name"), e["type"].split("_")[1], e.get("held")))
-    for block in pressure_curve_lines(res) + surge_lines(res) + block_lines(res) + gate_lines(res) + mark_lines(res):
+    for block in (pressure_curve_lines(res) + surge_lines(res) + block_lines(res) + gate_lines(res) + defence_lines(res)
+                  + mark_lines(res)):
         add(block)
     win = res["win"]
     if win:
@@ -583,6 +584,39 @@ def gate_lines(res):
     for e in breaks:
         lines.append("  break of gate %s at t=%.0f s after %.1f s under push, %s pushers" % (
             e.get("gate"), e["t"], e.get("seconds", 0.0), e.get("pushers", "?")))
+    return lines
+
+
+# ---- Walls and gates: DEFENCES (#15) ----------------------------------------------------------------------------------
+# Events: defence_plant (gate, kind, staff, defences), defence_refused (reason), defence_returned (gate, kind, reason),
+# bell_ring (gate, bend, lifted). A recording from before defences has none of them and shows an empty section.
+def defence_lines(res):
+    real = res["real"]
+    plants = [e for e in real if e["type"] == "defence_plant"]
+    refused = [e for e in real if e["type"] == "defence_refused"]
+    returned = [e for e in real if e["type"] == "defence_returned"]
+    bells = [e for e in real if e["type"] == "bell_ring"]
+    by_type = {}
+    for e in plants:
+        by_type[e.get("kind", "?")] = by_type.get(e.get("kind", "?"), 0) + 1
+    reasons = {}
+    for e in refused:
+        reasons[e.get("reason", "?")] = reasons.get(e.get("reason", "?"), 0) + 1
+    lines = ["", "DEFENCES (walls and gates): %d planted (%s), %d refused (%s), %d handed back, %d bell rings"
+             % (len(plants), ", ".join("%s %d" % (k, by_type[k]) for k in sorted(by_type)) or "none",
+                len(refused), ", ".join("%s %d" % (k, reasons[k]) for k in sorted(reasons)) or "none",
+                len(returned), len(bells))]
+    for e in plants:
+        lines.append("  plant at t=%.0f s: %s at gate %s, %s defences now" % (
+            e["t"], e.get("kind", "?"), e.get("gate"), e.get("defences", "?")))
+    for e in returned:
+        lines.append("  handed back at t=%.0f s: %s at gate %s (%s)" % (
+            e["t"], e.get("kind", "?"), e.get("gate"), e.get("reason", "?")))
+    for e in bells:
+        lines.append("  bell at t=%.0f s: gate %s, bent %s, %s lifted" % (
+            e["t"], e.get("gate"), e.get("bend", "?"), e.get("lifted", "?")))
+    if plants:
+        lines.append("  seconds from the start to the first defence: %.0f" % plants[0]["t"])
     return lines
 
 

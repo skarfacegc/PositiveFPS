@@ -21,6 +21,9 @@ static func setup() -> void:
 	_add_action("burst", [_key(KEY_G), _key(KEY_Q)])
 	# Hold E, point at a cell next to the zone, release to take it (right-click cancels; see TakeBlock).
 	_add_action("take_block", [_key(KEY_E)])
+	# Walls and gates: Defences (#15). Hold F, point at a gate, release to plant a defence (right-click cancels; the mouse
+	# wheel changes the type while F is held; see Defences).
+	_add_action("defence", [_key(KEY_F)])
 	# Cycles the targeting mode (lock-on, hover, auto).
 	_add_action("cycle_targeting", [_key(KEY_F2)])
 	# Shows cover and protection above each person, and a hint in the HUD (off by default).

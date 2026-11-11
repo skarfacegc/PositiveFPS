@@ -146,6 +146,11 @@ func attach(main: TopDownMain) -> bool:
 	main.border.pips.pip_added.connect(_on_pip_added)
 	main.border.pips.cell_ready.connect(_on_cell_ready)
 	main.border.line_broke.connect(_on_line_broke)
+	# Walls and gates: Defences (#15).
+	main.defences.planted.connect(_on_defence_planted)
+	main.defences.refused.connect(_on_defence_refused)
+	main.defences.returned.connect(_on_defence_returned)
+	main.defences.bell_rang.connect(_on_bell_rang)
 	main.hud.set_recording(true)
 	emit_event(
 		"session_start",
@@ -665,6 +670,29 @@ func _on_line_broke(pos: Vector3) -> void:
 		"gate_break",
 		{"gate": gid, "seconds": snappedf(seconds, 0.01), "pushers": _main.border.push.pushers, "pos": _pos(pos)}
 	)
+
+
+# ---- Walls and gates: Defences (#15). The plant, a refusal, a defence handed back and the bell.
+# -----------------------------------------------------------------------------------------------------------
+
+
+func _on_defence_planted(info: Dictionary) -> void:
+	emit_event("defence_plant", info)
+	_event_shot("defence_plant")
+
+
+func _on_defence_refused(reason: String, info: Dictionary) -> void:
+	var fields := info.duplicate()
+	fields["reason"] = reason
+	emit_event("defence_refused", fields)
+
+
+func _on_defence_returned(info: Dictionary) -> void:
+	emit_event("defence_returned", info)
+
+
+func _on_bell_rang(info: Dictionary) -> void:
+	emit_event("bell_ring", info)
 
 
 # ---- files

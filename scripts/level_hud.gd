@@ -6,8 +6,8 @@ extends RefCounted
 # public on TopDownMain (`hud`, `minimap`, `arrows`, `feedback`, ...); TopDownMain builds this as `level_hud`.
 
 const HINT_PLAY := (
-	"WASD move | Shift run | Click to lock on | G/Q burst | hold E to take a block, release to take it |"
-	+ "Right-click cancels"
+	"WASD move | Shift run | Click to lock on | G/Q burst | hold E to take a block, F to plant a defence, "
+	+ "release to do it | Right-click cancels"
 )
 const HINT := HINT_PLAY + " | R restart | M menu | [F4] look"
 
@@ -121,6 +121,9 @@ func update_spirit_hud() -> void:
 	main.hud.set_spirit(main.player.spirit, main.player.is_dim)
 	main.hud.set_burst(main.player.burst_cooldown, main.player.has_burst_spirit(), main.burst_cue.burst_targets)
 	main.spirit_meter.set_values(main.player.spirit, main.player.is_dim)
+	var people := main.defences.people_numbers()  # Walls and gates: Capture polish (#75).
+	var short: int = people["short"]
+	main.hud.set_people(Defences.people_text(people), short > 0)
 
 
 # Round 12b: the target's mood next to its element on the HUD ("Target: Music (guarded)").

@@ -414,7 +414,16 @@ func _render() -> void:
 		var take_rect: Rect2 = tm["rect"]
 		var take_free: bool = tm["free"]
 		var take_col := HudConfig.MINIMAP_TAKE_FREE_COLOUR if take_free else HudConfig.MINIMAP_TAKE_PAID_COLOUR
-		_fill_rect(take_rect.grow(-HudConfig.MINIMAP_TAKE_INSET), take_col)
+		var inner := take_rect.grow(-HudConfig.MINIMAP_TAKE_INSET)
+		if take_free:
+			_fill_rect(inner, take_col)
+			continue
+		# Walls and gates: Capture polish (#75). A paid cell is an outline, a free one is filled.
+		var w := DefenceConfig.CAPTURE_OUTLINE_WIDTH * 2.0
+		_fill_rect(Rect2(inner.position, Vector2(inner.size.x, w)), take_col)
+		_fill_rect(Rect2(Vector2(inner.position.x, inner.end.y - w), Vector2(inner.size.x, w)), take_col)
+		_fill_rect(Rect2(inner.position, Vector2(w, inner.size.y)), take_col)
+		_fill_rect(Rect2(Vector2(inner.end.x - w, inner.position.y), Vector2(w, inner.size.y)), take_col)
 	var n := border_pts.size()
 	for j: int in range(n):
 		var a := border_pts[j]

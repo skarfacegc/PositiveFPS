@@ -281,13 +281,112 @@ func test_the_preview_says_what_the_cell_costs_and_the_people_it_needs_against_t
 	var needed: int = td.take_block.preview["members_needed"]
 	assert_int(needed).is_equal(23)
 	var text := td.take_block.preview_text()
-	assert_str(text).contains("need 23, free 12")
+	var added: int = (td.take_block.preview["gates"] as Array).size() - td.border.zone.gates.size()
+	var word := "gate" if absi(added) == 1 else "gates"
+	assert_str(text).contains("%+d %s: 11 more people" % [added, word])  # 23 needed, 12 free.
 	assert_str(text).contains("25 spirit")
 	assert_bool(td.take_block._label.visible).is_true()
 	assert_object(td.take_block._label.modulate).is_equal(BorderConfig.GATE_COUNT_SHORT_COLOUR)  # 12 free < 23 needed.
 	runner.simulate_key_release(KEY_E)
 	await runner.simulate_frames(3)
 	assert_bool(td.take_block._label.visible).is_false()
+
+
+func test_the_preview_says_covered_when_spare_people_cover_the_new_gates() -> void:
+	var s: Dictionary = await _start()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	_rescue_ring(td, Vector3.ZERO, 3.0, 60)
+	await runner.simulate_frames(10)
+	var c := _neighbour()
+	td.player.spirit = 80.0
+	await _point_at(runner, td, c)
+	runner.simulate_key_press(KEY_E)
+	await runner.simulate_frames(3)
+	assert_str(td.take_block.preview_text()).contains("covered by spare people")
+	assert_str(td.take_block.preview_text()).not_contains("more people")
+	assert_object(td.take_block._label.modulate).is_equal(BorderConfig.GATE_COUNT_OK_COLOUR)
+	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+	await runner.simulate_frames(2)
+	runner.simulate_key_release(KEY_E)
+
+
+func test_the_preview_counts_a_single_new_gate_in_the_singular() -> void:
+	var s: Dictionary = await _start()
+	var td: TopDownMain = s["td"]
+	var have := td.border.zone.gates.size()
+	td.take_block.target_cell = _neighbour()
+	var one_more: Array[Dictionary] = []
+	one_more.resize(have + 1)
+	td.take_block.preview = {"valid": true, "members_needed": 0, "gates": one_more}
+	assert_str(td.take_block.preview_text()).contains("+1 gate: covered")
+	var same: Array[Dictionary] = []
+	same.resize(have)
+	td.take_block.preview = {"valid": true, "members_needed": 0, "gates": same}
+	assert_str(td.take_block.preview_text()).contains("+0 gates: covered")
+	td.take_block.preview = {}
+	assert_str(td.take_block.preview_text()).is_equal("")
+
+
+func test_every_cell_beside_the_zone_shows_its_pips_and_a_free_or_paid_tag() -> void:
+	var s: Dictionary = await _start()
+	var runner: GdUnitSceneRunner = s["runner"]
+	var td: TopDownMain = s["td"]
+	var c := _neighbour()
+	var other := TownGrid.neighbours(TownGrid.start_cell())[1]
+	td.player.spirit = 80.0
+	assert_str(td.take_block.cell_label_text(c)).is_equal("25\n0/3")
+	assert_str(td.take_block.cell_label_text(Vector2i(0, 0))).is_equal("")  # Not beside the zone.
+	assert_str(td.take_block.cell_label_text(TownGrid.start_cell())).is_equal("")  # Held.
+	_fill_pips(td, c)
+	await runner.simulate_frames(5)
+	assert_str(td.take_block.cell_label_text(c)).is_equal("Free\n3/3")
+	td.player.spirit = 5.0
+	assert_str(td.take_block.cell_label_text(other)).is_equal("0/3")  # No tag when it cannot be taken now.
+	await runner.simulate_frames(5)
+	# A label floats over each of the cells beside the zone, with the same text.
+	for n: Vector2i in TownGrid.neighbours(TownGrid.start_cell()):
+		var label: Label3D = td.take_block._cell_labels[n]
+		assert_str(label.text).is_equal(td.take_block.cell_label_text(n))
+	assert_object((td.take_block._cell_labels[c] as Label3D).modulate).is_equal(
+		Color(BorderConfig.TAKE_MARK_FREE_COLOUR, 1.0)
+	)
+	assert_object((td.take_block._cell_labels[other] as Label3D).modulate).is_equal(
+		DefenceConfig.CAPTURE_LABEL_NONE_COLOUR
+	)
+	td.player.spirit = 80.0
+	await runner.simulate_frames(5)
+	assert_object((td.take_block._cell_labels[other] as Label3D).modulate).is_equal(
+		Color(BorderConfig.TAKE_MARK_PAID_COLOUR, 1.0)
+	)
+	# Taking the cell removes its label.
+	assert_bool(td.take_block.take_now(c)).is_true()
+	await runner.simulate_frames(5)
+	assert_bool(td.take_block._cell_labels.has(c)).is_false()
+
+
+func test_a_free_cell_is_filled_and_a_paid_cell_is_an_outline() -> void:
+	var s: Dictionary = await _start()
+	var td: TopDownMain = s["td"]
+	var quad: Array = []
+	var frame: Array = []
+	var rect := TownGrid.cell_rect(_neighbour())
+	td.take_block._add_quad(quad, rect)
+	td.take_block._add_frame(frame, rect)
+	assert_int(quad.size()).is_equal(6)  # One filled square: two triangles.
+	assert_int(frame.size()).is_equal(24)  # Four strips: eight triangles.
+	# The frame leaves the middle of the cell open.
+	var centre := TownGrid.cell_centre(_neighbour())
+	for i: int in range(0, frame.size(), 3):
+		var tri_min_x := minf(minf((frame[i] as Vector3).x, (frame[i + 1] as Vector3).x), (frame[i + 2] as Vector3).x)
+		var tri_max_x := maxf(maxf((frame[i] as Vector3).x, (frame[i + 1] as Vector3).x), (frame[i + 2] as Vector3).x)
+		var tri_min_z := minf(minf((frame[i] as Vector3).z, (frame[i + 1] as Vector3).z), (frame[i + 2] as Vector3).z)
+		var tri_max_z := maxf(maxf((frame[i] as Vector3).z, (frame[i + 1] as Vector3).z), (frame[i + 2] as Vector3).z)
+		var covers_centre := (
+			tri_min_x < centre.x and tri_max_x > centre.x and tri_min_z < centre.z and tri_max_z > centre.z
+		)
+		assert_bool(covers_centre).is_false()
+	assert_float(TakeBlock.PIP_HALF).is_greater(0.35)  # Larger pips (#75).
 
 
 func test_a_ready_cell_reads_free_in_the_preview() -> void:
