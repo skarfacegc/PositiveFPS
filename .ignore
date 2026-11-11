@@ -1,0 +1,4 @@
+# ripgrep (Grep and rg) skips these in broad searches; direct reads still work.
+design/
+addons/
+IDEAS_RESOLVED.md
