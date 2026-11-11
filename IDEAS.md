@@ -83,7 +83,6 @@ placeholder, `tide_pointer` still is.
 - Dawn lights are easy (60% rescued plus one landmark was enough in earlier rounds; now 75% and 2); watch in the next
   recording whether the third light is earned.
 - Difficulty is tuned only by bot nights (knobs `TIDE_PUSH` 2.0, `PUSH_PER_PERSON`, `PUSH_BREAK_DEPTH`).
-- Whether Embrace gets noticed (it did not in the round 25 playtests).
 - Pass 2 (walls and gates): does the town now tell you where to look and what to do next? Is 25 spirit or 3 rescues the
   right price for a block? Do solid blocks and 10 m streets feel roomy or cramped? From the tests: two dimmed people
   together break a gate in about 25 to 30 s; one alone never does.
@@ -380,21 +379,28 @@ mostly by rescue pips. The recorder does not log takes yet (cells and gates are 
 - **Space:** the start square is very cramped; overall decent, spread out a little.
 - **Styled grid (#58): works**, accepted.
 
-**Pass 2c, Grid fixes (#55, #56, #10, #11; planned 2026-11-11).** One Sonnet agent. Builds after Recorder catch-up
+**Pass 2c, Grid fixes (#55, #56, #10, #11, #73; planned 2026-11-11, updated after the playtest the same day).** One Sonnet agent. Builds after Recorder catch-up
 (#59 to #61, below): remove the recorder's `auto_join` emit with auto-join, set `take`'s `free` for a pip-ready take.
 1. **E only, pips show readiness** (#10, #11). Cells never join by themselves. Rescues still fill a cell's pips; a cell
    with full pips (`TAKE_RESCUES` 3) is ready, and taking it with E is free; any other cell next to the zone costs
    `TAKE_SPIRIT_COST` (25). Every change to the line is one the player made.
 2. **People count on the gate and the preview** (#10, #56). Each gate shows its members against its need (for example
    "3/4"), red when short; the take preview shows the people the new gates need against the free people you have. Must
-   read in both looks.
+   read in both looks. **People no longer lock a take** (user, 2026-11-11 playtest): a cell next to the zone can always
+   be taken, and a short line is shared out thinly as today (pass 3's thin line, #12, makes thin gates weaker). The
+   count is a warning, not a refusal; drop the `people_short` refusal.
+2a. **Mark takeable cells** (#10; user, 2026-11-11 playtest). Cells you can take right now glow on the ground and on the
+   minimap before E is pressed: one look for a free (pips full) cell, another for a 25-spirit cell. Placeholder look
+   only. The recorder splits `not_next` into `not_next` and `already_held`.
 3. **Which gate is in trouble** (#56). A gate being pushed reads from across the screen (its line pulses or shifts colour
    with the dent), and one past half `PUSH_BREAK_DEPTH` gets an edge pointer when off screen (extend the gap arrows).
 4. **Why the line changed** (#56). A short pulse on a cell when it is taken (and later when lost), with the slim banner.
 5. **Spread out a little** (#55). Start square 18 m (other cells 12 m), streets 12 m. Grow the plaza to fit and keep the
    landmark squares on the diagonals; check spawns and first light still reach the town.
+6. **Remove Embrace** (#73; user, 2026-11-11 playtest: never noticed in round 25 or this game, 6 begun, 1 rescue).
+   Delete the system, its config, tests, recorder events and analyser section, and its how-to-play and README lines.
 Playtest questions: is E now the way you grow, and is the price a choice? Does the count make the people cost clear?
-Can you see which gate is in trouble?
+Can you see which gate is in trouble? Can you tell which cells you can take before pressing E?
 
 **What stays as it is.** Joy, elements and moods; the gloom's phases and arrivals; the burst; spirit and spirit warmth;
 wobble and relapse; first light; the dawn rating; the cue panel and the slim banner; both looks.
@@ -474,8 +480,19 @@ sections and new `--compare` columns; it dropped SHAPED ZONE, SPIRIT BEACONS and
 Gate, determinism and baseline passed; nothing loosened. Limits: `pushers` on gate events is the border-wide count, not
 per gate; the break shot follows `break_open`, not `gate_break`; a take aimed at no cell is logged as `not_next`.
 
-**Open for the user.** F8 for the mark key (or another)? Should a mark also ask for a one-word note? (Default: no,
-the interview fills it in.)
+**Played 2026-11-11 (`63ad38a`); accepted, Done.** F8 stays the mark key and a mark asks for no note (user's call).
+One full night, seed 42, placeholder: win, 3 of 3 dawn lights (88% rescued, 3 landmarks), 1 mark, 19 shots.
+- **Taking blocks did not read** (user: "really need some feedback on when I can capture a new area; the auto capture
+  doesn't make sense"). E was pressed 24 times and worked once (paid, 25 spirit). Refusals: 11 `people_short` (the new
+  outline's gates needed 36 to 76 people against 16 to 53 free, so the lock was out of reach all night) and 12
+  `not_next` (some on cells that had just joined: "already held" is logged as `not_next`). No refusal said why.
+- **Auto-join did all the growing:** 6 cells joined the moment their pips filled (ready-cell wait 0 s), every one short
+  of people (18 needed vs 13 free up to 58 vs 51), so the people rule held back E only.
+- **Spirit never limited a take:** 75 to 100 all night (3 bursts, 111 spare-spirit gifts).
+- **Gates:** 4 breaks, all at t=104 s during the north tide (2 pushers, 4 s under push), and 12 holds.
+- **Embrace** not noticed (6 begun, 3 stage lifts, 1 rescue).
+Decisions (user): 2c builds E only as planned; add takeable-cell marking and the people count on the preview; people
+warn but never lock a take; remove Embrace in 2c (#73). All in Pass 2c above.
 
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; after Line and Defences merge, or the next target)
 
