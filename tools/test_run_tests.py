@@ -218,6 +218,61 @@ class WeightsAndWorkersTest(unittest.TestCase):
         finally:
             remove_tree(os.path.dirname(path))
 
+    def test_a_full_plain_run_replaces_the_record_so_removed_tests_go(self):
+        import tempfile
+        import unittest.mock as mock
+        path = os.path.join(tempfile.mkdtemp(prefix="times_"), "t.json")
+        try:
+            with mock.patch.object(run_tests, "times_cache_path", return_value=path):
+                run_tests.record_times([{"file": "gone_test", "name": "test_old", "ok": True, "time": 3.0},
+                                        {"file": "a_test", "name": "test_x", "ok": True, "time": 1.0}])
+                run_tests.record_times([{"file": "a_test", "name": "test_x", "ok": True, "time": 2.0}])
+                self.assertEqual(run_tests.load_recorded_times(), {"a_test::test_x": 2.0})
+        finally:
+            remove_tree(os.path.dirname(path))
+
+    def test_an_instrumented_run_keeps_plain_times_fills_gaps_and_drops_removed(self):
+        import tempfile
+        import unittest.mock as mock
+        path = os.path.join(tempfile.mkdtemp(prefix="times_"), "t.json")
+        try:
+            with mock.patch.object(run_tests, "times_cache_path", return_value=path):
+                run_tests.record_times([{"file": "a_test", "name": "test_x", "ok": True, "time": 1.0},
+                                        {"file": "gone_test", "name": "test_old", "ok": True, "time": 3.0}])
+                run_tests.record_times([{"file": "a_test", "name": "test_x", "ok": True, "time": 7.0},
+                                        {"file": "a_test", "name": "test_new", "ok": True, "time": 4.0}],
+                                       instrumented=True)
+                self.assertEqual(run_tests.load_recorded_times(), {"a_test::test_x": 1.0, "a_test::test_new": 4.0})
+        finally:
+            remove_tree(os.path.dirname(path))
+
+    def test_only_full_runs_record_times(self):
+        import tempfile
+        import unittest.mock as mock
+        results = [{"file": "a_test", "name": "test_x", "ok": True, "time": 1.0, "messages": []}]
+        scratch = tempfile.mkdtemp(prefix="times_run_")
+        calls = []
+
+        def run(**kwargs):
+            with mock.patch.object(run_tests, "import_is_current", return_value=True), \
+                    mock.patch.object(run_tests, "prune_reports"), \
+                    mock.patch.object(run_tests, "ensure_gdignore"), \
+                    mock.patch.object(run_tests, "import_project"), \
+                    mock.patch.object(run_tests, "discover_tests", return_value={"a_test": ["test_x"]}), \
+                    mock.patch.object(run_tests, "run_parallel", return_value=(0, results, [""])), \
+                    mock.patch.object(run_tests, "integrity_problems", return_value=[]), \
+                    mock.patch.object(run_tests, "run_perf_pass", return_value=(0, [], [""])), \
+                    mock.patch.object(run_tests, "record_times", side_effect=lambda r, **k: calls.append(k)):
+                run_tests.run_suite(scratch, report_root=os.path.join(scratch, "rep"), workers=2, **kwargs)
+        try:
+            run(cov_dir=os.path.join(scratch, "cov"))
+            self.assertEqual(calls, [{"instrumented": True}])
+            run(suites=["a_test"])
+            run(selected={"a_test": ["test_x"]})
+            self.assertEqual(len(calls), 1)
+        finally:
+            remove_tree(scratch)
+
     def test_default_workers_leave_cores_free_and_are_capped(self):
         cpus = os.cpu_count() or 2
         self.assertLessEqual(run_tests.WORKERS_DEFAULT, 16)

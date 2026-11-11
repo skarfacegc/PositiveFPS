@@ -229,12 +229,23 @@ def load_weights():
     return weights
 
 
-def record_times(results):
-    """Stores the duration of every passing test of a full plain run (replacing the old record, which drops removed tests)."""
+def record_times(results, instrumented=False):
+    """Stores the duration of every passing test of a full run (replacing the old record, which drops removed tests).
+
+    A plain full run replaces the record with its own durations. An instrumented (coverage) full run is slower per
+    test, so it only fills in the tests the record does not have yet and keeps every plain duration it already holds;
+    either way an entry for a test that is no longer in `results` is dropped.
+    """
     path = times_cache_path()
     if not path:
         return
     times = {"%s::%s" % (r["file"], r["name"]): round(r["time"], 1) for r in results if r["ok"]}
+    if instrumented:
+        old = _read_json_dict(path)
+        merged = {k: old[k] for k in times if isinstance(old.get(k), (int, float))}
+        for k, v in times.items():
+            merged.setdefault(k, v)
+        times = merged
     try:
         with open(path, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(times, fh, sort_keys=True)
@@ -553,9 +564,12 @@ def run_suite(project, report_root=None, workers=None, cov_dir=None, perf_only=F
         code = max(code, 1)
     if problems is not None:
         problems.extend(found)
-    if (results and code == 0 and os.path.abspath(project) == os.path.abspath(ROOT)
-            and not (cov_dir or suites or selected or skip_perf or perf_only)):
-        record_times(results)  # a full plain run: keep the durations for the next plan (plan_units prefers them)
+    # A full run (plain, or instrumented on a copy of this checkout) keeps the durations for the next plan:
+    # plan_units and the fast tier read them. A partial run records nothing; another checkout never writes here.
+    full = not (suites or selected or skip_perf or perf_only)
+    same_checkout = os.path.abspath(project) == os.path.abspath(ROOT)
+    if results and code == 0 and full and (cov_dir or same_checkout):
+        record_times(results, instrumented=bool(cov_dir))
     return code, results, report_dir
 
 
