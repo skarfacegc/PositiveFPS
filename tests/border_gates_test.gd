@@ -66,7 +66,7 @@ func test_walls_and_gates_are_told_apart_segment_by_segment() -> void:
 		else:
 			assert_int(border.segment_gate(j)).is_greater_equal(0)
 	assert_int(walls).is_equal(3)  # The block's three faces: each is one segment (a wall needs no points).
-	var near_wall := border.nearest_point(Vector2(28.0, 0.0))
+	var near_wall := border.nearest_point(Vector2(33.0, 0.0))
 	assert_bool(border.point_dentable(near_wall)).is_false()
 	assert_int(border.point_gate(near_wall)).is_equal(-1)
 	assert_bool(border.is_wall(-1)).is_false()
@@ -88,34 +88,34 @@ func test_the_line_is_traced_again_when_the_zone_changes_and_members_keep_to_the
 	var border := _bare_border()
 	var people := _rescued(16)
 	border.update(people, 1.0 / 60.0, 1.0)
-	assert_int(border.member_count).is_equal(16)
+	assert_int(border.member_count).is_equal(16)  # 16 people for the start square's 20 places: shared out.
 	var before := border.polygon.size()
 	border.zone.take(EAST_BLOCK)
 	border.update(people, 1.0 / 60.0, 1.0)
 	assert_int(border.polygon.size()).is_not_equal(before)
-	assert_int(border.slot_count).is_equal(18)
-	assert_int(border.member_count).is_equal(16)  # 16 people for 18 places: shared out, none left over.
+	assert_int(border.slot_count).is_equal(23)
+	assert_int(border.member_count).is_equal(16)  # 16 people for 23 places: shared out, none left over.
 	assert_int(border.inner_count).is_equal(0)
 	for m: Person in border.members:
 		var target: Vector3 = border._targets[m]
 		assert_float(BorderShape.distance_to_line(border.polygon, Vector2(target.x, target.z))).is_less(0.01)
 		assert_bool(border.is_wall(border.nearest_point(Vector2(target.x, target.z)))).is_false()
 	# More people than places: the rest are inner and inside.
-	var many := _rescued(20)
+	var many := _rescued(26)
 	border.update(many, 1.0 / 60.0, 1.0)
-	assert_int(border.member_count).is_equal(18)
-	assert_int(border.inner_count).is_equal(2)
-	assert_float(border.perimeter).is_equal(56.0)
+	assert_int(border.member_count).is_equal(23)
+	assert_int(border.inner_count).is_equal(3)
+	assert_float(border.perimeter).is_equal(78.0)  # Three 18 m gates and two 12 m street mouths.
 
 
 func test_a_dimmed_person_outside_heads_round_the_blocks_toward_the_nearest_gate() -> void:
 	var border := _bare_border()
 	# In the street west of the square, with a block between them and the west gate: the way is round, by the south.
-	var go := border.route_to_gate(Vector3(-33.0, 0.0, 0.0))
+	var go := border.route_to_gate(Vector3(-39.0, 0.0, 0.0))
 	assert_float(go.length()).is_equal_approx(1.0, 0.001)
 	assert_float(go.z).is_greater(0.9)
 	# Walk the route: each step moves toward the next tile's middle, and it ends at the gate's mouth.
-	var pos := Vector3(-33.0, 0.0, 0.0)
+	var pos := Vector3(-39.0, 0.0, 0.0)
 	for i: int in range(400):
 		var dir := border.route_to_gate(pos)
 		if dir == Vector3.ZERO:
@@ -131,27 +131,27 @@ func test_a_dimmed_person_outside_heads_round_the_blocks_toward_the_nearest_gate
 	# Inside the line, or with no border, there is no way to go.
 	assert_vector(border.route_to_gate(Vector3(1, 0, 1))).is_equal(Vector3.ZERO)
 	border.active = false
-	assert_vector(border.route_to_gate(Vector3(-33.0, 0.0, 0.0))).is_equal(Vector3.ZERO)
+	assert_vector(border.route_to_gate(Vector3(-39.0, 0.0, 0.0))).is_equal(Vector3.ZERO)
 
 
 func test_members_settle_on_the_gates_and_a_dimmed_person_walks_to_one() -> void:
-	var s: Dictionary = await TopDownTestUtil.settled_level(self, 16)
+	var s: Dictionary = await TopDownTestUtil.settled_level(self, 20)
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	var border: Border = td.border
-	assert_int(border.member_count).is_equal(16)
+	assert_int(border.member_count).is_equal(20)
 	var per_gate: Dictionary = {}
 	for m: Person in border.members:
 		assert_float(BorderShape.distance_to_line(border.polygon, Vector2(m.position.x, m.position.z))).is_less(0.2)
 		var g: int = border.zone.nearest_gate(Vector2(m.position.x, m.position.z))["id"]
 		per_gate[g] = (per_gate.get(g, 0) as int) + 1
 	for g: int in per_gate:
-		assert_int(per_gate[g] as int).is_equal(4)
+		assert_int(per_gate[g] as int).is_equal(5)
 	# A dimmed person in the street west of the square goes round the block and comes up to a gate.
 	td.spirit_warmth.pool = 0.0
 	TopDownTestUtil.open_dim_gate(td)
-	var dimmed: Person = td.people[20]
-	TopDownTestUtil.place(dimmed, Vector3(-33.0, 0.0, 0.0), 1, 0.95)
+	var dimmed: Person = td.people[24]
+	TopDownTestUtil.place(dimmed, Vector3(-39.0, 0.0, 0.0), 1, 0.95)
 	dimmed.level = 2  # Dimmed at once (the midnight stagger would take its time).
 	var frames := 0
 	var reached := false
@@ -168,18 +168,18 @@ func test_members_settle_on_the_gates_and_a_dimmed_person_walks_to_one() -> void
 
 
 func test_dimmed_people_never_stand_inside_a_block_while_they_head_for_a_gate() -> void:
-	var s: Dictionary = await TopDownTestUtil.settled_level(self, 16, 300)
+	var s: Dictionary = await TopDownTestUtil.settled_level(self, 20, 300)
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	td.spirit_warmth.pool = 0.0
-	var spots: Array[Vector3] = [Vector3(-33, 0, -33), Vector3(11, 0, 33), Vector3(-11, 0, 11), Vector3(33, 0, 11)]
+	var spots: Array[Vector3] = [Vector3(-39, 0, -39), Vector3(15, 0, 39), Vector3(-15, 0, 15), Vector3(39, 0, 15)]
 	for i: int in range(spots.size()):
-		TopDownTestUtil.place(td.people[20 + i], spots[i], 1, 0.95)
-		td.people[20 + i].level = 2
+		TopDownTestUtil.place(td.people[24 + i], spots[i], 1, 0.95)
+		td.people[24 + i].level = 2
 	for step: int in range(60):
 		await runner.simulate_frames(20)
 		for i: int in range(spots.size()):
-			assert_bool(td.plaza.near_block(td.people[20 + i].position, 0.0)).is_false()
+			assert_bool(td.plaza.near_block(td.people[24 + i].position, 0.0)).is_false()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -197,7 +197,7 @@ func test_a_zone_with_no_gates_has_no_way_out_but_east() -> void:
 	border._trace()
 	assert_int(border.zone.gates.size()).is_equal(0)
 	assert_vector(border.out_at(Vector3(3, 0, 3))).is_equal(Vector2.RIGHT)
-	assert_vector(border.route_to_gate(Vector3(-33, 0, 0))).is_equal(Vector3.ZERO)
+	assert_vector(border.route_to_gate(Vector3(-39, 0, 0))).is_equal(Vector3.ZERO)
 	assert_float(border.perimeter).is_equal(0.0)
 
 
@@ -207,13 +207,13 @@ func test_a_move_that_slips_in_beside_a_bending_gate_is_held() -> void:
 	# the nearest stretch is intact, so the person stays put.
 	var flags: Array[bool] = []
 	border.segment_gap = flags
-	var from := Vector3(6.4, 0.0, 0.0)
-	assert_vector(border.clip_move(from, Vector3(5.9, 0.0, 0.0))).is_equal(from)
+	var from := Vector3(9.4, 0.0, 0.0)
+	assert_vector(border.clip_move(from, Vector3(8.9, 0.0, 0.0))).is_equal(from)
 
 
 func test_the_way_from_inside_a_block_is_toward_the_street() -> void:
 	var border := _bare_border()
-	var go := border.route_to_gate(Vector3(-44.0, 0.0, 0.0))
+	var go := border.route_to_gate(Vector3(-51.0, 0.0, 0.0))
 	assert_float(go.length()).is_equal_approx(1.0, 0.001)
 	assert_float(go.x).is_greater(0.9)  # East, to the street piece beside the block.
 

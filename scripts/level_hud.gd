@@ -79,6 +79,7 @@ func update_readability(delta: float) -> void:
 	var screen := main.get_viewport().get_visible_rect()
 	if main.minimap.tick(delta):
 		main.minimap.held_landmarks = main.landmarks.held_flags()
+		main.minimap.take_marks = main.take_block.mark_rects()
 		main.minimap.refresh_from(
 			main.ground,
 			main.border,
@@ -87,14 +88,22 @@ func update_readability(delta: float) -> void:
 			main.camera_rig.view_centre(),
 			main.camera_rig.view_half_extents()
 		)
+	# Grid fixes (#56): a gate bent past half the break depth gets a pointer too, after the breaks.
+	var points: Array[Vector3] = main.border.gap_midpoints_cached().duplicate()
+	var urgencies: Array[float] = main.border.gap_urgencies().duplicate()
+	var pressed := GateMarks.pointers(main.border)
+	var more_points: Array[Vector3] = pressed["points"]
+	var more_urgencies: Array[float] = pressed["urgencies"]
+	points.append_array(more_points)
+	urgencies.append_array(more_urgencies)
 	main.arrows.update_arrows(
 		main.camera,
 		screen,
-		main.border.gap_midpoints_cached(),
+		points,
 		main.minimap.get_global_rect(),
 		main.border.pulse(),
 		main.pipeline.view_scale(),
-		main.border.gap_urgencies(),
+		urgencies,
 		delta,
 		HudSafeArea.current(main, screen.size)  # Checkpoint 6: the arrows keep clear of the HUD.
 	)

@@ -154,7 +154,8 @@ func test_a_dimmed_person_outside_the_border_cannot_get_inside_it() -> void:
 	var dimmed: Person = td.people[8]
 	TopDownTestUtil.place(dimmed, Vector3(-25, 0, 25), 1, 0.0)
 	await runner.simulate_frames(360)
-	TopDownTestUtil.place(dimmed, Vector3(0, 0, -4), 1, 0.9)
+	# In the street north of the start square (its gate is z = -9).
+	TopDownTestUtil.place(dimmed, Vector3(0, 0, -13), 1, 0.9)
 
 	await runner.simulate_frames(2400)
 	# The press drains a member, so the count may drop; the line is what matters here.

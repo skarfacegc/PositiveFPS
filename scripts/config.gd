@@ -47,7 +47,7 @@ const GLOOM_LEVEL_STEPS: Array[float] = [0.34, 0.67]
 const NUMBERS_ENABLED := true
 
 # Side length of the top-down plaza, in metres. Walls go around the edge.
-const TD_PLAZA_SIZE := 100  # Round 13a: 70 x WORLD_SCALE.
+const TD_PLAZA_SIZE := 114  # The town grid's span (TownGrid.span: 4 x 12 + 18 + 4 x 12), 0.4 Grid fixes; was 100.
 
 # How many people are in the top-down plaza.
 const TD_PEOPLE_COUNT := 60

@@ -85,6 +85,12 @@ func notice(id: int, words: String = "") -> void:
 	time_left = duration
 
 
+# Grid fixes: a notice for something good (a block taken): the same slim banner, but warm instead of coral.
+func calm_notice(id: int, words: String) -> void:
+	notice(id, words)
+	coral = false
+
+
 # The words of the prompt on show (a notice may carry its own).
 func current_text() -> String:
 	return custom_text if custom_text != "" else text_for(current)

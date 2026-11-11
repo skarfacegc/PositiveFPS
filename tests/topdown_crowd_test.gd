@@ -135,8 +135,8 @@ func test_a_spawn_spot_in_a_full_plaza_is_the_last_try_and_is_not_clear() -> voi
 	var td: TopDownMain = s["td"]
 	# A grid of placed people 3 m apart: every point of the plaza is within 2.1 m of one, inside the spawn spacing.
 	var placed: Array[Vector3] = []
-	for ix: int in range(-48, 49, 3):
-		for iz: int in range(-48, 49, 3):
+	for ix: int in range(-57, 58, 3):
+		for iz: int in range(-57, 58, 3):
 			placed.append(Vector3(float(ix), 0.0, float(iz)))
 	var spot := td.plaza.find_spot(placed)
 	assert_bool(td.plaza.spot_ok(spot, placed)).is_false()

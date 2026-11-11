@@ -22,11 +22,11 @@ var arrows: GapArrows
 var landmark_pointers: LandmarkPointers  # Round 22: the edge pointers toward unheld landmarks (placeholder look).
 var border: Border
 var burst_cue: BurstCue  # Round 22 (round 26: no patches): the burst cue and marks.
+var gate_marks: GateMarks  # Grid fixes: the people count and the push glow on each gate (#56).
 var take_block: TakeBlock  # Walls and gates: hold E to take a block (#10); the rescue pips (#11) are drawn here too.
 var first_light: FirstLight  # Round 24: the dawn front of the last 45 s.
 var wobble_alert: WobbleAlert  # Checkpoint 5: the edge pointers toward off-screen wobblers.
 var spirit_warmth: SpiritWarmth  # Checkpoint 5: spare spirit warms the border.
-var embrace: Embrace  # Round 25: unrescued people inside the border are lifted by those around them.
 var gloom_tide: GloomTide  # Round 25: two gloom tides a night (warning, fog edge, drain on the facing members).
 var landmarks: Landmarks  # Round 19: the three landmarks and their boosts.
 var rating: Dictionary = {}  # Round 19: the dawn rating, set when the night ends (see DawnRating).
@@ -117,10 +117,10 @@ func _ready() -> void:
 	level_hud.build()
 	burst_cue = BurstCue.attach(self)
 	take_block = TakeBlock.attach(self)
+	gate_marks = GateMarks.attach(self)
 	first_light = FirstLight.attach(self)
 	wobble_alert = WobbleAlert.attach(self)
 	spirit_warmth = SpiritWarmth.attach(self)
-	embrace = Embrace.attach(self)
 	gloom_tide = GloomTide.attach(self)
 	style_props = StyleProps.attach(self)  # Checkpoint 7: street props (styled look only).
 	style_ambient = StyleAmbient.attach(self)  # Checkpoint 7: butterflies, birds, idling people (styled look only).

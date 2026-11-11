@@ -176,7 +176,7 @@ func test_dimmed_lifts_to_gloomy_and_then_to_wistful() -> void:
 	var s: Dictionary = await _level(_start_of_light() + 10.0)
 	var td: TopDownMain = s["td"]
 	var p: Person = td.people[0]
-	TopDownTestUtil.place(p, Vector3(40.0, 0.0, 40.0), p.affinity, 0.69)
+	TopDownTestUtil.place(p, Vector3(45.0, 0.0, 45.0), p.affinity, 0.69)
 	assert_int(Config.gloom_level(p.gloom)).is_equal(2)
 	for i: int in range(20):
 		td.first_light.step(0.5)
@@ -250,7 +250,7 @@ func test_in_the_level_a_dimmed_person_at_the_edge_is_lifted_over_real_frames() 
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	var p: Person = td.people[0]
-	TopDownTestUtil.place(p, Vector3(40.0, 0.0, 40.0), p.affinity, 0.9)
+	TopDownTestUtil.place(p, Vector3(45.0, 0.0, 45.0), p.affinity, 0.9)
 	await runner.simulate_frames(120)
 	assert_bool(td.first_light.started).is_true()
 	assert_float(p.gloom).is_less(0.9)
@@ -329,7 +329,7 @@ func test_the_recorder_gets_a_start_event_and_an_end_event_with_the_lifted_count
 	var s: Dictionary = await _level(_start_of_light() - 1.0, true)
 	var td: TopDownMain = s["td"]
 	var p: Person = td.people[0]
-	TopDownTestUtil.place(p, Vector3(40.0, 0.0, 40.0), p.affinity, 0.69)
+	TopDownTestUtil.place(p, Vector3(45.0, 0.0, 45.0), p.affinity, 0.69)
 	td.night.elapsed = _start_of_light()
 	td.first_light.step(0.1)
 	assert_int(_of_type(_events(td), "first_light_start").size()).is_equal(1)

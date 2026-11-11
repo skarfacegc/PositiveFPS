@@ -26,14 +26,21 @@ func test_the_grid_fills_the_plaza_and_has_twenty_blocks_five_squares() -> void:
 	assert_int(squares).is_equal(5)
 
 
-func test_cells_are_twelve_metres_with_ten_metre_streets_between() -> void:
+func test_cells_are_twelve_metres_the_start_square_eighteen_and_streets_twelve() -> void:
 	var a := TownGrid.cell_rect(Vector2i(0, 0))
 	var b := TownGrid.cell_rect(Vector2i(1, 0))
 	assert_vector(a.size).is_equal(Vector2(12.0, 12.0))
-	assert_float(b.position.x - (a.position.x + a.size.x)).is_equal(10.0)
-	assert_float(a.position.x).is_equal(-50.0)
-	assert_float(TownGrid.cell_rect(Vector2i(4, 4)).end.x).is_equal(50.0)
+	assert_float(b.position.x - (a.position.x + a.size.x)).is_equal(12.0)
+	assert_float(a.position.x).is_equal(-57.0)
+	assert_float(TownGrid.cell_rect(Vector2i(4, 4)).end.x).is_equal(57.0)
 	assert_vector(TownGrid.cell_centre(Vector2i(2, 2))).is_equal(Vector3.ZERO)
+	assert_vector(TownGrid.cell_rect(Vector2i(2, 2)).size).is_equal(Vector2(18.0, 18.0))
+	# The blocks in the start square's column and row are 18 x 12 (or 12 x 18): the column and the row are 18 wide.
+	assert_vector(TownGrid.cell_rect(Vector2i(2, 0)).size).is_equal(Vector2(18.0, 12.0))
+	assert_vector(TownGrid.cell_rect(Vector2i(0, 2)).size).is_equal(Vector2(12.0, 18.0))
+	assert_vector(Plaza.block_size(2)).is_equal(Vector3(18.0, 3.0, 12.0))
+	assert_vector(Plaza.block_size(0)).is_equal(Plaza.BLOCK_SIZE)
+	assert_float(TownGrid.span()).is_equal(4.0 * 12.0 + 18.0 + 4.0 * 12.0)
 
 
 func test_the_landmark_squares_are_the_diagonals_next_to_the_start() -> void:
@@ -44,7 +51,7 @@ func test_the_landmark_squares_are_the_diagonals_next_to_the_start() -> void:
 		assert_int(absi(c.y - 2)).is_equal(1)
 		assert_int(TownGrid.landmark_index(c)).is_equal(k)
 		assert_vector(LandmarkConfig.LANDMARK_POSITIONS[k]).is_equal(TownGrid.cell_centre(c))
-		assert_float(TownGrid.cell_centre(c).length()).is_equal_approx(31.1, 0.1)
+		assert_float(TownGrid.cell_centre(c).length()).is_equal_approx(38.2, 0.1)  # 27 m out on each diagonal.
 
 
 func test_the_block_list_is_the_grid_and_blocks_stand_apart_inside_the_walls() -> void:
@@ -56,12 +63,15 @@ func test_the_block_list_is_the_grid_and_blocks_stand_apart_inside_the_walls() -
 		var c := TownGrid.cell_centre(cells[i])
 		assert_float(blocks[i].x).is_equal(c.x)
 		assert_float(blocks[i].z).is_equal(c.z)
-		assert_float(absf(blocks[i].x) + Plaza.BLOCK_SIZE.x * 0.5).is_less_equal(half)
+		assert_float(absf(blocks[i].x) + Plaza.block_size(i).x * 0.5).is_less_equal(half)
+		assert_float(absf(blocks[i].z) + Plaza.block_size(i).z * 0.5).is_less_equal(half)
 		for j: int in range(i + 1, cells.size()):
 			var dx := absf(blocks[i].x - blocks[j].x)
 			var dz := absf(blocks[i].z - blocks[j].z)
-			# A 10 m street between two blocks, on one axis or the other.
-			assert_bool(dx >= Plaza.BLOCK_SIZE.x + 10.0 - 0.01 or dz >= Plaza.BLOCK_SIZE.z + 10.0 - 0.01).is_true()
+			# A 12 m street between two blocks, on one axis or the other.
+			var gap_x := (Plaza.block_size(i).x + Plaza.block_size(j).x) * 0.5 + 12.0 - 0.01
+			var gap_z := (Plaza.block_size(i).z + Plaza.block_size(j).z) * 0.5 + 12.0 - 0.01
+			assert_bool(dx >= gap_x or dz >= gap_z).is_true()
 
 
 func test_neighbours_tiles_and_the_nearest_cell() -> void:
@@ -73,12 +83,12 @@ func test_neighbours_tiles_and_the_nearest_cell() -> void:
 	assert_that(TownGrid.cell_of(Vector3(-40, 0, 45))).is_equal(Vector2i(0, 4))
 	assert_that(TownGrid.cell_of(Vector3(60, 0, -60))).is_equal(Vector2i(4, 0))
 	assert_that(TownGrid.tile_of(Vector3(0, 0, 0))).is_equal(Vector2i(4, 4))
-	assert_that(TownGrid.tile_of(Vector3(-33, 0, 0))).is_equal(Vector2i(1, 4))
+	assert_that(TownGrid.tile_of(Vector3(-39.5, 0, 0))).is_equal(Vector2i(1, 4))
 	assert_bool(TownGrid.tile_walkable(0, 0)).is_false()  # A built block.
 	assert_bool(TownGrid.tile_walkable(4, 4)).is_true()  # The start square.
 	assert_bool(TownGrid.tile_walkable(1, 0)).is_true()  # A street piece.
 	assert_bool(TownGrid.tile_walkable(-1, 0)).is_false()
-	assert_vector(TownGrid.tile_centre(1, 1)).is_equal(Vector3(-33, 0, -33))
+	assert_vector(TownGrid.tile_centre(1, 1)).is_equal(Vector3(-39, 0, -39))
 	assert_that(TownGrid.tile_of(Vector3(60, 0, 70))).is_equal(Vector2i(8, 8))  # Off the town: the last tile.
 
 
@@ -111,9 +121,9 @@ func test_every_walkable_tile_can_be_walked_to_and_the_streets_have_loops() -> v
 
 func test_streets_and_the_start_square_are_where_the_props_expect() -> void:
 	assert_int(TownLayout.street_rects().size()).is_equal(8)
-	assert_bool(TownLayout.on_street(Vector3(-33, 0, 7))).is_true()
-	assert_bool(TownLayout.on_street(Vector3(-44, 0, 0))).is_false()
-	assert_bool(TownLayout.on_street(Vector3(-44, 0, 0), 12.0)).is_true()
+	assert_bool(TownLayout.on_street(Vector3(-39, 0, 7))).is_true()
+	assert_bool(TownLayout.on_street(Vector3(-51, 0, 0))).is_false()
+	assert_bool(TownLayout.on_street(Vector3(-51, 0, 0), 8.0)).is_true()
 	assert_bool(TownLayout.on_square(Vector3.ZERO)).is_true()
 	assert_bool(TownLayout.on_square(Vector3(20, 0, 0))).is_false()
 	for c: Vector3 in TownLayout.stall_spots():
@@ -121,10 +131,10 @@ func test_streets_and_the_start_square_are_where_the_props_expect() -> void:
 
 
 func test_the_facing_turns_each_block_toward_the_start_along_its_far_axis() -> void:
-	assert_vector(TownLayout.facing(Vector3(22, 1, -44))).is_equal(Vector3(0, 0, 1))
-	assert_vector(TownLayout.facing(Vector3(0, 1, 44))).is_equal(Vector3(0, 0, -1))
-	assert_vector(TownLayout.facing(Vector3(44, 1, 0))).is_equal(Vector3(-1, 0, 0))
-	assert_vector(TownLayout.facing(Vector3(-22, 1, 0))).is_equal(Vector3(1, 0, 0))
+	assert_vector(TownLayout.facing(Vector3(27, 1, -51))).is_equal(Vector3(0, 0, 1))
+	assert_vector(TownLayout.facing(Vector3(0, 1, 51))).is_equal(Vector3(0, 0, -1))
+	assert_vector(TownLayout.facing(Vector3(51, 1, 0))).is_equal(Vector3(-1, 0, 0))
+	assert_vector(TownLayout.facing(Vector3(-27, 1, 0))).is_equal(Vector3(1, 0, 0))
 	assert_float(TownLayout.yaw_toward(Vector3(0, 0, 1))).is_equal_approx(0.0, 0.001)
 	assert_float(TownLayout.yaw_toward(Vector3(1, 0, 0))).is_equal_approx(PI / 2.0, 0.001)
 	assert_vector(TownLayout.facing(Vector3(0, 1, 0))).is_equal(Vector3(0, 0, 1))

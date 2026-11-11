@@ -162,7 +162,6 @@ def analyse(events, quiet_window=5.0):
         "first_light_starts": [e for e in real if e["type"] == "first_light_start"],
         "first_light_ends": [e for e in real if e["type"] == "first_light_end"],
         "win": next((e for e in real if e["type"] == "win"), None),
-        "embrace_events": [e for e in real if e["type"].startswith("embrace_")],
         "real": real,  # Round 25: the TIDES section reads the events between a tide's start and end.
     }
 
@@ -259,8 +258,6 @@ def report(res, folder):
     for e in lm_events:
         add("  t=%.0f s  %s %s (%s held)" % (e["t"], e.get("name"), e["type"].split("_")[1], e.get("held")))
     for block in pressure_curve_lines(res) + tide_lines(res) + block_lines(res) + gate_lines(res) + mark_lines(res):
-        add(block)
-    for block in embrace_lines(res):
         add(block)
     win = res["win"]
     if win:
@@ -463,7 +460,9 @@ def compare_main(argv):
 
 # ---- Walls and gates: BLOCKS, GATES and MARKS (#59, #60, #61) --------------------------------------------------------
 # Events: take, take_refused, pip, cell_ready, auto_join, gate_break, gate_hold, mark, screenshot (with `cause`).
-REFUSAL_REASONS = ("spirit_short", "people_short", "not_next", "cancelled")
+# Grid fixes: people_short is gone (people never refuse a take) and not_next split into not_next and already_held; old
+# recordings still hold people_short and auto_join events, so both are read and shown.
+REFUSAL_REASONS = ("spirit_short", "people_short", "not_next", "already_held", "cancelled")
 MARK_WINDOW = 10.0  # seconds either side of a mark whose events are listed
 
 
@@ -586,19 +585,6 @@ def mark_lines(res):
         for e in near:
             lines.append("    t=%.1f s  %s%s" % (e["t"], e["type"], shot_note(shots, e)))
     return lines
-
-
-# ---- Round 25 part S: the EMBRACE section (events embrace_start, embrace_lift, embrace_rescue) ---------------------
-def embrace_lines(res):
-    """One EMBRACE line: embraces begun, stage lifts, rescues and the mean seconds from the start to the rescue."""
-    events = res.get("embrace_events", [])
-    starts = [e for e in events if e["type"] == "embrace_start"]
-    lifts = [e for e in events if e["type"] == "embrace_lift"]
-    rescues = [e for e in events if e["type"] == "embrace_rescue"]
-    seconds = [e["seconds"] for e in rescues if "seconds" in e]
-    mean = "%.1f s" % statistics.fmean(seconds) if seconds else "n/a"
-    return ["EMBRACE (round 25): %d begun, %d stage lifts, %d rescues, mean time to rescue %s" % (
-        len(starts), len(lifts), len(rescues), mean)]
 
 
 def cli(argv=None):

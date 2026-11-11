@@ -6,6 +6,8 @@ extends RefCounted
 # inner members and stand on the zone's open ground. It reads and writes the state of the Border that owns it (`b`).
 
 var b: Border
+# Grid fixes (#56): the members each gate has now (gate order); each gate's need is zone.gates[g]["need"].
+var gate_counts: Array[int] = []
 # Person -> {"g": gate index, "s": slot, "c": members on that gate}, kept while the rescued and the zone stay the same.
 var _assigned: Dictionary = {}
 var _signature := PackedInt64Array()
@@ -25,6 +27,7 @@ func assign_members(rescued: Array[Person]) -> void:
 	b.inner_count = 0
 	b.spacing = 0.0
 	b.slot_count = 0
+	gate_counts.clear()
 	if not b.active or b.polygon.size() < 3:
 		_assigned.clear()
 		_signature = PackedInt64Array()
@@ -36,6 +39,7 @@ func assign_members(rescued: Array[Person]) -> void:
 	b.slot_count = b.zone.members_needed()
 	var m := mini(rescued.size(), b.slot_count)
 	var counts := share_out(needs, m)
+	gate_counts = counts
 	var sig := PackedInt64Array([b.zone.version, m])
 	for p: Person in rescued:
 		sig.append(p.get_instance_id())

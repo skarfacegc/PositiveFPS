@@ -3,10 +3,10 @@ extends GdUnitTestSuite
 
 # Round 26, physical push (BorderPush), on gates since 0.4 (#56): dimmed people leaning on a gate and the tide's wave
 # push it inward, the dent deepens and springs back, joy and the burst calm a spot, past a depth the gate breaks, and a
-# break mends. Walls hold firm. Scene-free: a bare Border holding the start square (four 12 m gates, a point every
-# 2 m, so the east gate is the line x = 6) and no frames.
+# break mends. Walls hold firm. Scene-free: a bare Border holding the start square (four 18 m gates, a point every
+# 2 m, so the east gate is the line x = 9) and no frames.
 
-const R := 6.0
+const R := 9.0
 const DT := 1.0 / 60.0
 const EAST_BLOCK := Vector2i(3, 2)
 
@@ -56,9 +56,9 @@ func _west(border: Border) -> int:
 
 func test_the_traced_line_has_a_point_every_two_metres_along_each_gate() -> void:
 	var border := _border()
-	assert_int(border.point_count()).is_equal(24)
-	assert_int(border.polygon.size()).is_equal(24)
-	assert_float(border.perimeter).is_equal(48.0)
+	assert_int(border.point_count()).is_equal(36)
+	assert_int(border.polygon.size()).is_equal(36)
+	assert_float(border.perimeter).is_equal(72.0)
 	assert_bool(border.point_dentable(_east(border))).is_true()
 	assert_bool(border.is_wall(_east(border))).is_false()
 	assert_int(border.segment_gate(_east(border))).is_greater_equal(0)
@@ -75,10 +75,10 @@ func test_a_dimmed_person_leaning_on_a_gate_dents_it_there_and_nowhere_else() ->
 
 func test_a_push_does_not_spread_onto_the_next_gate_round_the_corner() -> void:
 	var border := _border()
-	var people: Array[Person] = [_pusher(Vector3(R + 0.8, 0.0, 3.6))]  # Near the south end of the east gate.
+	var people: Array[Person] = [_pusher(Vector3(R + 0.8, 0.0, 5.6))]  # Near the south end of the east gate.
 	_run(border, people, 3.0)
 	var south := border.push.sample_of(Vector3(2.0, 0.0, R))
-	assert_float(border.push.dent[border.push.sample_of(Vector3(R, 0.0, 4.0))]).is_greater(0.3)
+	assert_float(border.push.dent[border.push.sample_of(Vector3(R, 0.0, 5.0))]).is_greater(0.3)
 	assert_float(border.push.dent[south]).is_equal(0.0)
 
 
@@ -200,7 +200,7 @@ func test_past_the_depth_limit_the_gate_snaps_once_and_tells_the_border() -> voi
 func test_a_break_stays_on_its_own_gate_even_at_the_gates_end() -> void:
 	var border := _border()
 	var nobody: Array[Person] = []
-	var last := border.push.sample_of(Vector3(R, 0.0, 4.0))  # The east gate's last point (its corner is the next gate's).
+	var last := border.push.sample_of(Vector3(R, 0.0, 7.0))  # The east gate's last point (its corner is the next gate's).
 	border.push.dent[last] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	_run(border, nobody, 0.05)
 	assert_int(border.push.breaks.size()).is_equal(1)
@@ -257,7 +257,8 @@ func test_pushers_walk_through_a_break_and_push_nothing_there() -> void:
 func test_the_tide_wave_pushes_the_gates_on_the_side_it_comes_from() -> void:
 	var border := _border()
 	var nobody: Array[Person] = []
-	border.push.set_wave(0.0, NightConfig.TIDE_HALF_WIDTH, NightConfig.TIDE_PUSH)
+	# The wave is centred on the angle of the east gate's middle point (the gate has no point exactly due east).
+	border.push.set_wave(border.point_angle(_east(border)), NightConfig.TIDE_HALF_WIDTH, NightConfig.TIDE_PUSH)
 	assert_float(border.push.wave[_east(border)]).is_equal_approx(NightConfig.TIDE_PUSH, 0.001)
 	assert_float(border.push.wave[_west(border)]).is_equal(0.0)
 	_run(border, nobody, 1.0)
@@ -280,7 +281,7 @@ func test_walls_take_no_dent_from_the_tide_and_nobody_leans_on_them() -> void:
 	border.push.reset()
 	border.push.clear_wave()
 	# Beside the block's east face (a wall): within lean range, but nothing leans.
-	var people: Array[Person] = [_pusher(Vector3(28.8, 0.0, 0.0))]
+	var people: Array[Person] = [_pusher(Vector3(33.8, 0.0, 0.0))]
 	_run(border, people, 2.0)
 	assert_int(border.push.pushers).is_equal(0)
 	assert_float(border.push.deepest).is_equal(0.0)
@@ -339,11 +340,11 @@ func test_the_border_bends_its_line_inward_where_a_gate_is_dented_and_a_flat_lin
 	border.members.clear()
 	border.update(rescued, DT, 1.0)
 	var flat := border.polygon.duplicate()
-	assert_int(flat.size()).is_equal(24)
+	assert_int(flat.size()).is_equal(36)
 	var i := _east(border)
 	border.push.dent[i] = 1.0
 	border.update(rescued, DT, 1.0)
-	assert_float(border.polygon[i].x).is_less(flat[i].x - 0.5)  # Shoved in from x = 6.
+	assert_float(border.polygon[i].x).is_less(flat[i].x - 0.5)  # Shoved in from x = 9.
 	assert_float(border.polygon[i].y).is_equal_approx(flat[i].y, 0.01)
 	var far := _west(border)
 	assert_float(border.polygon[far].distance_to(flat[far])).is_less(0.2)
@@ -367,7 +368,7 @@ func test_a_gates_corner_points_do_not_move_so_the_line_stays_joined_to_its_neig
 func test_a_dent_and_a_break_follow_their_gate_when_the_zone_changes_and_go_when_the_gate_does() -> void:
 	var border := _border()
 	var nobody: Array[Person] = []
-	var north := border.push.sample_of(Vector3(0.0, 0.0, -R))
+	var north := border.push.sample_of(Vector3(1.0, 0.0, -R))  # (The north gate has points at odd x.)
 	var east := _east(border)
 	border.push.dent[north] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	border.push.dent[east] = 1.0
@@ -381,13 +382,13 @@ func test_a_dent_and_a_break_follow_their_gate_when_the_zone_changes_and_go_when
 	# (The dented polygon has moved that point in, so find it in the traced line itself.)
 	var north_after := 0
 	for i: int in range(border.point_count()):
-		if border._base[i].distance_to(Vector2(0.0, -R)) < 0.01:
+		if border._base[i].distance_to(Vector2(1.0, -R)) < 0.01:
 			north_after = i
 	assert_bool(border.push.segment_broken(north_after)).is_true()
 	assert_float(border.push.dent[north_after]).is_greater(PushConfig.PUSH_BREAK_DEPTH - 0.5)
 	# The old east gate is gone: nothing carries a dent at its former spot (and no point of the line is there now).
 	for i: int in range(border.point_count()):
-		if absf(border._base[i].x - R) < 0.01 and absf(border._base[i].y) < 5.99:
+		if absf(border._base[i].x - R) < 0.01 and absf(border._base[i].y) < R - 0.01:
 			assert_float(border.push.dent[i]).is_equal(0.0)
 
 

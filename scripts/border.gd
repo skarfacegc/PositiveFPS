@@ -151,6 +151,7 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 		formed = true
 		if _built_version != zone.version:
 			_trace()
+			polygon = _base.duplicate()  # The old polygon no longer fits the points the push works on (a lost cell).
 		push.update(people, delta, strength)  # Round 26: pushed by what is outside; the dent goes into the line below.
 		polygon = _dented()
 		_mark_gaps()
@@ -171,7 +172,7 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 		_update_debug_labels()
 
 
-# A rescued person was made: the cell they belong to fills a pip, and joins the zone at TAKE_RESCUES (RescuePips).
+# A rescued person was made: the cell they belong to fills a pip (RescuePips); the cell never joins by itself.
 func on_rescue(p: Person) -> void:
 	pips.on_rescue(zone, p.position)
 
@@ -315,6 +316,46 @@ func out_at(pos: Vector3) -> Vector2:
 # The members the gates ask for together.
 func required_members() -> int:
 	return zone.members_needed()
+
+
+# Walls and gates: Grid fixes (#56). The members gate `g` has now (the people are shared out thinly when short).
+func gate_member_count(g: int) -> int:
+	if g < 0 or g >= _slots.gate_counts.size():
+		return 0
+	return _slots.gate_counts[g]
+
+
+# How bent gate `g` is at its deepest point (0 flat to 1 at the break depth) and where that point is on the dented line:
+# {"bend": float, "at": Vector3}. A gate that is not on the line now gives bend 0.
+func gate_deepest(g: int) -> Dictionary:
+	var out := {"bend": 0.0, "at": Vector3.ZERO}
+	if g < 0 or g >= _gate_first.size() or _gate_first[g] < 0 or polygon.size() < 3:
+		return out
+	var best_k := 0
+	var best := -1.0
+	for k: int in range(_gate_points[g]):
+		var bend := push.bend_of_point(_gate_first[g] + k)
+		if bend > best:
+			best = bend
+			best_k = k
+	var p := polygon[(_gate_first[g] + best_k) % polygon.size()]
+	out["bend"] = maxf(best, 0.0)
+	out["at"] = Vector3(p.x, 0.0, p.y)
+	return out
+
+
+# The gates bent to `from` (a share of the break depth) or more, as gate_deepest dictionaries plus "gate" (the index).
+func pressed_gates(from: float) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if not active:
+		return out
+	for g: int in range(zone.gates.size()):
+		var d := gate_deepest(g)
+		var bend: float = d["bend"]
+		if bend >= from and bend > 0.0:
+			d["gate"] = g
+			out.append(d)
+	return out
 
 
 # ---- Reading the line

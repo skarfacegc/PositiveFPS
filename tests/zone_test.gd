@@ -39,12 +39,12 @@ func test_the_zone_starts_as_the_start_square_with_four_open_sides() -> void:
 	assert_int(z.gates.size()).is_equal(4)
 	assert_float(_wall_length(z)).is_equal(0.0)
 	for g: Dictionary in z.gates:
-		assert_float(g["length"] as float).is_equal(12.0)
-		assert_int(g["need"] as int).is_equal(4)  # 12 m over 3.7 m: an open square side asks for 4.
-	assert_int(z.members_needed()).is_equal(16)
+		assert_float(g["length"] as float).is_equal(18.0)
+		assert_int(g["need"] as int).is_equal(5)  # 18 m over 3.7 m: the start square's side asks for 5.
+	assert_int(z.members_needed()).is_equal(20)
 	assert_vector(z.centre()).is_equal(Vector3.ZERO)
 	assert_bool(z.contains(Vector3(5, 0, 5))).is_true()
-	assert_bool(z.contains(Vector3(7, 0, 0))).is_false()
+	assert_bool(z.contains(Vector3(12, 0, 0))).is_false()
 
 
 func test_gate_normals_point_out_of_the_zone() -> void:
@@ -76,25 +76,25 @@ func test_taking_a_block_adds_walls_a_street_between_and_two_street_mouths() -> 
 	assert_int(added.size()).is_equal(1)
 	assert_int(z.version).is_greater(before)
 	assert_int(z.held.size()).is_equal(2)
-	assert_bool(z.contains(Vector3(11, 0, 0))).is_true()  # The street piece between the two held cells.
-	assert_bool(z.contains(Vector3(22, 0, 0))).is_true()
-	# Gates: the start square's west, north and south sides, and the street's north and south mouths.
+	assert_bool(z.contains(Vector3(15, 0, 0))).is_true()  # The street piece between the two held cells.
+	assert_bool(z.contains(Vector3(27, 0, 0))).is_true()
+	# Gates: the start square's west, north and south sides (18 m), and the street's north and south mouths (12 m).
 	assert_int(z.gates.size()).is_equal(5)
-	assert_float(_gate_length(z)).is_equal(12.0 + 12.0 + 12.0 + 10.0 + 10.0)
-	assert_int(z.members_needed()).is_equal(4 + 4 + 4 + 3 + 3)  # The street mouths ask for 3, a square side 4.
-	# Walls: the block's three outer faces, 12 m each.
-	assert_float(_wall_length(z)).is_equal(36.0)
+	assert_float(_gate_length(z)).is_equal(18.0 + 18.0 + 18.0 + 12.0 + 12.0)
+	assert_int(z.members_needed()).is_equal(5 + 5 + 5 + 4 + 4)  # The street mouths ask for 4, a start side 5.
+	# Walls: the block's three outer faces (12 + 18 + 12 m).
+	assert_float(_wall_length(z)).is_equal(42.0)
 	for run: Dictionary in z.runs:
 		if not run["gate"]:
 			var a: Vector2 = run["a"]
-			assert_float(a.x).is_greater_equal(16.0 - 0.001)  # Only the block's faces are wall.
+			assert_float(a.x).is_greater_equal(21.0 - 0.001)  # Only the block's faces are wall.
 
 
 func test_a_built_blocks_face_is_a_wall_and_an_open_squares_face_is_a_gate() -> void:
 	var landmark := Vector2i(3, 1)
 	var block := Vector2i(2, 1)
 	var z := _grown([block])  # The block north of the start: its three outer faces are wall, none of them a gate.
-	assert_float(_wall_length(z)).is_equal(36.0)
+	assert_float(_wall_length(z)).is_equal(42.0)
 	for g: Dictionary in z.gates:
 		assert_bool(TownGrid.cell_rect(block).grow(-0.01).has_point(g["mid"] as Vector2)).is_false()
 	z.take(landmark)  # The Bandstand square east of the block: its three outer sides are open, so gates.
@@ -104,7 +104,7 @@ func test_a_built_blocks_face_is_a_wall_and_an_open_squares_face_is_a_gate() -> 
 		if TownGrid.cell_rect(landmark).grow(0.01).has_point(mid):
 			square_gates += 1
 	assert_int(square_gates).is_equal(3)
-	assert_float(_wall_length(z)).is_equal(24.0)  # The block's north and west faces only.
+	assert_float(_wall_length(z)).is_equal(30.0)  # The block's north (18 m) and west (12 m) faces only.
 
 
 func test_the_map_edge_is_a_wall() -> void:
@@ -113,7 +113,8 @@ func test_the_map_edge_is_a_wall() -> void:
 	for run: Dictionary in z.runs:
 		var a: Vector2 = run["a"]
 		var b: Vector2 = run["b"]
-		if is_equal_approx(a.y, -50.0) and is_equal_approx(b.y, -50.0):
+		var edge := -TownGrid.span() * 0.5
+		if is_equal_approx(a.y, edge) and is_equal_approx(b.y, edge):
 			found = true
 			assert_bool(run["gate"] as bool).is_false()
 	assert_bool(found).is_true()
@@ -145,8 +146,8 @@ func test_preview_shows_the_gates_a_change_opens_and_closes_and_changes_nothing(
 	assert_int((p["opened"] as Array).size()).is_equal(2)  # The street's two mouths.
 	assert_int((p["closed"] as Array).size()).is_equal(1)  # The start square's east side.
 	assert_int((p["gates"] as Array).size()).is_equal(5)
-	assert_int(p["members_needed"] as int).is_equal(18)
-	assert_int(p["members_added"] as int).is_equal(2)
+	assert_int(p["members_needed"] as int).is_equal(23)
+	assert_int(p["members_added"] as int).is_equal(3)
 	assert_int((p["cells"] as Array).size()).is_equal(2)
 	assert_int(z.version).is_equal(version)
 	assert_int(z.held.size()).is_equal(1)
@@ -192,7 +193,7 @@ func test_losing_a_cell_loses_what_it_cut_off_and_never_the_start_square() -> vo
 	var p := z2.preview(EAST_BLOCK, false)
 	assert_bool(p["valid"] as bool).is_true()
 	assert_int((p["cells"] as Array).size()).is_equal(1)
-	assert_int(p["members_added"] as int).is_equal(16 - 18)
+	assert_int(p["members_added"] as int).is_equal(20 - 23)
 	assert_bool(z2.preview(TownGrid.start_cell(), false)["valid"] as bool).is_false()
 
 
@@ -237,5 +238,5 @@ func test_the_whole_town_has_no_gates_and_only_wall() -> void:
 				z.take(c)
 	assert_int(z.held.size()).is_equal(25)
 	assert_int(z.gates.size()).is_equal(0)
-	assert_float(_wall_length(z)).is_equal(400.0)
+	assert_float(_wall_length(z)).is_equal(456.0)  # 4 x 114 m.
 	assert_int(z.members_needed()).is_equal(0)

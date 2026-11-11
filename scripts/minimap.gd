@@ -31,6 +31,9 @@ var view_pts := PackedVector2Array()
 # Buildings: each block's footprint (world rectangle) and whether it is beautified (warm).
 var building_rects: Array[Rect2] = []
 var building_warm: Array[bool] = []
+# Grid fixes (#10): the cells you can take now ({"rect": Rect2, "free": bool}, from TakeBlock.mark_rects), drawn over
+# the buildings: bright for a free (ready) cell, cool for a cell that costs spirit.
+var take_marks: Array[Dictionary] = []
 # Round 12b: brief blips where someone just became dimmed: each is {"pos": Vector2, "left": seconds}.
 var blips: Array[Dictionary] = []
 # Round 13b: a marker on each open gap, {"pos": Vector2, "urgency": 0..1}; it grows and brightens with urgency.
@@ -404,6 +407,11 @@ func _render() -> void:
 	_image.copy_from(_base)
 	for i: int in range(building_rects.size()):
 		_fill_rect(building_rects[i], look.building_colour(building_warm[i]))
+	for tm: Dictionary in take_marks:
+		var take_rect: Rect2 = tm["rect"]
+		var take_free: bool = tm["free"]
+		var take_col := HudConfig.MINIMAP_TAKE_FREE_COLOUR if take_free else HudConfig.MINIMAP_TAKE_PAID_COLOUR
+		_fill_rect(take_rect.grow(-HudConfig.MINIMAP_TAKE_INSET), take_col)
 	var n := border_pts.size()
 	for j: int in range(n):
 		var a := border_pts[j]

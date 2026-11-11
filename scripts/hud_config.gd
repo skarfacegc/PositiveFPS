@@ -35,6 +35,11 @@ const OFFSCREEN_ARROW_SIZE := 14.0
 const OFFSCREEN_ARROW_PAD := 16.0
 const MINIMAP_BLIP_SECONDS := 2.5
 const MINIMAP_BLIP_COLOUR := Color(0.7, 0.5, 0.95)
+# Walls and gates: Grid fixes (#10). The cells you can take now, filled on the minimap: warm for a free (ready) cell,
+# cool blue for one that costs spirit; MINIMAP_TAKE_INSET metres in from the cell edge so the walls still show.
+const MINIMAP_TAKE_FREE_COLOUR := Color(1.0, 0.88, 0.4)
+const MINIMAP_TAKE_PAID_COLOUR := Color(0.4, 0.62, 0.95)
+const MINIMAP_TAKE_INSET := 1.0
 
 # Screen-space markers (pixels): the pulsing ring at a faltering person's feet, the progress ring, the "!" badge.
 const FALTER_MARKER_RADIUS := 26.0

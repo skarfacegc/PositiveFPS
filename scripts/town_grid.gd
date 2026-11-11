@@ -15,22 +15,31 @@ static func tiles() -> int:
 	return 2 * TownConfig.TOWN_GRID_CELLS - 1
 
 
-# The side of the whole town in metres (it is the plaza: 5 x 12 + 4 x 10 = 100).
+# The length along an axis of tile `i`: a street, a cell, or (Grid fixes) the start square's wider column or row.
+static func tile_len(i: int) -> float:
+	if i % 2 != 0:
+		return TownConfig.TOWN_STREET_WIDTH
+	if (i >> 1) == TownConfig.TOWN_GRID_CELLS >> 1:
+		return TownConfig.TOWN_START_SIZE
+	return TownConfig.TOWN_CELL_SIZE
+
+
+# The side of the whole town in metres (it is the plaza: 4 x 12 + 18 + 4 x 12 = 114).
 static func span() -> float:
 	var n := float(TownConfig.TOWN_GRID_CELLS)
-	return n * TownConfig.TOWN_CELL_SIZE + (n - 1.0) * TownConfig.TOWN_STREET_WIDTH
+	return (n - 1.0) * (TownConfig.TOWN_CELL_SIZE + TownConfig.TOWN_STREET_WIDTH) + TownConfig.TOWN_START_SIZE
 
 
 # The coordinate where tile `i` starts along an axis (the town is centred on the origin).
 static func tile_lo(i: int) -> float:
 	var at := -span() * 0.5
 	for k: int in range(i):
-		at += TownConfig.TOWN_CELL_SIZE if k % 2 == 0 else TownConfig.TOWN_STREET_WIDTH
+		at += tile_len(k)
 	return at
 
 
 static func tile_hi(i: int) -> float:
-	return tile_lo(i) + (TownConfig.TOWN_CELL_SIZE if i % 2 == 0 else TownConfig.TOWN_STREET_WIDTH)
+	return tile_lo(i) + tile_len(i)
 
 
 # The ground rectangle (x, z) of tile (tx, tz).
@@ -108,11 +117,15 @@ static func block_cells() -> Array[Vector2i]:
 
 # The cell whose middle is nearest to a ground point (an unrescued person belongs to it).
 static func cell_of(pos: Vector3) -> Vector2i:
-	var period := TownConfig.TOWN_CELL_SIZE + TownConfig.TOWN_STREET_WIDTH
-	var shift := span() * 0.5 + TownConfig.TOWN_STREET_WIDTH * 0.5
-	var col := clampi(floori((pos.x + shift) / period), 0, TownConfig.TOWN_GRID_CELLS - 1)
-	var row := clampi(floori((pos.z + shift) / period), 0, TownConfig.TOWN_GRID_CELLS - 1)
-	return Vector2i(col, row)
+	return Vector2i(_cell_along(pos.x), _cell_along(pos.z))
+
+
+# The cell column (or row) a coordinate belongs to: the middle of a street splits it between its two cells.
+static func _cell_along(v: float) -> int:
+	for i: int in range(TownConfig.TOWN_GRID_CELLS - 1):
+		if v < tile_hi(2 * i) + TownConfig.TOWN_STREET_WIDTH * 0.5:
+			return i
+	return TownConfig.TOWN_GRID_CELLS - 1
 
 
 # The tile a ground point lies in (clamped onto the town).

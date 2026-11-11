@@ -58,7 +58,7 @@ const FIRST_LIGHT_TEXT := "First light: dawn is coming in from the edges"  # The
 
 # The dawn front is a circle closing on the plaza centre. It starts at the radius of the plaza's corners (so it covers
 # the whole play area) and reaches 0 at dawn; a person is passed once the front's radius is at or inside their distance.
-const FIRST_LIGHT_START_RADIUS := 71.0  # Metres: just over half the plaza's diagonal (50 x 1.414 = 70.7).
+const FIRST_LIGHT_START_RADIUS := 81.0  # Metres: just over half the plaza's diagonal (57 x 1.414 = 80.6; Grid fixes).
 const FIRST_LIGHT_RING_SEGMENTS := 72  # Straight pieces in the placeholder ring and in the minimap outline.
 
 # Two tides a night: one in the rising phase and one at midnight. Each comes from an angle drawn from the level's seed
