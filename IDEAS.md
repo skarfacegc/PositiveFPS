@@ -162,8 +162,50 @@ Wider world and level progression ideas: see `VISION.md`.
 
 ## Codebase cleanup (2026-11-11 review)
 
-Backlog, no target yet. Found by a read-only review of tests, code, docs and token cost. Small items can go together
-in one Haiku pass; "Lighter tests" and "Styled-look tier" need the user's call on the coverage rule first.
+Found by two read-only reviews of tests, code, docs and token cost (the second, later on 2026-11-11, added #76 to
+#80). **Targeted at 0.4 Walls and gates on 2026-11-11, in this order** (after pass 3, which is being built; the
+tools and docs passes touch no gameplay files, so they can also run while the user plays):
+1. **Cleanup pass A, quick wins** (one Haiku pass): Test timings (#76), Test weights (#63), Stale state (#77),
+   Playtest skill (#78), Search noise (#64), Housekeeping (#65).
+2. **Cleanup pass B, agent docs** (one pass): Coordinator rules (#79), Agent tool notes (#80), Trim docs (#71).
+3. **Lighter tests** (#69, Sonnet), once pass A has refreshed the timings. Rule stepping (#18) serves the same goal:
+   decide then whether it comes first.
+
+Still Backlog, as filler beside playtests: Permissions (#66), History out of code (#67), Unused constants (#68),
+Styled-look tier (#72, needs the user's call on the coverage rule first), the checkpoint scripts (#74).
+
+### Cleanup: Test timings (#76, S)
+`.git/positivefps-test-times.json`, which `run_tests.py` plans from, was last written on 2026-11-09: it holds 15
+deleted suites and nothing for 8 live ones (`take_block_test`, `zone_test`, `border_gates_test`, `gate_marks_test`,
+`border_misc_test`, `style_grid_test`, `recorder_blocks_test`, `recorder_shots_test`). An untimed test counts as 0.5 s,
+so all of them land in the "under 5 s" fast tier on every commit and the parallel plan cannot balance them. Only a
+full plain run writes the file, and a pass ends with coverage runs. Save the times from every full run (plain or
+instrumented, scaled if needed), drop entries for tests that are gone, and cover it in `tools/test_run_tests.py`.
+Do it together with Test weights (#63).
+
+### Cleanup: Stale state (#77, XS)
+"Current state" above has facts that are no longer true: `origin/main` is `3d52b58`, not `fc2a37c`, and local main
+is 47 commits ahead; it points to a "Round 26 build" section "below" that has moved to `IDEAS_RESOLVED.md`; "Watch
+in the next playtest" says 10 m streets (they are 12 m, and `README.md` line 68 says 10 m too); the Recorder line
+says the analyser still reads the old `gap_*` names, but `analyse_recording.py` already maps them; the open items
+say "checked 2026-11-07". Correct each against the code.
+
+### Cleanup: Playtest skill (#78, XS)
+`.claude/skills/launch-playtest/SKILL.md` step 5 tells the coordinator to quote a "PATCH EFFECT" section and to
+summarise "beacons", and calls the sections "round 23 sections"; patches and beacons are gone. Rewrite step 5 from
+what `tools/analyse_recording.py` prints now (its sections for takes, pips, gates and breaks).
+
+### Cleanup: Coordinator rules (#79, S)
+`CLAUDE.md` is 8 KB and every build agent loads it, but about 70% (the board, the target loop, keeping targets
+cheap, parallel builds) is for the coordinating session only. Keep "Rules for every agent", the targets and
+versions summary and the pointers in `CLAUDE.md`; move the rest to a coordinator skill or doc that only the main
+session loads, and remove what the three skills repeat. No rule is dropped or weakened.
+
+### Cleanup: Agent tool notes (#80, XS)
+The brief template sends every agent to ARCHITECTURE.md's "Quality gate and tools", about 30 dense lines, most of
+them about `round_end.py`, the board, the dashboard, `perf_compare.py` and cache internals. Split it into a short
+agent part (own suites, `--check-files`, lint, `godot_run.py`, the source map) and a coordinator part, and stop the
+template restating the `CLAUDE.md` rules it already tells agents to read. Do it with Coordinator rules (#79).
 
 ### Cleanup: Test weights (#63, XS)
 `tools/test_weights.json` has 203 entries for tests that no longer exist (15 whole suites, such as `beacon_test`) and
@@ -225,6 +267,8 @@ first, then the gameplay changes):
   check and the timings are the proof. (Quick wins were done in 0.3.3.)
 - **Pass 2, Grid and Line** and **pass 3, Pressure and Defences:** Walls and gates on the reorganised layout (reshaped
   2026-11-09: the town becomes a grid and the line follows it).
+- **Cleanup passes A and B, then Lighter tests** (added 2026-11-11; #76, #63, #77, #78, #64, #65, then #79, #80,
+  #71, then #69): after pass 3; order and detail in "Codebase cleanup" above.
 - **Rule stepping** (#18) if there is room.
 
 ### Walls and gates: Reorg, code reorganisation (#3, #4)
