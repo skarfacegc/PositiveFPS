@@ -93,14 +93,14 @@ placeholder, `tide_pointer` still is.
 - Pass 2 (walls and gates): does the town now tell you where to look and what to do next? Is 25 spirit or 3 rescues the
   right price for a block? Do solid blocks and 10 m streets feel roomy or cramped? From the tests: two dimmed people
   together break a gate in about 25 to 30 s; one alone never does.
-- Pass 2c: can you tell which cells you can take before pressing E? Is E now the way you grow, and is the price a
-  choice? Does the people count make the cost clear? Can you see which gate is in trouble? Is the first take (23 members
-  needed against 60 people) too steep now that it only warns? Do the wider streets feel better?
+- Pass 3: does a short-handed gate read as thin (people further apart) and does it now need you? Does losing a cell
+  feel fair? Is the surge's warning seen wherever you are, and is one surge enough tension? Are defences worth a member
+  each? After the capture polish (#75): can you tell free from paid, pips, and people free against needed at a glance?
 
 **Recorder:** breaks are logged as `break_open` / `break_close` (#23); the analyser still reads the old `gap_*` names.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
-**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c In review, needs a playtest), then pass 3 (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 (planned 2026-11-11, not built) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -421,6 +421,20 @@ ratchet needed new border and recorder tests after Embrace's tests went (`dc2315
 `recorder_shots_test`; then gate, determinism and baseline passed). Nothing loosened. Not done: the checkpoint
 screenshot scripts in `tools/checkpoint` still use the old coordinates (#74).
 
+**Played 2026-11-11 (`8d14eae`); accepted, Done** (#10, #11, #55, #56, #73). Seed 42, placeholder, win, 3 of 3 dawn
+lights (92% rescued, all 4 landmarks). Against the recorder playtest the same morning: takes 1 to 7 (2 free, 5 paid),
+refusals 23 to 2 (1 `not_next`, 1 `already_held`). Spirit still never limited a take (mean 96 after 125 spent); the 2
+free cells waited 61 s on median (max 112 s) before they were taken. Every take was short of people (the last: 85
+needed, 54 free) with no penalty; 4 breaks, 0 relapses, 0 wobbles, 1 burst.
+- Capture: "mostly clear, needs polish": free vs paid glow, the people-count wording and a cell's pips were hard to
+  read; "wasn't clear how many folks were free to expand and how many more were needed" (#75 in pass 3).
+- The user expanded while gates read 3/5 and assumed spare people float and fill later gates, which is how it works
+  (members fill gates up to their need; the rest stand inside as inner and move to new gates; short, everyone is shared
+  out). Say it on screen (#75).
+- Price: 25 spirit and 3 pips stay (user's call), to be judged again once pass 3 makes over-reaching cost something.
+- Gate cues: "I could tell where pushes were happening, but they weren't anything I had to deal with": pressure is the
+  gap, which pass 3 is for.
+
 **What stays as it is.** Joy, elements and moods; the gloom's phases and arrivals; the burst; spirit and spirit warmth;
 wobble and relapse; first light; the dawn rating; the cue panel and the slim banner; both looks.
 
@@ -428,7 +442,7 @@ wobble and relapse; first light; the dawn rating; the cue panel and the slim ban
 - **Pass 2, Grid and Line** (#55, #56, #10, #11): the smallest playable version of the idea. One Sonnet agent, since
   the grid and the line depend on each other. The two tides keep running, aimed at gates, until pass 3.
   Playtest question: does the town now tell you where to look and what to do next?
-- **Pass 3, Pressure and Defences** (#12, #13, #14, #15, #16): two Sonnet worktree agents, **Pressure** (thin line,
+- **Pass 3, Pressure and Defences** (#12, #13, #14, #15, #16, #75; plan below): two Sonnet worktree agents, **Pressure** (thin line,
   lost cells, the surge) and **Defences** (defences and unlocks, against a small per-gate interface: a strength
   multiplier, a "cannot break" flag and a "cannot be lost" flag). The coordinator merges Pressure first.
 - Tune passes 2 and 3 with bot nights so a compact zone holds and an over-reached one loses cells.
@@ -448,6 +462,57 @@ the right price for a block? Does a thin line read as thin without a meter? Is o
   walk-through keeps more room to move.
 - 25 cells with 20 built blocks, or a smaller 3 by 3 town with wider cells?
 - This also answers #47 (more room to play around the push): the gates are that room. Close #47 once pass 2 is played?
+
+### Walls and gates: Pass 3 plan, Pressure, Defences and capture polish (#12, #13, #14, #15, #16, #75; planned 2026-11-11)
+
+**Why now.** Two pass 2 games were easy wins (3 of 3 lights, 0 relapses, 4 breaks each), the line ran 30 people short
+with no penalty, and the user saw pushes that "weren't anything I had to deal with". Items 5 to 9 of the Grid, Line and
+Defences plan above are the design; this section is how pass 3 builds them, with the defaults to use.
+
+**Two Sonnet worktree agents, merged Pressure first.** Both start from local main (base check in the brief).
+- **Pressure** (#12, #13, #14). Files: `border_slots.gd`, `border_push.gd`, `border.gd`, `zone.gd`, `gloom_tide.gd`
+  (becomes the surge), `night_cycle.gd`, `push_config.gd` / `border_config.gd` / `night_config.gd` (block "Walls and
+  gates: Pressure"), the minimap warning, the recorder events (`cell_lost`, `surge_warn`, `surge_start`, `surge_end`;
+  the analyser's TIDES section becomes SURGE and BLOCKS gains lost cells).
+  - Thin line (#12): a gate's strength follows its fill (members / need): the break depth is
+    `PUSH_BREAK_DEPTH * lerp(THIN_LINE_MIN_STRENGTH 0.5, 1, fill)`, and its members stand evenly along it so a thin gate
+    shows wide spacing. Nothing else reads it (no meter).
+  - Lost cells (#13): a gate broken for `GATE_LOST_SECONDS` 12 loses the held cell behind it (the start square never);
+    the line re-traces, members regroup, that cell's pips reset to 0, a cell the loss cuts off from the start square is
+    lost with it. Nobody relapses from a loss. Banner: "The gloom took a block." with the cell pulse in grey.
+  - One surge (#14) replaces the two tides: warning 40 s (fog gathers at the far end of one street, a minimap mark, the
+    light cools, a banner that reaches the player anywhere), surge 50 s down that street pushing the gate it meets at
+    full strength and the gates either side at half, then an aftermath where arrivals ease. Timed to peak at midnight.
+  - Interface for Defences (agreed up front, both agents code to it): per gate `strength_mult` (default 1),
+    `cannot_break` and `cannot_lose` flags, set through `Border.set_gate_modifiers(g, {...})` and cleared on re-trace
+    by gate id.
+- **Defences and capture polish** (#15, #16, #75). Files: new `defences.gd` + `defence_config.gd`, `controls.gd` (F),
+  `landmarks.gd` (unlocks), `take_block.gd`, `gate_marks.gd`, `minimap.gd`, `hud.gd`/prompt bar, menu how-to-play,
+  README controls.
+  - Defences (#15, #16) as in items 8 and 9 above: hold F, point at a gate, release; one per gate, `DEFENCE_MAX` 4;
+    staffed by the nearest free member (who leaves the line); a type is unlocked by claiming its landmark: Bandstand
+    weakens pushers (`strength_mult` 1.5), Garden `cannot_break`, Gallery `cannot_lose` (both cells beside it), Bell tower
+    rings a free burst at the gate when it is pressed past half the break depth (cooldown 20 s). A defence whose gate
+    closes is handed back. Placeholder look: a simple post shape per type with its landmark's colour.
+  - Capture polish (#75, user's notes): free and paid differ in shape as well as colour (free: a filled cell with a
+    "Free" tag; paid: an outline with "25"); pips are larger and show on every cell next to the zone as "2/3"; one HUD
+    line under the spirit meter says the people plainly, for example "People: 31 on the line, 23 short" or "People: 54
+    on the line, 6 spare"; the take preview says "+5 gates: 18 more people" (or "covered by spare people"). Gate labels
+    keep members/need. Words reviewed for the gloom terms.
+- After the merge: bot nights do not exist yet, so the coordinator checks the balance with two scripted level runs (a
+  compact zone and an over-reached one) in the tests: the compact one must keep its cells through the surge, the
+  over-reached one must lose at least one. If either fails, report the numbers; do not tune thresholds to pass.
+
+**Gate.** Each agent: its own suites and lint, `--check-files` on its scripts; the coordinator runs `round_end.py`
+(rules change: determinism runs). Never loosen a threshold or a `test_perf_*` budget.
+
+**Playtest questions.** Does a thin gate read as thin and does it need you now? Does losing a block feel fair and
+recoverable? Did you see the surge coming from wherever you were, and is one enough? Are defences worth a member and a
+choice between types? Can you tell free from paid and how many people you have to spare?
+
+**Open for the user** (defaults used unless overruled): `GATE_LOST_SECONDS` 12; surge 40 s warning and 50 s push; four
+defences in all; defences cost a member each, no spirit. Close #47 (room to play around the push) now that gates and
+streets give that room?
 
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; after Line and Defences merge, or the next target)
 
