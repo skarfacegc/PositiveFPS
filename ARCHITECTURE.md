@@ -159,6 +159,19 @@ in a `_poll_*`) and call `emit_event("name", {...})`; keep it cheap (nothing per
 - On a merge conflict in `SOURCE_MAP.md`, regenerate it rather than merge.
 
 ## Quality gate and tools
+
+### For build agents
+- Your own suites: `python tools/run_tests.py --suites a_test b_test` (chosen suites only; the round end runs everything).
+  Per-file coverage: `python tools/coverage.py --check-files scripts/x.gd`. Lint: `python tools/lint.py [--fix]` (warns
+  from 950 lines per file).
+- Every scripted Godot run: `python tools/godot_run.py --timeout 120 [--log F] [--gui|--console] -- <cmd...>`, the wrapper
+  for any scripted Godot run (hard timeout, log in `.scratch/godot_run/`, kills only its own child tree, exit 124 = timed out).
+- After any `.gd` change: `python tools/source_map.py` writes `SOURCE_MAP.md` (`--check` exits 1 if stale). Regenerate
+  after any `.gd` change; the commit hook refuses a stale map.
+- Pre-commit hook (installed by `python tools/install_hooks.py`): lint, then the fast test tier. A commit that cannot
+  change a Godot test runs lint and that tool's `tools/test_*.py` only.
+
+### For the coordinator
 - `python tools/gate.py` = lint + all tests (parallel). `--full` = lint + tests with line coverage + ratchet. `--no-cache`
   ignores the result cache (sha256 of the tree in `.git/positivefps-gate-cache.json`) and the saved coverage run.
 - **Pre-commit hook = `gate.py --hook`:** lint + the fast tier (`run_tests.py --tier fast`: every test under 5 s, plus the
@@ -179,9 +192,6 @@ in a `_poll_*`) and call `emit_event("name", {...})`; keep it cheap (nothing per
   does not run the ratchet. Never lower `coverage_baseline.json`.
 - `test_perf_*` tests run serially and uninstrumented after the parallel batch (in `run_tests.py`, and via `run_tests.py --perf-only` after the coverage run in `--full`).
   With `POSITIVEFPS_PARALLEL_PART=1` the plain tier and the hook skip that pass; `gate.py --full` ignores the variable.
-- Part agents: `python tools/run_tests.py --suites a_test b_test` (chosen suites), `python tools/coverage.py --check-files scripts/x.gd` (per-file coverage), `python tools/lint.py [--fix]` (warns from 950 lines per file).
-- `python tools/source_map.py` writes `SOURCE_MAP.md` (`--check` exits 1 if stale; the hook runs it when a `.gd` file or the map is staged). Regenerate after any `.gd` change.
-- `python tools/godot_run.py --timeout 120 [--log F] [--gui|--console] -- <cmd...>`: wrapper for any scripted Godot run (hard timeout, log in `.scratch/godot_run/`, kills only its own child tree, exit 124 = timed out).
 - `python tools/perf_compare.py A B [--rounds N]`: alternating serial `--perf-only` runs of two commits or folders; prints per-test statistics.
 - `python tools/analyse_recording.py [--compare A B ...]`: analyse recordings (recordings under 10 s skipped unless `--include-restarts`).
 - `python tools/checkpoint_shots.py`: checkpoint renders (see Looks). `python tools/cleanup_worktrees.py`: removes stale worktrees and orphan `.claude/worktrees/agent-*` folders. `python tools/agent_dashboard.py [--port] [--session]`: read-only page of subagent status. `python tools/install_hooks.py`: installs the hook.

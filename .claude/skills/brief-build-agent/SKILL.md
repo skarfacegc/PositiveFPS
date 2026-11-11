@@ -16,7 +16,7 @@ the BASE CHECK block with local main's hash. Worktree agents start from `origin/
 ## Template
 
 ```
-PositiveFPS (Godot 4.7.2 GDScript with Python tools). Read CLAUDE.md, then only ARCHITECTURE.md's "Known gotchas", "Quality gate and tools" and your area's line under "Areas" (not the whole file); your task is
+PositiveFPS (Godot 4.7.2 GDScript with Python tools). Read CLAUDE.md (its rules are yours), then only ARCHITECTURE.md's "Known gotchas", "Quality gate and tools" ("For build agents" part only) and your area's line under "Areas" (not the whole file); your task is
 "<target>: <part>" in IDEAS.md (board issues <#N, #M>). <One or two sentences on what to build and the numbers to use.>
 To find code, search SOURCE_MAP.md first (every script's public functions with line numbers), then Read only the
 lines you need. Do not read whole scripts, and do not read all of IDEAS.md: its "Current state" section and your
@@ -38,11 +38,6 @@ floor (only those suites ran). Do not run the baseline update.               <- 
 Run `python tools/gate.py` and wait for it in the foreground before you report.  <- single agent
 A tools-only or docs-only change (no scripts/, tests/, scenes or test tooling): do not run gate.py, which runs every
 Godot suite. The commit hook is the gate there: lint plus the changed tool's tools/test_*.py.  <- tools/docs only
-
-Rules (CLAUDE.md has the full list): temp files only in .scratch/; never kill a process you did not start (a playtest
-window may be open); if a safety check denies a command, stop and report; never loosen a test threshold or a test_perf_*
-budget (stop and report); gameplay work changes only the placeholder look; never edit the GitHub board or issues; player-facing words are wistful / gloomy /
-dimmed.
 
 Tools: view file lines with the Read tool (offset/limit), never shell loops, sed, head/tail or pipes; create and edit
 files only with Read/Edit/Write, never shell scripts or heredocs; run shell commands as plain single commands from your
