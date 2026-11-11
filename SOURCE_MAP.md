@@ -179,10 +179,10 @@ extends RefCounted | 0 const | Round 25 (edge cleanup): dimmed people who are st
 ### scripts/edge_ribbon.gd (EdgeRibbon)
 extends RefCounted | 0 const | Round 25 (edge cleanup): the border drawn as ribbons. The pure maths lives here and both border looks only...
 - L14 `static strain_map(border: Border) -> Dictionary[Person, float]` - Strain per member (Person -> 0..1): how far the line is bent at them, 1 while they wobble.
-- L22 `static build(border: Border) -> Array[EdgeStrip]` - The ribbon's strips.
-- L66 `static width_for(strain: float) -> float` - Width of a ribbon point: full when healthy, EDGE_RIBBON_THIN of it at full strain.
-- L72 `static colour_for(strain: float, seal: float = 0.0) -> Color` - Colour of a ribbon point: gold, amber from about half strain, coral at full; a wall tends to honey.
-- L84 `static mesh_arrays(strips: Array[EdgeStrip], y: float, alpha: float, halo: float = 1.0) -> Array` - Triangles for a set of strips as mesh arrays (Mesh.ARRAY_*), flat at height `y`, `alpha` on every colour. `...
+- L23 `static build(border: Border, gates_only: bool = false) -> Array[EdgeStrip]` - The ribbon's strips. With `gates_only` (the styled look, #58) the walls are left out like breaks: a wall is...
+- L72 `static width_for(strain: float) -> float` - Width of a ribbon point: full when healthy, EDGE_RIBBON_THIN of it at full strain.
+- L78 `static colour_for(strain: float, seal: float = 0.0) -> Color` - Colour of a ribbon point: gold, amber from about half strain, coral at full; a wall tends to honey.
+- L90 `static mesh_arrays(strips: Array[EdgeStrip], y: float, alpha: float, halo: float = 1.0) -> Array` - Triangles for a set of strips as mesh arrays (Mesh.ARRAY_*), flat at height `y`, `alpha` on every colour. `...
 
 ### scripts/edge_strip.gd (EdgeStrip)
 extends RefCounted | 0 const | Round 25: one unbroken run of the border ribbon (see EdgeRibbon). The arrays are parallel: one entry per po...
@@ -408,18 +408,18 @@ extends RefCounted | 0 const | F4: switches the level to `new_mode` (Looks.Mode)
 
 ### scripts/looks/border_look.gd (BorderLook)
 extends Node3D | 0 const | The look of the living border. The rules (border.gd) own the loop, the members and the gaps; this node read...
-- L14 `setup(border: Border) -> void`
-- L20 `is_styled() -> bool` - True for the styled look.
-- L25 `refresh() -> void` - Redraws from the border's current state. Called by the border every update.
+- L16 `setup(border: Border) -> void`
+- L22 `is_styled() -> bool` - True for the styled look.
+- L27 `refresh() -> void` - Redraws from the border's current state. Called by the border every update.
 
 ### scripts/looks/border_look_placeholder.gd (BorderLookPlaceholder)
 extends BorderLook | 0 const | The placeholder border (round 25): one flat ribbon through the members. Gold when healthy, amber when strai...
 - L14 `refresh() -> void`
 
 ### scripts/looks/border_look_styled.gd (BorderLookStyled)
-extends BorderLook | 4 const | The styled border (round 25): one ribbon through the members, a solid core with a soft halo (shaders/style_...
-- L22 `is_styled() -> bool`
-- L26 `refresh() -> void`
+extends BorderLook | 4 const | 0.4 (#58): the ribbon is the gates alone; a wall is a low hedge with small lamps (StyleHedge), so the two r...
+- L25 `is_styled() -> bool`
+- L29 `refresh() -> void`
 
 ### scripts/looks/building_look.gd (BuildingLook)
 extends Node3D | 0 const | The look of one block the border can beautify. The rules (building.gd) own the inside time, the tint, `beau...
@@ -432,9 +432,9 @@ extends BuildingLook | 0 const | The placeholder block: a plain box whose colour
 - L9 `sync(_delta: float = 0.0) -> void`
 
 ### scripts/looks/building_look_styled.gd (BuildingLookStyled)
-extends BuildingLook | 4 const | The styled block: an industrial building (steel, pipes, vents) and, built the first time it is needed, the...
-- L23 `is_styled() -> bool`
-- L27 `sync(_delta: float = 0.0) -> void`
+extends BuildingLook | 0 const | The styled block (0.4 pass 2b, #58): a tight group of small houses that fills the town cell (StyleHouses):...
+- L17 `is_styled() -> bool`
+- L21 `sync(_delta: float = 0.0) -> void`
 
 ### scripts/looks/embrace_cue.gd (EmbraceCue)
 extends Node3D | 0 const | Round 25 part S: the placeholder cue on a person being embraced (see Embrace): a warm glow disc on the grou...
@@ -556,19 +556,19 @@ extends MinimapLook | 5 const | The styled minimap (per REVIEW_NOTES): a round p
 - L32 `static warm_amount(weight: float) -> float` - How warm a tile of paint `weight` is drawn (0 grey .. 1 fully warm): any paint shows, and it is fully warm...
 - L38 `building_colour(warm: bool) -> Color`
 - L42 `line_colour(is_gap: bool) -> Color`
-- L49 `seal_colour() -> Color` - Round 16: the stretch closed by the map edge is a thicker, deeper honey line (the same honey as the world l...
-- L53 `seal_width() -> int`
-- L59 `member_colour(wobble_pulse: float = -1.0) -> Color` - Checkpoint 5: a wobbling person (`wobble_pulse` 0 to 1) is a warm orange-amber blip, outlined in ink like t...
-- L67 `dimmed_colour() -> Color`
-- L71 `landmark_colour() -> Color`
-- L76 `landmark_state_colour(held: bool) -> Color` - Graphics checkpoint 3: a held landmark is a gold star (with its ring); one not yet held is a dimmed grey-vi...
-- L81 `cloud_colour() -> Color` - Graphics checkpoint 4: the people clouds are a dusk violet mist that shows on both the grey and the warm gr...
-- L87 `first_light(part: String, col: Color, px: int, py: int) -> Color` - Graphics checkpoint 5: first light. The lit ground behind the front takes a warm gold wash, matching the wo...
-- L96 `player_colour() -> Color`
-- L100 `view_colour() -> Color`
-- L104 `halo_colour(kind: String) -> Color`
-- L108 `draw_back(ctl: Control) -> void`
-- L112 `draw_frame(ctl: Control) -> void`
+- L48 `seal_colour() -> Color` - 0.4 (#58): a wall (the face of a held block) is a thicker leaf-green line, the colour of the world's hedge,...
+- L52 `seal_width() -> int`
+- L58 `member_colour(wobble_pulse: float = -1.0) -> Color` - Checkpoint 5: a wobbling person (`wobble_pulse` 0 to 1) is a warm orange-amber blip, outlined in ink like t...
+- L66 `dimmed_colour() -> Color`
+- L70 `landmark_colour() -> Color`
+- L75 `landmark_state_colour(held: bool) -> Color` - Graphics checkpoint 3: a held landmark is a gold star (with its ring); one not yet held is a dimmed grey-vi...
+- L80 `cloud_colour() -> Color` - Graphics checkpoint 4: the people clouds are a dusk violet mist that shows on both the grey and the warm gr...
+- L86 `first_light(part: String, col: Color, px: int, py: int) -> Color` - Graphics checkpoint 5: first light. The lit ground behind the front takes a warm gold wash, matching the wo...
+- L95 `player_colour() -> Color`
+- L99 `view_colour() -> Color`
+- L103 `halo_colour(kind: String) -> Color`
+- L107 `draw_back(ctl: Control) -> void`
+- L111 `draw_frame(ctl: Control) -> void`
 
 ### scripts/looks/person_look.gd (PersonLook)
 extends Node3D | 3 const | The look of one Person. The rules (person.gd) own joy, gloom, rescue and the grace period; this node reads...
@@ -705,6 +705,21 @@ extends RefCounted | 9 const | Graphics checkpoint 3: the pixel bitmaps of the r
 - L216 `static landmark_palette(index: int, held: bool) -> Dictionary` - A landmark's icon colours: lit when held, grey when not.
 - L229 `static landmark_rows(index: int) -> Array[String]` - The bitmap rows of a landmark's icon.
 
+### scripts/looks/style_hedge.gd (StyleHedge)
+extends RefCounted | 11 const | 0.4 pass 2b (#58): the styled wall. A wall run of the zone's line (the face of a held built block) is a low...
+- L24 `static plan(runs: Array[Dictionary]) -> Array[Dictionary]` - The hedges of a zone's runs: [{"a": Vector2, "b": Vector2, "len": float}] along the street side of every wa...
+- L43 `static on_map_edge(a: Vector2, b: Vector2) -> bool` - True when a run lies along the edge of the map (both ends on the same outer line).
+- L52 `static lamp_count(length: float) -> int` - How many lamps a hedge of `length` metres carries.
+- L57 `static build(parent: Node3D, plan_list: Array[Dictionary]) -> void` - Builds the hedges of `plan_list` under `parent`.
+
+### scripts/looks/style_houses.gd (StyleHouses)
+extends RefCounted | 10 const | 0.4 pass 2b (#58): the styled built block. A town cell is not one building but a tight group of small house...
+- L26 `static layout(width: float, depth: float, seed_idx: int) -> Array[Dictionary]` - The houses of one block: five Dictionaries {"pos": Vector3 (x, 0, z), "w", "d", "h", "yaw", "idx"}, filling a
+- L54 `static unit_hash(k: int) -> float` - A steady 0..1 number for `k` (the same on every run).
+- L59 `static mesh_count(industrial: bool, houses: int = 5) -> int` - How many meshes a version of a block holds (tests and the budget read this).
+- L64 `static build_industrial(p: Node3D, houses: Array[Dictionary]) -> void` - Builds the grey industrial group under `p` (origin at the middle of the base).
+- L81 `static build_whimsical(p: Node3D, houses: Array[Dictionary]) -> void` - Builds the whimsical group under `p`: plaster, a gable roof, a coloured door and a lit window on every house.
+
 ### scripts/looks/style_hud.gd (StyleHud)
 extends RefCounted | 3 const | Graphics checkpoint 2: the styled drawing of the spirit meter, the prompt bar and the off-screen gap arrows...
 - L16 `static align(ci: Control, c: float) -> void` - Puts the control's local origin on the window's cell grid, so its cells line up with the pixels of the 3D v...
@@ -784,6 +799,12 @@ extends RefCounted | 1 const | The styled gloom tide. 0.3.1: the wave is a low, 
 - L109 `static puff_count(fog: Node3D) -> int` - How many puffs `fog` shows now.
 - L114 `static current_length(fog: Node3D) -> float` - The length `fog` is laid out for now.
 - L123 `static build_figure(parent: Node3D) -> Node3D` - One figure: a dark pixel body with a round head, standing on its origin (the base). The sway sets its posit...
+
+### scripts/looks/style_take.gd (StyleTake)
+extends RefCounted | 13 const | 0.4 pass 2b (#58): the styled "take a block" preview and rescue pips, in the same toon and glow materials a...
+- L27 `static build(root: Node3D, show: bool, rect: Rect2, opened: Array[Dictionary], cells: Array[Dictionary]) -> void` - Builds the preview (when `show`) and the pips under `root`. `rect` is the cell pointed at, `opened` the gat...
+- L38 `static pip_spots(centre: Vector3, total: int) -> Array[Vector3]` - The positions of the `total` pips of a cell about its centre (a row across it, along x).
+- L46 `static gate_spots(a: Vector2, b: Vector2) -> Array[Vector2]` - The lamp spots along the gate from `a` to `b` (ground points): one every GATE_LAMP_STEP metres, at least two.
 
 ### scripts/looks/style_target.gd (StyleTarget)
 extends RefCounted | 2 const | Checkpoint 6: the target highlight in the locked style. The placeholder is a flat warm disc under the targe...
@@ -1006,8 +1027,8 @@ extends RefCounted | 95 const | Styled look numbers (scenery, atmosphere, props,
 
 ### scripts/take_block.gd (TakeBlock)
 extends Node3D | 4 const | Walls and gates: Take a block (E, #10). Hold E and point at a cell: a placeholder outline shows the cell an...
-- L27 `static attach(main: TopDownMain) -> TakeBlock`
-- L69 `take_now(cell: Vector2i) -> bool` - Takes `cell` for the spirit cost, or refuses with the slim banner. Returns true when the cell was taken. A...
+- L30 `static attach(main: TopDownMain) -> TakeBlock`
+- L83 `take_now(cell: Vector2i) -> bool` - Takes `cell` for the spirit cost, or refuses with the slim banner. Returns true when the cell was taken. A...
 
 ### scripts/target_highlight.gd (TargetHighlight)
 extends MeshInstance3D | 0 const | The ring under the target's feet: a flat warm disc (placeholder) or the styled ring (StyleTarget). Hidden w...
@@ -1186,6 +1207,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 - spirit_warmth_test (tests/spirit_warmth_test.gd): 11 tests
 - stage_change_test (tests/stage_change_test.gd): 4 tests
 - stagger_test (tests/stagger_test.gd): 3 tests
+- style_grid_test (tests/style_grid_test.gd): 8 tests
 - style_props_032_test (tests/style_props_032_test.gd): 11 tests
 - style_props_plaza_test (tests/style_props_plaza_test.gd): 8 tests
 - style_scenery_test (tests/style_scenery_test.gd): 19 tests

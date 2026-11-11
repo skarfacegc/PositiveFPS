@@ -9,6 +9,8 @@ extends Node3D
 var subject: Border
 # The ribbon as of the last rebuild (EdgeRibbon.build); tests read it.
 var strips: Array[EdgeStrip] = []
+# The same without the walls (0.4, #58): the gates alone, which the styled look draws as the ribbon (a wall is a hedge).
+var gate_strips: Array[EdgeStrip] = []
 
 
 func setup(border: Border) -> void:
