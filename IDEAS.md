@@ -172,6 +172,27 @@ Guides a Godot style test (round 6 or later). Mockups: design/style_mockups*.htm
 
 Wider world and level progression ideas: see `VISION.md`.
 
+## 0.5 Why expand (sketch; from the #82 design talk, 2026-11-11)
+
+0.4 stays on the mechanics (walls, gates, pressure, defences); this is the content for the next target. The 0.4 pass 3
+playtest showed the problem: expanding costs about 5 gates and 20 people a cell and gives little back (16% ground barely
+moves the dawn rating, landmarks give a joy boost and a defence type), so a compact zone is the sensible play and no
+defence was worth a member. Goal: ground worth holding. Not a plan yet; plan it before building.
+
+- **Residents (#83, M):** each built block shows what it is before it is taken. A house lets its residents out when
+  taken, as wistful people who are easy to rescue; rescued, they join the line, so expanding answers "People short"
+  instead of causing it.
+- **Shops (#84, S):** a held shop (cafe, workshop) gives a small spirit trickle. Points toward the rebuilt-building
+  unlocks in VISION (#28, #29).
+- **Landmark powers (#85, M):** each landmark gives a strong power for the rest of the night: Bandstand, music joy
+  reaches further; Garden, lost cells slowly grow back; Bell tower, half the burst cooldown; Gallery, painted ground
+  pays spirit.
+- **Spirit sinks:** spirit is weak now (only takes at 25 and bursts at 30; the pass 3 game averaged 87.5 spirit), so a
+  trickle needs something to buy: **block upgrades (#86, M)**, spend on a held block (a house gives more people, a shop
+  more spirit); **stronger joy (#87, S)**, spend for a short boost (wider, faster joy).
+- **Not now:** pressure that punishes staying small (unheld blocks dimming their residents into pushers, or rising
+  take costs). The user wants rewards alone tried first.
+
 ## Codebase cleanup (2026-11-11 review)
 
 Found by two read-only reviews of tests, code, docs and token cost (the second, later on 2026-11-11, added #76 to
@@ -593,7 +614,7 @@ no gate in range). Answers:
 - Lost cells: fair, but the surge warning was missed. Wants a sound cue and a much bigger fog visual (#81).
 - Defences: no reason to plant one; capturing ground was already going well. The wider theme is **why expand, what is
   there**: the boosts are thin. To explore in a design conversation first, covering cells that give things, landmarks
-  that matter more, and pressure that punishes staying small (#82).
+  that matter more, and pressure that punishes staying small (#82; talked through 2026-11-11, see "0.5 Why expand").
 - Capture cues: mostly clear, needs polish (no detail given). #75 accepted (Done).
 - #12 to #16 stay In review: they work, refine in the next pass and play again.
 
