@@ -585,6 +585,18 @@ staffed gates.
 defences in all; defences cost a member each, no spirit (all used as built). Close #47 (room to play around the push) now that gates and
 streets give that room?
 
+**Played (2026-11-11, `6af7799`, recording `20261111-165927`).** "A really good round. The direction is solid, needs
+refinement." Win 3/3 dawn lights, 45 rescued (2c: 55), 2 relapses (2c: 0), strict quiet 15.1% (2c: 7.8%). 7 takes
+(3 free, 4 paid, 100 spirit), 2 refusals (not next). The surge came down the south street at 65 s, broke gate 8 and took
+2 cells at 96 s (the Bell tower lost the same second); 3 breaks and 8 holds in all. No defence planted (one F refused,
+no gate in range). Answers:
+- Lost cells: fair, but the surge warning was missed. Wants a sound cue and a much bigger fog visual (#81).
+- Defences: no reason to plant one; capturing ground was already going well. The wider theme is **why expand, what is
+  there**: the boosts are thin. To explore in a design conversation first, covering cells that give things, landmarks
+  that matter more, and pressure that punishes staying small (#82).
+- Capture cues: mostly clear, needs polish (no detail given). #75 accepted (Done).
+- #12 to #16 stay In review: they work, refine in the next pass and play again.
+
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; after Line and Defences merge, or the next target)
 
 Tests are frame-bound: the 2400-frame border test sets the suite's floor. Let people, gloom and border advance on a
