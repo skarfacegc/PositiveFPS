@@ -273,6 +273,15 @@ class WeightsAndWorkersTest(unittest.TestCase):
         finally:
             remove_tree(scratch)
 
+    def test_the_weights_file_keeps_only_the_tests_that_ran(self):
+        ran = [{"file": "a_test", "name": "test_x", "ok": True, "time": 1.26}]
+        self.assertEqual(run_tests.weights_from_results(ran), {"a_test::test_x": 1.3})
+
+    def test_missing_weights_are_the_tests_with_no_duration(self):
+        ran = [{"file": "a_test", "name": "test_x"}, {"file": "a_test", "name": "test_y"}]
+        self.assertEqual(run_tests.missing_weights(ran, {"a_test::test_x": 1.0}), ["a_test::test_y"])
+        self.assertEqual(run_tests.missing_weights(ran, {"a_test::test_x": 1.0, "a_test::test_y": 2.0}), [])
+
     def test_default_workers_leave_cores_free_and_are_capped(self):
         cpus = os.cpu_count() or 2
         self.assertLessEqual(run_tests.WORKERS_DEFAULT, 16)

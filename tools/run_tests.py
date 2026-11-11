@@ -253,6 +253,19 @@ def record_times(results, instrumented=False):
         print("note: could not record the test durations (%s)" % err, flush=True)
 
 
+MISSING_WEIGHT_SHARE = 0.10  # warn when more than this share of the tests has no duration to plan from
+
+
+def weights_from_results(results):
+    """The committed weights of a full run: one entry per test that ran, so tests that are gone drop out."""
+    return {"%s::%s" % (r["file"], r["name"]): round(r["time"], 1) for r in results}
+
+
+def missing_weights(results, weights):
+    """The "suite::test" names of the run's tests that have no duration in `weights` (they count as UNKNOWN_TEST_SECONDS)."""
+    return sorted({"%s::%s" % (r["file"], r["name"]) for r in results} - set(weights))
+
+
 def plan_units(tests, weights, with_perf=True):
     """Splits the suites into units that run in separate Godot processes, heaviest first.
 
@@ -616,6 +629,9 @@ def main():
         if args.perf_only or args.suites or args.update_weights:
             parser.error("--tier fast cannot be combined with --perf-only, --suites or --update-weights")
         selected = fast_selection(project, args.base)
+    if args.update_weights and (args.suites or args.perf_only):
+        parser.error("--update-weights needs a full run: it rewrites the whole file, so it cannot follow --suites or --perf-only")
+    weights_before = load_weights()
     try:
         code, results, report_dir = run_suite(project, workers=args.workers, perf_only=args.perf_only,
                                               problems=problems, suites=args.suites, selected=selected)
@@ -629,11 +645,15 @@ def main():
         return 2
     failed = [r for r in results if not r["ok"]]
     if args.update_weights:
-        weights = {"%s::%s" % (r["file"], r["name"]): round(r["time"], 1) for r in results}
+        weights = weights_from_results(results)
         with open(WEIGHTS_FILE, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(weights, fh, indent=0, sort_keys=True)
             fh.write("\n")
         print("Wrote %s" % WEIGHTS_FILE)
+    gap = missing_weights(results, weights_before)
+    if gap and len(gap) > MISSING_WEIGHT_SHARE * len(results):
+        print("WARNING: %d of %d tests have no duration to plan from (they count as %.1f s); run "
+              "run_tests.py --update-weights. First: %s" % (len(gap), len(results), UNKNOWN_TEST_SECONDS, gap[0]))
     print("")
     broken = (", %d broken or skipped" % len(problems)) if problems else ""
     print("Tests: %d passed, %d failed%s (reports: %s)" % (len(results) - len(failed), len(failed), broken,
