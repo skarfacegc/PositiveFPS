@@ -20,3 +20,6 @@ dist-builds/
 
 # Gameplay recordings (round 18; events.jsonl and screenshots from playtests).
 recordings/
+
+# Checkpoint and pass renders: kept on disk, not in git (the user's decision, #64). Old ones stay in history.
+design/renders/
