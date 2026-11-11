@@ -323,7 +323,8 @@ mostly by rescue pips. The recorder does not log takes yet (cells and gates are 
 - **Space:** the start square is very cramped; overall decent, spread out a little.
 - **Styled grid (#58): works**, accepted.
 
-**Pass 2c, Grid fixes (#55, #56, #10, #11; planned 2026-11-11).** One Sonnet agent.
+**Pass 2c, Grid fixes (#55, #56, #10, #11; planned 2026-11-11).** One Sonnet agent. Builds after Recorder catch-up
+(#59 to #61, below): remove the recorder's `auto_join` emit with auto-join, set `take`'s `free` for a pip-ready take.
 1. **E only, pips show readiness** (#10, #11). Cells never join by themselves. Rescues still fill a cell's pips; a cell
    with full pips (`TAKE_RESCUES` 3) is ready, and taking it with E is free; any other cell next to the zone costs
    `TAKE_SPIRIT_COST` (25). Every change to the line is one the player made.
@@ -368,8 +369,9 @@ the right price for a block? Does a thin line read as thin without a meter? Is o
 
 ### Walls and gates: Recorder catch-up (#59, #60, #61)
 
-**Planned 2026-11-11; builds after Pass 2c Grid fixes is committed** (user's call, 2026-11-11: 2c removes auto-join
-and makes a pip-ready take free, in the same code the recorder hooks into, so this builds on top of it). The recorder (round 18) has turned impressions into numbers
+**Planned 2026-11-11; builds before Pass 2c Grid fixes** (user's call, 2026-11-11), on today's rules: auto-join is
+still logged (`auto_join`) and `take` carries a `free` field that is false until 2c. **2c's agent** removes the
+`auto_join` emit with auto-join, sets `free` for a pip-ready take, and keeps the other recorder events firing. The recorder (round 18) has turned impressions into numbers
 (round 18's "flat" game, the twirl's removal, `--compare`), but it has not followed 0.4: the per-second sample has
 only totals (cells, gates, wall and gate length), there are no events for takes, pips or a single gate, and
 the analyser still prints sections for removed mechanics. 2c's playtest questions (is E the way you grow, is the price
@@ -384,12 +386,13 @@ the recorder tests. The recorder still only listens: no game state changes, no r
   - `take` (by E, with `free` true when the cell's pips were full, the spirit paid, and the people the new gates need
     against the free people) and `take_refused` with the reason (spirit short, people short, not next to the zone,
     cancelled);
-  - `pip` (a rescue fills a pip: cell, pips now) and `cell_ready` (a cell's pips just filled), so the analyser can
-    show how long a ready cell waited before it was taken;
+  - `pip` (a rescue fills a pip: cell, pips now), `cell_ready` (a cell's pips just filled) and `auto_join` (the cell,
+    gates it adds, members available; gone after 2c), so the analyser can show how long a ready cell waited before it
+    was taken, and how the zone grew before 2c;
   - per gate: `gate_break` (gate id, seconds under push, pushers) and `gate_hold` (a push that ended without a break).
   - Sample gains `pips_total`, `ready_cells` and `members_short` (gate slots with nobody on them).
   - Analyser: a **BLOCKS** section (takes free vs paid, refusals by reason, spirit at each take, time between
-    takes, ready cells and how long they waited, takes with too few people) and a **GATES** section (breaks and holds, seconds to break, pushers per
+    takes, ready cells and how long they waited, auto-joins, takes and auto-joins with too few people) and a **GATES** section (breaks and holds, seconds to break, pushers per
     break, breaks per minute by phase). Remove the dead SHAPED ZONE section (stretches, grows, shrinks) and anything
     else that reads events no longer emitted; keep old recordings readable (missing events = empty section).
   - `--compare` gets columns for takes (free / paid), refusals, ready-cell wait and gate breaks.
