@@ -71,7 +71,7 @@ to the menu. **R** restarts the level.
 
 ## The living border
 
-- **The town is a grid (0.4).** Five by five cells of 12 m with 10 m streets between them. The middle cell is the start
+- **The town is a grid (0.4).** Five by five cells of 12 m with 12 m streets between them. The middle cell is the start
   square, the four cells next to it on the diagonals are the landmark squares, and the other twenty are solid built
   blocks that nobody walks through.
 - **The zone is the cells you hold.** It starts as the start square, once three people are rescued. Its line is the

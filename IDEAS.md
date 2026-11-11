@@ -34,7 +34,7 @@ never "dark people". Art is original, technique-level inspiration only.
   painted land inside until the break mends (when no dimmed person is within 5 m and a member near it has had joy since
   it opened, or after 25 s clear; `PUSH_MEND_NEEDS_JOY`). Joy weakens pushers; joy at bending members or a burst (G or Q)
   calms the spot. A member drained too far wobbles about five seconds before relapsing; a joy hit saves them. Relapses are
-  gated (`RELAPSE_GATE_GAP`). Model and open questions: "Round 26 build" below.
+  gated (`RELAPSE_GATE_GAP`). Model and open questions: "Round 26 build: physical push" in `IDEAS_RESOLVED.md`.
 - **Thin line and lost cells (pass 3):** a gate breaks at `PUSH_BREAK_DEPTH` x lerp(0.5, 1, members / need) x its
   defence multiplier, so a short-handed gate breaks at as little as half the dent. A gate broken for 12 s
   (`GATE_LOST_SECONDS`) loses the cell behind it and any cell that loss cuts off (never the start square): the line
@@ -82,7 +82,7 @@ font, not a pixel font (#26). 0.3.1 (done 2026-11-08) changed the push fog to a 
 mist and the ground life, props and ambient life for play zoom, and strung bunting from posts; `tide_fog` is no longer a
 placeholder, `tide_pointer` still is.
 
-**Open items** (each checked against the code on 2026-11-07):
+**Open items** (listed 2026-11-11; each one's issue id is on the board):
 - Gap arrows now sit at the edge of the safe band, so a gap straight north shows its arrow part way down the screen. (#24)
 - The player's jog barely differs from the walk in the styled look. (#27)
 - Sound cues: not designed yet. (#25)
@@ -103,13 +103,13 @@ placeholder, `tide_pointer` still is.
   recording whether the third light is earned.
 - Difficulty is tuned only by bot nights (knobs `TIDE_PUSH` 2.0, `PUSH_PER_PERSON`, `PUSH_BREAK_DEPTH`).
 - Pass 2 (walls and gates): does the town now tell you where to look and what to do next? Is 25 spirit or 3 rescues the
-  right price for a block? Do solid blocks and 10 m streets feel roomy or cramped? From the tests: two dimmed people
+  right price for a block? Do solid blocks and 12 m streets feel roomy or cramped? From the tests: two dimmed people
   together break a gate in about 25 to 30 s; one alone never does.
 - Pass 3: does a short-handed gate read as thin (people further apart) and does it now need you? Does losing a cell
   feel fair? Is the surge's warning seen wherever you are, and is one surge enough tension? Are defences worth a member
   each? After the capture polish (#75): can you tell free from paid, pips, and people free against needed at a glance?
 
-**Recorder:** breaks are logged as `break_open` / `break_close` (#23); the analyser still reads the old `gap_*` names.
+**Recorder:** breaks are logged as `break_open` / `break_close` (#23); `analyse_recording.py` reads the old `gap_open` / `gap_close` names too and renames them.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
 **0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built 2026-11-11, In review, needs a playtest) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
@@ -120,8 +120,8 @@ placeholder, `tide_pointer` still is.
 frame, identical results. `Border.update` is 1.5 ms at 28 members (slot assignment 0.8, polygon 0.36, buildings 0.15,
 push 0.07); not changed, since the cheap fixes would not keep the results identical.
 
-**Push status.** `origin/main` is `fc2a37c` (0.3 Living town and the board docs, pushed 2026-11-07); local `main` is
-ahead by the 0.3.1 to 0.3.3 commits (not pushed). The last release is
+**Push status.** `origin/main` is `3d52b58` (0.3.2 Prop styling playtest 5 docs); local `main` is 57 commits ahead
+(as of 2026-11-11, not pushed: the 0.3.3 and 0.4 commits). The last release is
 `pre-alpha-2` (`da0dfb2`, round 26); 0.3 is internal, not released. Nothing is pushed until the user asks.
 
 **Pointers.** `README.md` (player docs), `ARCHITECTURE.md` (script map, tools, gotchas, areas and files per system),
