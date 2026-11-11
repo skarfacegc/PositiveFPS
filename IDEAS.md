@@ -312,6 +312,32 @@ preview and rescue pips (`style_take.gd`). Shots: `design/renders/v0.4-grid/` (`
 unused kiosk option was removed from `style_buildings.gd`. Gate 801 tests, determinism passed, baseline updated, nothing
 loosened. Left: the take preview's glow plane is faint.
 
+**Pass 2 playtest (2026-11-11; placeholder `20261110-064011` on 29c24da, styled `20261111-082446` on 2dc55ac).** Both
+nights won with 3 dawn lights (58 and 53 rescued, 3 landmarks each). Breaks: 0 and 2 (both at midnight). Spirit sat at
+100 most of both nights (means 98 and 94), so 25 spirit per block cost nothing. The zone grew to 6 and 8 of 25 cells,
+mostly by rescue pips. The recorder does not log takes yet (cells and gates are in the samples).
+- **Readability: partly.** The people needed to extend were unintuitive; the grid grew by itself as well as on E and it
+  was hard to tell which did what ("not bad, just hard to parse"); hard to see which gate is in trouble and why the line
+  changed.
+- **E barely used**: pips did the growing. The user wants E to matter more.
+- **Space:** the start square is very cramped; overall decent, spread out a little.
+- **Styled grid (#58): works**, accepted.
+
+**Pass 2c, Grid fixes (#55, #56, #10, #11; planned 2026-11-11).** One Sonnet agent.
+1. **E only, pips show readiness** (#10, #11). Cells never join by themselves. Rescues still fill a cell's pips; a cell
+   with full pips (`TAKE_RESCUES` 3) is ready, and taking it with E is free; any other cell next to the zone costs
+   `TAKE_SPIRIT_COST` (25). Every change to the line is one the player made.
+2. **People count on the gate and the preview** (#10, #56). Each gate shows its members against its need (for example
+   "3/4"), red when short; the take preview shows the people the new gates need against the free people you have. Must
+   read in both looks.
+3. **Which gate is in trouble** (#56). A gate being pushed reads from across the screen (its line pulses or shifts colour
+   with the dent), and one past half `PUSH_BREAK_DEPTH` gets an edge pointer when off screen (extend the gap arrows).
+4. **Why the line changed** (#56). A short pulse on a cell when it is taken (and later when lost), with the slim banner.
+5. **Spread out a little** (#55). Start square 18 m (other cells 12 m), streets 12 m. Grow the plaza to fit and keep the
+   landmark squares on the diagonals; check spawns and first light still reach the town.
+Playtest questions: is E now the way you grow, and is the price a choice? Does the count make the people cost clear?
+Can you see which gate is in trouble?
+
 **What stays as it is.** Joy, elements and moods; the gloom's phases and arrivals; the burst; spirit and spirit warmth;
 wobble and relapse; first light; the dawn rating; the cue panel and the slim banner; both looks.
 
