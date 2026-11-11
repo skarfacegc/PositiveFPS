@@ -187,7 +187,7 @@ in a `_poll_*`) and call `emit_event("name", {...})`; keep it cheap (nothing per
 - `python tools/checkpoint_shots.py`: checkpoint renders (see Looks). `python tools/cleanup_worktrees.py`: removes stale worktrees and orphan `.claude/worktrees/agent-*` folders. `python tools/agent_dashboard.py [--port] [--session]`: read-only page of subagent status. `python tools/install_hooks.py`: installs the hook.
 - Details: each tool's `--help`, `tools/COVERAGE_TOOL_NOTES.md`, timing history `tools/BUILD_TIMINGS.md`. Godot is found by `tools/godot_path.py` (`GODOT` env, PATH, WinGet).
 - Self-checks (run by hand when you change a tool): `tools/test_godot_run.py`, `test_perf_compare.py`, `test_analyse_recording.py`, `test_run_tests.py`, `test_gate.py`, `test_round_end.py`, `test_determinism.py`, `test_fast_tier.py`, `test_coverage_files.py`, `test_cleanup_worktrees.py`, `test_source_map.py`, `test_agent_dashboard.py`, `test_board.py`.
-- Project skills (`.claude/skills/<name>/SKILL.md`, committed): `launch-playtest`, `finish-target`, `brief-build-agent`.
+- Project skills (`.claude/skills/<name>/SKILL.md`, committed): `coordinate-target` (the coordinator's rules: board, loop, parallel builds), `launch-playtest`, `finish-target`, `brief-build-agent`.
 - `python tools/board.py list | add | set | archive | drop | scan`: the GitHub project board ("Positive game dev", items are
   repo issues; milestone = target version, labels = area, Size = token cost). Coordinator only; build agents never touch
   the board. Write commands take `--dry-run`. gh is found by `GH`, PATH, then `C:\Program Files\GitHub CLI\gh.exe`.

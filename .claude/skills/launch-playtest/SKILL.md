@@ -5,8 +5,8 @@ description: Launch a PositiveFPS playtest from a clean detached copy of the com
 
 # Launch a playtest
 
-The target loop (CLAUDE.md) says: launch the committed pass from a clean detached worktree in the scratchpad, never
-from the live repo. Do this from the main session or one agent; it needs no build agent.
+This is step 1 of the target loop (coordinate-target skill). Do it from the main session or one agent; it needs no
+build agent.
 
 ## 1. Check for a game already open (first, always)
 
@@ -96,7 +96,7 @@ BLOCKS, GATES and DEFENCES).
 Compare against the previous pass's recording when the user wants pass-over-pass numbers (older ones are in the
 earlier playtest copies' `recordings/`). Summarise outcome, length, rescued, quiet share, gaps by phase, relapses, spirit,
 landmarks and the surge, and quote real numbers, not impressions. Then go on to the interview and record the playtest in
-IDEAS.md (target loop steps 2 and 3), then update the board (section 6).
+IDEAS.md (target loop steps 2 and 3 in the coordinate-target skill), then update the board (section 6).
 
 ## 6. Update the board after the interview
 

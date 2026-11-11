@@ -7,7 +7,7 @@ description: Template for briefing a PositiveFPS build agent (Haiku or Sonnet, u
 
 Fill in the angle-bracket parts, delete the lines that do not apply, and send it as the agent prompt. Do not paste
 CLAUDE.md into it: the agent reads it. Point to ARCHITECTURE.md ("Areas") for the files of the area
-instead of listing every file. Choose the model by CLAUDE.md: Haiku for tuning and small features, Sonnet for
+instead of listing every file. Choose the model by the coordinate-target skill's loop (step 4): Haiku for tuning and small features, Sonnet for
 debugging emergent behaviour or tooling.
 
 For a worktree agent (`isolation: "worktree"`), first compare `git rev-parse origin/main main`. If they differ, use
