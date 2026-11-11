@@ -13,7 +13,7 @@ grouped into named, versioned targets (CLAUDE.md, "Targets and versions"). Histo
 | 0.3.1 to 0.3.3 | Living town fixes, Prop styling (released `v0.3.2`), Town layout | 0.3.3 done 2026-11-09, internal, no release |
 | 0.4 Walls and gates | The round 27 and round 28 plans (called Tug of war until 2026-11-09) | in progress |
 
-Index: First proof of concept; POC round 2; POC round 3; POC round 4; POC round 5; POC round 6; POC round 7; POC round 8; Direction change: the living border; Round 9 build: the living border; Round 10 plan; Round 10 build; Round 10 playtest and draft round 11 plan; Style pass approach: switchable looks; Round 11 build; Round 11 playtest and round 12 plan; Graphics checkpoint 1; Gloom terminology; Round 12a build; Round 12b build; Round 12 playtest and round 13 plan; Round 13a build; Round 13b build; Round 13 playtest and round 14 plan; Round 14 build; Round 14 playtest and round 15 plan; Round 15 build; Round 15 playtest and round 16 plan; Round 16 build; Round 16 playtest and round 17 plan; Round 17 build; Round 17 playtest and round 18 plan; Graphics checkpoint 2; Round 18 build; Round 18 playtest and round 19 design; Round 19 plan; Graphics checkpoint 3; Round 19 build; Round 19 playtest and round 20 plan; Round 20 build; Graphics checkpoint 4; Round 20 playtest and round 21 plan; Round 21 build; Round 21 playtest and round 22 plan; Round 22 build; Round 22 playtest and round 23 plan; Round 23 build; Round 23 playtest and round 24 plan; Round 24 build; Round 24 playtest and graphics checkpoint 5 plan; Graphics checkpoint 5 build; Graphics checkpoint 5 playtest and follow-up plan; Graphics checkpoint 5 follow-up build; Checkpoint 5 follow-up playtest and snag round plan; Snag round build; Snag round playtest and graphics checkpoint 6 plan; Graphics checkpoint 6 build; Round 25 plan: border control; Round 25 build; Round 25 playtest and round 26 plan; Round 25 replay and revised round 26 plan; Round 26 build: physical push.; Round 26 build (2026-11-07); 0.3 Living town plan (graphics checkpoint 7, 2026-11-07) (#2); 0.3 Living town built (graphics checkpoint 7, 2026-11-07) (#2); 0.3.1 Living town fixes (2026-11-07) (#37, #39, #40, #41, #42, #43); 0.3.1 Living town fixes built (2026-11-08) (#37, #39, #40, #41, #42, #43); 0.3.1 Living town fixes, playtest 2 (2026-11-08) (#44, #45); 0.3.1 Living town fixes, playtest 2 built (2026-11-08) (#44, #45); 0.3.1 Living town fixes, playtest 3 (2026-11-08) (#46, #47; #48 targeted); 0.3.1 Living town fixes, playtest 3 built (2026-11-08) (#48); 0.3.1 Living town fixes, playtest 4 (2026-11-08) (#37, #39, #42, #48; #49, #50 new); 0.3.2 Prop styling plan (2026-11-08) (#42, #49, #50); 0.3.2 Prop styling built (2026-11-08) (#42, #49, #50); 0.3.2 Prop styling, playtest 5 (2026-11-08) (#42, #49, #50); 0.3.3 Town layout plan (2026-11-09) (#52, #51, #17, #5, #6, #7, #8, #9, #19, #20, #21, #23); 0.3.3 Town layout, playtest 1 and fix plan (2026-11-09) (#53; #52, #51, #17, #5 to #8, #19 to #21 In review); 0.3.3 Town layout, playtest 2 (2026-11-09) (#53, #54; #52, #51, #17 In review); 0.3.3 Town layout, playtest 3, styled (2026-11-09) (#52, #17 accepted; #55 new); 0.3.3 Town layout: Quick wins, build speed and upkeep (#5 to #9)
+Index: First proof of concept; POC round 2; POC round 3; POC round 4; POC round 5; POC round 6; POC round 7; POC round 8; Direction change: the living border; Round 9 build: the living border; Round 10 plan; Round 10 build; Round 10 playtest and draft round 11 plan; Style pass approach: switchable looks; Round 11 build; Round 11 playtest and round 12 plan; Graphics checkpoint 1; Gloom terminology; Round 12a build; Round 12b build; Round 12 playtest and round 13 plan; Round 13a build; Round 13b build; Round 13 playtest and round 14 plan; Round 14 build; Round 14 playtest and round 15 plan; Round 15 build; Round 15 playtest and round 16 plan; Round 16 build; Round 16 playtest and round 17 plan; Round 17 build; Round 17 playtest and round 18 plan; Graphics checkpoint 2; Round 18 build; Round 18 playtest and round 19 design; Round 19 plan; Graphics checkpoint 3; Round 19 build; Round 19 playtest and round 20 plan; Round 20 build; Graphics checkpoint 4; Round 20 playtest and round 21 plan; Round 21 build; Round 21 playtest and round 22 plan; Round 22 build; Round 22 playtest and round 23 plan; Round 23 build; Round 23 playtest and round 24 plan; Round 24 build; Round 24 playtest and graphics checkpoint 5 plan; Graphics checkpoint 5 build; Graphics checkpoint 5 playtest and follow-up plan; Graphics checkpoint 5 follow-up build; Checkpoint 5 follow-up playtest and snag round plan; Snag round build; Snag round playtest and graphics checkpoint 6 plan; Graphics checkpoint 6 build; Round 25 plan: border control; Round 25 build; Round 25 playtest and round 26 plan; Round 25 replay and revised round 26 plan; Round 26 build: physical push.; Round 26 build (2026-11-07); 0.3 Living town plan (graphics checkpoint 7, 2026-11-07) (#2); 0.3 Living town built (graphics checkpoint 7, 2026-11-07) (#2); 0.3.1 Living town fixes (2026-11-07) (#37, #39, #40, #41, #42, #43); 0.3.1 Living town fixes built (2026-11-08) (#37, #39, #40, #41, #42, #43); 0.3.1 Living town fixes, playtest 2 (2026-11-08) (#44, #45); 0.3.1 Living town fixes, playtest 2 built (2026-11-08) (#44, #45); 0.3.1 Living town fixes, playtest 3 (2026-11-08) (#46, #47; #48 targeted); 0.3.1 Living town fixes, playtest 3 built (2026-11-08) (#48); 0.3.1 Living town fixes, playtest 4 (2026-11-08) (#37, #39, #42, #48; #49, #50 new); 0.3.2 Prop styling plan (2026-11-08) (#42, #49, #50); 0.3.2 Prop styling built (2026-11-08) (#42, #49, #50); 0.3.2 Prop styling, playtest 5 (2026-11-08) (#42, #49, #50); 0.3.3 Town layout plan (2026-11-09) (#52, #51, #17, #5, #6, #7, #8, #9, #19, #20, #21, #23); 0.3.3 Town layout, playtest 1 and fix plan (2026-11-09) (#53; #52, #51, #17, #5 to #8, #19 to #21 In review); 0.3.3 Town layout, playtest 2 (2026-11-09) (#53, #54; #52, #51, #17 In review); 0.3.3 Town layout, playtest 3, styled (2026-11-09) (#52, #17 accepted; #55 new); 0.3.3 Town layout: Quick wins, build speed and upkeep (#5 to #9); 0.4 Walls and gates: Recorder catch-up (2026-11-11) (#59, #60, #61)
 
 ## First proof of concept (POC)
 Goal: find out whether reading cues, picking the right element and helping as many people as possible before the clock runs out is fun.
@@ -2708,3 +2708,68 @@ Moved to 0.3.3 Town layout (2026-11-09); the text stays here.
 5. **Coordinator, by hand** (#9): now that checkpoint 7 has merged, run `python tools/cleanup_worktrees.py` (three old scratchpad
    copies and `agent-afd5…` are stale), and suggest `/fewer-permission-prompts` to the user to allowlist the common
    tool commands.
+
+## 0.4 Walls and gates: Recorder catch-up (2026-11-11) (#59, #60, #61)
+
+
+**Planned 2026-11-11; builds before Pass 2c Grid fixes** (user's call, 2026-11-11), on today's rules: auto-join is
+still logged (`auto_join`) and `take` carries a `free` field that is false until 2c. **2c's agent** removes the
+`auto_join` emit with auto-join, sets `free` for a pip-ready take, and keeps the other recorder events firing. The recorder (round 18) has turned impressions into numbers
+(round 18's "flat" game, the twirl's removal, `--compare`), but it has not followed 0.4: the per-second sample has
+only totals (cells, gates, wall and gate length), there are no events for takes, pips or a single gate, and
+the analyser still prints sections for removed mechanics. 2c's playtest questions (is E the way you grow, is the price
+a choice, which gate is in trouble) need these numbers, so this pass goes **before the 2c playtest**.
+
+**One Haiku agent** (tooling, three small items in the same two files; not split). Files: `scripts/recorder.gd`,
+`scripts/recorder_config.gd`, `scripts/controls.gd` (the key), the emitting call sites, `tools/analyse_recording.py`,
+the recorder tests. The recorder still only listens: no game state changes, no random numbers, no per-frame file I/O.
+
+- **0.4 events and analyser (#59, S).** New events, each with the cell, gate count before and after, spirit and
+  rescued count where they apply:
+  - `take` (by E, with `free` true when the cell's pips were full, the spirit paid, and the people the new gates need
+    against the free people) and `take_refused` with the reason (spirit short, people short, not next to the zone,
+    cancelled);
+  - `pip` (a rescue fills a pip: cell, pips now), `cell_ready` (a cell's pips just filled) and `auto_join` (the cell,
+    gates it adds, members available; gone after 2c), so the analyser can show how long a ready cell waited before it
+    was taken, and how the zone grew before 2c;
+  - per gate: `gate_break` (gate id, seconds under push, pushers) and `gate_hold` (a push that ended without a break).
+  - Sample gains `pips_total`, `ready_cells` and `members_short` (gate slots with nobody on them).
+  - Analyser: a **BLOCKS** section (takes free vs paid, refusals by reason, spirit at each take, time between
+    takes, ready cells and how long they waited, auto-joins, takes and auto-joins with too few people) and a **GATES** section (breaks and holds, seconds to break, pushers per
+    break, breaks per minute by phase). Remove the dead SHAPED ZONE section (stretches, grows, shrinks) and anything
+    else that reads events no longer emitted; keep old recordings readable (missing events = empty section).
+  - `--compare` gets columns for takes (free / paid), refusals, ready-cell wait and gate breaks.
+- **Mark this moment (#60, XS).** A key (default **F8**; F2 to F4 are taken, F is kept for defences) logs a `mark`
+  event and takes a screenshot at once; the HUD flashes "Marked" briefly next to REC, only while recording. The
+  analyser lists marks with the time, phase, and what happened 10 s either side (events by type). Not in the
+  player's controls list; the how-to-play text mentions it only under the Record option.
+- **Screenshots on key events (#61, XS).** Besides the 18 s timer, take a shot on the first break of each phase, each
+  take, a mark, player dim, and the end of the game; at most one per 3 s
+  (`RECORD_EVENT_SHOT_MIN_GAP`). The shot's file name carries the event type; the `screenshot` event names its cause.
+  The analyser prints the shot file beside each listed event.
+
+**Gate.** Recorder and analyser tests (`tools/run_tests.py` for the recorder suites) and lint, then the full gate via
+`python tools/round_end.py`. The recorder touches no rules, but it is in the determinism list, so run the determinism
+check. Coverage must not drop. Then the 2c playtest runs with this recorder.
+
+**Built (2026-11-11, `3d75d85`; In review).** One Haiku agent. Events `take` (`free` false until 2c), `take_refused`,
+`pip`, `cell_ready`, `auto_join`, `gate_break`, `gate_hold`, `mark`; the sample gains `pips_total`, `ready_cells` and
+`members_short`; signals were added only in `take_block.gd` and `rescue_pips.gd`. F8 marks a moment (shot at once,
+"Marked" beside REC). Shots on events, at most one per 3 s (marks always). The analyser has BLOCKS, GATES and MARKS
+sections and new `--compare` columns; it dropped SHAPED ZONE, SPIRIT BEACONS and PATCH EFFECT (events no longer sent).
+Gate, determinism and baseline passed; nothing loosened. Limits: `pushers` on gate events is the border-wide count, not
+per gate; the break shot follows `break_open`, not `gate_break`; a take aimed at no cell is logged as `not_next`.
+
+**Played 2026-11-11 (`63ad38a`); accepted, Done.** F8 stays the mark key and a mark asks for no note (user's call).
+One full night, seed 42, placeholder: win, 3 of 3 dawn lights (88% rescued, 3 landmarks), 1 mark, 19 shots.
+- **Taking blocks did not read** (user: "really need some feedback on when I can capture a new area; the auto capture
+  doesn't make sense"). E was pressed 24 times and worked once (paid, 25 spirit). Refusals: 11 `people_short` (the new
+  outline's gates needed 36 to 76 people against 16 to 53 free, so the lock was out of reach all night) and 12
+  `not_next` (some on cells that had just joined: "already held" is logged as `not_next`). No refusal said why.
+- **Auto-join did all the growing:** 6 cells joined the moment their pips filled (ready-cell wait 0 s), every one short
+  of people (18 needed vs 13 free up to 58 vs 51), so the people rule held back E only.
+- **Spirit never limited a take:** 75 to 100 all night (3 bursts, 111 spare-spirit gifts).
+- **Gates:** 4 breaks, all at t=104 s during the north tide (2 pushers, 4 s under push), and 12 holds.
+- **Embrace** not noticed (6 begun, 3 stage lifts, 1 rescue).
+Decisions (user): 2c builds E only as planned; add takeable-cell marking and the people count on the preview; people
+warn but never lock a take; remove Embrace in 2c (#73). All in Pass 2c above.

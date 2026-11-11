@@ -7,7 +7,7 @@ at its top, plus the map from old round numbers to versions). This file keeps th
 the current targets' plans. To find code use `SOURCE_MAP.md`
 (`python tools/source_map.py`); for where things live and how to brief an agent use `ARCHITECTURE.md`.
 
-## Current state (as of 2026-11-09, after 0.4 pass 2 Grid and Line)
+## Current state (as of 2026-11-11, after 0.4 pass 2c Grid fixes)
 
 **What the game is.** A gentle top-down territory game in Godot 4.7 (GDScript, strict typing). Dimmed people slowly take
 over a plaza; the player rescues them with joy, and the rescued form a living border that holds the gloom back and paints
@@ -35,14 +35,20 @@ never "dark people". Art is original, technique-level inspiration only.
   gated (`RELAPSE_GATE_GAP`). Model and open questions: "Round 26 build" below.
 - **Spirit:** 0 to 100, start 50; +20 a rescue. At 0 the player goes dim (half speed, no fire, border loses heart). Spare
   spirit at a full meter pools and warms the most strained border member (`spirit_warmth.gd`).
-- **Spirit actions:** take a block (25, `TAKE_SPIRIT_COST`): hold E and point at a cell next to the zone to preview its
-  new gates, release to take it, right-click cancels; refused when spirit or people are short. Rescue pips: each rescue
-  fills a pip on its cell, and at 3 (`TAKE_RESCUES`) a cell next to the zone joins by itself. G or Q (30, 8 s cooldown) bursts: lifts dimmed people nearby, pushes
-  back those on the border line and lets the line near the burst spring back. There is no patch action any more.
-- **Town grid (0.4 pass 2):** 5 by 5 cells of 12 m with 10 m streets (`scripts/town_grid.gd`). The middle cell is the
-  start square, the four diagonal cells next to it are landmark squares, the other 20 are solid built blocks (for the
+- **Spirit actions:** take a block with E (pass 2c: the only way the zone grows): hold E and point at a cell next to
+  the zone to preview its new gates and the people they need against the people free, release to take it, right-click
+  cancels. Rescue pips: each rescue fills a pip on its cell; at 3 (`TAKE_RESCUES`) the cell is ready and E takes it free,
+  any other cell next to the zone costs 25 spirit (`TAKE_SPIRIT_COST`). Refused only when spirit is short; people never
+  refuse a take (a short line is shared out thinly). Takeable cells glow on the ground and the minimap (gold free, blue
+  paid); a taken cell pulses and the slim banner says what it cost. G or Q (30, 8 s cooldown) bursts: lifts dimmed
+  people nearby, pushes back those on the border line and lets the line near the burst spring back.
+- **Gate cues (pass 2c):** each gate shows members/need, red when short; a pushed gate glows coral from 20% of
+  `PUSH_BREAK_DEPTH`, and past 50% an off-screen gate gets an edge pointer (`gate_marks.gd`). Embrace is removed.
+- **Town grid (0.4 pass 2, spread out in 2c):** 5 by 5 cells, 12 m streets; the start square is 18 m (its row and
+  column are 18 m wide, so the blocks beside it are 18 x 12), other cells 12 m, plaza 114 m (`scripts/town_grid.gd`). The
+  start square needs 20 members. The middle cell is the start square, the four diagonal cells next to it are landmark squares, the other 20 are solid built blocks (for the
   player too). Posts are gone (walls replace them).
-- **Landmarks:** Bandstand, Garden, Bell Tower and Gallery, one at each street end, 26 to 32 m from the start (the Gallery is
+- **Landmarks:** Bandstand, Garden, Bell Tower and Gallery, on the diagonal squares, about 27 m from the start (the Gallery is
   placed and claimable only, no boost, no styled art yet). Holding one (3 s inside the border) boosts joy; the third dawn
   light needs 75% rescued and 2 landmarks.
 - **First light:** over the last 45 s a square front moves in from the map edge; people it passes lift and stop draining.
@@ -73,6 +79,7 @@ placeholder, `tide_pointer` still is.
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Walls and gates's push and pull. (#22)
 - The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
+- The checkpoint screenshot scripts (`tools/checkpoint`) still use the town coordinates from before pass 2c. (#74)
 - The Gallery has no styled art (it uses the bandstand model); its dent-fade protection and defence unlock are in 0.4. (#16)
 
 **Watch in the next playtest** (no issue: questions for the interview, not work):
@@ -86,13 +93,14 @@ placeholder, `tide_pointer` still is.
 - Pass 2 (walls and gates): does the town now tell you where to look and what to do next? Is 25 spirit or 3 rescues the
   right price for a block? Do solid blocks and 10 m streets feel roomy or cramped? From the tests: two dimmed people
   together break a gate in about 25 to 30 s; one alone never does.
-- Auto-join by pips ignores whether there are people for the new gates (the plan said it should check); "enough
-  people" for E counts all rescued, since members are capped at the slot count. Thin lines are #12 in pass 3.
+- Pass 2c: can you tell which cells you can take before pressing E? Is E now the way you grow, and is the price a
+  choice? Does the people count make the cost clear? Can you see which gate is in trouble? Is the first take (23 members
+  needed against 60 people) too steep now that it only warns? Do the wider streets feel better?
 
 **Recorder:** breaks are logged as `break_open` / `break_close` (#23); the analyser still reads the old `gap_*` names.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
-**0.4 Walls and gates**, passes 1 Reorg and 2 Grid and Line built (In review); pass 2 needs a playtest, then pass 3 (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c In review, needs a playtest), then pass 3 (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -380,7 +388,7 @@ mostly by rescue pips. The recorder does not log takes yet (cells and gates are 
 - **Styled grid (#58): works**, accepted.
 
 **Pass 2c, Grid fixes (#55, #56, #10, #11, #73; planned 2026-11-11, updated after the playtest the same day).** One Sonnet agent. Builds after Recorder catch-up
-(#59 to #61, below): remove the recorder's `auto_join` emit with auto-join, set `take`'s `free` for a pip-ready take.
+(#59 to #61, now in IDEAS_RESOLVED.md): remove the recorder's `auto_join` emit with auto-join, set `take`'s `free` for a pip-ready take.
 1. **E only, pips show readiness** (#10, #11). Cells never join by themselves. Rescues still fill a cell's pips; a cell
    with full pips (`TAKE_RESCUES` 3) is ready, and taking it with E is free; any other cell next to the zone costs
    `TAKE_SPIRIT_COST` (25). Every change to the line is one the player made.
@@ -401,6 +409,17 @@ mostly by rescue pips. The recorder does not log takes yet (cells and gates are 
    Delete the system, its config, tests, recorder events and analyser section, and its how-to-play and README lines.
 Playtest questions: is E now the way you grow, and is the price a choice? Does the count make the people cost clear?
 Can you see which gate is in trouble? Can you tell which cells you can take before pressing E?
+
+**Built (2026-11-11, `4bbb7ce`, merged `ad6070e`; In review).** One Sonnet agent. All seven items as above. New
+`scripts/gate_marks.gd` (people labels, push glow, edge pointers via the gap arrows); the take preview says "Free" or
+"25 spirit"; `FIRST_LIGHT_START_RADIUS` 71 to 81 and `C7_LINE_MAX_DIST` 22 to 27.5 to fit the bigger town. Bug fixed on
+the way: `Border.update` pushed against the old polygon after a re-trace (would have broken pass 3's lost cells).
+Embrace removed (`embrace_test` and `tools/test_analyse_embrace.py` gone; `take_block_test` and `recorder_blocks_test`
+rewritten for the new rules; layout numbers moved in 17 other suites, thresholds unchanged). Marks, labels and glow are
+plain quads and Label3D in both looks (no styled art). Gate passed (824 tests), determinism passed; the coverage
+ratchet needed new border and recorder tests after Embrace's tests went (`dc23152`: `border_misc_test`,
+`recorder_shots_test`; then gate, determinism and baseline passed). Nothing loosened. Not done: the checkpoint
+screenshot scripts in `tools/checkpoint` still use the old coordinates (#74).
 
 **What stays as it is.** Joy, elements and moods; the gloom's phases and arrivals; the burst; spirit and spirit warmth;
 wobble and relapse; first light; the dawn rating; the cue panel and the slim banner; both looks.
@@ -429,70 +448,6 @@ the right price for a block? Does a thin line read as thin without a meter? Is o
   walk-through keeps more room to move.
 - 25 cells with 20 built blocks, or a smaller 3 by 3 town with wider cells?
 - This also answers #47 (more room to play around the push): the gates are that room. Close #47 once pass 2 is played?
-
-### Walls and gates: Recorder catch-up (#59, #60, #61)
-
-**Planned 2026-11-11; builds before Pass 2c Grid fixes** (user's call, 2026-11-11), on today's rules: auto-join is
-still logged (`auto_join`) and `take` carries a `free` field that is false until 2c. **2c's agent** removes the
-`auto_join` emit with auto-join, sets `free` for a pip-ready take, and keeps the other recorder events firing. The recorder (round 18) has turned impressions into numbers
-(round 18's "flat" game, the twirl's removal, `--compare`), but it has not followed 0.4: the per-second sample has
-only totals (cells, gates, wall and gate length), there are no events for takes, pips or a single gate, and
-the analyser still prints sections for removed mechanics. 2c's playtest questions (is E the way you grow, is the price
-a choice, which gate is in trouble) need these numbers, so this pass goes **before the 2c playtest**.
-
-**One Haiku agent** (tooling, three small items in the same two files; not split). Files: `scripts/recorder.gd`,
-`scripts/recorder_config.gd`, `scripts/controls.gd` (the key), the emitting call sites, `tools/analyse_recording.py`,
-the recorder tests. The recorder still only listens: no game state changes, no random numbers, no per-frame file I/O.
-
-- **0.4 events and analyser (#59, S).** New events, each with the cell, gate count before and after, spirit and
-  rescued count where they apply:
-  - `take` (by E, with `free` true when the cell's pips were full, the spirit paid, and the people the new gates need
-    against the free people) and `take_refused` with the reason (spirit short, people short, not next to the zone,
-    cancelled);
-  - `pip` (a rescue fills a pip: cell, pips now), `cell_ready` (a cell's pips just filled) and `auto_join` (the cell,
-    gates it adds, members available; gone after 2c), so the analyser can show how long a ready cell waited before it
-    was taken, and how the zone grew before 2c;
-  - per gate: `gate_break` (gate id, seconds under push, pushers) and `gate_hold` (a push that ended without a break).
-  - Sample gains `pips_total`, `ready_cells` and `members_short` (gate slots with nobody on them).
-  - Analyser: a **BLOCKS** section (takes free vs paid, refusals by reason, spirit at each take, time between
-    takes, ready cells and how long they waited, auto-joins, takes and auto-joins with too few people) and a **GATES** section (breaks and holds, seconds to break, pushers per
-    break, breaks per minute by phase). Remove the dead SHAPED ZONE section (stretches, grows, shrinks) and anything
-    else that reads events no longer emitted; keep old recordings readable (missing events = empty section).
-  - `--compare` gets columns for takes (free / paid), refusals, ready-cell wait and gate breaks.
-- **Mark this moment (#60, XS).** A key (default **F8**; F2 to F4 are taken, F is kept for defences) logs a `mark`
-  event and takes a screenshot at once; the HUD flashes "Marked" briefly next to REC, only while recording. The
-  analyser lists marks with the time, phase, and what happened 10 s either side (events by type). Not in the
-  player's controls list; the how-to-play text mentions it only under the Record option.
-- **Screenshots on key events (#61, XS).** Besides the 18 s timer, take a shot on the first break of each phase, each
-  take, a mark, player dim, and the end of the game; at most one per 3 s
-  (`RECORD_EVENT_SHOT_MIN_GAP`). The shot's file name carries the event type; the `screenshot` event names its cause.
-  The analyser prints the shot file beside each listed event.
-
-**Gate.** Recorder and analyser tests (`tools/run_tests.py` for the recorder suites) and lint, then the full gate via
-`python tools/round_end.py`. The recorder touches no rules, but it is in the determinism list, so run the determinism
-check. Coverage must not drop. Then the 2c playtest runs with this recorder.
-
-**Built (2026-11-11, `3d75d85`; In review).** One Haiku agent. Events `take` (`free` false until 2c), `take_refused`,
-`pip`, `cell_ready`, `auto_join`, `gate_break`, `gate_hold`, `mark`; the sample gains `pips_total`, `ready_cells` and
-`members_short`; signals were added only in `take_block.gd` and `rescue_pips.gd`. F8 marks a moment (shot at once,
-"Marked" beside REC). Shots on events, at most one per 3 s (marks always). The analyser has BLOCKS, GATES and MARKS
-sections and new `--compare` columns; it dropped SHAPED ZONE, SPIRIT BEACONS and PATCH EFFECT (events no longer sent).
-Gate, determinism and baseline passed; nothing loosened. Limits: `pushers` on gate events is the border-wide count, not
-per gate; the break shot follows `break_open`, not `gate_break`; a take aimed at no cell is logged as `not_next`.
-
-**Played 2026-11-11 (`63ad38a`); accepted, Done.** F8 stays the mark key and a mark asks for no note (user's call).
-One full night, seed 42, placeholder: win, 3 of 3 dawn lights (88% rescued, 3 landmarks), 1 mark, 19 shots.
-- **Taking blocks did not read** (user: "really need some feedback on when I can capture a new area; the auto capture
-  doesn't make sense"). E was pressed 24 times and worked once (paid, 25 spirit). Refusals: 11 `people_short` (the new
-  outline's gates needed 36 to 76 people against 16 to 53 free, so the lock was out of reach all night) and 12
-  `not_next` (some on cells that had just joined: "already held" is logged as `not_next`). No refusal said why.
-- **Auto-join did all the growing:** 6 cells joined the moment their pips filled (ready-cell wait 0 s), every one short
-  of people (18 needed vs 13 free up to 58 vs 51), so the people rule held back E only.
-- **Spirit never limited a take:** 75 to 100 all night (3 bursts, 111 spare-spirit gifts).
-- **Gates:** 4 breaks, all at t=104 s during the north tide (2 pushers, 4 s under push), and 12 holds.
-- **Embrace** not noticed (6 begun, 3 stage lifts, 1 rescue).
-Decisions (user): 2c builds E only as planned; add takeable-cell marking and the people count on the preview; people
-warn but never lock a take; remove Embrace in 2c (#73). All in Pass 2c above.
 
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; after Line and Defences merge, or the next target)
 
