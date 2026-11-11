@@ -38,8 +38,7 @@ from godot_path import godot_gui  # noqa: E402
 from godot_run import run as godot_run  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-VIEWS = ["overview", "gap_closeup", "wedge_closeup", "shield_closeup", "ui_closeup", "minimap_closeup", "zoom_min",
-         "zoom_max", "sealed_edge", "sealed_minimap"]
+VIEWS = ["overview", "wedge_closeup", "shield_closeup", "ui_closeup", "minimap_closeup", "zoom_min", "zoom_max"]
 EXPECTED = (["overview.png", "compare.png", "contact_sheet.png", "contact_sheet_compare.png", "timings.txt"]
             + ["%s_%s.png" % (v, look) for v in VIEWS for look in ("placeholder", "styled")])
 # Graphics checkpoint 3 (--set round19): the beacon, each landmark unheld / claiming / held, the HUD panel, the minimap
@@ -79,6 +78,12 @@ EXPECTED_C7 = (["contact_sheet.png", "contact_sheet_compare.png", "play_sheet.pn
 # `--play-only` (checkpoint7 only): the styled look and the four play-zoom views, for tuning rounds.
 EXPECTED_PLAY_ONLY = ["play_sheet.png"] + ["%s_styled.png" % v for v in VIEWS_PLAY]
 
+# 0.4 pass 2b (--set grid): the town grid at play zoom, styled and placeholder pairs.
+VIEWS_GRID = ["start_square", "gate_closeup", "taken_block", "taken_block_closeup", "taken_minimap", "rescue_pips", "take_preview",
+              "gate_push"]
+EXPECTED_GRID = (["contact_sheet.png", "contact_sheet_compare.png"]
+                 + ["%s_%s.png" % (v, look) for v in VIEWS_GRID for look in ("placeholder", "styled")])
+
 EXPECTED_R24 = (["overview.png", "contact_sheet.png", "contact_sheet_compare.png", "walk_sheet.png",
                  "fight_sheet.png", "dawn_sheet.png"]
                 + ["%s_%s.png" % (v, look) for v in VIEWS_R24 for look in ("placeholder", "styled")])
@@ -86,7 +91,7 @@ EXPECTED_R24 = (["overview.png", "contact_sheet.png", "contact_sheet_compare.png
 
 def main():
     parser = argparse.ArgumentParser(description="Render the checkpoint screenshots in both looks.")
-    parser.add_argument("--set", dest="shot_set", choices=("checkpoint2", "round19", "round20", "round24", "checkpoint7"),
+    parser.add_argument("--set", dest="shot_set", choices=("checkpoint2", "round19", "round20", "round24", "checkpoint7", "grid"),
                         default="checkpoint2")
     parser.add_argument("--out", default=None)
     parser.add_argument("--play-only", action="store_true",
@@ -96,7 +101,7 @@ def main():
         parser.error("--play-only needs --set checkpoint7")
     if args.out is None:
         folder = {"round19": "checkpoint_03", "round20": "checkpoint_04", "round24": "checkpoint_05",
-                       "checkpoint7": "checkpoint_07"}.get(
+                       "checkpoint7": "checkpoint_07", "grid": "v0.4-grid"}.get(
             args.shot_set, "checkpoint_02")
         args.out = os.path.join("design", "renders", folder)
     out_abs = os.path.abspath(os.path.join(ROOT, args.out))
@@ -108,18 +113,18 @@ def main():
     os.makedirs(out_abs, exist_ok=True)
     env = dict(os.environ, POSITIVEFPS_TEST="1")
     scene = {"round20": "checkpoint_round20.tscn", "round24": "checkpoint_round24.tscn",
-             "checkpoint7": "checkpoint_checkpoint7.tscn"}.get(
+             "checkpoint7": "checkpoint_checkpoint7.tscn", "grid": "checkpoint_grid.tscn"}.get(
         args.shot_set, "checkpoint_shots.tscn")
     cmd = [exe, "--path", ROOT, "res://tools/checkpoint/" + scene, "--", "--out", out_abs.replace("\\", "/")]
-    if args.shot_set in ("round19", "round20", "round24", "checkpoint7"):
+    if args.shot_set in ("round19", "round20", "round24", "checkpoint7", "grid"):
         cmd += ["--set", args.shot_set]
     if args.play_only:
         cmd += ["--play-only"]
-    if args.shot_set in ("round20", "round24", "checkpoint7"):
+    if args.shot_set in ("round20", "round24", "checkpoint7", "grid"):
         cmd += ["--timeout", "600"]
     # tools/godot_run.py: hard timeout, output in a log file, ends only the process tree it started.
     log_path = os.path.join(out_abs, "checkpoint_run.log")
-    long_run = args.shot_set in ("round20", "round24", "checkpoint7")
+    long_run = args.shot_set in ("round20", "round24", "checkpoint7", "grid")
     result = godot_run(cmd, timeout=650 if long_run else 200, log_path=log_path, env=env)
     print(result.summary())
     if result.timed_out:
@@ -129,7 +134,8 @@ def main():
         if line.startswith(("TIMING", "SAVED", "GAPS", "SEALED")) or "ERROR" in line:
             print(line)
     expected = {"round19": EXPECTED_R19, "round20": EXPECTED_R20, "round24": EXPECTED_R24,
-                "checkpoint7": EXPECTED_PLAY_ONLY if args.play_only else EXPECTED_C7}.get(args.shot_set, EXPECTED)
+                "checkpoint7": EXPECTED_PLAY_ONLY if args.play_only else EXPECTED_C7,
+                "grid": EXPECTED_GRID}.get(args.shot_set, EXPECTED)
     missing = [name for name in expected if not os.path.exists(os.path.join(out_abs, name))]
     if missing:
         print("ERROR: missing outputs: " + ", ".join(missing), file=sys.stderr)

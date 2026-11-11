@@ -18,15 +18,16 @@ static func strain_map(border: Border) -> Dictionary[Person, float]:
 	return out
 
 
-# The ribbon's strips.
-static func build(border: Border) -> Array[EdgeStrip]:
+# The ribbon's strips. With `gates_only` (the styled look, #58) the walls are left out like breaks: a wall is drawn by
+# the look as a hedge instead, so the ribbon is the gates alone.
+static func build(border: Border, gates_only: bool = false) -> Array[EdgeStrip]:
 	var strips: Array[EdgeStrip] = []
 	var n := border.polygon.size()
 	if not border.active or n < 3:
 		return strips
 	var gaps := 0
 	for j: int in range(n):
-		if border.segment_is_gap(j):
+		if _skipped(border, j, gates_only):
 			gaps += 1
 	var cur := EdgeStrip.new()
 	if gaps == 0:
@@ -37,12 +38,12 @@ static func build(border: Border) -> Array[EdgeStrip]:
 		# Start just after a break, so no strip is split across the start.
 		var first := 0
 		for j: int in range(n):
-			if border.segment_is_gap(posmod(j - 1, n)) and not border.segment_is_gap(j):
+			if _skipped(border, posmod(j - 1, n), gates_only) and not _skipped(border, j, gates_only):
 				first = j
 				break
 		for step: int in range(n):
 			var j := (first + step) % n
-			if border.segment_is_gap(j):
+			if _skipped(border, j, gates_only):
 				_finish(strips, cur, false)
 				cur = EdgeStrip.new()
 				continue
@@ -53,6 +54,11 @@ static func build(border: Border) -> Array[EdgeStrip]:
 	for s: EdgeStrip in strips:
 		_densify(s)
 	return strips
+
+
+# True when segment `j` is not drawn: a break, or (with `gates_only`) a wall.
+static func _skipped(border: Border, j: int, gates_only: bool) -> bool:
+	return border.segment_is_gap(j) or (gates_only and border.is_wall(j))
 
 
 # Adds polygon point `j` to strip `s`: its strain from the dent there, and how much of it is wall.

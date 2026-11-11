@@ -4,7 +4,7 @@ extends Node3D
 # Walls and gates: Take a block (E, #10). Hold E and point at a cell: a placeholder outline shows the cell and the gates
 # it opens. Release to take it, paying TAKE_SPIRIT_COST; refused with the slim banner when spirit is short or the gates
 # need more members than the border has. Right-click cancels. The pips of rescues (#11) are drawn here too; their rules
-# are in RescuePips. Placeholder look only: flat lines on the ground.
+# are in RescuePips. The placeholder look is flat lines on the ground; the styled look (#58) is StyleTake.
 
 const NO_CELL := Vector2i(-99, -99)
 const LINE_Y := 0.3
@@ -22,6 +22,9 @@ var _mats: Dictionary = {}
 var _drawn_target := NO_CELL
 var _drawn_pips := -1
 var _drawn_zone := -1
+var _drawn_styled := false
+var _drawn_holding := false
+var _styled_root: Node3D
 
 
 static func attach(main: TopDownMain) -> TakeBlock:
@@ -32,6 +35,9 @@ static func attach(main: TopDownMain) -> TakeBlock:
 	var inst := MeshInstance3D.new()
 	inst.mesh = node._mesh
 	node.add_child(inst)
+	node._styled_root = Node3D.new()
+	node._styled_root.name = "StyledParts"
+	node.add_child(node._styled_root)
 	main.add_child(node)
 	return node
 
@@ -57,7 +63,15 @@ func _process(_delta: float) -> void:
 		_refresh()
 	var pips_version := level.border.pips.version
 	var zone_version := level.border.zone.version
-	if holding or pips_version != _drawn_pips or zone_version != _drawn_zone or target_cell != _drawn_target:
+	var look_changed := Looks.is_styled() != _drawn_styled
+	if (
+		(holding and not _drawn_styled)
+		or holding != _drawn_holding
+		or look_changed
+		or pips_version != _drawn_pips
+		or zone_version != _drawn_zone
+		or target_cell != _drawn_target
+	):
 		_drawn_pips = pips_version
 		_drawn_zone = zone_version
 		_drawn_target = target_cell
@@ -134,6 +148,15 @@ func _draw_all() -> void:
 	var pip_off := Array()
 	var zone := level.border.zone
 	var valid: bool = preview.get("valid", false)
+	_drawn_styled = Looks.is_styled()
+	_drawn_holding = holding
+	for child: Node in _styled_root.get_children():
+		_styled_root.remove_child(child)
+		child.queue_free()
+	if _drawn_styled:
+		_mesh.clear_surfaces()
+		_draw_styled(zone, holding and valid)
+		return
 	if holding and valid:
 		_add_rect(outline, TownGrid.cell_rect(target_cell))
 		for g: Dictionary in preview["opened"]:
@@ -148,6 +171,27 @@ func _draw_all() -> void:
 	_surface(gates, _mat(Color(0.85, 0.66, 0.3)))
 	_surface(pip_on, _mat(Color(0.85, 0.66, 0.3)))
 	_surface(pip_off, _mat(Color(0.5, 0.5, 0.5)))
+
+
+# The styled look (#58): lanterns, gate lamps and bead pips (StyleTake) instead of the flat lines.
+func _draw_styled(zone: Zone, show_preview: bool) -> void:
+	var rect := Rect2()
+	var opened: Array[Dictionary] = []
+	if show_preview:
+		rect = TownGrid.cell_rect(target_cell)
+		for g: Dictionary in preview["opened"]:
+			opened.append(g)
+	var cells: Array[Dictionary] = []
+	for c: Vector2i in TownGrid.all_cells():
+		if zone.can_take(c):
+			cells.append(
+				{
+					"centre": TownGrid.cell_centre(c),
+					"filled": level.border.pips.filled(c),
+					"total": BorderConfig.TAKE_RESCUES
+				}
+			)
+	StyleTake.build(_styled_root, show_preview, rect, opened, cells)
 
 
 # The pips of cell `c`: one small square per pip in a row across the cell, lit ones first.

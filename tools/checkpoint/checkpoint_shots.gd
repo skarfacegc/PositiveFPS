@@ -71,6 +71,10 @@ func _ready() -> void:
 		await call("_run_round24")  # defined by checkpoint_round24.gd, which extends checkpoint_round20.gd
 		_quit()
 		return
+	if scenario_set == "grid":
+		await call("_run_grid")  # defined by checkpoint_grid.gd, which extends this script
+		_quit()
+		return
 	if scenario_set == "checkpoint7":
 		await call("_run_checkpoint7")  # defined by checkpoint_checkpoint7.gd, which extends checkpoint_round20.gd
 		_quit()
@@ -117,19 +121,8 @@ func _build_scenario() -> void:
 	main.night.elapsed = NightConfig.NIGHT_LENGTH * 0.5
 	for i: int in range(settle_frames):
 		main._process(1.0 / 60.0)
-	# The rules open every stretch of a loop at once (spacing over BORDER_MAX_GAP), so one gap on a healthy loop does not
-	# happen by itself. For the shots two stretches are marked as gaps by hand: the nearer one to the player's side and
-	# the one opposite (off screen, to test the arrow).
-	var slots := main.border.segment_gap.size()
-	var south := 0
-	for k: int in range(slots):
-		var here := main.border._point_at_arc((float(k) + 0.5) * main.border.spacing)
-		var best := main.border._point_at_arc((float(south) + 0.5) * main.border.spacing)
-		if here.y > best.y:
-			south = k
-	_force_gap(south)
-	_force_gap((south + slots / 2) % slots)
-	# A dimmed person pressing the first gap, and a couple more outside the loop.
+	# The line is a zone outline now (walls and gates), so the shots no longer force a gap by hand: a break only shows
+	# when a push opens one (the grid set below does that). A dimmed person presses the first break if there is one.
 	var gaps := main.border.gap_midpoints()
 	print("GAPS ", gaps)
 	var out_dir_v := Vector3(1.0, 0.0, 0.0)
@@ -154,16 +147,6 @@ func _build_scenario() -> void:
 	main.camera_rig.update_light()
 	for p: Person in people:
 		p._update_visuals()
-
-
-# Marks slot stretch `k` of the border as a gap (a scripted state, see _build_scenario) and redraws the border.
-func _force_gap(k: int) -> void:
-	var b := main.border
-	b.segment_gap[k] = true
-	for j: int in range(b.polygon.size()):
-		if mini(b.segment_gap.size() - 1, floori(b._arc[j] / b.spacing)) == k:
-			b._sample_gap[j] = true
-	b._draw_lines()
 
 
 func _make_dimmed(p: Person, at: Vector3) -> void:
@@ -257,49 +240,10 @@ func _refresh_effects() -> void:
 	main.feedback.pulse_player(SpiritMeter.Moment.GAIN)
 
 
-# ---- The edge scenario: a loop pressed against the east edge of the map, so a stretch of it is sealed by the map -------
-
-
-func _build_edge_scenario() -> void:
-	var people := main.people
-	for p: Person in people:
-		p.global_position = FAR
-		p.gloom = 0.45
-		p.mood = Person.Mood.NONE
-	var centre := Vector3(32.0, 0.0, -6.0)
-	for i: int in range(20):
-		var a := TAU * float(i) / 20.0 + 0.3
-		var p := people[i]
-		p.gloom = 0.0
-		p.global_position = centre + Vector3(cos(a), 0.0, sin(a)) * 7.0
-		p.receive_joy(p.affinity, Config.JOY_MAX * 2.0, 0.0)
-	main.player.global_position = Vector3(42.0, 0.0, -2.0)
-	main.night.elapsed = NightConfig.NIGHT_LENGTH * 0.5
-	for i: int in range(300):
-		main._process(1.0 / 60.0)
-	# Press the loop toward the east edge (the joy burst's shove), then let it settle.
-	for k: int in range(14):
-		main.border._push_at(0.0, RoundLoopConfig.BORDER_SHOVE_AMOUNT / maxf(main.border._scale, 0.01))
-		for i: int in range(90):
-			main._process(1.0 / 60.0)
-	for i: int in range(600):
-		main._process(1.0 / 60.0)
-	var sealed := 0
-	for j: int in range(main.border.polygon.size()):
-		if main.border.is_sealed(j):
-			sealed += 1
-	print("SEALED segments=", sealed, " of ", main.border.polygon.size(), " members=", main.border.member_count)
-	main.running = false
-	main.border._time = BorderConfig.BORDER_GAP_PULSE_SECONDS * 0.5
-	for p: Person in people:
-		p._update_visuals()
-	main.camera_rig.update_light()
-
-
 func _print_stats() -> void:
 	var b := main.border
 	print("STATS members=", b.member_count, " gaps=", b.gap_count(), " rescued=", main.rescued_count)
-	print("STATS segment_gap=", b.segment_gap, " spacing=", b.spacing, " perimeter=", b.perimeter, " posts=", b.post_count)
+	print("STATS segment_gap=", b.segment_gap, " points=", b.point_count(), " cells=", b.zone.held.size())
 	print("STATS beautified buildings=", b.beautified_building_count(), " landmark=", b.landmark_beautified())
 	print("STATS landmark hold=", main.landmarks.items[0].progress(), " gap_spot=", gap_spot, " player=", main.player.global_position)
 	for g: Vector3 in b.gap_midpoints():
@@ -321,7 +265,6 @@ var current_zoom: float = PlayerConfig.TD_CAMERA_ORTHO_SIZE
 func _make_views() -> void:
 	views = [
 		{"name": "overview"},
-		{"name": "gap_closeup", "world": gap_spot, "size": Vector2i(426, 240), "scale": 3},
 		{"name": "wedge_closeup", "world": (spot_open + spot_closed) * 0.5, "size": Vector2i(426, 240), "scale": 3},
 		{"name": "shield_closeup", "world": spot_shelter + Vector3(0.0, 0.0, 4.0), "size": Vector2i(426, 240), "scale": 3},
 		{"name": "ui_closeup", "rect": Rect2i(300, 500, 680, 220), "scale": 2},
@@ -359,22 +302,6 @@ func _take_shots() -> void:
 			var full := await _grab()
 			_save(view_name, label, _cut(full, view))
 		print("TIMING ", label, " ", snappedf(frame_ms, 0.01), " ms/frame, fallback=", Looks.placeholder_fallback_count())
-	# The sealed map edge: a second level with its loop pressed against the east edge.
-	await _set_zoom(PlayerConfig.TD_CAMERA_ORTHO_SIZE)
-	main.queue_free()
-	await get_tree().process_frame
-	main = (load("res://topdown.tscn") as PackedScene).instantiate()
-	add_child(main)
-	await get_tree().process_frame
-	_build_edge_scenario()
-	for mode: int in [Looks.Mode.PLACEHOLDER, Looks.Mode.STYLED]:
-		if Looks.mode != mode:
-			main.set_look(mode)
-		var label := Looks.mode_name().to_lower()
-		await _settle(12)
-		var full := await _grab()
-		_save("sealed_edge", label, full)
-		_save("sealed_minimap", label, _cut(full, {"rect": Rect2i(10, 10, 270, 270), "scale": 3}))
 	_write_sheets()
 	var f := FileAccess.open(ProjectSettings.globalize_path("%s/timings.txt" % out_dir), FileAccess.WRITE)
 	f.store_string(JSON.stringify(timings))
@@ -433,7 +360,7 @@ func _write_sheets() -> void:
 		var styled_img: Image = by_look["styled"]
 		_fit(styled_img, sheet, Vector2i((i % cols) * cell.x, (i / cols) * cell.y), cell)
 	sheet.save_png(ProjectSettings.globalize_path("%s/contact_sheet.png" % out_dir))
-	var pair_names: Array[String] = ["overview", "wedge_closeup", "shield_closeup", "ui_closeup", "sealed_edge", "zoom_max"]
+	var pair_names: Array[String] = ["overview", "wedge_closeup", "shield_closeup", "ui_closeup", "zoom_max"]
 	var compare := Image.create(cell.x * 2, cell.y * pair_names.size(), false, Image.FORMAT_RGBA8)
 	compare.fill(Color(0.1, 0.09, 0.12))
 	for i: int in range(pair_names.size()):

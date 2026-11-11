@@ -1,22 +1,16 @@
 class_name BuildingLookStyled
 extends BuildingLook
 
-# The styled block: an industrial building (steel, pipes, vents) and, built the first time it is needed, the whimsical
-# version of the same block (plaster, timber, shutters, flower boxes, bunting). They are swapped with a short
-# dissolve that follows the rules' tint (0 industrial to 1 whimsical). The block's size is the collision box; the
-# drawn building is a little taller than it. (0.4: the town grid's blocks are 12 m cells; the styled grid town, with a
-# group of houses filling each cell, is a later look-focused target, so for now one building stands in the cell.)
-
-const ROOFS: Array[String] = ["#ad6249", "#5f86b0", "#c0604f", "#7f9d62"]
-const SHUTTERS: Array[String] = ["#5f86b0", "#c0604f", "#7f9d62", "#5f86b0"]
-const DOORS: Array[String] = ["#5f86b0", "#c0604f", "#7f9d62", "#c0604f"]
-const EXTRA_HEIGHT := 1.0
+# The styled block (0.4 pass 2b, #58): a tight group of small houses that fills the town cell (StyleHouses): grey
+# industrial houses and, built the first time it is needed, the whimsical version of the same group (plaster, gable
+# roofs, coloured doors, lit windows). They are swapped with a short dissolve that follows the rules' tint (0
+# industrial to 1 whimsical). The block's size is the collision box; the houses fill its footprint.
 
 # The two versions (the whimsical one is null until it is first shown).
 var industrial: Node3D
 var whimsical: Node3D
-var _opts: Dictionary = {}
-var _dims := Vector3.ZERO
+var _houses: Array[Dictionary] = []
+var _seed: int = 0
 var _applied: float = -1.0
 
 
@@ -44,30 +38,22 @@ func _build() -> void:
 	if subject.is_landmark:
 		# Graphics checkpoint 3: a landmark's building is drawn by its own look (LandmarkLookStyled).
 		return
-	var idx := int(absf(subject.centre.x * 7.0 + subject.centre.y * 13.0)) % 4
-	_dims = Vector3(minf(size.x, 4.0) - 0.1, size.y + EXTRA_HEIGHT, minf(size.z, 4.0) - 0.4)
-	_opts = {
-		"kiosk": true,
-		"nwin": 1,
-		"roof": ROOFS[idx],
-		"shutter": SHUTTERS[idx],
-		"door": DOORS[idx],
-		"tank": idx % 2 == 0,
-		"tankside": 1.0 if idx < 2 else -1.0,
-		"stack": idx == 1
-	}
+	_seed = int(absf(subject.centre.x * 7.0 + subject.centre.y * 13.0))
+	_houses = StyleHouses.layout(size.x, size.z, _seed)
 	industrial = _make_version(true)
 	sync()
 
 
+# One version of the block: the group of houses, turned a quarter turn at a time so the alleys do not all run one way.
 func _make_version(is_industrial: bool) -> Node3D:
 	var root := Node3D.new()
 	root.position = Vector3(0.0, -size.y * 0.5, 0.0)
+	root.rotation.y = float((_seed / 2) % 4) * PI * 0.5
 	add_child(root)
 	if is_industrial:
-		StyleBuildings.build_industrial(root, _dims.x, _dims.z, _dims.y, _opts)
+		StyleHouses.build_industrial(root, _houses)
 	else:
-		StyleBuildings.build_whimsical(root, _dims.x, _dims.z, _dims.y, _opts)
+		StyleHouses.build_whimsical(root, _houses)
 	return root
 
 

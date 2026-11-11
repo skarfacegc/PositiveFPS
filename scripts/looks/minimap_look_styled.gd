@@ -43,11 +43,10 @@ func line_colour(is_gap: bool) -> Color:
 	return Color("#e2402f") if is_gap else Color("#ffd24a")
 
 
-# Round 16: the stretch closed by the map edge is a thicker, deeper honey line (the same honey as the world look's
-# sealed
-# band), so it reads as a wall the map itself builds, apart from the gold line of people.
+# 0.4 (#58): a wall (the face of a held block) is a thicker leaf-green line, the colour of the world's hedge, so it
+# reads apart from the gold line of the gates.
 func seal_colour() -> Color:
-	return Color("#d98a1f")
+	return Color("#5aa04a")
 
 
 func seal_width() -> int:
