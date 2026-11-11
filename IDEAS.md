@@ -300,6 +300,13 @@ fix the checkpoint screenshot scripts (#57); style the grid town's built blocks 
 cell, in the existing pixel-diorama style), walls versus gates on the line, the take-a-block preview and the rescue
 pips, and the minimap; new checkpoint shots of the grid. Original art only. The placeholder look and the rules do not
 change. Then the playtest restarts styled.
+**Built (2026-11-10, merged `9e17e9b`, `6cb4600`; In review).** #57: `checkpoint_shots.gd` runs again (forced-gap and
+sealed-edge shots dropped; the round 19/20/24 and checkpoint 7 sets parse but still build the old ring scenario). #58:
+built cells are five small houses each (`style_houses.gd`); walls are a hedge with small lamps (`style_hedge.gd`), the
+ribbon now marks gates only and sits above the mist (it was hidden under it); leaf-green walls on the minimap; styled take
+preview and rescue pips (`style_take.gd`). Shots: `design/renders/v0.4-grid/` (`checkpoint_shots.py --set grid`). An
+unused kiosk option was removed from `style_buildings.gd`. Gate 801 tests, determinism passed, baseline updated, nothing
+loosened. Left: the take preview's glow plane is faint.
 
 **What stays as it is.** Joy, elements and moods; the gloom's phases and arrivals; the burst; spirit and spirit warmth;
 wobble and relapse; first light; the dawn rating; the cue panel and the slim banner; both looks.
