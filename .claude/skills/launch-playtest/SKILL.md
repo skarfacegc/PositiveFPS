@@ -75,13 +75,27 @@ python tools/analyse_recording.py "<copy>/recordings/<stamp>"            # one r
 python tools/analyse_recording.py --compare "<older recording>" "<copy>/recordings/<stamp>" ...   # side by side
 ```
 
-The single report ends with two round 23 sections: **PRESSURE CURVE** (15 s steps: mean dimmed, gaps and pressers,
-relapses, threats and rescued at the end of each step) and **PATCH EFFECT** (for each patch: kind `gap` or `strain`,
-gaps open at the patch, gaps 10 s and 20 s later, and whether they fell). Quote them for pressure and patch questions.
+The single report prints these sections, in this order (the header first: recording, duration and outcome, setup,
+people rescued):
+
+- **QUIET TIME** (strict and relaxed shares, longest quiet stretch) and **TIMELINE BY NIGHT PHASE** (per phase: time,
+  share, rescues, relapses, gaps, threats).
+- **THREAT CADENCE** (threats per minute by type, seconds between threats) and **GAP OPEN DURATIONS**; **DECISION
+  DENSITY** (target changes per minute).
+- **FIGHTING BACK** (bursts and dimmed people cleared), **WOBBLES**, **SPARE SPIRIT**, **GAP BLINKS**, **FIRST LIGHT**
+  (starts and ends), **LANDMARKS** (claimed and lost, with times) and **DAWN RATING** (lights, people and ground shares).
+- **PRESSURE CURVE** (15 s steps: mean dimmed, gaps and pressers, relapses, threats and rescued at the end of each
+  step), **SURGE** (the street it came down, the members on the gate it met, and the wobbles, relapses, gate breaks,
+  gaps and lost cells during it), **BLOCKS** (takes, free and paid, spirit paid), **GATES** (breaks and holds),
+  **DEFENCES** (planted, refused, handed back, bell rings) and **MARKS** (F8 marks).
+- **STAGE COUNTS OVER TIME** (mean per 30 s: wistful, gloomy, dimmed, rescued, gaps, pressers).
+
+Quote the sections that answer the question (pressure and surge questions: PRESSURE CURVE and SURGE; walls and gates:
+BLOCKS, GATES and DEFENCES).
 
 Compare against the previous pass's recording when the user wants pass-over-pass numbers (older ones are in the
 earlier playtest copies' `recordings/`). Summarise outcome, length, rescued, quiet share, gaps by phase, relapses, spirit,
-beacons and landmarks, and quote real numbers, not impressions. Then go on to the interview and record the playtest in
+landmarks and the surge, and quote real numbers, not impressions. Then go on to the interview and record the playtest in
 IDEAS.md (target loop steps 2 and 3), then update the board (section 6).
 
 ## 6. Update the board after the interview
