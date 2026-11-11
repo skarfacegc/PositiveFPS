@@ -7,7 +7,7 @@ at its top, plus the map from old round numbers to versions). This file keeps th
 the current targets' plans. To find code use `SOURCE_MAP.md`
 (`python tools/source_map.py`); for where things live and how to brief an agent use `ARCHITECTURE.md`.
 
-## Current state (as of 2026-11-11, after 0.4 pass 2c Grid fixes)
+## Current state (as of 2026-11-11, after 0.4 pass 3 Pressure and Defences)
 
 **What the game is.** A gentle top-down territory game in Godot 4.7 (GDScript, strict typing). Dimmed people slowly take
 over a plaza; the player rescues them with joy, and the rescued form a living border that holds the gloom back and paints
@@ -21,18 +21,28 @@ never "dark people". Art is original, technique-level inspiration only.
   skittish (flees), glum (x3 when looking up), sheltered (umbrella shield, four hits).
 - **Gloom:** unrescued people go wistful, gloomy, then dimmed. Dimmed people lean on the border and reach for the player.
   The night has phases: calm opening, rising, midnight (hardest, dimmed sinks staggered by `DIM_ARRIVAL_MIN_GAP`), easing.
-  Two gloom tides a night (rising, midnight) are a visible wave of fog with figures that rolls in and shoves its side.
+  One surge a night (pass 3, `gloom_tide.gd`): a 40 s warning from t=25 s (fog gathers at the far end of one street,
+  a minimap mark, the light cools, banners), then 50 s rolling down that street, peaking at midnight: it pushes the
+  gate it meets (1.5) and that gate's neighbours at half; then an aftermath where arrivals ease.
 - **Zone and line (0.4 pass 2):** the zone is a set of held grid cells (`scripts/zone.gd`); the line is its outline.
   Along a held block's face it is a **wall** (firm, needs nobody); across a street mouth or a square's open side it is a
   **gate**, the only place the gloom can push. Members stand only on gates (about one per 3.7 m, shared out when
   short). Dimmed people walk the streets to the nearest gate. The push below now happens per gate.
-- **Border (physical push):** only visible things push: dimmed people leaning on the line from outside, and a tide's wave.
+- **Border (physical push):** only visible things push: dimmed people leaning on the line from outside, and the surge.
   The line bends inward where pushed (the loop dents; members brace and lean) and springs back when relieved. Past
   `PUSH_BREAK_DEPTH` (2.4 m of dent) it breaks: a gap made by pushing. Pushers walk through and drain people and erode
   painted land inside until the break mends (when no dimmed person is within 5 m and a member near it has had joy since
   it opened, or after 25 s clear; `PUSH_MEND_NEEDS_JOY`). Joy weakens pushers; joy at bending members or a burst (G or Q)
   calms the spot. A member drained too far wobbles about five seconds before relapsing; a joy hit saves them. Relapses are
   gated (`RELAPSE_GATE_GAP`). Model and open questions: "Round 26 build" below.
+- **Thin line and lost cells (pass 3):** a gate breaks at `PUSH_BREAK_DEPTH` x lerp(0.5, 1, members / need) x its
+  defence multiplier, so a short-handed gate breaks at as little as half the dent. A gate broken for 12 s
+  (`GATE_LOST_SECONDS`) loses the cell behind it and any cell that loss cuts off (never the start square): the line
+  re-traces, members regroup, that cell's pips reset, nobody relapses; banner "The gloom took a block." and a grey pulse.
+- **Defences (pass 3, F):** hold F, point at a gate (within 5 m), release; right-click cancels; the wheel cycles types.
+  One per gate, 4 in all, each staffed by the nearest free member, who leaves the line. Claiming a landmark unlocks its
+  type for the night: Bandstand (gate 1.5x stronger), Garden (cannot break), Gallery (its cells cannot be lost), Bell
+  tower (a free burst when the gate is bent past half, 20 s cooldown). A defence whose gate closes is handed back.
 - **Spirit:** 0 to 100, start 50; +20 a rescue. At 0 the player goes dim (half speed, no fire, border loses heart). Spare
   spirit at a full meter pools and warms the most strained border member (`spirit_warmth.gd`).
 - **Spirit actions:** take a block with E (pass 2c: the only way the zone grows): hold E and point at a cell next to
@@ -40,7 +50,9 @@ never "dark people". Art is original, technique-level inspiration only.
   cancels. Rescue pips: each rescue fills a pip on its cell; at 3 (`TAKE_RESCUES`) the cell is ready and E takes it free,
   any other cell next to the zone costs 25 spirit (`TAKE_SPIRIT_COST`). Refused only when spirit is short; people never
   refuse a take (a short line is shared out thinly). Takeable cells glow on the ground and the minimap (gold free, blue
-  paid); a taken cell pulses and the slim banner says what it cost. G or Q (30, 8 s cooldown) bursts: lifts dimmed
+  paid; pass 3: free is a filled cell tagged "Free", paid an outline tagged "25", each with pips "2/3"); the
+  preview reads "+5 gates: 18 more people" or "covered by spare people"; a HUD line under the spirit meter says
+  "People: 31 on the line, 23 short" (or "6 spare"); a taken cell pulses and the slim banner says what it cost. G or Q (30, 8 s cooldown) bursts: lifts dimmed
   people nearby, pushes back those on the border line and lets the line near the burst spring back.
 - **Gate cues (pass 2c):** each gate shows members/need, red when short; a pushed gate glows coral from 20% of
   `PUSH_BREAK_DEPTH`, and past 50% an off-screen gate gets an edge pointer (`gate_marks.gd`). Embrace is removed.
@@ -58,7 +70,7 @@ never "dark people". Art is original, technique-level inspiration only.
   Strain markers, strain rings and the border warning are gone.
 
 **Controls.** WASD move, Shift run, mouse to point, hold E / release E take a block (right-click cancels), G or Q
-burst, F2 targeting mode, mouse wheel zoom, F3 debug, F4 switch look, R restart, M menu. Menu: Play (Enter, 1, click), Look.
+burst, hold F / release F plant a defence (wheel picks the type), F2 targeting mode, mouse wheel zoom, F3 debug, F4 switch look, R restart, M menu. Menu: Play (Enter, 1, click), Look.
 
 **Look modes.** Placeholder (default, plain shapes, what the tests run) and styled (pixel-diorama 3D: toon, outline, ground
 and post shaders, in a 640x360 SubViewport). F4 or the menu switches mid-game. Gameplay rounds touch the placeholder only;
@@ -100,7 +112,7 @@ placeholder, `tide_pointer` still is.
 **Recorder:** breaks are logged as `break_open` / `break_close` (#23); the analyser still reads the old `gap_*` names.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
-**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 (planned 2026-11-11, not built) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built 2026-11-11, In review, needs a playtest) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -554,8 +566,23 @@ Defences plan above are the design; this section is how pass 3 builds them, with
 recoverable? Did you see the surge coming from wherever you were, and is one enough? Are defences worth a member and a
 choice between types? Can you tell free from paid and how many people you have to spare?
 
+**Built (2026-11-11; Pressure `a335b99`, Defences and polish `ec144fc`, merged `65b4fe6` and `996ae97`; In review).**
+Two Sonnet worktree agents in parallel. Pressure: thin line (`Border.break_depth`, `gate_fill`), lost cells
+(`Zone.cell_behind`, `cells_behind`, `cells_lost` signal, `lost_pulse.gd`), one surge in `gloom_tide.gd` (warn 25 s,
+push 65 to 115 s, aftermath 30 s; 16 seeded streets that meet a gate), recorder `cell_lost` and `surge_*`, analyser
+SURGE. Defences: `defences.gd`, `defence_config.gd`, F and the wheel, landmark unlocks, recorder `defence_*` and
+`bell_ring`, analyser DEFENCES; capture polish (#75) as planned; the how-to-play panel widened to 1120 px (2 px spare).
+Merge: both built the gate-modifier block; Pressure's kept (Defences sends full modifier sets, so it fits), with
+Defences' filter that keeps staffed people off the line. Menu text now names the surge. Balance tests
+(`pressure_balance_test`, seed 42, one street): the compact zone holds (deepest dent 2.23 against 2.40, about a 7%
+margin), the over-reached zone (12 of 40 people) loses one cell after a 12 s break. Gate and determinism passed; the
+coverage ratchet needed more recorder and defence tests (commit after the merge). Nothing loosened. `border.gd` is
+976 lines against the 1000 cap. Tide tests became surge tests (`gloom_tide_test`, `gloom_tide_edges_test`,
+`border_push_test`, `checkpoint7_test`, `edge_cleanup_test`); `edge_ribbon_test` and `gate_marks_test` adjusted for
+staffed gates.
+
 **Open for the user** (defaults used unless overruled): `GATE_LOST_SECONDS` 12; surge 40 s warning and 50 s push; four
-defences in all; defences cost a member each, no spirit. Close #47 (room to play around the push) now that gates and
+defences in all; defences cost a member each, no spirit (all used as built). Close #47 (room to play around the push) now that gates and
 streets give that room?
 
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; after Line and Defences merge, or the next target)
