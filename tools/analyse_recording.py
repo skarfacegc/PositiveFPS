@@ -23,9 +23,15 @@ Definitions
   them per minute, by type, and the gaps (seconds) between one threat and the next.
 - Decision density is target_change events per minute (the player choosing someone new to help).
 - Break durations come from break_close events (a gap still open at the end is closed with the time so far).
-- Round 23 sections: PATCH EFFECT (per gap_patched: kind gap or strain, gaps open at the patch, gaps 10 s and 20 s
-  later from the samples, and whether they fell) and PRESSURE CURVE (15 s steps: mean dimmed, gaps and pressers,
-  relapses and threats in the step, rescued at its end).
+- PRESSURE CURVE (15 s steps: mean dimmed, gaps and pressers, relapses and threats in the step, rescued at its end).
+- BLOCKS (walls and gates, #59): takes (free against paid, the spirit at each take, the gates before and after, the people
+  needed against the people free), refusals by reason, the time between takes, ready cells (pips full, not yet taken)
+  and how long each waited, auto-joins, and takes or auto-joins with too few people.
+- GATES (#59): gate breaks and holds, seconds under push before a break, pushers per break, breaks per minute by phase.
+- MARKS (#60): each mark (F8) with its time, phase and the events 10 s either side, counted by type.
+- A screenshot is listed beside the event that asked for it (#61; the `screenshot` event's `cause`).
+- Event types the recorder no longer writes (zone stretches, beacons, gap patches) are not read. A recording without an
+  event type shows an empty section for it.
 Exit code: 0 on success, 2 when the folder has no usable events.
 """
 import argparse
@@ -147,13 +153,7 @@ def analyse(events, quiet_window=5.0):
         "start": start, "end": end, "duration": duration, "samples": samples, "rows": rows, "counts": counts,
         "threats": threats, "threat_gaps": threat_gaps, "gap_durations": gap_durations,
         "target_changes": counts.get("target_change", 0),
-        "beacons_placed": [e for e in real if e["type"] == "beacon_placed"],
-        "beacons_reached": [e for e in real if e["type"] == "beacon_reached"],
-        "stretches": [e for e in real if e["type"] == "zone_stretch"],
-        "grows": [e for e in real if e["type"] == "zone_grow"],
-        "shrinks": [e for e in real if e["type"] == "zone_shrink"],
         "landmark_events": [e for e in real if e["type"] in ("landmark_claimed", "landmark_lost")],
-        "patches": [e for e in real if e["type"] == "gap_patched"],
         "bursts": [e for e in real if e["type"] == "burst"],
         "burst_clears": [e for e in real if e["type"] == "burst_clear"],
         "wobbles": [e for e in real if e["type"] == "wobble"],
@@ -231,35 +231,9 @@ def report(res, folder):
         c = sum(r["n_target_change"] for r in group)
         add("  %-9s %5.1f /min" % (name, per_minute(c, len(group))))
     add("")
-    placed, reached = res["beacons_placed"], res["beacons_reached"]
-    spent = sum(e.get("cost", 0) for e in placed)
-    add("SPIRIT BEACONS: %d placed (%.0f spirit spent), %d reached by the centre" % (len(placed), spent, len(reached)))
-    for e in placed:
-        add("  placed at t=%.0f s, pos %s, spirit left %s" % (e["t"], e.get("pos"), e.get("spirit_after")))
-    for e in reached:
-        add("  tip arrived at t=%.0f s, tip %s" % (e["t"], e.get("pos")))
-    stretches, grows, shrinks = res["stretches"], res["grows"], res["shrinks"]
-    gained = sum(e.get("gain", 0) for e in grows)
-    lost = sum(e.get("lost", 0) for e in shrinks)
-    add("SHAPED ZONE: %d stretches, %d arms kept (+%.0f sq m), %d pull-ins (-%.0f sq m)" % (
-        len(stretches), len(grows), gained, len(shrinks), lost))
-    for e in stretches:
-        add("  stretch at t=%.0f s toward %s, tip aimed at %s, max reach %s m" % (
-            e["t"], e.get("beacon"), e.get("tip_target"), e.get("max_reach")))
-    for e in grows:
-        add("  zone_grow at t=%.0f s, tip %s, +%s sq m, zone now %s sq m (%s rescued)" % (
-            e["t"], e.get("tip"), e.get("gain"), e.get("zone"), e.get("people")))
-    for e in shrinks:
-        add("  zone_shrink at t=%.0f s, -%s sq m, zone now %s sq m (%s rescued)" % (
-            e["t"], e.get("lost"), e.get("zone"), e.get("people")))
-    add("")
-    patches, bursts, clears = res["patches"], res["bursts"], res["burst_clears"]
-    spent_patch = sum(e.get("cost", 0) for e in patches)
-    add("FIGHTING BACK (round 22): %d gap patches (%.0f spirit), %d bursts, %d dimmed people cleared off the border" % (
-        len(patches), spent_patch, len(bursts), sum(e.get("lifted", 0) for e in clears)))
-    for e in patches:
-        add("  patch at t=%.0f s (%s), pos %s, %s gaps open, spirit left %s" % (
-            e["t"], e.get("kind"), e.get("pos"), e.get("gaps_open"), e.get("spirit_after")))
+    bursts, clears = res["bursts"], res["burst_clears"]
+    add("FIGHTING BACK (round 22): %d bursts, %d dimmed people cleared off the border" % (
+        len(bursts), sum(e.get("lifted", 0) for e in clears)))
     for e in clears:
         add("  burst at t=%.0f s lifted %s dimmed, %s joy hits, %s gaps open, spirit left %s" % (
             e["t"], e.get("lifted"), e.get("joy_hits"), e.get("gaps_open"), e.get("spirit_after")))
@@ -284,7 +258,7 @@ def report(res, folder):
     add("LANDMARKS: %d claimed, %d lost" % (claims, len(lm_events) - claims))
     for e in lm_events:
         add("  t=%.0f s  %s %s (%s held)" % (e["t"], e.get("name"), e["type"].split("_")[1], e.get("held")))
-    for block in patch_effect_lines(res) + pressure_curve_lines(res) + tide_lines(res):
+    for block in pressure_curve_lines(res) + tide_lines(res) + block_lines(res) + gate_lines(res) + mark_lines(res):
         add(block)
     for block in embrace_lines(res):
         add(block)
@@ -363,7 +337,6 @@ def main(argv=None):
 
 # ---- Round 23: pressure curve and patch effect -----------------------------------------------------------------------
 CURVE_STEP = 15.0  # seconds per step of the pressure curve
-PATCH_LOOK_AFTER = (10.0, 20.0)  # seconds after a patch at which the open gaps are read
 
 
 def pressure_curve(res, step=CURVE_STEP):
@@ -403,51 +376,6 @@ def pressure_curve_lines(res, step=CURVE_STEP):
     return lines
 
 
-def gaps_at(rows, t):
-    """Open gaps in the sample nearest to time t, or None when there is no sample within 1.5 s."""
-    best = min(rows, key=lambda r: abs(r["t"] - t), default=None)
-    return best["gaps"] if best is not None and abs(best["t"] - t) <= 1.5 else None
-
-
-def patch_effects(res, after=PATCH_LOOK_AFTER):
-    """One dict per gap_patched event: kind, gaps open at the patch, gaps `after` seconds later, and the verdict.
-
-    The verdict is "fell" when the later reading is lower than the count at the patch, "same" or "rose" otherwise, and
-    "unknown" when the recording ended before the reading. The patch seals one spot, so a gap elsewhere can open
-    meanwhile; the verdict is about the whole border.
-    """
-    out = []
-    for e in res["patches"]:
-        before = e.get("gaps_open")
-        later = [gaps_at(res["rows"], e["t"] + a) for a in after]
-        known = [g for g in later if g is not None]
-        if before is None or not known:
-            verdict = "unknown"
-        elif known[0] < before:
-            verdict = "fell"
-        elif known[0] == before:
-            verdict = "same"
-        else:
-            verdict = "rose"
-        out.append({"t": e["t"], "kind": e.get("kind", "?"), "gaps_open": before, "later": later, "verdict": verdict})
-    return out
-
-
-def patch_effect_lines(res):
-    effects = patch_effects(res)
-    if not effects:
-        return []
-    lines = ["PATCH EFFECT (gaps open at the patch, then %s s later; kind strain = sealed a strained spot, no gap yet)"
-             % " and ".join("%.0f" % a for a in PATCH_LOOK_AFTER)]
-    for e in effects:
-        later = ", ".join("?" if g is None else str(g) for g in e["later"])
-        lines.append("  t=%4.0f s  %-6s gaps open %s -> %s: %s" % (e["t"], e["kind"], e["gaps_open"], later,
-                                                                   e["verdict"]))
-    fell = sum(1 for e in effects if e["verdict"] == "fell")
-    lines.append("  gaps fell after %d of %d patches" % (fell, len(effects)))
-    return lines
-
-
 # ---- Round 22: round-over-round comparison (python tools/analyse_recording.py --compare A B [C ...]) ----------------
 # Kept at the end of the file, in new functions only, so it merges cleanly with the other report sections.
 RESTART_SECONDS = 10.0  # a recording shorter than this is a restart (menu start, quit at once) and is skipped
@@ -464,6 +392,8 @@ def compare_column(res):
     lm_events = res["landmark_events"]
     claims = sum(1 for e in lm_events if e["type"] == "landmark_claimed")
     win = res["win"]
+    facts = block_facts(res)
+    waits = facts["ready_waits"]
     return {
         "outcome": end.get("outcome", "?") if end else "no end (cut off)",
         "length": "%d:%02d" % (dur // 60, dur % 60),
@@ -474,7 +404,10 @@ def compare_column(res):
         "gaps by phase": ", ".join(by_phase) or "-",
         "relapses": str(res["counts"].get("relapse", 0)),
         "spirit mean": "%.1f" % statistics.fmean(r["spirit"] for r in rows),
-        "beacons placed/reached": "%d/%d" % (len(res["beacons_placed"]), len(res["beacons_reached"])),
+        "takes free/paid": "%d/%d" % (facts["free"], facts["paid"]),
+        "refusals": str(sum(facts["refusals"].values())),
+        "ready wait median": ("%.1f s" % statistics.median(waits)) if waits else "-",
+        "gate breaks": str(len(facts["breaks"])),
         "landmarks claimed/lost": "%d/%d" % (claims, len(lm_events) - claims),
     }
 
@@ -526,6 +459,133 @@ def compare_main(argv):
         return 2
     print(table)
     return 0
+
+
+# ---- Walls and gates: BLOCKS, GATES and MARKS (#59, #60, #61) --------------------------------------------------------
+# Events: take, take_refused, pip, cell_ready, auto_join, gate_break, gate_hold, mark, screenshot (with `cause`).
+REFUSAL_REASONS = ("spirit_short", "people_short", "not_next", "cancelled")
+MARK_WINDOW = 10.0  # seconds either side of a mark whose events are listed
+
+
+def shot_files(real):
+    """(cause, t) -> the shot file. A screenshot is written in the same frame as the event that asked for it."""
+    return {(e.get("cause"), e["t"]): e.get("file") for e in real if e["type"] == "screenshot"}
+
+
+def shot_note(shots, e):
+    """'  shot <file>' for an event that has a screenshot, else ''."""
+    file_name = shots.get((e["type"], e["t"]))
+    return "  shot %s" % file_name if file_name else ""
+
+
+def block_facts(res):
+    """The walls-and-gates figures: takes (free, paid, spirit), refusals, pips, ready cells and how long each waited,
+    auto-joins, takes and auto-joins short of people, and the gate breaks and holds. Missing events count as none."""
+    real = res["real"]
+    takes = [e for e in real if e["type"] == "take"]
+    joins = [e for e in real if e["type"] == "auto_join"]
+    refusals = {}
+    for e in real:
+        if e["type"] == "take_refused":
+            reason = e.get("reason", "?")
+            refusals[reason] = refusals.get(reason, 0) + 1
+    # A ready cell waits until the next take or auto-join of the same cell (taken in file order); none = still ready.
+    waits = []
+    still_ready = 0
+    for i, e in enumerate(real):
+        if e["type"] != "cell_ready":
+            continue
+        cell = e.get("cell")
+        done = next((f for f in real[i + 1:] if f["type"] in ("take", "auto_join") and f.get("cell") == cell), None)
+        if done is None:
+            still_ready += 1
+        else:
+            waits.append(done["t"] - e["t"])
+    free = sum(1 for e in takes if e.get("free") is True)
+    return {
+        "takes": takes,
+        "joins": joins,
+        "free": free,
+        "paid": len(takes) - free,
+        "spirit_paid": sum(e.get("spirit_paid", 0) for e in takes),
+        "gates_added": sum(e.get("gates_after", 0) - e.get("gates_before", 0) for e in takes + joins),
+        "take_gaps": [b["t"] - a["t"] for a, b in zip(takes, takes[1:])],
+        "refusals": refusals,
+        "pips": sum(1 for e in real if e["type"] == "pip"),
+        "ready_waits": waits,
+        "still_ready": still_ready,
+        "short": sum(1 for e in takes + joins if e.get("people_needed", 0) > e.get("people_free", 0)),
+        "breaks": [e for e in real if e["type"] == "gate_break"],
+        "holds": [e for e in real if e["type"] == "gate_hold"],
+    }
+
+
+def block_lines(res):
+    facts = block_facts(res)
+    shots = shot_files(res["real"])
+    takes, joins = facts["takes"], facts["joins"]
+    lines = ["", "BLOCKS (walls and gates): %d takes (%d free, %d paid, %.0f spirit paid), %d auto-joins, %d gates added"
+             % (len(takes), facts["free"], facts["paid"], facts["spirit_paid"], len(joins), facts["gates_added"])]
+    refused = facts["refusals"]
+    others = sorted(r for r in refused if r not in REFUSAL_REASONS)
+    lines.append("  refusals: %d (%s)" % (sum(refused.values()), ", ".join(
+        "%s %d" % (r, refused.get(r, 0)) for r in list(REFUSAL_REASONS) + others)))
+    lines.append("  seconds between takes: %s" % stats_line(facts["take_gaps"]))
+    lines.append("  pips filled by rescues: %d" % facts["pips"])
+    lines.append("  ready cells (pips full, not yet joined): %d waited to be taken: %s; %d still ready at the end"
+                 % (len(facts["ready_waits"]), stats_line(facts["ready_waits"]), facts["still_ready"]))
+    lines.append("  takes or auto-joins short of people: %d" % facts["short"])
+    for e in takes:
+        lines.append("  take at t=%.0f s (%s): cell %s, spirit %s, gates %s -> %s, people %s needed, %s free%s" % (
+            e["t"], "free" if e.get("free") else "paid", e.get("cell"), e.get("spirit"), e.get("gates_before"),
+            e.get("gates_after"), e.get("people_needed"), e.get("people_free"), shot_note(shots, e)))
+    for e in joins:
+        lines.append("  auto-join at t=%.0f s: cell %s, gates %s -> %s, people %s needed, %s free%s" % (
+            e["t"], e.get("cell"), e.get("gates_before"), e.get("gates_after"), e.get("people_needed"),
+            e.get("people_free"), shot_note(shots, e)))
+    return lines
+
+
+def gate_lines(res):
+    facts = block_facts(res)
+    shots = shot_files(res["real"])
+    breaks, holds = facts["breaks"], facts["holds"]
+    lines = ["", "GATES (walls and gates): %d breaks, %d holds (pushes that ended without a break)"
+             % (len(breaks), len(holds))]
+    lines.append("  seconds under push before a break: %s" % stats_line([e["seconds"] for e in breaks if "seconds" in e]))
+    pushers = [e["pushers"] for e in breaks if "pushers" in e]
+    lines.append("  pushers per break: %s" % (
+        "none" if not pushers else "mean %.1f, max %d" % (statistics.fmean(pushers), max(pushers))))
+    lines.append("  seconds in holds: %s" % stats_line([e["seconds"] for e in holds if "seconds" in e]))
+    for name, group in phases(res["rows"]).items():
+        c = sum(1 for e in breaks if e.get("night_phase") == name)
+        lines.append("  breaks in %-9s %4d  %5.2f /min" % (name, c, per_minute(c, len(group))))
+    for e in breaks:
+        lines.append("  break of gate %s at t=%.0f s after %.1f s under push, %s pushers" % (
+            e.get("gate"), e["t"], e.get("seconds", 0.0), e.get("pushers", "?")))
+    return lines
+
+
+def mark_lines(res):
+    """Each mark (F8): its time, phase, and the events within MARK_WINDOW seconds either side, counted by type and listed."""
+    real = res["real"]
+    shots = shot_files(real)
+    marks = [e for e in real if e["type"] == "mark"]
+    lines = ["", "MARKS (F8): %d" % len(marks)]
+    for m in marks:
+        near = sorted(
+            (e for e in real if e is not m and e["type"] not in ("sample", "screenshot")
+             and abs(e["t"] - m["t"]) <= MARK_WINDOW),
+            key=lambda e: e["t"])
+        counts = {}
+        for e in near:
+            counts[e["type"]] = counts.get(e["type"], 0) + 1
+        summary = ", ".join("%s %d" % (k, counts[k]) for k in sorted(counts)) or "nothing"
+        lines.append("  mark %s at t=%.0f s, phase %s (%.0f s either side: %s)%s" % (
+            m.get("n", "?"), m["t"], m.get("night_phase", "?"), MARK_WINDOW, summary, shot_note(shots, m)))
+        for e in near:
+            lines.append("    t=%.1f s  %s%s" % (e["t"], e["type"], shot_note(shots, e)))
+    return lines
 
 
 # ---- Round 25 part S: the EMBRACE section (events embrace_start, embrace_lift, embrace_rescue) ---------------------

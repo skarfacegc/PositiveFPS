@@ -6,6 +6,12 @@ extends RefCounted
 # by itself (Zone.take), without E, when its preview is valid. Pips of a cell that joins, or stops being next to the
 # zone, are cleared. `version` goes up on every change, so the look can tell when to redraw.
 
+# Walls and gates: Recorder catch-up (#59). The recorder listens: a pip was filled (`pips` now on `cell`), a cell's
+# pips just filled up (`cell_ready`), and a cell joined the zone by itself (`auto_joined`, with the gate counts).
+signal pip_added(cell: Vector2i, pips: int)
+signal cell_ready(cell: Vector2i)
+signal auto_joined(cell: Vector2i, gates_before: int, gates_after: int)
+
 # Cell -> pips filled (0 to TAKE_RESCUES).
 var counts: Dictionary = {}
 var version: int = 0
@@ -21,10 +27,15 @@ func on_rescue(zone: Zone, pos: Vector3) -> Array[Vector2i]:
 	var now := mini(filled(cell) + 1, BorderConfig.TAKE_RESCUES)
 	counts[cell] = now
 	version += 1
+	pip_added.emit(cell, now)
+	if now >= BorderConfig.TAKE_RESCUES:
+		cell_ready.emit(cell)
 	if now >= BorderConfig.TAKE_RESCUES and _can_join(zone, cell):
+		var gates_before := zone.gates.size()
 		joined = zone.take(cell)
 		counts.erase(cell)
 		version += 1
+		auto_joined.emit(cell, gates_before, zone.gates.size())
 	prune(zone)
 	return joined
 

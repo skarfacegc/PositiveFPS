@@ -28,6 +28,8 @@ var ended_reason: String = ""
 # Seconds of play so far (counted while the level runs).
 var t: float = 0.0
 var shots_taken: int = 0
+# Walls and gates: Recorder catch-up (#60). Marks made with F8 (the mark_moment key).
+var marks_made: int = 0
 
 var _main: TopDownMain
 var _file: FileAccess
@@ -45,6 +47,11 @@ var _gap_id: Array[int] = []
 var _gap_opened: Array[float] = []
 var _next_gap_id: int = 1
 var _exit_reason: String = "exit"
+# Walls and gates: Recorder catch-up (#59, #60, #61). When the last event shot was taken (-INF: never); the night phases
+# whose first break has been shot; and the gates being pushed now (gate id -> since, pushers, broke).
+var _last_event_shot_t: float = -INF
+var _break_shot_phases: Dictionary = {}
+var _pushes: Dictionary = {}
 
 
 # True when this game should record: the menu toggle or the `--record` user argument.
@@ -135,6 +142,13 @@ func attach(main: TopDownMain) -> bool:
 	for lm: Landmark in main.landmarks.items:
 		lm.claimed.connect(_on_landmark.bind(lm, "landmark_claimed"))
 		lm.lost.connect(_on_landmark.bind(lm, "landmark_lost"))
+	# Walls and gates: Recorder catch-up (#59). The take, pip, auto-join and line-break signals (added for this).
+	main.take_block.taken.connect(_on_taken)
+	main.take_block.refused.connect(_on_take_refused)
+	main.border.pips.pip_added.connect(_on_pip_added)
+	main.border.pips.cell_ready.connect(_on_cell_ready)
+	main.border.pips.auto_joined.connect(_on_auto_joined)
+	main.border.line_broke.connect(_on_line_broke)
 	main.hud.set_recording(true)
 	emit_event(
 		"session_start",
@@ -191,6 +205,7 @@ func _process(delta: float) -> void:
 		_poll_timer = 0.0
 		_poll_gaps()
 		_poll_shields()
+		_poll_pushes()
 	_sample_timer += delta
 	if _sample_timer >= RecorderConfig.RECORD_SAMPLE_SECONDS:
 		_sample_timer -= RecorderConfig.RECORD_SAMPLE_SECONDS
@@ -213,6 +228,22 @@ func _notification(what: int) -> void:
 
 func _exit_tree() -> void:
 	end(_exit_reason)
+
+
+# Walls and gates: Recorder catch-up (#60). The mark key (F8, controls.gd) only listens: it logs a mark and shoots.
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("mark_moment"):
+		mark()
+
+
+# Logs a mark at this moment, flashes "Marked" and takes a screenshot at once (a mark is never throttled).
+func mark() -> void:
+	if _file == null or ended_reason != "":
+		return
+	marks_made += 1
+	emit_event("mark", {"n": marks_made})
+	_main.hud.flash_marked()
+	_event_shot("mark", null, true)
 
 
 # Marks why the level is being left (the restart and menu keys call this just before changing scene).
@@ -265,6 +296,7 @@ func on_round_end(title: String) -> void:
 		fields["ground_share"] = snappedf(ground_share, 0.01)
 		fields["landmarks_held"] = r["landmarks"]
 	emit_event(kind, fields)
+	_event_shot(kind)  # Walls and gates: Recorder catch-up (#61), the end of the game.
 	end(kind)
 
 
@@ -327,7 +359,19 @@ func _sample() -> void:
 			open_len += seg
 	var ids: Array[int] = []
 	ids.assign(_gap_id)
+	# Walls and gates: Recorder catch-up (#59). Pips filled, cells whose pips are full but not joined (ready), and gate
+	# slots with nobody on them.
+	var pips_total := 0
+	var ready_cells := 0
+	for v: Variant in border.pips.counts.values():
+		var n: int = v
+		pips_total += n
+		if n >= BorderConfig.TAKE_RESCUES:
+			ready_cells += 1
 	var fields := {
+		"pips_total": pips_total,
+		"ready_cells": ready_cells,
+		"members_short": maxi(0, border.slot_count - border.member_count),
 		"border_open": snappedf(open_len, 0.1),
 		"border_sealed": snappedf(sealed_len, 0.1),
 		"members": border.members.size(),
@@ -387,6 +431,7 @@ func _poll_gaps() -> void:
 			new_id.append(_next_gap_id)
 			new_opened.append(t)
 			emit_event("break_open", {"gap": _next_gap_id, "pos": _pos(mid), "open_gaps": mids.size()})
+			_first_break_shot()
 			_next_gap_id += 1
 	for i: int in range(_gap_pos.size()):
 		if not taken.has(i):
@@ -414,6 +459,57 @@ func _poll_shields() -> void:
 		if now > _shield_down[i] + 0.5 * MoodConfig.SHELTER_REGROW:
 			emit_event("umbrella_pop", {"id": i, "pos": _pos(p.global_position)})
 		_shield_down[i] = now
+
+
+# Walls and gates: Recorder catch-up (#59). A gate is pushed while one of its points is dented past RECORD_PUSH_DENT.
+# When a push stops and the gate did not break, a gate_hold is logged with how long it lasted; a gate_break is logged
+# by _on_line_broke (with the push's length so far). Gates are keyed by their zone id.
+func _poll_pushes() -> void:
+	var border := _main.border
+	var dent := border.push.dent
+	var pushing: Dictionary = {}
+	for i: int in range(dent.size()):
+		if dent[i] < RecorderConfig.RECORD_PUSH_DENT:
+			continue
+		var gid := _gate_id_of(border.point_gate(i))
+		if gid >= 0:
+			pushing[gid] = true
+	for key: Variant in pushing.keys():
+		var gid: int = key
+		if not _pushes.has(gid):
+			_pushes[gid] = {"since": t, "pushers": 0, "broke": false}
+		var rec: Dictionary = _pushes[gid]
+		var most: int = rec["pushers"]
+		rec["pushers"] = maxi(most, border.push.pushers)
+	for key: Variant in _pushes.keys():
+		var gid: int = key
+		if pushing.has(gid):
+			continue
+		var rec: Dictionary = _pushes[gid]
+		_pushes.erase(gid)
+		var broke: bool = rec["broke"]
+		if not broke:
+			var since: float = rec["since"]
+			var most: int = rec["pushers"]
+			emit_event("gate_hold", {"gate": gid, "seconds": snappedf(t - since, 0.01), "pushers": most})
+
+
+# The zone id of the gate at index `index` of the zone's gate list (-1 when there is none).
+func _gate_id_of(index: int) -> int:
+	var gates := _main.border.zone.gates
+	if index < 0 or index >= gates.size():
+		return -1
+	var gid: int = gates[index].get("id", index)
+	return gid
+
+
+# The first break of each night phase is shot (once per phase; a throttled one waits for the next break of that phase).
+func _first_break_shot(picture: Image = null) -> void:
+	var phase := phase_for(_main.night.progress())
+	if _break_shot_phases.has(phase):
+		return
+	if _event_shot("break_open", picture):
+		_break_shot_phases[phase] = true
 
 
 # ---- signal handlers
@@ -503,6 +599,8 @@ func _on_burst(at: Vector3) -> void:
 
 func _on_player_dim(dim: bool) -> void:
 	emit_event("player_dim", {"dim": dim, "spirit": snappedf(_main.player.spirit, 0.1)})
+	if dim:
+		_event_shot("player_dim")
 
 
 func _on_grab_landed(p: Person) -> void:
@@ -511,6 +609,59 @@ func _on_grab_landed(p: Person) -> void:
 
 func _on_grab_avoided(p: Person) -> void:
 	emit_event("grab_avoided", {"id": _id(p)})
+
+
+# Walls and gates: Recorder catch-up (#59, #61). A take (E) or a refused one; the take shoots.
+func _on_taken(info: Dictionary) -> void:
+	emit_event("take", info)
+	_event_shot("take")
+
+
+func _on_take_refused(reason: String, info: Dictionary) -> void:
+	var fields := info.duplicate()
+	fields["reason"] = reason
+	emit_event("take_refused", fields)
+
+
+# A rescue filled a pip: `pips` is now filled on the cell.
+func _on_pip_added(cell: Vector2i, pips: int) -> void:
+	emit_event("pip", {"cell": _cell(cell), "pips": pips})
+
+
+func _on_cell_ready(cell: Vector2i) -> void:
+	emit_event("cell_ready", {"cell": _cell(cell), "pips": BorderConfig.TAKE_RESCUES})
+
+
+# A cell joined the zone by itself at full pips. People free against people needed show whether it was short.
+func _on_auto_joined(cell: Vector2i, gates_before: int, gates_after: int) -> void:
+	var needed := _main.border.zone.members_needed()
+	emit_event(
+		"auto_join",
+		{
+			"cell": _cell(cell),
+			"gates_before": gates_before,
+			"gates_after": gates_after,
+			"people_needed": needed,
+			"people_free": _main.rescued_count,
+		}
+	)
+	_event_shot("auto_join")
+
+
+# A gate's line snapped under a push: which gate (by id), how long it had been pushed, and the pushers now.
+func _on_line_broke(pos: Vector3) -> void:
+	var near := _main.border.zone.nearest_gate(Vector2(pos.x, pos.z))
+	var gid: int = near.get("id", -1)
+	var seconds := 0.0
+	if _pushes.has(gid):
+		var rec: Dictionary = _pushes[gid]
+		rec["broke"] = true
+		var since: float = rec["since"]
+		seconds = t - since
+	emit_event(
+		"gate_break",
+		{"gate": gid, "seconds": snappedf(seconds, 0.01), "pushers": _main.border.push.pushers, "pos": _pos(pos)}
+	)
 
 
 # ---- files
@@ -563,14 +714,37 @@ func _screenshot() -> void:
 	_record_shot(get_viewport().get_texture().get_image())
 
 
-# Logs and saves one grabbed frame (nothing happens for a missing or empty picture).
-func _record_shot(img: Image) -> void:
+# Walls and gates: Recorder catch-up (#61). A shot for an event (take, first break of a phase, auto-join, mark, player
+# dim, the end of the game). At most one per RECORD_EVENT_SHOT_MIN_GAP seconds unless `force` (a mark). `picture` is
+# the frame (tests pass one; in play it is the viewport's). Returns true when a shot was saved.
+func _event_shot(cause: String, picture: Image = null, force: bool = false) -> bool:
+	if _file == null or ended_reason != "":
+		return false
+	if not force and t - _last_event_shot_t < RecorderConfig.RECORD_EVENT_SHOT_MIN_GAP:
+		return false
+	var img := picture
+	if img == null:
+		if _headless():
+			return false
+		img = get_viewport().get_texture().get_image()
+	if not _record_shot(img, cause):
+		return false
+	_last_event_shot_t = t
+	return true
+
+
+# Logs and saves one grabbed frame (nothing happens for a missing or empty picture). `cause` is "timer" for the
+# periodic shot, else the event type that asked for it (it is in the file name and the `screenshot` event).
+func _record_shot(img: Image, cause: String = "timer") -> bool:
 	if img == null or img.is_empty():
-		return
+		return false
 	shots_taken += 1
 	var file_name := "shot_%04d.png" % shots_taken
-	emit_event("screenshot", {"file": file_name})
+	if cause != "timer":
+		file_name = "shot_%04d_%s.png" % [shots_taken, cause]
+	emit_event("screenshot", {"file": file_name, "cause": cause})
 	WorkerThreadPool.add_task(_save_shot.bind(img, session_dir.path_join(file_name)))
+	return true
 
 
 static func _save_shot(img: Image, path: String) -> void:
@@ -590,6 +764,11 @@ func _id(p: Person) -> int:
 
 static func _pos(v: Vector3) -> Array[float]:
 	return [snappedf(v.x, 0.1), snappedf(v.z, 0.1)]
+
+
+# A town cell as [x, z] (JSON has no Vector2i).
+static func _cell(c: Vector2i) -> Array[int]:
+	return [c.x, c.y]
 
 
 static func _flat(a: Vector3, b: Vector3) -> float:

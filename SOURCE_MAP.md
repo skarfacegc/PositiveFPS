@@ -282,25 +282,26 @@ extends RefCounted | 18 const | The painted ground: paint speeds, cover, contagi
 
 ### scripts/hud.gd (Hud)
 extends CanvasLayer | 0 const | Round 12a: spirit (a label and a bar above the burst indicator).
-- L287 `rebuild_look() -> void` - Graphics checkpoint 3: in the styled look the landmark panel and the end screen are drawn by StyledPanel (p...
-- L312 `set_night_progress(p: float) -> void` - Shows how far the night has gone: 0 at dusk, 1 at dawn.
-- L335 `set_target(affinity: int) -> void` - Top-down: shows the target's element in its colour, or "No target" in cream. Pass -1 for no target.
-- L341 `set_target_mood(mood: String) -> void` - Round 12b: the target's mood ("guarded", "skittish", "glum" or "" for none) after the element name.
-- L362 `set_targeting(mode: int) -> void` - Top-down: shows the targeting mode (see Config.TargetingMode) in the top right.
-- L369 `set_rescued(n: int, total: int) -> void`
-- L375 `place_rescued_below(y: float) -> void` - Puts the Rescued counter at the left edge, `y` pixels from the top (the level passes the bottom of the mini...
-- L382 `alert_showing() -> bool` - Checkpoint 6: true while the HUD alert (such as "Someone lost their joy!") is up or fading, so a notice ban...
-- L387 `set_debug_on(on: bool) -> void` - Shows the "[F3] debug" hint while the debug overlay is on.
-- L393 `set_floor_text(text: String) -> void` - Replaces the floor-effect counts line (round 10): the total against the cap, and each kind.
-- L398 `set_debug_text(text: String) -> void` - Replaces the text of the F3 hint (cover and protection key, plus the border counts).
-- L403 `set_hint(text: String) -> void` - Replaces the controls hint text at the bottom of the screen.
-- L409 `set_landmarks(lines: Array[String], total: int, held: Array[bool] = []) -> void` - Round 19: the landmark panel: "Landmarks 1 of 3" and a line (with the boost) for each one held.
-- L419 `set_recording(on: bool) -> void` - Round 18: shows or hides the red "REC" mark (top right, under the targeting label).
-- L438 `set_spirit(spirit: float, is_dim: bool) -> void` - Shows the player's spirit and whether they are dim (the bar and the label go grey).
-- L455 `set_burst(cooldown_left: float, has_spirit: bool = true, targets: int = 0) -> void` - Shows the joy burst cooldown: READY in green when it can be used, otherwise the seconds left in grey. `has_...
-- L479 `show_alert(text: String, colour: Color = Color(1, 0.6, 0.1), hold: float = 0.8) -> void` - Shows a short alert that waits `hold` seconds (0.8s by default), then fades out over 2s. Calling again rest...
-- L494 `layout_controls() -> Array[Control]` - Round 22: the HUD panels that an edge pointer keeps clear of (the landmark pointers, see landmark_pointers....
-- L524 `show_end(title: String, detail: String, rating: Dictionary = {}) -> void` - Shows the end screen: a title, then the detail lines (dawn lights, the reasons, buildings).
+- L291 `rebuild_look() -> void` - Graphics checkpoint 3: in the styled look the landmark panel and the end screen are drawn by StyledPanel (p...
+- L316 `set_night_progress(p: float) -> void` - Shows how far the night has gone: 0 at dusk, 1 at dawn.
+- L339 `set_target(affinity: int) -> void` - Top-down: shows the target's element in its colour, or "No target" in cream. Pass -1 for no target.
+- L345 `set_target_mood(mood: String) -> void` - Round 12b: the target's mood ("guarded", "skittish", "glum" or "" for none) after the element name.
+- L366 `set_targeting(mode: int) -> void` - Top-down: shows the targeting mode (see Config.TargetingMode) in the top right.
+- L373 `set_rescued(n: int, total: int) -> void`
+- L379 `place_rescued_below(y: float) -> void` - Puts the Rescued counter at the left edge, `y` pixels from the top (the level passes the bottom of the mini...
+- L386 `alert_showing() -> bool` - Checkpoint 6: true while the HUD alert (such as "Someone lost their joy!") is up or fading, so a notice ban...
+- L391 `set_debug_on(on: bool) -> void` - Shows the "[F3] debug" hint while the debug overlay is on.
+- L397 `set_floor_text(text: String) -> void` - Replaces the floor-effect counts line (round 10): the total against the cap, and each kind.
+- L402 `set_debug_text(text: String) -> void` - Replaces the text of the F3 hint (cover and protection key, plus the border counts).
+- L407 `set_hint(text: String) -> void` - Replaces the controls hint text at the bottom of the screen.
+- L413 `set_landmarks(lines: Array[String], total: int, held: Array[bool] = []) -> void` - Round 19: the landmark panel: "Landmarks 1 of 3" and a line (with the boost) for each one held.
+- L423 `set_recording(on: bool) -> void` - Round 18: shows or hides the red "REC" mark (top right, under the targeting label).
+- L457 `flash_marked() -> void` - Walls and gates: Recorder catch-up (#60). Shows "Marked" next to REC for MARK_FLASH_SECONDS. Only while rec...
+- L469 `set_spirit(spirit: float, is_dim: bool) -> void` - Shows the player's spirit and whether they are dim (the bar and the label go grey).
+- L486 `set_burst(cooldown_left: float, has_spirit: bool = true, targets: int = 0) -> void` - Shows the joy burst cooldown: READY in green when it can be used, otherwise the seconds left in grey. `has_...
+- L510 `show_alert(text: String, colour: Color = Color(1, 0.6, 0.1), hold: float = 0.8) -> void` - Shows a short alert that waits `hold` seconds (0.8s by default), then fades out over 2s. Calling again rest...
+- L525 `layout_controls() -> Array[Control]` - Round 22: the HUD panels that an edge pointer keeps clear of (the landmark pointers, see landmark_pointers....
+- L555 `show_end(title: String, detail: String, rating: Dictionary = {}) -> void` - Shows the end screen: a title, then the detail lines (dawn lights, the reasons, buildings).
 
 ### scripts/hud_config.gd (HudConfig)
 extends RefCounted | 117 const | HUD, minimap, prompts and notices, intro, cue panel, edge pointers, debug overlay (screen-space numbers).
@@ -970,22 +971,23 @@ extends RefCounted | 31 const | The physical push on the line (scripts/border_pu
 
 ### scripts/recorder.gd (Recorder)
 extends Node | 3 const | Round 18: the gameplay recorder. While it is on, each game writes a session folder with `events.jsonl` (one...
-- L51 `static requested() -> bool` - True when this game should record: the menu toggle or the `--record` user argument.
-- L57 `static start(main: TopDownMain) -> Recorder` - Starts recording `main`'s level when it was asked for (the menu check box or `-- --record`); null when not,...
-- L69 `static load_setting() -> void` - Loads the saved menu choice (not under automated tests, which must not read a player's settings).
-- L76 `static load_setting_from(path: String) -> void` - Reads the menu choice from the config file at `path` (a missing or unreadable file leaves it as it is).
-- L82 `static save_setting() -> void`
-- L89 `static save_setting_to(path: String) -> void` - Writes the menu choice into the config file at `path`, keeping whatever else that file holds.
-- L97 `static phase_for(progress: float) -> String` - The night phase name for a night progress 0..1 (the calm opening, then thirds up to dawn).
-- L108 `attach(main: TopDownMain) -> bool` - Starts a session for `main` (call at the end of its _ready). Returns false when it could not open a file.
-- L176 `is_open() -> bool`
-- L219 `note_exit(reason: String) -> void` - Marks why the level is being left (the restart and menu keys call this just before changing scene).
-- L225 `end(reason: String) -> void` - Writes session_end (once) and closes the file. `reason` is "win", "loss", "dawn", "restart", "menu", "quit" or
-- L253 `on_round_end(title: String) -> void` - The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn...
-- L272 `emit_event(type: String, fields: Dictionary = {}) -> void` - Adds one line: t, night_phase and night are filled in; `fields` are the rest. Cheap: one JSON string into a...
+- L58 `static requested() -> bool` - True when this game should record: the menu toggle or the `--record` user argument.
+- L64 `static start(main: TopDownMain) -> Recorder` - Starts recording `main`'s level when it was asked for (the menu check box or `-- --record`); null when not,...
+- L76 `static load_setting() -> void` - Loads the saved menu choice (not under automated tests, which must not read a player's settings).
+- L83 `static load_setting_from(path: String) -> void` - Reads the menu choice from the config file at `path` (a missing or unreadable file leaves it as it is).
+- L89 `static save_setting() -> void`
+- L96 `static save_setting_to(path: String) -> void` - Writes the menu choice into the config file at `path`, keeping whatever else that file holds.
+- L104 `static phase_for(progress: float) -> String` - The night phase name for a night progress 0..1 (the calm opening, then thirds up to dawn).
+- L115 `attach(main: TopDownMain) -> bool` - Starts a session for `main` (call at the end of its _ready). Returns false when it could not open a file.
+- L190 `is_open() -> bool`
+- L240 `mark() -> void` - Logs a mark at this moment, flashes "Marked" and takes a screenshot at once (a mark is never throttled).
+- L250 `note_exit(reason: String) -> void` - Marks why the level is being left (the restart and menu keys call this just before changing scene).
+- L256 `end(reason: String) -> void` - Writes session_end (once) and closes the file. `reason` is "win", "loss", "dawn", "restart", "menu", "quit" or
+- L284 `on_round_end(title: String) -> void` - The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn...
+- L304 `emit_event(type: String, fields: Dictionary = {}) -> void` - Adds one line: t, night_phase and night are filled in; `fields` are the rest. Cheap: one JSON string into a...
 
 ### scripts/recorder_config.gd (RecorderConfig)
-extends RefCounted | 6 const | The gameplay recorder (scripts/recorder.gd).
+extends RefCounted | 9 const | The gameplay recorder (scripts/recorder.gd).
 
 ### scripts/relapse_wave.gd (RelapseWave)
 extends RefCounted | 0 const | Round 24: the gate a wobbling person asks before relapsing (Person.relapse_gate). Only one person may relap...
@@ -994,9 +996,10 @@ extends RefCounted | 0 const | Round 24: the gate a wobbling person asks before 
 
 ### scripts/rescue_pips.gd (RescuePips)
 extends RefCounted | 0 const | Walls and gates: Rescues pull the line (#11). A rescued person who belongs to a cell next to the zone (the...
-- L15 `on_rescue(zone: Zone, pos: Vector3) -> Array[Vector2i]` - A rescued person was made at ground point `pos`. Returns the cells that joined the zone (empty when none).
-- L33 `prune(zone: Zone) -> void` - Clears the pips of every cell that is held now or is no longer next to the zone.
-- L42 `filled(cell: Vector2i) -> int` - The pips filled on `cell` (0 when none).
+signals: pip_added(cell: Vector2i, pips: int), cell_ready(cell: Vector2i), auto_joined(cell: Vector2i, gates_before: int, gates_after: int)
+- L21 `on_rescue(zone: Zone, pos: Vector3) -> Array[Vector2i]` - A rescued person was made at ground point `pos`. Returns the cells that joined the zone (empty when none).
+- L44 `prune(zone: Zone) -> void` - Clears the pips of every cell that is held now or is no longer next to the zone.
+- L53 `filled(cell: Vector2i) -> int` - The pips filled on `cell` (0 when none).
 
 ### scripts/spirit_config.gd (SpiritConfig)
 extends RefCounted | 50 const | Spirit, going dim, grabs, the joy burst, spare spirit and the burst's result effects.
@@ -1026,9 +1029,10 @@ signals: warmed(person: Person, joy: float, spirit: float)
 extends RefCounted | 95 const | Styled look numbers (scenery, atmosphere, props, ambient life, jog). The rules never read them.
 
 ### scripts/take_block.gd (TakeBlock)
-extends Node3D | 4 const | Walls and gates: Take a block (E, #10). Hold E and point at a cell: a placeholder outline shows the cell an...
-- L30 `static attach(main: TopDownMain) -> TakeBlock`
-- L83 `take_now(cell: Vector2i) -> bool` - Takes `cell` for the spirit cost, or refuses with the slim banner. Returns true when the cell was taken. A...
+extends Node3D | 4 const | Walls and gates: Recorder catch-up (#59). The recorder listens: `taken` carries the take's numbers and `ref...
+signals: taken(info: Dictionary), refused(reason: String, info: Dictionary)
+- L35 `static attach(main: TopDownMain) -> TakeBlock`
+- L88 `take_now(cell: Vector2i) -> bool` - Takes `cell` for the spirit cost, or refuses with the slim banner. Returns true when the cell was taken. A...
 
 ### scripts/target_highlight.gd (TargetHighlight)
 extends MeshInstance3D | 0 const | The ring under the target's feet: a flat warm disc (placeholder) or the styled ring (StyleTarget). Hidden w...
@@ -1196,6 +1200,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 - push_defence_test (tests/push_defence_test.gd): 4 tests
 - reactions_test (tests/reactions_test.gd): 6 tests
 - readability_test (tests/readability_test.gd): 10 tests
+- recorder_blocks_test (tests/recorder_blocks_test.gd): 24 tests
 - recorder_more_test (tests/recorder_more_test.gd): 10 tests
 - recorder_polled_test (tests/recorder_polled_test.gd): 9 tests
 - recorder_test (tests/recorder_test.gd): 15 tests

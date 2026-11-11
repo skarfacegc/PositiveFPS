@@ -27,6 +27,8 @@ static func setup() -> void:
 	_add_action("toggle_debug", [_key(KEY_F3)])
 	# Flips between the placeholder and the styled look (graphics checkpoint 1).
 	_add_action("toggle_look", [_key(KEY_F4)])
+	# Walls and gates: Recorder catch-up (#60). While recording, logs a mark and takes a shot (not in the player's list).
+	_add_action("mark_moment", [_key(KEY_F8)])
 	# Round 14: the mouse wheel zooms the top-down camera (wheel up zooms in, wheel down zooms out).
 	_add_action("zoom_in", [_mouse(MOUSE_BUTTON_WHEEL_UP)])
 	_add_action("zoom_out", [_mouse(MOUSE_BUTTON_WHEEL_DOWN)])

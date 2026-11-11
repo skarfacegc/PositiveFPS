@@ -1,6 +1,11 @@
 class_name TakeBlock
 extends Node3D
 
+# Walls and gates: Recorder catch-up (#59). The recorder listens: `taken` carries the take's numbers and `refused` the
+# reason ("spirit_short", "people_short", "not_next" or "cancelled") with what was there.
+signal taken(info: Dictionary)
+signal refused(reason: String, info: Dictionary)
+
 # Walls and gates: Take a block (E, #10). Hold E and point at a cell: a placeholder outline shows the cell and the gates
 # it opens. Release to take it, paying TAKE_SPIRIT_COST; refused with the slim banner when spirit is short or the gates
 # need more members than the border has. Right-click cancels. The pips of rescues (#11) are drawn here too; their rules
@@ -84,17 +89,32 @@ func take_now(cell: Vector2i) -> bool:
 	var zone := level.border.zone
 	var pv: Dictionary = zone.preview(cell, true)
 	var valid: bool = pv["valid"]
+	var needed: int = pv.get("members_needed", 0)
+	var info := {
+		"cell": [cell.x, cell.y],
+		"spirit": snappedf(level.player.spirit, 0.1),
+		"people_needed": needed,
+		"people_free": _rescued_count(),
+		"gates_before": zone.gates.size()
+	}
 	if not valid:
+		refused.emit("not_next", info)
 		return false
 	if level.player.spirit < BorderConfig.TAKE_SPIRIT_COST:
+		refused.emit("spirit_short", info)
 		_refuse("Not enough spirit to take a block.")
 		return false
-	var needed: int = pv["members_needed"]
 	if needed > _rescued_count():
+		refused.emit("people_short", info)
 		_refuse("The new gates need more people than you have.")
 		return false
 	level.player.lose_spirit(BorderConfig.TAKE_SPIRIT_COST)
 	zone.take(cell)
+	info["spirit_paid"] = BorderConfig.TAKE_SPIRIT_COST
+	info["spirit"] = snappedf(level.player.spirit, 0.1)
+	info["gates_after"] = zone.gates.size()
+	info["free"] = false  # Today's rules: a take always costs spirit (2c makes a pip-ready take free).
+	taken.emit(info)
 	return true
 
 
@@ -136,6 +156,7 @@ func _release() -> void:
 
 
 func _cancel() -> void:
+	refused.emit("cancelled", {"cell": [target_cell.x, target_cell.y]})
 	holding = false
 	preview = {}
 	target_cell = NO_CELL

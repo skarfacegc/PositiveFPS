@@ -19,6 +19,8 @@ var end_panel: ColorRect
 var end_label: Label
 # Round 18: the small "REC" mark shown while the gameplay recorder is on (built the first time it is needed).
 var rec_label: Label
+# Walls and gates: Recorder catch-up (#60). The "Marked" flash beside REC.
+var mark_label: Label
 # Round 19: the held landmarks and their boosts (top right, under the REC mark).
 var landmark_label: Label
 # Graphics checkpoint 3: the styled drawings of the landmark panel and the end screen (nothing in the placeholder look).
@@ -38,6 +40,8 @@ var key_panel: StyledPanel
 var night_view: Control
 var spirit_view: Control
 var _alert_tween: Tween
+# Walls and gates: Recorder catch-up (#60). The tween that hides the "Marked" flash.
+var _mark_tween: Tween
 var _night_progress: float = 0.0
 var _spirit_shown: bool = false
 var _spirit_dim: bool = false
@@ -431,7 +435,34 @@ func set_recording(on: bool) -> void:
 		rec_label.offset_bottom = 82
 		rec_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		add_child(rec_label)
+		# Walls and gates: Recorder catch-up (#60). "Marked" sits just left of REC for a moment after a mark.
+		mark_label = Label.new()
+		mark_label.text = "Marked"
+		mark_label.add_theme_font_size_override("font_size", 20)
+		mark_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.6))
+		mark_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		mark_label.offset_left = -300
+		mark_label.offset_right = -170
+		mark_label.offset_top = 52
+		mark_label.offset_bottom = 82
+		mark_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		mark_label.visible = false
+		add_child(mark_label)
 	rec_label.visible = on
+	if not on and mark_label != null:
+		mark_label.visible = false
+
+
+# Walls and gates: Recorder catch-up (#60). Shows "Marked" next to REC for MARK_FLASH_SECONDS. Only while recording.
+func flash_marked() -> void:
+	if rec_label == null or not rec_label.visible or mark_label == null:
+		return
+	mark_label.visible = true
+	if _mark_tween != null:
+		_mark_tween.kill()
+	_mark_tween = create_tween()
+	_mark_tween.tween_interval(RecorderConfig.MARK_FLASH_SECONDS)
+	_mark_tween.tween_callback(mark_label.hide)
 
 
 # Shows the player's spirit and whether they are dim (the bar and the label go grey).
