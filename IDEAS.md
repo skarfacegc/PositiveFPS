@@ -92,7 +92,7 @@ placeholder, `tide_pointer` still is.
   step before a break. Investigate after 0.4 Walls and gates's push and pull. (#22)
 - The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
 - The checkpoint screenshot scripts (`tools/checkpoint`) still use the town coordinates from before pass 2c. (#74)
-- The Gallery has no styled art (it uses the bandstand model); its dent-fade protection and defence unlock are in 0.4. (#16)
+- The Gallery has no styled art (it uses the bandstand model); its dent-fade protection and defence unlock were built in 0.4 pass 3 and are judged in 0.5. (#16)
 
 **Watch in the next playtest** (no issue: questions for the interview, not work):
 - Checkpoint 6's notice banner under the night bar and the styled target ring have no full-frame screenshot yet.
@@ -174,7 +174,7 @@ Wider world and level progression ideas: see `VISION.md`.
 
 ## 0.5 Why expand (sketch; from the #82 design talk, 2026-11-11)
 
-0.4 stays on the mechanics (walls, gates, pressure, defences); this is the content for the next target. The 0.4 pass 3
+0.4 stays on the mechanics (walls, gates, pressure); this is the content for the next target. The 0.4 pass 3
 playtest showed the problem: expanding costs about 5 gates and 20 people a cell and gives little back (16% ground barely
 moves the dawn rating, landmarks give a joy boost and a defence type), so a compact zone is the sensible play and no
 defence was worth a member. Goal: ground worth holding. Not a plan yet; plan it before building.
@@ -190,6 +190,11 @@ defence was worth a member. Goal: ground worth holding. Not a plan yet; plan it 
 - **Spirit sinks:** spirit is weak now (only takes at 25 and bursts at 30; the pass 3 game averaged 87.5 spirit), so a
   trickle needs something to buy: **block upgrades (#86, M)**, spend on a held block (a house gives more people, a shop
   more spirit); **stronger joy (#87, S)**, spend for a short boost (wider, faster joy).
+- **Defences (#15, L) and landmark unlocks (#16, S), moved here from 0.4 on 2026-11-11:** built in 0.4 pass 3 and
+  still In review. Nobody planted one because there was nothing worth defending, so they are judged again once ground
+  is worth holding. Decide in the 0.5 plan how the defence unlocks (#16) sit beside Landmark powers (#85).
+- **Rule stepping (#18, L), moved here from 0.4 on 2026-11-11:** tooling, not content; 0.5 adds long-night balance
+  tests, which is where it pays. Lighter tests (#69) stays in 0.4 and no longer waits on it.
 - **Not now:** pressure that punishes staying small (unheld blocks dimming their residents into pushers, or rising
   take costs). The user wants rewards alone tried first.
 
@@ -201,8 +206,8 @@ tools and docs passes touch no gameplay files, so they can also run while the us
 1. **Cleanup pass A, quick wins** (one Haiku pass): Test timings (#76), Test weights (#63), Stale state (#77),
    Playtest skill (#78), Search noise (#64), Housekeeping (#65).
 2. **Cleanup pass B, agent docs** (one pass): Coordinator rules (#79), Agent tool notes (#80), Trim docs (#71).
-3. **Lighter tests** (#69, Sonnet), once pass A has refreshed the timings. Rule stepping (#18) serves the same goal:
-   decide then whether it comes first.
+3. **Lighter tests** (#69, Sonnet), once pass A has refreshed the timings. Rule stepping (#18) serves the same goal
+   but moved to 0.5 on 2026-11-11, so Lighter tests goes first.
 
 Still Backlog, as filler beside playtests: Permissions (#66), History out of code (#67), Unused constants (#68),
 Styled-look tier (#72, needs the user's call on the coverage rule first), the checkpoint scripts (#74).
@@ -617,8 +622,9 @@ no gate in range). Answers:
   that matter more, and pressure that punishes staying small (#82; talked through 2026-11-11, see "0.5 Why expand").
 - Capture cues: mostly clear, needs polish (no detail given). #75 accepted (Done).
 - #12 to #16 stay In review: they work, refine in the next pass and play again.
+- Moved 2026-11-11: Defences (#15, #16) go to 0.5 Why expand, still In review; #12 to #14 stay in 0.4.
 
-### Walls and gates: Rule stepping, advance the game rules without the scene (#18; after Line and Defences merge, or the next target)
+### Walls and gates: Rule stepping, advance the game rules without the scene (#18; moved to 0.5 Why expand 2026-11-11)
 
 Tests are frame-bound: the 2400-frame border test sets the suite's floor. Let people, gloom and border advance on a
 fixed time step without the scene running, so the long scenario tests stop waiting on real frames. Rules and visuals are already split for the looks; this does the same for the simulation.
