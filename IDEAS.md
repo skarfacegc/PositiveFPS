@@ -409,6 +409,14 @@ the recorder tests. The recorder still only listens: no game state changes, no r
 `python tools/round_end.py`. The recorder touches no rules, but it is in the determinism list, so run the determinism
 check. Coverage must not drop. Then the 2c playtest runs with this recorder.
 
+**Built (2026-11-11, `3d75d85`; In review).** One Haiku agent. Events `take` (`free` false until 2c), `take_refused`,
+`pip`, `cell_ready`, `auto_join`, `gate_break`, `gate_hold`, `mark`; the sample gains `pips_total`, `ready_cells` and
+`members_short`; signals were added only in `take_block.gd` and `rescue_pips.gd`. F8 marks a moment (shot at once,
+"Marked" beside REC). Shots on events, at most one per 3 s (marks always). The analyser has BLOCKS, GATES and MARKS
+sections and new `--compare` columns; it dropped SHAPED ZONE, SPIRIT BEACONS and PATCH EFFECT (events no longer sent).
+Gate, determinism and baseline passed; nothing loosened. Limits: `pushers` on gate events is the border-wide count, not
+per gate; the break shot follows `break_open`, not `gate_break`; a take aimed at no cell is logged as `not_next`.
+
 **Open for the user.** F8 for the mark key (or another)? Should a mark also ask for a one-word note? (Default: no,
 the interview fills it in.)
 
