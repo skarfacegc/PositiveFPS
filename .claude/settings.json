@@ -14,7 +14,26 @@
       "Bash(python tools/cleanup_worktrees.py --dry-run)",
       "Bash(python tools/lint.py)",
       "Bash(tasklist)",
-      "Bash(tasklist *)"
+      "Bash(tasklist *)",
+      "Bash(python tools/gate.py)",
+      "Bash(python tools/gate.py *)",
+      "Bash(python tools/run_tests.py *)",
+      "Bash(python tools/lint.py --fix)",
+      "Bash(python tools/source_map.py)",
+      "Bash(python tools/source_map.py --check)",
+      "Bash(python tools/coverage.py --check-files *)",
+      "Bash(python tools/round_end.py)",
+      "Bash(python tools/round_end.py --skip-determinism)",
+      "Bash(python tools/godot_path.py *)",
+      "Bash(python tools/analyse_recording.py *)",
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git show *)",
+      "Bash(git rev-parse *)",
+      "Bash(git worktree list)",
+      "Bash(git branch --list *)"
     ]
   }
 }

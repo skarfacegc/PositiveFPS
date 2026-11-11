@@ -204,12 +204,12 @@ Found by two read-only reviews of tests, code, docs and token cost (the second, 
 #80). **Targeted at 0.4 Walls and gates on 2026-11-11, in this order** (after pass 3, which is being built; the
 tools and docs passes touch no gameplay files, so they can also run while the user plays):
 1. **Cleanup pass A, quick wins** (one Haiku pass): Test timings (#76), Test weights (#63), Stale state (#77),
-   Playtest skill (#78), Search noise (#64), Housekeeping (#65).
+   Playtest skill (#78), Search noise (#64), Housekeeping (#65), Permissions (#66).
 2. **Cleanup pass B, agent docs** (one pass): Coordinator rules (#79), Agent tool notes (#80), Trim docs (#71).
 3. **Lighter tests** (#69, Sonnet), once pass A has refreshed the timings. Rule stepping (#18) serves the same goal
    but moved to 0.5 on 2026-11-11, so Lighter tests goes first.
 
-Still Backlog, as filler beside playtests: Permissions (#66), History out of code (#67), Unused constants (#68),
+Still Backlog, as filler beside playtests: History out of code (#67), Unused constants (#68),
 Styled-look tier (#72, needs the user's call on the coverage rule first), the checkpoint scripts (#74).
 
 ### Cleanup: Test timings (#76, S)
