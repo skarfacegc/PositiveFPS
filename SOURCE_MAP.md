@@ -655,7 +655,7 @@ extends RefCounted | 0 const | The styled buildings (ported from design/style_te
 - L19 `static pipe_run(p: Node, pts: Array[Vector3], r: float, m: Material, em: Material) -> void`
 - L26 `static vine_run(p: Node, pts: Array[Vector3], r: float, flowers: Array[Color]) -> void`
 - L48 `static build_industrial(p: Node3D, w: float, d: float, h: float, o: Dictionary) -> void`
-- L191 `static build_whimsical(p: Node3D, w: float, d: float, h: float, o: Dictionary) -> void`
+- L181 `static build_whimsical(p: Node3D, w: float, d: float, h: float, o: Dictionary) -> void`
 
 ### scripts/looks/style_cues.gd (StyleCues)
 extends RefCounted | 14 const | Graphics checkpoint 2: the styled cues drawn on the ground round a person (the guarded wedge, the grab warning

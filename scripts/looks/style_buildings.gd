@@ -3,7 +3,7 @@ extends RefCounted
 
 # The styled buildings (ported from design/style_test/scene.gd): an industrial version (steel, pipes, vents, rust) and a
 # whimsical version (plaster, timber, shutters, flower boxes, bunting) of the same block. The look draws the one that
-# matches `beautified` and dissolves between them. Options `o`: kiosk (the small block), stack (a smokestack or
+# matches `beautified` and dissolves between them. Options `o`: stack (a smokestack or
 # chimney), tank (a gas tank or a flower barrel), nwin, roof / shutter / door colours, tankside, landmark (a gold
 # pennant). The model's origin is the middle of its base and it faces +z.
 
@@ -54,7 +54,6 @@ static func build_industrial(p: Node3D, w: float, d: float, h: float, o: Diction
 	var pipe_l := ind("#8b94a0", 1.0)
 	var rust := ind("#7d4c34", 0.6)
 	var hole := ind("#1d2129")
-	var kiosk: bool = o.get("kiosk", false)
 	StyleKit.box(p, Vector3(w + 0.3, 0.4, d + 0.3), Vector3(0, 0.2, 0), dark)
 	StyleKit.box(p, Vector3(w, h, d), Vector3(0, h * 0.5, 0), wall)
 	var bands: Array[float] = [h * 0.36, h * 0.74]
@@ -101,9 +100,6 @@ static func build_industrial(p: Node3D, w: float, d: float, h: float, o: Diction
 	var z := d * 0.5 + 0.28
 	var x1 := -w * 0.5 + 2.4
 	var x2 := w * 0.5 - 0.4
-	if kiosk:
-		x1 = -w * 0.5 + 1.8
-		x2 = w * 0.5 - 0.35
 	var pts: Array[Vector3] = [
 		Vector3(x1, 0.35, z),
 		Vector3(x1, 1.0, z),
@@ -111,11 +107,9 @@ static func build_industrial(p: Node3D, w: float, d: float, h: float, o: Diction
 		Vector3(x2, h - 0.45, z),
 		Vector3(-w * 0.5 + 0.6, h - 0.45, z)
 	]
-	if kiosk:
-		pts = [Vector3(x1, 0.35, z), Vector3(x1, 0.9, z), Vector3(x2, 0.9, z), Vector3(x2, h - 0.4, z)]
 	pipe_run(p, pts, 0.11, pipem, pipe_l)
 	var vx := (x1 + x2) * 0.5
-	var vy: float = 1.0 if not kiosk else 0.9
+	var vy := 1.0
 	StyleKit.sph(p, 0.2, Vector3(vx, vy, z), rust, Vector3.ONE, 8)
 	StyleKit.cyl(p, 0.06, 0.35, Vector3(vx, vy + 0.3, z), pipem)
 	StyleKit.torus(p, 0.03, 0.17, Vector3(vx, vy + 0.5, z), rust)
@@ -123,10 +117,8 @@ static func build_industrial(p: Node3D, w: float, d: float, h: float, o: Diction
 		StyleKit.box(p, Vector3(0.12, 0.12, 0.26), Vector3(bx, vy, d * 0.5 + 0.12), dark)
 	# exhaust fan
 	var fx := -w * 0.5 + 1.7
-	if kiosk:
-		fx = -w * 0.5 + 0.75
-	var fy := h - 1.15 if not kiosk else h - 0.7
-	var fr := 0.5 if not kiosk else 0.36
+	var fy := h - 1.15
+	var fr := 0.5
 	StyleKit.cyl(p, fr, 0.22, Vector3(fx, fy, d * 0.5 + 0.11), steel, Vector3(PI / 2, 0, 0), -1.0, 12)
 	StyleKit.cyl(p, fr * 0.82, 0.05, Vector3(fx, fy, d * 0.5 + 0.23), hole, Vector3(PI / 2, 0, 0), -1.0, 12, false)
 	StyleKit.box(p, Vector3(fr * 1.5, 0.12, 0.05), Vector3(fx, fy, d * 0.5 + 0.27), pipe_l, Vector3(0, 0, 0.5), false)
@@ -135,10 +127,8 @@ static func build_industrial(p: Node3D, w: float, d: float, h: float, o: Diction
 	)
 	StyleKit.sph(p, 0.08, Vector3(fx, fy, d * 0.5 + 0.29), rust, Vector3.ONE, 6)
 	# louvered vent
-	var vxx := 0.0 if not kiosk else w * 0.5 - 1.3
-	var vyy := h * 0.55 if not kiosk else h - 0.8
-	if not kiosk:
-		vxx = -0.3
+	var vxx := -0.3
+	var vyy := h * 0.55
 	StyleKit.box(p, Vector3(0.95, 0.75, 0.1), Vector3(vxx, vyy, d * 0.5 + 0.05), dark)
 	for i: int in range(4):
 		StyleKit.box(
@@ -189,7 +179,6 @@ static func build_industrial(p: Node3D, w: float, d: float, h: float, o: Diction
 
 
 static func build_whimsical(p: Node3D, w: float, d: float, h: float, o: Dictionary) -> void:
-	var kiosk: bool = o.get("kiosk", false)
 	var roof_hex: String = o.get("roof", "#ad6249")
 	var plaster := whim("#f1dfbd")
 	var timber := whim("#7d5438")
@@ -213,14 +202,8 @@ static func build_whimsical(p: Node3D, w: float, d: float, h: float, o: Dictiona
 	StyleKit.box(p, Vector3(w + 0.1, 0.22, d + 0.1), Vector3(0, h - 0.1, 0), timber)
 	# roof
 	var rh := 1.9
-	if kiosk:
-		var rr := sqrt(w * w + d * d) * 0.5 + 0.15
-		StyleKit.cyl(p, rr, 1.2, Vector3(0, h + 0.6, 0), roofm, Vector3.ZERO, 0.08, 8)
-		StyleKit.sph(p, 0.18, Vector3(0, h + 1.32, 0), whim("#e5b04a"), Vector3.ONE, 6)
-		StyleKit.cyl(p, rr + 0.04, 0.12, Vector3(0, h + 0.06, 0), roof_dk, Vector3.ZERO, -1.0, 8)
-	else:
-		StyleKit.prism(p, Vector3(d + 1.1, rh, w + 1.0), Vector3(0, h + rh * 0.5, 0), roofm, Vector3(0, PI / 2, 0))
-		StyleKit.cyl(p, 0.11, w + 1.1, Vector3(0, h + rh, 0), roof_dk, Vector3(0, 0, PI / 2), -1.0, 6)
+	StyleKit.prism(p, Vector3(d + 1.1, rh, w + 1.0), Vector3(0, h + rh * 0.5, 0), roofm, Vector3(0, PI / 2, 0))
+	StyleKit.cyl(p, 0.11, w + 1.1, Vector3(0, h + rh, 0), roof_dk, Vector3(0, 0, PI / 2), -1.0, 6)
 	# chimney
 	if o.get("stack", false):
 		var cx := -w * 0.5 + 0.9
@@ -285,9 +268,6 @@ static func build_whimsical(p: Node3D, w: float, d: float, h: float, o: Dictiona
 	var z := d * 0.5 + 0.2
 	var x1 := -w * 0.5 + 2.4
 	var x2 := w * 0.5 - 0.4
-	if kiosk:
-		x1 = -w * 0.5 + 1.8
-		x2 = w * 0.5 - 0.35
 	var pts: Array[Vector3] = [
 		Vector3(x1, 0.35, z),
 		Vector3(x1, 1.0, z),
@@ -295,11 +275,9 @@ static func build_whimsical(p: Node3D, w: float, d: float, h: float, o: Dictiona
 		Vector3(x2, h - 0.45, z),
 		Vector3(-w * 0.5 + 0.6, h - 0.45, z)
 	]
-	if kiosk:
-		pts = [Vector3(x1, 0.35, z), Vector3(x1, 0.9, z), Vector3(x2, 0.9, z), Vector3(x2, h - 0.4, z)]
 	vine_run(p, pts, 0.11, flowers)
 	var vx := (x1 + x2) * 0.5
-	var vy: float = 1.0 if not kiosk else 0.9
+	var vy := 1.0
 	for k: int in range(6):
 		var a := k * TAU / 6.0
 		StyleKit.sph(
@@ -315,9 +293,6 @@ static func build_whimsical(p: Node3D, w: float, d: float, h: float, o: Dictiona
 	# pinwheel where the fan was
 	var fx := -w * 0.5 + 1.7
 	var fy := h - 1.15
-	if kiosk:
-		fx = -w * 0.5 + 0.75
-		fy = h - 0.7
 	StyleKit.seg(p, Vector3(fx, fy - 0.6, d * 0.5 + 0.1), Vector3(fx, fy, d * 0.5 + 0.35), 0.035, timber)
 	var pw: Array[String] = ["#d9667a", "#e5b04a", "#5f86b0", "#f3ead2"]
 	for k: int in range(4):
@@ -332,8 +307,8 @@ static func build_whimsical(p: Node3D, w: float, d: float, h: float, o: Dictiona
 		)
 	StyleKit.sph(p, 0.05, Vector3(fx, fy, d * 0.5 + 0.44), timber, Vector3.ONE, 6)
 	# birdhouse where the vent was
-	var bx := -0.3 if not kiosk else w * 0.5 - 1.3
-	var by := h * 0.55 if not kiosk else h - 0.8
+	var bx := -0.3
+	var by := h * 0.55
 	StyleKit.box(p, Vector3(0.06, 0.12, 0.3), Vector3(bx, by - 0.28, d * 0.5 + 0.15), timber)
 	StyleKit.box(p, Vector3(0.5, 0.5, 0.42), Vector3(bx, by, d * 0.5 + 0.3), whim("#d8a35a"))
 	StyleKit.prism(p, Vector3(0.7, 0.34, 0.55), Vector3(bx, by + 0.4, d * 0.5 + 0.3), whim("#5f86b0"))
@@ -367,27 +342,6 @@ static func build_whimsical(p: Node3D, w: float, d: float, h: float, o: Dictiona
 				false
 			)
 		prev = pt
-	# kiosk: striped awning + kettle
-	if kiosk:
-		for i: int in range(8):
-			var xs := -w * 0.5 + (i + 0.5) * w / 8.0
-			var stripe := whim("#d9667a") if i % 2 == 0 else whim("#f3ead2")
-			StyleKit.box(
-				p, Vector3(w / 8.0, 0.08, 1.0), Vector3(xs, h - 0.3, d * 0.5 + 0.55), stripe, Vector3(0.35, 0, 0)
-			)
-			StyleKit.cyl(
-				p, w / 16.0, 0.08, Vector3(xs, h - 0.52, d * 0.5 + 1.0), stripe, Vector3(PI / 2, 0, 0), -1.0, 8
-			)
-		StyleKit.box(p, Vector3(w * 0.9, 0.12, 0.5), Vector3(0, 1.05, d * 0.5 + 0.35), timber)
-		StyleKit.sph(p, 0.26, Vector3(w * 0.25, 1.4, d * 0.5 + 0.4), whim("#c0604f"), Vector3(1, 0.9, 1), 8)
-		StyleKit.seg(
-			p,
-			Vector3(w * 0.25 + 0.2, 1.45, d * 0.5 + 0.4),
-			Vector3(w * 0.25 + 0.42, 1.6, d * 0.5 + 0.4),
-			0.05,
-			whim("#c0604f")
-		)
-		StyleKit.sph(p, 0.07, Vector3(w * 0.25, 1.72, d * 0.5 + 0.4), whim("#e5b04a"), Vector3.ONE, 6)
 	# flower barrel where the tank was
 	if o.get("tank", false):
 		var side: float = o.get("tankside", 1.0)
