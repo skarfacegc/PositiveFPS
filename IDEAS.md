@@ -93,7 +93,7 @@ placeholder, `tide_pointer` still is.
 **Recorder:** breaks are logged as `break_open` / `break_close` (#23); the analyser still reads the old `gap_*` names.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
-**0.4 Walls and gates**, passes 1 Reorg and 2 Grid and Line built (In review); pass 2 needs a playtest, then pass 3 (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates**, passes 1 Reorg and 2 Grid and Line built (In review); pass 2 needs a playtest, after Recorder catch-up (#59, #60, #61), then pass 3 (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -146,6 +146,10 @@ Guides a Godot style test (round 6 or later). Mockups: design/style_mockups*.htm
 - Enemy tiers and bosses: light routine people as the bulk, grey normal, dark spreaders rarer and tougher; bosses such as a heavily gloomed figure with a big aura, in a dedicated later target. (#30)
 - Visual progression: the town goes from desaturated to full colour as it is rebuilt; the placeholder look is plain, a richer style comes in look-focused targets. (#2, largely built in 0.3 Living town)
 - From the 0.3.1 playtests: butterfly styling (#46); the push and storm need more impact and more room to play around, to discuss (#47).
+- **Recorder replay** (#62, M): every 2 s, log the position and stage of every person and member (and the gates), and
+  have a Python tool draw a top-down replay with a time slider and a heatmap of where people bunch or stick, as one
+  HTML page. It would have proved the 0.3.3 snag ("logs no member positions, so the cause is unproven"). Keep the
+  file small (rounded positions, short keys).
 
 Wider world and level progression ideas: see `VISION.md`.
 
@@ -335,6 +339,45 @@ the right price for a block? Does a thin line read as thin without a meter? Is o
   walk-through keeps more room to move.
 - 25 cells with 20 built blocks, or a smaller 3 by 3 town with wider cells?
 - This also answers #47 (more room to play around the push): the gates are that room. Close #47 once pass 2 is played?
+
+### Walls and gates: Recorder catch-up (#59, #60, #61)
+
+**Planned 2026-11-11, before the pass 2 playtest.** The recorder (round 18) has turned impressions into numbers
+(round 18's "flat" game, the twirl's removal, `--compare`), but it has not followed 0.4: the per-second sample has
+only totals (cells, gates, wall and gate length), there are no events for takes, pips, auto-join or a single gate, and
+the analyser still prints sections for removed mechanics. Pass 2's questions (price of a block, auto-join, how fast a
+gate breaks) need these numbers, so this pass goes **before the pass 2 playtest**.
+
+**One Haiku agent** (tooling, three small items in the same two files; not split). Files: `scripts/recorder.gd`,
+`scripts/recorder_config.gd`, `scripts/controls.gd` (the key), the emitting call sites, `tools/analyse_recording.py`,
+the recorder tests. The recorder still only listens: no game state changes, no random numbers, no per-frame file I/O.
+
+- **0.4 events and analyser (#59, S).** New events, each with the cell, gate count before and after, spirit and
+  rescued count where they apply:
+  - `take` (by E) and `take_refused` with the reason (spirit short, people short, not next to the zone, cancelled);
+  - `pip` (a rescue fills a pip: cell, pips now) and `auto_join` (the cell, gates it adds, members available);
+  - per gate: `gate_break` (gate id, seconds under push, pushers) and `gate_hold` (a push that ended without a break).
+  - Sample gains `pips_total` and `members_short` (gate slots with nobody on them).
+  - Analyser: a **BLOCKS** section (takes by E vs by pips, refusals by reason, spirit at each take, time between
+    takes, auto-joins with too few members) and a **GATES** section (breaks and holds, seconds to break, pushers per
+    break, breaks per minute by phase). Remove the dead SHAPED ZONE section (stretches, grows, shrinks) and anything
+    else that reads events no longer emitted; keep old recordings readable (missing events = empty section).
+  - `--compare` gets columns for takes, refusals, auto-joins and gate breaks.
+- **Mark this moment (#60, XS).** A key (default **F8**; F2 to F4 are taken, F is kept for defences) logs a `mark`
+  event and takes a screenshot at once; the HUD flashes "Marked" briefly next to REC, only while recording. The
+  analyser lists marks with the time, phase, and what happened 10 s either side (events by type). Not in the
+  player's controls list; the how-to-play text mentions it only under the Record option.
+- **Screenshots on key events (#61, XS).** Besides the 18 s timer, take a shot on the first break of each phase, each
+  take, each auto-join, a mark, player dim, and the end of the game; at most one per 3 s
+  (`RECORD_EVENT_SHOT_MIN_GAP`). The shot's file name carries the event type; the `screenshot` event names its cause.
+  The analyser prints the shot file beside each listed event.
+
+**Gate.** Recorder and analyser tests (`tools/run_tests.py` for the recorder suites) and lint, then the full gate via
+`python tools/round_end.py`. The recorder touches no rules, but it is in the determinism list, so run the determinism
+check. Coverage must not drop. Then the pass 2 playtest runs with this recorder.
+
+**Open for the user.** F8 for the mark key (or another)? Should a mark also ask for a one-word note? (Default: no,
+the interview fills it in.)
 
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; after Line and Defences merge, or the next target)
 
