@@ -7,6 +7,7 @@ extends RefCounted
 # and connects the signals in the order the level is made.
 
 var _main: TopDownMain
+var _pulse: LostPulse
 
 
 func _init(main: TopDownMain) -> void:
@@ -18,6 +19,18 @@ func wire_landmarks(landmarks: Landmarks) -> void:
 	for lm: Landmark in landmarks.items:
 		lm.claimed.connect(on_landmark_claimed.bind(lm))
 		lm.lost.connect(on_landmark_lost.bind(lm))
+
+
+# Walls and gates: Pressure (#13). The gloom took cells: a slim banner says so and each cell pulses grey.
+func wire_lost(border: Border) -> void:
+	_pulse = LostPulse.attach(_main)
+	border.cells_lost.connect(on_cells_lost)
+
+
+func on_cells_lost(cells: Array[Vector2i], _gate: int) -> void:
+	_main.intro.notice(Intro.Prompt.LOST, BorderConfig.LOST_TEXT)
+	for c: Vector2i in cells:
+		_pulse.pulse(c)
 
 
 # Round 12b: someone sank or lifted a stage. The minimap shows a brief blip where a person became dimmed.

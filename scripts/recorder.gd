@@ -133,9 +133,10 @@ func attach(main: TopDownMain) -> bool:
 	main.grabs.grab_landed.connect(_on_grab_landed)
 	main.grabs.grab_avoided.connect(_on_grab_avoided)
 	main.spirit_warmth.warmed.connect(_on_spirit_warm)
-	main.gloom_tide.tide_warned.connect(_on_tide_warned)  # Round 25: gloom tides.
-	main.gloom_tide.tide_started.connect(_on_tide_started)
-	main.gloom_tide.tide_ended.connect(_on_tide_ended)
+	main.gloom_tide.surge_warned.connect(_on_surge_warned)  # Walls and gates: Pressure (#14), the night's one surge.
+	main.gloom_tide.surge_started.connect(_on_surge_started)
+	main.gloom_tide.surge_ended.connect(_on_surge_ended)
+	main.border.cells_lost.connect(_on_cells_lost)  # Pressure (#13): the gloom took a block.
 	for lm: Landmark in main.landmarks.items:
 		lm.claimed.connect(_on_landmark.bind(lm, "landmark_claimed"))
 		lm.lost.connect(_on_landmark.bind(lm, "landmark_lost"))
@@ -169,18 +170,62 @@ func _on_landmark(lm: Landmark, type: String) -> void:
 	emit_event(type, {"name": lm.landmark_name(), "held": _main.landmarks.held_count()})
 
 
-# Round 25: a gloom tide's warning, start and end, with its side (the compass name and the angle) and how many rescued
-# border members faced it at that moment (`members`).
-func _on_tide_warned(side: String, angle: float) -> void:
-	emit_event("tide_warn", {"side": side, "angle": snappedf(angle, 0.01)})
+# Walls and gates: Pressure (#14). The surge's warning, start and end: which street ("street" names the end it comes
+# from and the street; "side" is the compass side of the far end), the angle toward the far end, and how many rescued
+# members stood on the gate it meets (`members`, at the start and the end). (Old recordings hold tide_warn,
+# tide_start and tide_end.)
+func _on_surge_warned(street: String, angle: float) -> void:
+	emit_event("surge_warn", {"street": street, "side": GloomTide.side_name(angle), "angle": snappedf(angle, 0.01)})
 
 
-func _on_tide_started(side: String, angle: float, members: int) -> void:
-	emit_event("tide_start", {"side": side, "angle": snappedf(angle, 0.01), "members": members})
+func _on_surge_started(street: String, angle: float, members: int) -> void:
+	var fields := {
+		"street": street, "side": GloomTide.side_name(angle), "angle": snappedf(angle, 0.01), "members": members
+	}
+	var gate: int = _main.gloom_tide.surge.get("gate", -1)
+	fields["gate"] = gate
+	fields["need"] = _need_of(gate)
+	emit_event("surge_start", fields)
 
 
-func _on_tide_ended(side: String, angle: float, members: int) -> void:
-	emit_event("tide_end", {"side": side, "angle": snappedf(angle, 0.01), "members": members})
+func _on_surge_ended(street: String, angle: float, members: int) -> void:
+	emit_event(
+		"surge_end",
+		{
+			"street": street,
+			"side": GloomTide.side_name(angle),
+			"angle": snappedf(angle, 0.01),
+			"members": members,
+			"cells": _main.border.zone.held.size(),
+		}
+	)
+
+
+# The gloom took a block: which cell, the gate whose break lasted, the people on that gate against its need, the cells
+# held after, and whether the surge was up.
+func _on_cells_lost(cells: Array[Vector2i], gate: int) -> void:
+	var info := _main.border.last_loss
+	for c: Vector2i in cells:
+		emit_event(
+			"cell_lost",
+			{
+				"cell": _cell(c),
+				"gate": gate,
+				"members": info.get("members", 0),
+				"need": info.get("need", 0),
+				"cells": _main.border.zone.held.size(),
+				"surge": _main.gloom_tide.is_up(),
+			}
+		)
+
+
+# The members the gate at `index` of the zone's gate list needs (0 when there is none).
+func _need_of(index: int) -> int:
+	var gates := _main.border.zone.gates
+	if index < 0 or index >= gates.size():
+		return 0
+	var need: int = gates[index].get("need", 0)
+	return need
 
 
 func is_open() -> bool:

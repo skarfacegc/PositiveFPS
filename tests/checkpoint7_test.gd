@@ -169,7 +169,7 @@ func test_the_styled_tide_shows_its_fog_only_in_the_styled_look_and_moves_its_fi
 	var td: TopDownMain = parts[1]
 	var runner: GdUnitSceneRunner = parts[0]
 	var tide := td.gloom_tide
-	var start: float = tide.tides[0]["start"]
+	var start: float = tide.surge["start"]
 	td.set_look(Looks.Mode.STYLED)
 	_at(td, start + 0.1)
 	await runner.simulate_frames(2)
@@ -182,10 +182,9 @@ func test_the_styled_tide_shows_its_fog_only_in_the_styled_look_and_moves_its_fi
 	assert_bool(tide.styled_figures[0].get_parent() == tide.styled_fog).is_true()
 	# The styled fog sits where the placeholder fog sits.
 	assert_bool(tide.styled_fog.position.is_equal_approx(tide.fog.position)).is_true()
-	# 0.3.1: the cloud is laid out for the stretch being pushed, and the placeholder fog plane is not a fallback in the
+	# Pressure: the cloud is as wide as the street's fog band, and the placeholder fog plane is not a fallback in the
 	# styled look (the storm cloud covers it).
-	var dist := tide.front_distance(0) + NightConfig.TIDE_FOG_DEPTH * 0.5
-	assert_float(StylePush.current_length(tide.styled_fog)).is_equal_approx(StylePush.fog_length(dist), 0.3)
+	assert_float(StylePush.current_length(tide.styled_fog)).is_equal_approx(NightConfig.SURGE_FOG_WIDTH, 0.3)
 	assert_str(Looks.fallback_summary()).not_contains("tide_fog")
 	# Back to the placeholder look: the plane shows and the banks hide.
 	td.set_look(Looks.Mode.PLACEHOLDER)

@@ -18,6 +18,10 @@ extends Node3D
 # Round 26: the line snapped under a push (`pos` is the middle of the break), and a break mended (`seconds` open).
 signal line_broke(pos: Vector3)
 signal line_mended(pos: Vector3, seconds: float)
+# Walls and gates: Pressure. A gate that stayed broken lost the cells in `cells` (`gate` is its index before the loss),
+# and a gate disappeared on a re-trace (`gate` is its index in the line before it was traced again).
+signal cells_lost(cells: Array[Vector2i], gate: int)
+signal gate_closed(gate: int)
 
 # The zone: the cells held and the line they make. The next pass grows and shrinks it (`zone.take`, `zone.lose`).
 var zone: Zone = Zone.new()
@@ -54,6 +58,8 @@ var landmark_buildings: Array[Building] = []
 # the line should flicker to show it. Set by set_player_dim().
 var loss_mult: float = 1.0
 var player_dim: bool = false
+# What the last lost cell's gate had when it was lost: {"gate", "members", "need", "seconds"} (the recorder reads it).
+var last_loss: Dictionary = {}
 
 # The look: draws the line, the haze and the gap glow from the state above (see scripts/looks/border_look.gd).
 var look: BorderLook
@@ -70,6 +76,11 @@ var _seg_gate: Array[int] = []
 var _gate_first: Array[int] = []
 var _gate_points: Array[int] = []
 var _built_version: int = -1
+# Walls and gates: Pressure. The defence modifiers kept per gate (gate key -> Dictionary, see set_gate_modifiers), the
+# keys of the gates of the last trace (in gate order) and the seconds each gate (by key) has stayed broken.
+var _mods: Dictionary = {}
+var _gate_keys: Array[String] = []
+var _broken_for: Dictionary = {}
 # Where each rescued person should stand: Person -> Vector3.
 var _targets: Dictionary = {}
 # Person -> the corner (Vector2) they are heading round while a detour is on (see _move_members).
@@ -155,6 +166,11 @@ func update(people: Array[Person], delta: float, strength: float) -> void:
 		push.update(people, delta, strength)  # Round 26: pushed by what is outside; the dent goes into the line below.
 		polygon = _dented()
 		_mark_gaps()
+		_track_losses(delta)
+		if _built_version != zone.version:  # A cell was lost: trace the new line now, so the members regroup on it.
+			_trace()
+			polygon = _dented()
+			_mark_gaps()
 	else:
 		polygon = PackedVector2Array()
 		segment_gap.clear()
@@ -221,6 +237,7 @@ func _trace() -> void:
 			_pt_dentable.append(k > 0)
 			_seg_gate.append(gate_id)
 	_built_version = zone.version
+	_note_closed_gates()
 	var sum := 0.0
 	var seen := 0
 	for i: int in range(_base.size()):
@@ -249,6 +266,157 @@ func _mark_gaps() -> void:
 		segment_gap.append(push.segment_broken(j))
 
 
+# ---- Walls and gates: Pressure (#12, #13)
+# ---------------------------------------------------------------------------------------------------
+
+
+# The defence modifiers of gate `g` (an index in zone.gates), with the defaults filled in: {"strength_mult": 1.0,
+# "cannot_break": false, "cannot_lose": false}. strength_mult multiplies the gate's break depth.
+func gate_modifiers(g: int) -> Dictionary:
+	var out := {"strength_mult": 1.0, "cannot_break": false, "cannot_lose": false}
+	if g < 0 or g >= zone.gates.size():
+		return out
+	var stored: Dictionary = _mods.get(zone.gates[g]["key"], {})
+	for k: String in stored:
+		out[k] = stored[k]
+	return out
+
+
+# Sets the modifiers of gate `g` (keys not given keep their value; an empty Dictionary clears them). They are kept by
+# the gate's key, so they stay with the gate across re-traces while it exists and are dropped when it closes.
+func set_gate_modifiers(g: int, mods: Dictionary) -> void:
+	if g < 0 or g >= zone.gates.size():
+		return
+	var key: String = zone.gates[g]["key"]
+	if mods.is_empty():
+		_mods.erase(key)
+		return
+	var kept: Dictionary = _mods.get(key, {})
+	for k: String in mods:
+		kept[k] = mods[k]
+	_mods[key] = kept
+
+
+# How full gate `g` is: its members over its need, at most 1 (0 when it is not on the line).
+func gate_fill(g: int) -> float:
+	if g < 0 or g >= zone.gates.size():
+		return 0.0
+	var need: int = zone.gates[g]["need"]
+	return clampf(float(gate_member_count(g)) / float(maxi(need, 1)), 0.0, 1.0)
+
+
+# The dent at which gate `g` snaps: PUSH_BREAK_DEPTH x lerp(THIN_LINE_MIN_STRENGTH, 1, fill) x its strength_mult.
+func break_depth(g: int) -> float:
+	var mods := gate_modifiers(g)
+	var mult: float = mods["strength_mult"]
+	return PushConfig.PUSH_BREAK_DEPTH * lerpf(PushConfig.THIN_LINE_MIN_STRENGTH, 1.0, gate_fill(g)) * maxf(mult, 0.01)
+
+
+# The break depth at point `i` of the line (a wall point has the full depth; nothing dents it anyway).
+func break_depth_at_point(i: int) -> float:
+	var g := point_gate(i)
+	return break_depth(g) if g >= 0 else PushConfig.PUSH_BREAK_DEPTH
+
+
+# True when gate `g` may not break (a defence says so): it dents but never snaps.
+func gate_cannot_break(g: int) -> bool:
+	var flag: bool = gate_modifiers(g)["cannot_break"]
+	return flag
+
+
+# True when gate `g` may not be lost (a defence says so): the cells beside it stay however long it is broken.
+func gate_cannot_lose(g: int) -> bool:
+	var flag: bool = gate_modifiers(g)["cannot_lose"]
+	return flag
+
+
+# After a trace: the modifiers of a gate that is gone are dropped, and the loss is announced (`gate_closed`, with the
+# gate's index in the line before).
+func _note_closed_gates() -> void:
+	var now: Array[String] = []
+	for g: Dictionary in zone.gates:
+		now.append(g["key"])
+	var closed: Array[int] = []
+	for i: int in range(_gate_keys.size()):
+		if not now.has(_gate_keys[i]):
+			closed.append(i)
+			_mods.erase(_gate_keys[i])
+	_gate_keys = now
+	for i: int in closed:
+		gate_closed.emit(i)
+
+
+# Counts how long each gate has stayed broken (by key); one broken for GATE_LOST_SECONDS loses the cell behind it.
+func _track_losses(delta: float) -> void:
+	var broken_gates: Dictionary = {}
+	for br: Dictionary in push.breaks:
+		var at: int = br["at"]
+		broken_gates[point_gate(at)] = true
+	var seen: Dictionary = {}
+	var due: Array[int] = []
+	for g: int in range(zone.gates.size()):
+		var key: String = zone.gates[g]["key"]
+		seen[key] = true
+		if not broken_gates.has(g):
+			_broken_for.erase(key)
+			continue
+		var held_for: float = _broken_for.get(key, 0.0) + delta
+		_broken_for[key] = held_for
+		if held_for >= BorderConfig.GATE_LOST_SECONDS:
+			due.append(g)
+	for key: Variant in _broken_for.keys():
+		if not seen.has(key):
+			_broken_for.erase(key)
+	for g: int in due:
+		if _lose_behind(g):
+			return
+
+
+# The seconds gate `g` has now stayed broken (0 when it is whole).
+func broken_seconds(g: int) -> float:
+	if g < 0 or g >= zone.gates.size():
+		return 0.0
+	var held_for: float = _broken_for.get(zone.gates[g]["key"], 0.0)
+	return held_for
+
+
+# Loses the held cell behind gate `g` (and any cell that leaves cut off from the start square). Never the start square,
+# never a cell behind a gate that cannot be lost. Returns true when cells were lost.
+func _lose_behind(g: int) -> bool:
+	if gate_cannot_lose(g):
+		return false
+	var cell := zone.cell_behind(zone.gates[g])
+	if cell.x < 0:
+		return false
+	var plan := zone.preview(cell, false)
+	if not plan["valid"]:
+		return false
+	var safe := _cannot_lose_cells()
+	var going: Array = plan["added"]
+	for c: Variant in going:
+		if safe.has(c):
+			return false
+	var need: int = zone.gates[g]["need"]
+	var had := {"gate": g, "members": gate_member_count(g), "need": need, "seconds": broken_seconds(g)}
+	var lost := zone.lose(cell)  # (The plan above was valid, so this loses at least the cell itself.)
+	last_loss = had
+	for c: Vector2i in lost:
+		pips.reset(c)
+	_broken_for.clear()
+	cells_lost.emit(lost, g)
+	return true
+
+
+# The held cells beside a gate that cannot be lost.
+func _cannot_lose_cells() -> Dictionary:
+	var out: Dictionary = {}
+	for g: int in range(zone.gates.size()):
+		if gate_cannot_lose(g):
+			for c: Vector2i in zone.cells_behind(zone.gates[g]):
+				out[c] = true
+	return out
+
+
 # How many points the traced line has now (0 when there is no border).
 func point_count() -> int:
 	return _base.size()
@@ -262,11 +430,6 @@ func point_dentable(i: int) -> bool:
 # The gate that starts at point `i`, or -1 on a wall (and out of range).
 func point_gate(i: int) -> int:
 	return _pt_gate[i] if i >= 0 and i < _pt_gate.size() else -1
-
-
-# The angle (radians) of base point `i` as seen from the zone's centre.
-func point_angle(i: int) -> float:
-	return (_base[i] - Vector2(centre.x, centre.z)).angle()
 
 
 # The index of the point of the line nearest to the ground point `p2` (0 when there is no line).

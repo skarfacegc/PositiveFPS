@@ -96,10 +96,12 @@ func test_a_sealed_stretch_is_drawn_thicker_in_the_styled_look() -> void:
 	assert_bool(sealed._image.get_data() == plain_data).is_false()
 
 
-func test_the_tide_fog_edge_is_drawn_on_the_rim_toward_the_tide() -> void:
+func test_the_surge_mark_is_drawn_down_the_street_from_its_far_end() -> void:
 	var m := _styled_map()
 	m._render()
 	var before := m._image.get_data()
-	m.tide_fog = Vector2(1.0, 0.0)
+	m.surge_from = Vector2(15.0, -50.0)
+	m.surge_dir = Vector2(0.0, 1.0)
+	m.surge_front = 12.0
 	m._render()
 	assert_int(_count_not_equal(m, before)).is_greater(10)

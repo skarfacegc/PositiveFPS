@@ -31,7 +31,8 @@ func hold_back(delta: float) -> void:
 # have passed since the last one sank. The first to ask in a frame takes the gate, so array order decides who goes.
 func ask() -> bool:
 	# (Nobody gets this far during the calm opening: hold_back keeps them under the line until then.)
-	if clock - last_sink < NightCycle.dim_gap_at(_main.night.progress()):  # Round 23: the gap follows the night.
+	# Round 23: the gap follows the night; Pressure (#14): and is longer in the surge's aftermath (arrival_ease).
+	if clock - last_sink < NightCycle.dim_gap_at(_main.night.progress()) * _main.night.arrival_ease:
 		return false
 	last_sink = clock
 	return true

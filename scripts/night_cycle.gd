@@ -18,6 +18,11 @@ const DAWN_ENERGY := 0.85
 
 # Seconds since dusk.
 var elapsed: float = 0.0
+# Walls and gates: Pressure (#14). How much the surge cools the light now, 0 to 1 (set by GloomTide: it rises through
+# the warning, holds through the surge and warms again over the aftermath).
+var chill: float = 0.0
+# How much longer than usual the gap between two dimmed arrivals is now (1 normally; the aftermath eases it).
+var arrival_ease: float = 1.0
 
 
 func update(delta: float) -> void:
@@ -67,7 +72,7 @@ static func dim_gap_at(p: float) -> float:
 
 
 func sun_color() -> Color:
-	return _key(DUSK_SUN, MIDNIGHT_SUN, DAWN_SUN)
+	return _key(DUSK_SUN, MIDNIGHT_SUN, DAWN_SUN).lerp(NightConfig.SURGE_CHILL_COLOUR, chill * NightConfig.SURGE_CHILL)
 
 
 func sun_energy() -> float:
@@ -75,7 +80,9 @@ func sun_energy() -> float:
 
 
 func ambient_color() -> Color:
-	return _key(DUSK_AMBIENT, MIDNIGHT_AMBIENT, DAWN_AMBIENT)
+	return _key(DUSK_AMBIENT, MIDNIGHT_AMBIENT, DAWN_AMBIENT).lerp(
+		NightConfig.SURGE_CHILL_COLOUR, chill * NightConfig.SURGE_CHILL * 0.6
+	)
 
 
 # Blends the three keyframes for the current progress (dusk to midnight, then midnight to dawn).

@@ -95,7 +95,9 @@ func test_the_strain_of_a_member_is_how_far_the_gate_is_bent_there() -> void:
 	for cand: Person in td.border.members:
 		if cand.position.distance_to(m.position) > far.position.distance_to(m.position):
 			far = cand
-	td.border.push.dent[td.border.push.sample_of(m.position)] = PushConfig.PUSH_BREAK_DEPTH * 0.5
+	# (A gate short of members breaks at a shallower dent, so the bend is measured against this gate's own depth.)
+	var at := td.border.push.sample_of(m.position)
+	td.border.push.dent[at] = td.border.break_depth_at_point(at) * 0.5
 	var strain := EdgeRibbon.strain_map(td.border)
 	assert_float(strain[m]).is_equal_approx(0.5, 0.01)
 	assert_float(strain[far]).is_equal(0.0)

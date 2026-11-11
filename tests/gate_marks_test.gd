@@ -30,6 +30,10 @@ func _bare_border(cells: Array[Vector2i] = []) -> Border:
 	border._trace()
 	border.polygon = border._base.duplicate()
 	border._mark_gaps()
+	var needs: Array[int] = []  # Fully staffed: a gate short of members would break at a shallower dent (Pressure #12).
+	for g: Dictionary in border.zone.gates:
+		needs.append(g["need"])
+	border._slots.gate_counts.assign(needs)
 	return border
 
 

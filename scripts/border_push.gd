@@ -2,10 +2,11 @@ class_name BorderPush
 extends RefCounted
 
 # Round 26, physical push; 0.4 (#56): it lives on gates. The only things that push the line are visible: dimmed people
-# leaning on a gate from outside, and a gloom tide (a wave of fog with figures in it) shoving the side it rolls in from.
+# leaning on a gate from outside, and the night's surge (a wave of fog with figures in it) shoving the gate it meets and
+# the gates beside it. Pressure (#12): a gate's break depth follows its members (Border.break_depth).
 # Walls hold firm: nothing leans on them and they never dent. Everything is kept per point of the traced line (Border.
 # polygon; a gate has a point every BorderConfig.GATE_POINT_STEP metres):
-#  - force: what pushes there this frame (pushers spread along their gate as a bell, plus the tide's `wave`);
+#  - force: what pushes there this frame (pushers spread along their gate as a bell, plus the surge's `wave`);
 #  - dent: how far the gate is shoved inward there, in metres. It follows force x PUSH_DENT_PER_FORCE, deepening at
 #    PUSH_GIVE_SPEED and springing back at PUSH_SPRING_SPEED when relieved;
 #  - calm: joy at a bending member, or a burst, calms a spot: its force is cut and the gate springs back faster.
@@ -21,7 +22,7 @@ var dent: Array[float] = []
 var broken: Array[bool] = []
 # Open breaks: {"at": point, "age": s, "joyed": bool, "clear": s without a dimmed person near}.
 var breaks: Array[Dictionary] = []
-# The tide's force at each point (set by GloomTide.update through set_wave; cleared by clear_wave).
+# The surge's force at each point (set by GloomTide.update through set_gate_wave; cleared by clear_wave).
 var wave: Array[float] = []
 # Pushers leaning on a gate this frame, and the deepest dent now.
 var pushers: int = 0
@@ -99,16 +100,17 @@ func sample_of(pos: Vector3) -> int:
 	return b.nearest_point(Vector2(pos.x, pos.z))
 
 
-# The tide pushes the points of gates within `half_width` of `angle` (seen from the zone's centre) with up to `force` (a
-# cosine taper to the sides).
-func set_wave(angle: float, half_width: float, force: float) -> void:
+# The surge pushes whole gates: `weights` maps a gate index to its share (1 for the gate it meets, less beside it) of
+# `force`. Every other point of the line gets nothing.
+func set_gate_wave(weights: Dictionary, force: float) -> void:
 	_fit()
 	for i: int in range(wave.size()):
-		if not b.point_dentable(i):
+		var g := b.point_gate(i)
+		if not b.point_dentable(i) or not weights.has(g):
 			wave[i] = 0.0
 			continue
-		var d := absf(angle_difference(b.point_angle(i), angle))
-		wave[i] = force * cos(d / half_width * PI * 0.5) if d < half_width else 0.0
+		var share: float = weights[g]
+		wave[i] = force * share
 
 
 func clear_wave() -> void:
@@ -120,14 +122,14 @@ func clear_wave() -> void:
 func bend_at(pos: Vector3) -> float:
 	if dent.is_empty():
 		return 0.0
-	return clampf(dent[sample_of(pos)] / PushConfig.PUSH_BREAK_DEPTH, 0.0, 1.0)
+	return bend_of_point(sample_of(pos))
 
 
-# How bent the line is at point `i`.
+# How bent the line is at point `i`: its dent over the break depth of its gate (a thin gate is bent sooner).
 func bend_of_point(i: int) -> float:
 	if i < 0 or i >= dent.size():
 		return 0.0
-	return clampf(dent[i] / PushConfig.PUSH_BREAK_DEPTH, 0.0, 1.0)
+	return clampf(dent[i] / b.break_depth_at_point(i), 0.0, 1.0)
 
 
 # True when polygon segment `j` lies in a break.
@@ -256,7 +258,9 @@ func _move_dents(delta: float) -> void:
 func _update_breaks(people: Array[Person], delta: float) -> void:
 	var n := dent.size()
 	for i: int in range(n):
-		if dent[i] < PushConfig.PUSH_BREAK_DEPTH or broken[i] or _near_break(i):
+		if dent[i] < b.break_depth_at_point(i) or broken[i] or _near_break(i):
+			continue
+		if b.gate_cannot_break(b.point_gate(i)):  # A defence: the gate bends but never snaps.
 			continue
 		_open_break(i)
 	for k: int in range(breaks.size() - 1, -1, -1):
@@ -307,7 +311,7 @@ func _mend(k: int) -> void:
 	var i: int = br["at"]
 	for at: int in _span(i):
 		broken[at] = false
-		dent[at] = minf(dent[at], PushConfig.PUSH_BREAK_DEPTH * 0.5)  # Mended: half sprung back, not at the limit.
+		dent[at] = minf(dent[at], b.break_depth_at_point(at) * 0.5)  # Mended: half sprung back, not at the limit.
 	var spot := _break_point(br)
 	var open_for: float = br["age"]
 	breaks.remove_at(k)
@@ -342,7 +346,7 @@ func _brace_members(delta: float) -> void:
 		var out := b.out_at(m.position)
 		m.brace_dir = Vector3(out.x, 0.0, out.y)
 		var i := sample_of(m.position)
-		var want := clampf(maxf(dent[i] / PushConfig.PUSH_BREAK_DEPTH, _force[i] * 0.25), 0.0, 1.0)
+		var want := clampf(maxf(bend_of_point(i), _force[i] * 0.25), 0.0, 1.0)
 		if broken[i]:
 			want = 1.0
 		m.brace = move_toward(m.brace, want, step)

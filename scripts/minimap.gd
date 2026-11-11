@@ -47,8 +47,11 @@ var cloud_cells: Array[Dictionary] = []
 var first_light_edge: float = -1.0
 # Checkpoint 5: a pulsing blip on each rescued person who is wobbling ({"pos": Vector2, "urgency": 0..1}).
 var wobble_marks: Array[Dictionary] = []
-# Round 25: the gloom tide's fog edge: the side's unit direction, or Vector2.INF for none (set by GloomTide).
-var tide_fog := Vector2.INF
+# Walls and gates: Pressure (#14). The surge's mark: the street's far end (world metres; Vector2.INF for none), the unit
+# direction it runs and how far down the street the fog has come (set by GloomTide).
+var surge_from := Vector2.INF
+var surge_dir := Vector2.ZERO
+var surge_front: float = 0.0
 
 # The look: the palette and the frame (see scripts/looks/minimap_look.gd). The picture itself is built here.
 var look: MinimapLook
@@ -422,8 +425,8 @@ func _render() -> void:
 			_line(a, b, look.line_colour(gap_flags[j]))
 	if first_light_edge >= 0.0:
 		_first_light_line()
-	if tide_fog != Vector2.INF:
-		_tide_fog_edge()
+	if surge_from != Vector2.INF:
+		_surge_mark()
 	for m: Vector2 in member_pts:
 		_marker(m, 1.6, look.member_colour(), "member")
 	for d: Vector2 in dimmed_pts:
@@ -477,24 +480,17 @@ func _first_light_line() -> void:
 		_round_line(maxf(0.0, e - px_metres * float(k)), look.first_light("line", Color.WHITE, 0, 0))
 
 
-# Round 25: the gloom tide's fog edge: arcs on the rim of the plaza's circle, TIDE_MINIMAP_BANDS of them (each
-# step inward fainter), spanning TIDE_HALF_WIDTH either side of the side the tide comes from.
-func _tide_fog_edge() -> void:
-	var rim := float(Config.TD_PLAZA_SIZE) * 0.5
-	var mid := tide_fog.angle()
-	var segs := NightConfig.TIDE_MINIMAP_SEGMENTS
-	for k: int in range(NightConfig.TIDE_MINIMAP_BANDS):
-		var r := rim - float(k) * NightConfig.TIDE_MINIMAP_BAND_STEP
+# Walls and gates: Pressure (#14). The surge's mark: SURGE_MINIMAP_BANDS lines side by side down the street from its far
+# end for SURGE_MINIMAP_LENGTH metres (each band fainter), and a ring where the fog has got to.
+func _surge_mark() -> void:
+	var side := Vector2(-surge_dir.y, surge_dir.x)
+	for k: int in range(NightConfig.SURGE_MINIMAP_BANDS):
+		var off := (float(k) - float(NightConfig.SURGE_MINIMAP_BANDS - 1) * 0.5) * NightConfig.SURGE_MINIMAP_STEP
 		var col := NightConfig.TIDE_MINIMAP_COLOUR
-		col.a *= 1.0 - float(k) / float(NightConfig.TIDE_MINIMAP_BANDS)
-		for j: int in range(segs):
-			var a0 := lerpf(
-				mid - NightConfig.TIDE_HALF_WIDTH, mid + NightConfig.TIDE_HALF_WIDTH, float(j) / float(segs)
-			)
-			var a1 := lerpf(
-				mid - NightConfig.TIDE_HALF_WIDTH, mid + NightConfig.TIDE_HALF_WIDTH, float(j + 1) / float(segs)
-			)
-			_line(Vector2(cos(a0), sin(a0)) * r, Vector2(cos(a1), sin(a1)) * r, col)
+		col.a *= 1.0 - 0.3 * absf(off) / maxf(NightConfig.SURGE_MINIMAP_STEP, 0.01)
+		var a := surge_from + side * off
+		_line(a, a + surge_dir * NightConfig.SURGE_MINIMAP_LENGTH, col)
+	_ring(surge_from + surge_dir * surge_front, 3.0, NightConfig.TIDE_MINIMAP_COLOUR)
 
 
 # A circle of `radius` metres about the centre, drawn as short straight pieces.
