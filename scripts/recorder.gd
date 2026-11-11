@@ -133,9 +133,6 @@ func attach(main: TopDownMain) -> bool:
 	main.grabs.grab_landed.connect(_on_grab_landed)
 	main.grabs.grab_avoided.connect(_on_grab_avoided)
 	main.spirit_warmth.warmed.connect(_on_spirit_warm)
-	main.embrace.started.connect(_on_embrace_start)
-	main.embrace.lifted.connect(_on_embrace_lift)
-	main.embrace.rescued_by_embrace.connect(_on_embrace_rescue)
 	main.gloom_tide.tide_warned.connect(_on_tide_warned)  # Round 25: gloom tides.
 	main.gloom_tide.tide_started.connect(_on_tide_started)
 	main.gloom_tide.tide_ended.connect(_on_tide_ended)
@@ -147,7 +144,6 @@ func attach(main: TopDownMain) -> bool:
 	main.take_block.refused.connect(_on_take_refused)
 	main.border.pips.pip_added.connect(_on_pip_added)
 	main.border.pips.cell_ready.connect(_on_cell_ready)
-	main.border.pips.auto_joined.connect(_on_auto_joined)
 	main.border.line_broke.connect(_on_line_broke)
 	main.hud.set_recording(true)
 	emit_event(
@@ -558,28 +554,6 @@ func _on_spirit_warm(p: Person, joy: float, spirit: float) -> void:
 	)
 
 
-# Round 25 (embrace): an unrescued person inside the border began to be lifted, was lifted a stage, and was rescued.
-func _on_embrace_start(p: Person) -> void:
-	var stage := STAGE_NAMES[clampi(Config.gloom_level(p.gloom), 0, 2)]
-	emit_event("embrace_start", {"id": _id(p), "stage": stage, "pos": _pos(p.global_position)})
-
-
-func _on_embrace_lift(p: Person, from_level: int, to_level: int) -> void:
-	emit_event(
-		"embrace_lift",
-		{
-			"id": _id(p),
-			"from": STAGE_NAMES[clampi(from_level, 0, 2)],
-			"to": STAGE_NAMES[clampi(to_level, 0, 2)],
-			"pos": _pos(p.global_position)
-		}
-	)
-
-
-func _on_embrace_rescue(p: Person, seconds: float) -> void:
-	emit_event("embrace_rescue", {"id": _id(p), "seconds": snappedf(seconds, 0.01), "pos": _pos(p.global_position)})
-
-
 func _on_saved(p: Person) -> void:
 	emit_event("save", {"id": _id(p), "pos": _pos(p.global_position)})
 
@@ -630,22 +604,6 @@ func _on_pip_added(cell: Vector2i, pips: int) -> void:
 
 func _on_cell_ready(cell: Vector2i) -> void:
 	emit_event("cell_ready", {"cell": _cell(cell), "pips": BorderConfig.TAKE_RESCUES})
-
-
-# A cell joined the zone by itself at full pips. People free against people needed show whether it was short.
-func _on_auto_joined(cell: Vector2i, gates_before: int, gates_after: int) -> void:
-	var needed := _main.border.zone.members_needed()
-	emit_event(
-		"auto_join",
-		{
-			"cell": _cell(cell),
-			"gates_before": gates_before,
-			"gates_after": gates_after,
-			"people_needed": needed,
-			"people_free": _main.rescued_count,
-		}
-	)
-	_event_shot("auto_join")
 
 
 # A gate's line snapped under a push: which gate (by id), how long it had been pushed, and the pushers now.

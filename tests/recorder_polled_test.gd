@@ -130,7 +130,7 @@ func test_the_sample_counts_stages_rescued_shelter_guards_pressers_and_the_seale
 	var glum: Person = td.people[4]
 	TopDownTestUtil.place(glum, Vector3(-30, 0, -30), 0, 0.5)
 	glum.level = 1
-	# The start square and the block east of it: five gates (56 m) and three walls (36 m).
+	# The start square and the block east of it: five gates (78 m) and three walls (42 m).
 	td.border.zone.take(Vector2i(3, 2))
 	td.border._trace()
 	td.border.polygon = td.border._base.duplicate()
@@ -147,8 +147,8 @@ func test_the_sample_counts_stages_rescued_shelter_guards_pressers_and_the_seale
 	assert_float(sample["sheltered"]).is_equal(1.0)
 	assert_float(sample["guarded"]).is_equal(1.0)
 	assert_float(sample["pressers"]).is_equal(1.0)
-	assert_float(sample["border_sealed"]).is_equal_approx(36.0, 0.01)  # The walls.
-	assert_float(sample["border_open"]).is_equal_approx(56.0, 0.01)  # The gates.
+	assert_float(sample["border_sealed"]).is_equal_approx(42.0, 0.01)  # The walls.
+	assert_float(sample["border_open"]).is_equal_approx(78.0, 0.01)  # The gates.
 	assert_float(sample["cells"]).is_equal(2.0)
 	assert_float(sample["gates"]).is_equal(5.0)
 

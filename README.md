@@ -18,7 +18,11 @@ mode was retired.)
 - **Fighting back:** rings on border folk show where the border is about to break (amber, then red as it gets
   urgent). **G** or **Q** clears dimmed people off the border with a joy burst.
 - **Rescues pull the line:** each cell beside your border shows pips. Rescuing someone who belongs to that cell fills
-  one; at three the cell joins the border without E. **E** takes a cell yourself, for spirit.
+  one; at three the cell is ready. Cells never join by themselves: **E** (hold, point, release) takes a cell. A ready
+  cell glows gold on the ground and the minimap and is free; any other cell beside the border glows blue and costs 25
+  spirit. Each gate shows the people on it against the people it needs (3/4, red when short) and the take preview shows
+  the people the new gates need against the free ones. People never refuse a take: a short line is shared out thinly.
+  A gate being pushed glows coral from across the screen (and an edge pointer shows when it is off screen).
 - **Wobble, burst and first light (round 24):** a border person who is drained too far **wobbles** (greys and sways) for
   about five seconds before they relapse, and a joy hit in that time saves them. A joy burst lifts every dimmed person
   near you, and joy wins a dimmed person back faster. In the last 45 seconds **first light** closes in as a ring from
@@ -134,7 +138,7 @@ element, and F3 labels it above the person.
 
 ## Controls
 
-- **WASD** move, **Shift** run. (E is unbound for now; "Take a block" comes next.)
+- **WASD** move, **Shift** run. **E** (hold, point at a cell beside your border, release) takes it; right-click cancels.
 - **Click** a person to lock on (in lock-on mode). The default is **hover**: the person under the mouse becomes the
   target. **F2** cycles the modes: lock-on, hover (default) and auto (the most urgent person in range).
 - Every shot uses the target's element, so it is always a best match. Music is quick and small, art is slow and big

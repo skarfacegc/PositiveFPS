@@ -19,7 +19,7 @@ const HOW_TO_PLAY_TEXT := (
 	+ "out of reach), and gloomy tides roll in and shove it. The line bends inward where it is pushed and snaps if "
 	+ "pushed too far. Joy at the dimmed ones weakens their push; joy at the bending folk makes them push back.\n"
 	+ "[b]Rescues:[/b] Rescuing people beside your line fills pips on the cell they belong to. "
-	+ "At three pips the cell joins the line.\n"
+	+ "At three pips E takes the glowing cell free; other cells beside the line cost 25 spirit.\n"
 	+ "[b]Spirit:[/b] Helping fills it. G (joy burst) lifts dimmed people off the border and lets it spring back. "
 	+ "At zero you go dim.\n"
 	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered ·"

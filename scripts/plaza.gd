@@ -9,30 +9,34 @@ extends RefCounted
 # start square or a landmark square: each is a 12 x 3 x 12 solid block (a tight group of houses filling its cell), and
 # the streets between them are 10 m wide. The centres are TownGrid.cell_centre of TownGrid.block_cells(), row by row
 # (a test keeps this list and the grid in step).
+# Grid fixes: the streets are 12 m and the start square 18 m, so the blocks in the start square's column and row are
+# 18 x 12 (or 12 x 18): BLOCK_SIZE is the usual block, `block_size(i)` the real one (the cell's own size).
 const BLOCK_SIZE := Vector3(12, 3, 12)
 const BLOCK_POSITIONS: Array[Vector3] = [
-	Vector3(-44, 1.5, -44),
-	Vector3(-22, 1.5, -44),
-	Vector3(0, 1.5, -44),
-	Vector3(22, 1.5, -44),
-	Vector3(44, 1.5, -44),
-	Vector3(-44, 1.5, -22),
-	Vector3(0, 1.5, -22),
-	Vector3(44, 1.5, -22),
-	Vector3(-44, 1.5, 0),
-	Vector3(-22, 1.5, 0),
-	Vector3(22, 1.5, 0),
-	Vector3(44, 1.5, 0),
-	Vector3(-44, 1.5, 22),
-	Vector3(0, 1.5, 22),
-	Vector3(44, 1.5, 22),
-	Vector3(-44, 1.5, 44),
-	Vector3(-22, 1.5, 44),
-	Vector3(0, 1.5, 44),
-	Vector3(22, 1.5, 44),
-	Vector3(44, 1.5, 44),
+	Vector3(-51, 1.5, -51),
+	Vector3(-27, 1.5, -51),
+	Vector3(0, 1.5, -51),
+	Vector3(27, 1.5, -51),
+	Vector3(51, 1.5, -51),
+	Vector3(-51, 1.5, -27),
+	Vector3(0, 1.5, -27),
+	Vector3(51, 1.5, -27),
+	Vector3(-51, 1.5, 0),
+	Vector3(-27, 1.5, 0),
+	Vector3(27, 1.5, 0),
+	Vector3(51, 1.5, 0),
+	Vector3(-51, 1.5, 27),
+	Vector3(0, 1.5, 27),
+	Vector3(51, 1.5, 27),
+	Vector3(-51, 1.5, 51),
+	Vector3(-27, 1.5, 51),
+	Vector3(0, 1.5, 51),
+	Vector3(27, 1.5, 51),
+	Vector3(51, 1.5, 51),
 ]
 const BLOCK_COLOUR := Color(0.6, 0.6, 0.62)
+
+static var _sizes: Array[Vector3] = []  # block_size's cache (the town plan is constants).
 
 var rng := RandomNumberGenerator.new()
 var obstacles: Array[StaticBody3D] = []
@@ -60,8 +64,8 @@ func build() -> void:
 	make_look()
 
 	# Obstacle blocks. Each one is drawn by its Building's look (see Border.register_building).
-	for pos: Vector3 in BLOCK_POSITIONS:
-		var block := make_body(BLOCK_SIZE, pos)
+	for i: int in range(BLOCK_POSITIONS.size()):
+		var block := make_body(block_size(i), BLOCK_POSITIONS[i])
 		_main.add_child(block)
 		obstacles.append(block)
 
@@ -84,12 +88,22 @@ func make_look() -> void:
 
 # Gives the border every block (and landmark block) it can beautify.
 func register_buildings(border: Border) -> void:
-	for body: StaticBody3D in obstacles:
+	for oi: int in range(obstacles.size()):
+		var body := obstacles[oi]
 		var lm_index := landmark_bodies.find(body)
 		var is_landmark := lm_index >= 0
-		var size := LandmarkConfig.LANDMARK_SIZES[lm_index] if is_landmark else BLOCK_SIZE
+		var size := LandmarkConfig.LANDMARK_SIZES[lm_index] if is_landmark else block_size(oi)
 		var colour := LandmarkConfig.LANDMARK_COLOURS[lm_index] if is_landmark else BLOCK_COLOUR
 		border.register_building(body, Vector2(size.x, size.z) * 0.5, is_landmark, size, colour)
+
+
+# The size of built block `i` (BLOCK_POSITIONS order): its cell's footprint, BLOCK_SIZE high.
+static func block_size(i: int) -> Vector3:
+	if _sizes.is_empty():
+		for cell: Vector2i in TownGrid.block_cells():
+			var r := TownGrid.cell_rect(cell)
+			_sizes.append(Vector3(r.size.x, BLOCK_SIZE.y, r.size.y))
+	return _sizes[i]
 
 
 # Creates a static body with a box collision shape (the drawing is done by looks).
@@ -154,9 +168,10 @@ func spot_ok(p: Vector3, placed: Array[Vector3]) -> bool:
 
 # True if `p` is inside any block's footprint (the landmark included), grown by `margin` metres.
 func near_block(p: Vector3, margin: float) -> bool:
-	var reach := BLOCK_SIZE.x * 0.5 + margin
-	for block: Vector3 in BLOCK_POSITIONS:
-		if absf(p.x - block.x) < reach and absf(p.z - block.z) < reach:
+	for i: int in range(BLOCK_POSITIONS.size()):
+		var block := BLOCK_POSITIONS[i]
+		var size := block_size(i)
+		if absf(p.x - block.x) < size.x * 0.5 + margin and absf(p.z - block.z) < size.z * 0.5 + margin:
 			return true
 	for k: int in range(LandmarkConfig.LANDMARK_POSITIONS.size()):
 		var lm := LandmarkConfig.LANDMARK_POSITIONS[k]

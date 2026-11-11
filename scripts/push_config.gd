@@ -46,3 +46,12 @@ const PUSH_BRACE_SMOOTH := 6.0  # How fast the drawn brace follows (per second).
 const PUSH_PROMPT_FRACTION := 0.4  # The line bent this share of the way to breaking: the first prompt.
 const PUSH_NOTICE_TEXT := "It bends where they push: joy them"
 const PUSH_BREAK_TEXT := "Broken! Joy the ends, lift who got in"
+
+# Walls and gates: Grid fixes (#56). A gate being pushed shows from across the screen: past PUSH_ALERT_FROM of the break
+# depth a coral bar glows along it (brighter and pulsing as the dent grows), and past PUSH_POINTER_FROM an edge pointer
+# shows when the gate is off screen (the gap arrows).
+const PUSH_ALERT_FROM := 0.2  # Share of PUSH_BREAK_DEPTH where the glow starts.
+const PUSH_POINTER_FROM := 0.5  # Share of PUSH_BREAK_DEPTH where an off-screen gate gets a pointer.
+const PUSH_ALERT_WIDTH := 1.6  # Metres: the glow bar at full dent (it starts at half of this).
+const PUSH_ALERT_PULSE_SECONDS := 0.9
+const PUSH_ALERT_COLOUR := Color(1.0, 0.36, 0.3)

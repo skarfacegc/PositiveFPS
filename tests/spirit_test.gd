@@ -325,13 +325,13 @@ func _press_loss(dim: bool) -> float:
 		p.is_rescued = true
 		p.joy = Config.JOY_MAX
 		var a := TAU * float(i) / 14.0
-		p.position = Vector3(cos(a) * 5.0, 0.0, sin(a) * 5.0)
+		p.position = Vector3(cos(a) * 8.0, 0.0, sin(a) * 8.0)  # Just inside the start square's gates (9 m out).
 		rescued.append(p)
 	border._assign_members(rescued)
 	var presser: Person = auto_free(Person.new())
 	add_child(presser)
 	presser.gloom = 0.95
-	presser.position = Vector3(6.8, 0.0, 0.0)  # Just outside the east gate.
+	presser.position = Vector3(9.8, 0.0, 0.0)  # Just outside the east gate.
 	border.set_player_dim(dim)
 	var everyone: Array[Person] = [presser]
 	everyone.append_array(rescued)

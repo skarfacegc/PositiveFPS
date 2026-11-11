@@ -284,6 +284,7 @@ def walls_events():
         {"t": 16.0, "type": "take_refused", "reason": "not_next", "cell": [0, 0]},
         {"t": 20.0, "type": "take_refused", "reason": "cancelled", "cell": [1, 1]},
         {"t": 21.0, "type": "take_refused", "reason": "people_short", "cell": [1, 2]},
+        {"t": 22.0, "type": "take_refused", "reason": "already_held", "cell": [2, 2]},
         {"t": 25.0, "type": "cell_ready", "cell": [9, 9], "pips": 3, "night_phase": "rising"},
         {"t": 30.0, "type": "session_end", "reason": "quit", "outcome": "quit", "rescued": 3},
     ]
@@ -295,7 +296,7 @@ class BlocksTest(unittest.TestCase):
         self.assertEqual((len(facts["takes"]), facts["free"], facts["paid"]), (1, 0, 1))
         self.assertAlmostEqual(facts["spirit_paid"], 30.0)
         self.assertEqual(facts["gates_added"], 3)  # the take adds 2 gates, the auto-join 1
-        self.assertEqual(facts["refusals"], {"spirit_short": 1, "not_next": 1, "cancelled": 1, "people_short": 1})
+        self.assertEqual(facts["refusals"], {"spirit_short": 1, "not_next": 1, "already_held": 1, "cancelled": 1, "people_short": 1})
         self.assertEqual(facts["pips"], 1)
         self.assertEqual(facts["ready_waits"], [4.0, 3.0])  # [4, 2] taken at 9, [5, 2] auto-joined at 15
         self.assertEqual(facts["still_ready"], 1)  # [9, 9] never taken
@@ -305,7 +306,7 @@ class BlocksTest(unittest.TestCase):
         text = "\n".join(ar.block_lines(ar.analyse(walls_events())))
         self.assertIn("BLOCKS (walls and gates): 1 takes (0 free, 1 paid, 30 spirit paid), 1 auto-joins, 3 gates added",
                       text)
-        self.assertIn("refusals: 4 (spirit_short 1, people_short 1, not_next 1, cancelled 1)", text)
+        self.assertIn("refusals: 5 (spirit_short 1, people_short 1, not_next 1, already_held 1, cancelled 1)", text)
         self.assertIn("ready cells (pips full, not yet joined): 2 waited to be taken: count 2", text)
         self.assertIn("1 still ready at the end", text)
         self.assertIn("take at t=9 s (paid): cell [4, 2], spirit 20.0, gates 4 -> 6, people 2 needed, 3 free  "
@@ -331,7 +332,7 @@ class BlocksTest(unittest.TestCase):
     def test_compare_has_the_walls_columns(self):
         column = ar.compare_column(ar.analyse(walls_events() + [sample(1.0), sample(2.0)]))
         self.assertEqual(column["takes free/paid"], "0/1")
-        self.assertEqual(column["refusals"], "4")
+        self.assertEqual(column["refusals"], "5")
         self.assertEqual(column["ready wait median"], "3.5 s")
         self.assertEqual(column["gate breaks"], "0")
 

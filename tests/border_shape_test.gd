@@ -65,11 +65,11 @@ func test_gloom_outside_an_intact_line_cannot_drain_someone_inside() -> void:
 	border._mark_gaps()
 	var inside: Person = auto_free(Person.new())
 	add_child(inside)
-	inside.position = Vector3(5.0, 0.0, 0.33)
+	inside.position = Vector3(8.0, 0.0, 0.33)  # The east gate is the line x = 9.
 	inside.receive_joy(0, Config.JOY_MAX, 0.0)
 	var dimmed: Person = auto_free(Person.new())
 	add_child(dimmed)
-	dimmed.position = Vector3(7.5, 0.0, 0.33)
+	dimmed.position = Vector3(10.5, 0.0, 0.33)
 	dimmed.gloom = 1.0
 	var people: Array[Person] = [inside, dimmed]
 	var before := inside.joy

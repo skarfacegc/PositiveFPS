@@ -15,9 +15,10 @@ const BORDER_LANDMARK_COLOUR := Color(0.78, 0.66, 0.6)
 const LANDMARK_NAMES: Array[String] = ["Bandstand", "Garden", "Bell tower", "Gallery"]
 
 # Walls and gates: Grid (0.4, #55): four landmarks, each standing in the middle of its own square, the four diagonal
-# cells next to the start square (about 31 m from the start; see TownConfig.TOWN_LANDMARK_CELLS and TownGrid).
+# cells next to the start square (about 38 m from the start since Grid fixes; see TownConfig.TOWN_LANDMARK_CELLS and
+# TownGrid).
 const LANDMARK_POSITIONS: Array[Vector3] = [
-	Vector3(22, 0, -22), Vector3(-22, 0, -22), Vector3(22, 0, 22), Vector3(-22, 0, 22)
+	Vector3(27, 0, -27), Vector3(-27, 0, -27), Vector3(27, 0, 27), Vector3(-27, 0, 27)
 ]
 # The colour of a held landmark's pillar and disc in the placeholder look.
 const LANDMARK_LIT_COLOUR := Color(1.0, 0.85, 0.45)

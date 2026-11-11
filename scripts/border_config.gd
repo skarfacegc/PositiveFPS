@@ -7,8 +7,8 @@ extends RefCounted
 const BORDER_MIN_PEOPLE := 3
 
 # Walls and gates: Take a block (#10, #11). Holding E and releasing takes the cell pointed at, for TAKE_SPIRIT_COST
-# spirit (refused when spirit is short or the gates need more members than there are). A cell next to the zone fills a
-# pip with each rescued person who belongs to it; at TAKE_RESCUES it joins by itself.
+# spirit (refused when spirit is short; Grid fixes: free when its pips are full). A cell next to the zone fills a pip
+# with each rescued person who belongs to it; at TAKE_RESCUES it is ready (it never joins by itself).
 const TAKE_SPIRIT_COST := 25.0
 const TAKE_RESCUES := 3
 
@@ -134,3 +134,21 @@ const ZONE_CORNER_OUT := 0.02  # Metres a detour's corner stands outside the gro
 const ZONE_CORNER_LANE := 0.5  # Metres: the most a person's corner may lie beyond the grown footprint.
 const ZONE_CORNER_REACHED := 0.01  # Metres from a corner at which it counts as reached (a step lands on it).
 const ZONE_CORNER_SLACK := 0.03  # A straight walk to a corner may skim a footprint's edge by this much.
+
+# Walls and gates: Grid fixes (#10, #56). Take by E only: a cell with all its pips (TAKE_RESCUES) is ready and E takes
+# it free; any other cell next to the zone costs TAKE_SPIRIT_COST. People never refuse a take: each gate shows its
+# members against its need (red when short) and the take preview shows the people the new gates need against the free
+# ones. Cells you can take glow on the ground and on the minimap (one look for free, another for paid); a taken cell
+# pulses.
+const TAKE_MARK_FREE_COLOUR := Color(1.0, 0.86, 0.35, 0.5)
+const TAKE_MARK_PAID_COLOUR := Color(0.45, 0.7, 1.0, 0.35)
+const TAKE_MARK_INSET := 0.8  # Metres: the glow stops this far inside the cell edge.
+const TAKE_MARK_Y := 0.12  # Metres above the ground.
+const TAKE_PULSE_SECONDS := 1.0  # A taken cell pulses for this long.
+const TAKE_PULSE_COLOUR := Color(1.0, 0.95, 0.7, 0.6)
+const GATE_COUNT_HEIGHT := 1.6  # Metres above the ground: the members/need label on a gate.
+const GATE_COUNT_OK_COLOUR := Color(1.0, 0.95, 0.8)
+const GATE_COUNT_SHORT_COLOUR := Color(1.0, 0.3, 0.28)
+const GATE_COUNT_PIXEL_SIZE := 0.012
+const GATE_COUNT_FONT_SIZE := 64
+const GATE_COUNT_OUT := 1.2  # Metres outside the gate line.

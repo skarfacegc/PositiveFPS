@@ -46,15 +46,15 @@ func test_landmarks_are_inside_the_map_clear_of_blocks_and_each_other_and_near_t
 		# Inside the map, with the whole block on the floor.
 		assert_float(absf(at.x) + half).is_less(lim)
 		assert_float(absf(at.z) + half).is_less(lim)
-		# 0.4 (#55): every landmark stands in the middle of a square on a diagonal next to the start, about 31 m away.
+		# 0.4 (#55): every landmark stands in the middle of a square on a diagonal next to the start, 38 m away.
 		var d := Vector2(at.x, at.z).length()
-		assert_float(d).is_between(30.0, 32.0)
-		# Clear of every ordinary block (a block is 12 wide and stands in its own cell) and of each other.
+		assert_float(d).is_between(37.0, 39.0)
+		# Clear of every ordinary block (a block stands in its own cell, 24 m on) and of each other.
 		for block: Vector3 in Plaza.BLOCK_POSITIONS:
-			assert_float(Vector2(at.x - block.x, at.z - block.z).length()).is_greater_equal(22.0 - 0.001)
+			assert_float(Vector2(at.x - block.x, at.z - block.z).length()).is_greater_equal(24.0 - 0.001)
 		for j: int in range(i + 1, count):
 			var other := LandmarkConfig.LANDMARK_POSITIONS[j]
-			assert_float(Vector2(at.x - other.x, at.z - other.z).length()).is_greater_equal(44.0 - 0.001)
+			assert_float(Vector2(at.x - other.x, at.z - other.z).length()).is_greater_equal(54.0 - 0.001)
 
 
 func test_the_landmarks_stand_in_their_own_squares_one_on_each_diagonal_of_the_start() -> void:

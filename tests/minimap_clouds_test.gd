@@ -54,7 +54,7 @@ func test_the_ground_layer_is_rebuilt_only_when_it_may_have_changed() -> void:
 	assert_bool(m._base_is_current()).is_true()
 	m.cloud_alpha_at(0, 0)  # a cloud repaint is only counted when something changed
 	assert_bool(m._base_is_current()).is_true()
-	m.refresh_clouds(_crowd(Vector2(-20, -20), 4))
+	m.refresh_clouds(_crowd(Vector2(-23, -23), 4))
 	m.cloud_alpha_at(0, 0)
 	assert_bool(m._base_is_current()).is_false()
 
@@ -65,22 +65,22 @@ func test_the_ground_layer_is_rebuilt_only_when_it_may_have_changed() -> void:
 func test_the_clouds_bin_unrescued_people_and_skip_sparse_cells_and_rescued_people() -> void:
 	var m := _map()
 	var people: Array[Person] = []
-	people.append_array(_crowd(Vector2(-20, -20), 4))
-	people.append(_person(Vector2(-20, -20), true))  # rescued: not counted
-	people.append_array(_crowd(Vector2(20, 20), 1))  # below the minimum (2): no cloud
+	people.append_array(_crowd(Vector2(-23, -23), 4))
+	people.append(_person(Vector2(-23, -23), true))  # rescued: not counted
+	people.append_array(_crowd(Vector2(23, 23), 1))  # below the minimum (2): no cloud
 	m.refresh_clouds(people)
 	assert_int(m.cloud_cells.size()).is_equal(1)
 	assert_int(m.cloud_cells[0]["count"]).is_equal(4)
 	# Round 21: the blob sits at the mean of its people (the four people of the crowd average to its middle).
 	var centre: Vector2 = m.cloud_cells[0]["centre"]
-	assert_vector(centre).is_equal_approx(Vector2(-20, -20), Vector2(0.001, 0.001))
+	assert_vector(centre).is_equal_approx(Vector2(-23, -23), Vector2(0.001, 0.001))
 
 
 func test_a_bigger_crowd_makes_a_wider_and_stronger_cloud() -> void:
 	var m := _map()
 	var people: Array[Person] = []
-	people.append_array(_crowd(Vector2(-20, -20), 3))
-	people.append_array(_crowd(Vector2(20, 20), 12))
+	people.append_array(_crowd(Vector2(-23, -23), 3))
+	people.append_array(_crowd(Vector2(23, 23), 12))
 	m.refresh_clouds(people)
 	assert_int(m.cloud_cells.size()).is_equal(2)
 	var small: Dictionary = m.cloud_cells[0]
@@ -102,7 +102,7 @@ func test_a_bigger_crowd_makes_a_wider_and_stronger_cloud() -> void:
 
 func test_the_cloud_is_soft_strongest_at_its_centre_and_gone_beyond_its_edge() -> void:
 	var m := _map()
-	var people: Array[Person] = _crowd(Vector2(-20, -20), 12)
+	var people: Array[Person] = _crowd(Vector2(-23, -23), 12)
 	m.refresh_clouds(people)
 	var cell: Dictionary = m.cloud_cells[0]
 	var radius: float = cell["radius"]
@@ -142,7 +142,7 @@ func test_the_picture_shows_the_cloud_on_the_ground_under_the_markers() -> void:
 	add_child(m)
 	m.look = MinimapLookPlaceholder.new()
 	# A cell inside the round picture (the corners of the square plaza are clipped off the circle).
-	var people: Array[Person] = _crowd(Vector2(-20, -20), 12)
+	var people: Array[Person] = _crowd(Vector2(-23, -23), 12)
 	m.refresh_clouds(people)
 	m._render()
 	var at: Vector2 = m.cloud_cells[0]["centre"]
@@ -176,10 +176,10 @@ func test_a_crowd_in_a_map_corner_is_drawn_at_the_rim_inside_the_circle() -> voi
 # Between recounts a blob glides from where it was to where its crowd now is, over several frames, instead of jumping.
 func test_between_recounts_a_cloud_glides_to_its_new_place() -> void:
 	var m := _map()
-	m.refresh_clouds(_crowd(Vector2(-27, -20), 3))  # the first recount snaps into place
-	var cell := _cell(Vector2(-27, -20))
+	m.refresh_clouds(_crowd(Vector2(-24, -23), 3))  # the first recount snaps into place
+	var cell := _cell(Vector2(-24, -23))
 	var before: Vector2 = m._cloud_shown[cell]["pos"]
-	m.refresh_clouds(_crowd(Vector2(-24, -21), 3))  # same cell, a little further in
+	m.refresh_clouds(_crowd(Vector2(-22, -23), 3))  # same cell, a little further in
 	var target: Vector2 = m.cloud_cells[0]["centre"]
 	m.tick(0.1)
 	var mid: Vector2 = m._cloud_shown[cell]["pos"]
@@ -193,8 +193,8 @@ func test_between_recounts_a_cloud_glides_to_its_new_place() -> void:
 # A crowd that thins out or leaves fades away over a moment, and a new crowd fades in, rather than popping.
 func test_a_cloud_fades_in_and_out_rather_than_popping() -> void:
 	var m := _map()
-	m.refresh_clouds(_crowd(Vector2(-20, -20), 12))
-	var old_cell := _cell(Vector2(-20, -20))
+	m.refresh_clouds(_crowd(Vector2(-23, -23), 12))
+	var old_cell := _cell(Vector2(-23, -23))
 	m.refresh_clouds([] as Array[Person])
 	m.tick(0.1)
 	assert_bool(m._cloud_shown.has(old_cell)).is_true()
@@ -202,9 +202,9 @@ func test_a_cloud_fades_in_and_out_rather_than_popping() -> void:
 	assert_float(fading).is_greater(0.0)
 	assert_float(fading).is_less(HudConfig.MINIMAP_CLOUD_MAX_ALPHA)
 	# A new crowd elsewhere (cell 18) fades in while the old cloud is still fading out.
-	m.refresh_clouds(_crowd(Vector2(20, 20), 12))
+	m.refresh_clouds(_crowd(Vector2(23, 23), 12))
 	m.tick(0.1)
-	var new_cell := _cell(Vector2(20, 20))
+	var new_cell := _cell(Vector2(23, 23))
 	var growing: float = m._cloud_shown[new_cell]["peak"]
 	assert_float(growing).is_greater(0.0)
 	assert_float(growing).is_less(HudConfig.MINIMAP_CLOUD_MAX_ALPHA)
@@ -219,7 +219,7 @@ func test_the_cloud_at_full_strength_stands_out_from_the_grey_ground() -> void:
 	var m := _map()
 	add_child(m)
 	m.look = MinimapLookPlaceholder.new()
-	m.refresh_clouds(_crowd(Vector2(-20, -20), 12))
+	m.refresh_clouds(_crowd(Vector2(-23, -23), 12))
 	m._render()
 	var at: Vector2 = m.cloud_cells[0]["centre"]
 	var c := m._to_px(at)
@@ -241,7 +241,7 @@ static func _luminance(c: Color) -> float:
 # shows.
 func test_a_pair_of_people_makes_a_cloud() -> void:
 	var m := _map()
-	m.refresh_clouds(_crowd(Vector2(-20, -20), 2))
+	m.refresh_clouds(_crowd(Vector2(-23, -23), 2))
 	assert_int(m.cloud_cells.size()).is_equal(1)
 	assert_int(m.cloud_cells[0]["count"]).is_equal(2)
 
@@ -274,7 +274,12 @@ func test_perf_the_cloud_recount_with_sixty_people_is_cheap() -> void:
 	for cell: int in range(20):
 		var ix := cell % 5
 		var iz := floori(float(cell) / 5.0)
-		var at := Vector2(-40 + ix * 20, -40 + iz * 20)
+		# The middle of every third bin of the 15 x 15 grid (a bin is TD_PLAZA_SIZE / 15 wide), so no crowd straddles two.
+		var bin := float(Config.TD_PLAZA_SIZE) / float(HudConfig.MINIMAP_CLOUD_CELLS)
+		var at := Vector2(
+			-Config.TD_PLAZA_SIZE * 0.5 + bin * (1.5 + 3.0 * float(ix)),
+			-Config.TD_PLAZA_SIZE * 0.5 + bin * (1.5 + 3.0 * float(iz))
+		)
 		people.append_array(_crowd(at, 3))
 	assert_int(people.size()).is_equal(60)
 	var per_recount_ms := 1.0e9
@@ -306,7 +311,7 @@ func test_the_circle_radius_is_half_the_control_width() -> void:
 
 func test_the_cloud_alpha_outside_the_picture_is_zero() -> void:
 	var m := _map()
-	m.refresh_clouds(_crowd(Vector2(-20, -20), 12))
+	m.refresh_clouds(_crowd(Vector2(-23, -23), 12))
 	var at: Vector2 = m.cloud_cells[0]["centre"]
 	var c := m._to_px(at)
 	assert_float(m.cloud_alpha_at(int(c.x), int(c.y))).is_greater(0.0)
@@ -318,8 +323,8 @@ func test_the_cloud_alpha_outside_the_picture_is_zero() -> void:
 
 func test_a_blob_that_has_faded_out_paints_nothing() -> void:
 	var m := _map()
-	m.refresh_clouds(_crowd(Vector2(-20, -20), 12))
-	var cell := _cell(Vector2(-20, -20))
+	m.refresh_clouds(_crowd(Vector2(-23, -23), 12))
+	var cell := _cell(Vector2(-23, -23))
 	var at: Vector2 = m.cloud_cells[0]["centre"]
 	var c := m._to_px(at)
 	assert_float(m.cloud_alpha_at(int(c.x), int(c.y))).is_greater(0.0)

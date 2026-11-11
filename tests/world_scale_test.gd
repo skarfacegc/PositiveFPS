@@ -18,16 +18,16 @@ func _rescue_ring(td: TopDownMain, count: int, r: float) -> void:
 # --- The constants -----------------------------------------------------------------------------------------------
 
 
-func test_the_plaza_is_a_hundred_metres_and_the_ground_grid_matches() -> void:
+func test_the_plaza_is_the_town_span_and_the_ground_grid_matches() -> void:
 	assert_float(Config.WORLD_SCALE).is_equal_approx(100.0 / 70.0, 0.00001)
-	assert_int(Config.TD_PLAZA_SIZE).is_equal(100)
+	assert_int(Config.TD_PLAZA_SIZE).is_equal(114)  # Grid fixes: 4 x 12 + 18 + 4 x 12 (was 100).
 	assert_int(Config.TD_PEOPLE_COUNT).is_equal(60)
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
-	# One-metre tiles: a 100 x 100 grid.
-	assert_int(td.ground._size).is_equal(100)
-	assert_int(td.ground._colors.size()).is_equal(100 * 100)
+	# One-metre tiles: a 114 x 114 grid.
+	assert_int(td.ground._size).is_equal(114)
+	assert_int(td.ground._colors.size()).is_equal(114 * 114)
 	assert_float(td.ground.paint_radius).is_equal_approx(6.0 * Config.WORLD_SCALE, 0.0001)
 	# Every block and the landmark are inside the walls, and the start area stays clear of them.
 	var half := Config.TD_PLAZA_SIZE / 2.0
@@ -69,9 +69,9 @@ func test_territory_constants_scale_and_interaction_constants_do_not() -> void:
 		var now: float = pair[0]
 		var old: float = pair[1]
 		assert_float(now / (old * s)).override_failure_message(key).is_equal_approx(1.0, 0.001)
-	# 0.4: the landmarks and blocks are placed in metres on the town grid (not scaled): 12 m cells, 10 m streets.
-	assert_float(LandmarkConfig.LANDMARK_POSITIONS[0].x).is_equal_approx(22.0, 0.0001)
-	assert_float(LandmarkConfig.LANDMARK_POSITIONS[0].z).is_equal_approx(-22.0, 0.0001)
+	# 0.4: landmarks and blocks are placed in metres on the town grid (not scaled): 12 m cells, 18 m start, 12 m streets.
+	assert_float(LandmarkConfig.LANDMARK_POSITIONS[0].x).is_equal_approx(27.0, 0.0001)
+	assert_float(LandmarkConfig.LANDMARK_POSITIONS[0].z).is_equal_approx(-27.0, 0.0001)
 	# A per-metre rate shrinks by the same factor, so the same fraction of the way gives the same rate.
 	assert_float(PeopleConfig.GLOOM_GROWTH_PER_METER * s).is_equal_approx(0.0008, 0.000001)
 	# Round numbers from the brief.
@@ -120,12 +120,12 @@ func test_the_camera_is_nineteen_and_a_half_metres_tall_and_the_ten_metre_ring_f
 # --- The rules behave the same, bigger ----------------------------------------------------------------------------
 
 
-# Gates need their width over the territory spacing members (a 12 m square side 4, a 10 m street mouth 3).
+# Gates need their width over the territory spacing members (an 18 m start side 5, a 12 m side or street mouth 4).
 func test_a_gate_asks_for_its_width_over_the_scaled_spacing() -> void:
 	var z := Zone.new()
-	assert_int(z.members_needed()).is_equal(16)
+	assert_int(z.members_needed()).is_equal(20)
+	assert_int(ceili(18.0 / BorderConfig.BORDER_TARGET_SPACING)).is_equal(5)
 	assert_int(ceili(12.0 / BorderConfig.BORDER_TARGET_SPACING)).is_equal(4)
-	assert_int(ceili(10.0 / BorderConfig.BORDER_TARGET_SPACING)).is_equal(3)
 
 
 # --- Performance --------------------------------------------------------------------------------------------------

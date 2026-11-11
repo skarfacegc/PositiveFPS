@@ -89,11 +89,11 @@ func test_the_border_forms_on_the_start_square_after_three_rescues() -> void:
 	assert_bool(td.border.active).is_true()
 	assert_int(td.border.zone.held.size()).is_equal(1)
 	assert_vector(td.border.centre).is_equal(Vector3.ZERO)
-	# The line is the start square's outline: a point every 2 m along four 12 m gates.
-	assert_int(td.border.polygon.size()).is_equal(24)
-	assert_float(td.border.perimeter).is_equal(48.0)
+	# The line is the start square's outline: a point every 2 m along four 18 m gates.
+	assert_int(td.border.polygon.size()).is_equal(36)
+	assert_float(td.border.perimeter).is_equal(72.0)
 	for pt: Vector2 in td.border.polygon:
-		assert_float(maxf(absf(pt.x), absf(pt.y))).is_equal_approx(6.0, 0.001)
+		assert_float(maxf(absf(pt.x), absf(pt.y))).is_equal_approx(9.0, 0.001)
 
 
 func test_members_walk_to_their_places_on_the_gates() -> void:
@@ -109,8 +109,8 @@ func test_members_walk_to_their_places_on_the_gates() -> void:
 	for p: Person in border.members:
 		var target: Vector3 = border._targets[p]
 		assert_float(Vector2(p.position.x - target.x, p.position.z - target.z).length()).is_less(0.15)
-		# On the line: the square's outline is the box |x| = 6 or |z| = 6.
-		assert_float(maxf(absf(p.position.x), absf(p.position.z))).is_equal_approx(6.0, 0.2)
+		# On the line: the square's outline is the box |x| = 9 or |z| = 9.
+		assert_float(maxf(absf(p.position.x), absf(p.position.z))).is_equal_approx(9.0, 0.2)
 		var gate: int = border.zone.nearest_gate(Vector2(p.position.x, p.position.z))["id"]
 		per_gate[gate] = (per_gate.get(gate, 0) as int) + 1
 	assert_int(per_gate.size()).is_equal(4)  # Shared out: two to each of the four gates.
@@ -122,15 +122,15 @@ func test_members_beyond_what_the_gates_need_stand_inside_on_open_ground() -> vo
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	_rescue_ring(td, Vector3(0, 0, 0), 3.0, 20)
+	_rescue_ring(td, Vector3(0, 0, 0), 3.0, 24)
 	await runner.simulate_frames(400)
 	var border: Border = td.border
-	assert_int(border.required_members()).is_equal(16)
-	assert_int(border.member_count).is_equal(16)
+	assert_int(border.required_members()).is_equal(20)
+	assert_int(border.member_count).is_equal(20)
 	assert_int(border.inner_count).is_equal(4)
 	for p: Person in border.inner:
 		assert_bool(BorderShape.is_inside(border.polygon, Vector2(p.position.x, p.position.z))).is_true()
-		assert_float(maxf(absf(p.position.x), absf(p.position.z))).is_less(6.0 - BorderConfig.GATE_INNER_INSET + 0.3)
+		assert_float(maxf(absf(p.position.x), absf(p.position.z))).is_less(9.0 - BorderConfig.GATE_INNER_INSET + 0.3)
 
 
 func test_three_locked_rescues_by_real_clicks_form_the_border() -> void:
@@ -166,11 +166,11 @@ func test_few_people_spread_over_the_gates_and_the_line_is_still_intact() -> voi
 		rescued.append(people[i])
 	border._assign_members(rescued)
 	assert_int(border.member_count).is_equal(3)
-	assert_int(border.slot_count).is_equal(16)
+	assert_int(border.slot_count).is_equal(20)
 	assert_int(border.gap_count()).is_equal(0)  # A thin line is not a broken one (the next pass makes it dent sooner).
 	assert_bool(border.segment_is_gap(0)).is_false()
 	assert_bool(border.segment_colour(0).is_equal_approx(BorderConfig.BORDER_INTACT_COLOUR)).is_true()
-	assert_float(border.spacing).is_equal_approx(48.0 / 3.0, 0.001)
+	assert_float(border.spacing).is_equal_approx(72.0 / 3.0, 0.001)
 
 
 # --- Holding gloom ---------------------------------------------------------------------------------------
@@ -178,37 +178,37 @@ func test_few_people_spread_over_the_gates_and_the_line_is_still_intact() -> voi
 
 func test_a_dimmed_person_outside_is_stopped_at_an_intact_gate() -> void:
 	var border := _bare_border()
-	# Walk from outside (x = 9) toward the middle along a line through the east gate.
-	var from := Vector3(9.0, 0.0, 0.33)
+	# Walk from outside (x = 12) toward the middle along a line through the east gate (x = 9).
+	var from := Vector3(12.0, 0.0, 0.33)
 	var to := Vector3(3.0, 0.0, 0.33)
 	var stopped := border.clip_move(from, to)
-	assert_float(stopped.x).is_greater(5.9)
-	assert_float(stopped.x).is_less(6.1)
+	assert_float(stopped.x).is_greater(8.9)
+	assert_float(stopped.x).is_less(9.1)
 	assert_bool(border.line_blocks(from, to)).is_true()
 
 
 func test_a_dimmed_person_outside_is_stopped_at_a_wall_too() -> void:
 	var border := _bare_border([Vector2i(3, 2)])
-	var from := Vector3(31.0, 0.0, 0.33)
-	var to := Vector3(25.0, 0.0, 0.33)
+	var from := Vector3(36.0, 0.0, 0.33)  # Outside the block's east face (x = 33).
+	var to := Vector3(30.0, 0.0, 0.33)
 	assert_bool(border.line_blocks(from, to)).is_true()
-	assert_float(border.clip_move(from, to).x).is_greater(27.9)
+	assert_float(border.clip_move(from, to).x).is_greater(32.9)
 
 
 func test_a_dimmed_person_passes_through_a_break() -> void:
 	var border := _bare_border()
-	var east := border.push.sample_of(Vector3(6.0, 0.0, 0.0))
+	var east := border.push.sample_of(Vector3(9.0, 0.0, 0.0))
 	border.push.dent[east] = PushConfig.PUSH_BREAK_DEPTH + 0.3
 	var nobody: Array[Person] = []
 	border.push.update(nobody, 0.02, 1.0)
 	border._mark_gaps()
 	assert_int(border.gap_count()).is_equal(1)
-	var from := Vector3(9.0, 0.0, 0.33)
+	var from := Vector3(12.0, 0.0, 0.33)
 	var to := Vector3(3.0, 0.0, 0.33)
 	assert_bool(border.clip_move(from, to).is_equal_approx(to)).is_true()
 	assert_bool(border.line_blocks(from, to)).is_false()
 	# Beside the break the gate still holds.
-	assert_bool(border.line_blocks(Vector3(9.0, 0.0, -5.0), Vector3(3.0, 0.0, -5.0))).is_true()
+	assert_bool(border.line_blocks(Vector3(12.0, 0.0, -6.0), Vector3(3.0, 0.0, -6.0))).is_true()
 
 
 func test_a_dimmed_person_inside_the_line_is_not_held() -> void:
@@ -224,21 +224,21 @@ func test_gloom_pressing_on_a_gate_drains_the_nearest_member_and_a_wall_is_not_p
 	var member: Person = people[0]
 	member.is_rescued = true
 	member.joy = Config.JOY_MAX
-	member.position = Vector3(-6.0, 0.0, 0.0)
+	member.position = Vector3(-9.0, 0.0, 0.0)
 	border.members.append(member)
 	var pusher: Person = people[1]
 	pusher.gloom = 1.0
-	pusher.position = Vector3(-6.8, 0.0, 0.0)  # Outside the start square's west gate.
+	pusher.position = Vector3(-9.8, 0.0, 0.0)  # Outside the start square's west gate.
 	var list: Array[Person] = [member, pusher]
 	var before := member.joy
 	border._press_gloom(list, 0.5, 1.0)
 	assert_float(member.joy).is_less(before)  # An intact gate: the drain is a fraction of the gap rate.
-	assert_float(pusher.position.x).is_less(-6.8)  # And the pusher is held off outward.
+	assert_float(pusher.position.x).is_less(-9.8)  # And the pusher is held off outward.
 	member.joy = before
-	pusher.position = Vector3(28.8, 0.0, 0.0)  # Outside the block's east face (a wall).
+	pusher.position = Vector3(33.8, 0.0, 0.0)  # Outside the block's east face (a wall).
 	border._press_gloom(list, 0.5, 1.0)
 	assert_float(member.joy).is_equal(before)
-	assert_float(pusher.position.x).is_equal_approx(28.8, 0.001)
+	assert_float(pusher.position.x).is_equal_approx(33.8, 0.001)
 
 
 func test_gloom_at_a_break_drains_the_nearest_member_at_the_full_rate() -> void:
@@ -247,17 +247,17 @@ func test_gloom_at_a_break_drains_the_nearest_member_at_the_full_rate() -> void:
 	var member: Person = people[0]
 	member.is_rescued = true
 	member.joy = Config.JOY_MAX
-	member.position = Vector3(6.0, 0.0, 0.0)
+	member.position = Vector3(9.0, 0.0, 0.0)
 	border.members.append(member)
 	var pusher: Person = people[1]
 	pusher.gloom = 1.0
-	pusher.position = Vector3(6.8, 0.0, 0.0)
+	pusher.position = Vector3(9.8, 0.0, 0.0)
 	var list: Array[Person] = [member, pusher]
 	border._press_gloom(list, 0.5, 1.0)
 	var intact_loss := Config.JOY_MAX - member.joy
 	member.joy = Config.JOY_MAX
-	pusher.position = Vector3(6.8, 0.0, 0.0)
-	var east := border.push.sample_of(Vector3(6.0, 0.0, 0.0))
+	pusher.position = Vector3(9.8, 0.0, 0.0)
+	var east := border.push.sample_of(Vector3(9.0, 0.0, 0.0))
 	border.push.broken[east] = true
 	border.push.broken[east - 1] = true
 	border._mark_gaps()
@@ -265,7 +265,7 @@ func test_gloom_at_a_break_drains_the_nearest_member_at_the_full_rate() -> void:
 	var break_loss := Config.JOY_MAX - member.joy
 	assert_float(intact_loss).is_greater(0.0)
 	assert_float(break_loss).is_greater(intact_loss * 3.0)  # The full rate, not the intact fraction of it.
-	assert_float(pusher.position.x).is_equal_approx(6.8, 0.001)  # And at a break nobody is pushed back.
+	assert_float(pusher.position.x).is_equal_approx(9.8, 0.001)  # And at a break nobody is pushed back.
 
 
 func test_a_gate_that_springs_back_sweeps_a_pusher_out_but_not_a_wall_or_a_break_or_someone_far_in() -> void:
@@ -273,27 +273,27 @@ func test_a_gate_that_springs_back_sweeps_a_pusher_out_but_not_a_wall_or_a_break
 	var people := _people(3)
 	var near_gate: Person = people[0]
 	near_gate.gloom = 1.0
-	near_gate.position = Vector3(-5.9, 0.0, 0.0)  # A little inside the west gate.
+	near_gate.position = Vector3(-8.9, 0.0, 0.0)  # A little inside the west gate.
 	var far_in: Person = people[1]
 	far_in.gloom = 1.0
 	far_in.position = Vector3(-1.0, 0.0, 0.0)
 	var by_wall: Person = people[2]
 	by_wall.gloom = 1.0
-	by_wall.position = Vector3(27.8, 0.0, 0.0)  # A little inside the block's east face, a wall.
+	by_wall.position = Vector3(32.8, 0.0, 0.0)  # A little inside the block's east face, a wall.
 	var list: Array[Person] = [near_gate, far_in, by_wall]
 	border._press_gloom(list, 0.1, 1.0)
-	assert_float(near_gate.position.x).is_less(-6.0)
+	assert_float(near_gate.position.x).is_less(-9.0)
 	assert_vector(far_in.position).is_equal(Vector3(-1.0, 0.0, 0.0))
-	assert_vector(by_wall.position).is_equal(Vector3(27.8, 0.0, 0.0))
+	assert_vector(by_wall.position).is_equal(Vector3(32.8, 0.0, 0.0))
 	# Inside beside a break, a person stays where they are.
 	var inside_break: Person = people[2]
-	inside_break.position = Vector3(-5.9, 0.0, 3.0)
-	var at := border.push.sample_of(Vector3(-6.0, 0.0, 3.0))
+	inside_break.position = Vector3(-8.9, 0.0, 3.0)
+	var at := border.push.sample_of(Vector3(-9.0, 0.0, 3.0))
 	border.push.broken[at] = true
 	border.push.broken[at - 1] = true
 	border._mark_gaps()
 	border._press_gloom(list, 0.1, 1.0)
-	assert_float(inside_break.position.x).is_equal_approx(-5.9, 0.001)
+	assert_float(inside_break.position.x).is_equal_approx(-8.9, 0.001)
 
 
 # --- Relapse and too few people -----------------------------------------------------------------------------
@@ -334,9 +334,9 @@ func test_losing_the_border_by_relapse_below_three_ends_the_level() -> void:
 func test_a_member_who_relapses_steps_out_through_the_gate() -> void:
 	var border := _bare_border()
 	var p: Person = _people(1)[0]
-	p.position = Vector3(6.0, 0.0, 0.0)
+	p.position = Vector3(9.0, 0.0, 0.0)
 	border.on_relapse(p)
-	assert_float(p.position.x).is_equal_approx(6.0 + BorderConfig.BORDER_OUTWARD_STEP, 0.001)
+	assert_float(p.position.x).is_equal_approx(9.0 + BorderConfig.BORDER_OUTWARD_STEP, 0.001)
 
 
 # --- Inside the border --------------------------------------------------------------------------------------
@@ -380,10 +380,10 @@ func test_a_grey_person_inside_the_line_lightens_and_one_outside_dims() -> void:
 
 func test_cover_is_the_depth_inside_a_gate_and_a_wall_gives_full_cover() -> void:
 	var border := _bare_border([Vector2i(3, 2)])
-	assert_float(border.cover_at(Vector3(-5.99, 0.0, 0.0))).is_less(0.05)  # On the west gate.
-	assert_float(border.cover_at(Vector3(-5.0, 0.0, 0.0))).is_between(0.5, 0.95)  # A metre in: most of the way there.
+	assert_float(border.cover_at(Vector3(-8.99, 0.0, 0.0))).is_less(0.05)  # On the west gate.
+	assert_float(border.cover_at(Vector3(-8.0, 0.0, 0.0))).is_between(0.5, 0.95)  # A metre in: most of the way there.
 	assert_float(border.cover_at(Vector3(0.0, 0.0, 0.0))).is_equal(1.0)
-	assert_float(border.cover_at(Vector3(27.5, 0.0, 0.0))).is_equal(1.0)  # By the block's east face: a wall.
+	assert_float(border.cover_at(Vector3(32.5, 0.0, 0.0))).is_equal(1.0)  # By the block's east face: a wall.
 	assert_float(border.cover_at(Vector3(40.0, 0.0, 0.0))).is_equal(0.0)  # Outside.
 
 

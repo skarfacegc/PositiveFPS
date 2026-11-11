@@ -56,7 +56,8 @@ func test_the_streets_have_props_where_the_night_is_played() -> void:
 	assert_bool(plaza.size() >= 20).is_true()
 	# The lamps along the kerbs and the stalls on the square fill the frame wherever the night is played.
 	assert_bool(_in_frame(plaza, Vector3.ZERO) >= 8).is_true()
-	assert_bool(_in_frame(block_props, Vector3.ZERO) > 0).is_true()
+	# (Grid fixes: the blocks stand 18 m out on the axes, so the benches are in frame half way along a street instead.)
+	assert_bool(_in_frame(block_props, Vector3(0.0, 0.0, -15.0)) > 0).is_true()
 	for at: Vector3 in [Vector3.ZERO, Vector3(14.5, 0.0, 0.0), Vector3(-15.0, 0.0, 0.0), Vector3(0.0, 0.0, 15.0)]:
 		assert_bool(_in_frame(plaza, at) >= 4).is_true()
 	# Lamps and stalls stand on the streets, as scenery that blooms by the paint alone.
@@ -87,7 +88,7 @@ func test_lamps_stand_at_regular_spacing_along_the_kerbs_and_stalls_ring_the_squ
 	var lamps := 0
 	var stalls := 0
 	var along_main: Array[float] = []
-	var lines: Array[float] = [-33.0, -11.0, 11.0, 33.0]  # The centre lines of the four streets.
+	var lines: Array[float] = [-39.0, -15.0, 15.0, 39.0]  # The centre lines of the four streets.
 	for p: StyleProps.Prop in _plaza():
 		if p.kind == StyleProps.Kind.LAMP:
 			lamps += 1
@@ -97,7 +98,7 @@ func test_lamps_stand_at_regular_spacing_along_the_kerbs_and_stalls_ring_the_squ
 				on_x = on_x or is_equal_approx(absf(p.pos.x - line), TownConfig.TOWN_KERB_OFFSET)
 				on_z = on_z or is_equal_approx(absf(p.pos.z - line), TownConfig.TOWN_KERB_OFFSET)
 			assert_bool(on_x or on_z).is_true()
-			if is_equal_approx(p.pos.z, 11.0 + TownConfig.TOWN_KERB_OFFSET):
+			if is_equal_approx(p.pos.z, 15.0 + TownConfig.TOWN_KERB_OFFSET):
 				along_main.append(p.pos.x)
 		else:
 			stalls += 1
@@ -107,11 +108,9 @@ func test_lamps_stand_at_regular_spacing_along_the_kerbs_and_stalls_ring_the_squ
 	assert_int(stalls).is_equal(4)
 	assert_int(lamps).is_equal(TownLayout.lamp_spots().size())
 	along_main.sort()
-	assert_int(along_main.size()).is_equal(5)  # One per cell along the street.
-	for i: int in range(1, along_main.size()):
-		assert_float(along_main[i] - along_main[i - 1]).is_equal_approx(
-			TownConfig.TOWN_CELL_SIZE + TownConfig.TOWN_STREET_WIDTH, 0.001
-		)
+	assert_int(along_main.size()).is_equal(5)  # One per cell along the street, at the middle of each cell.
+	for i: int in range(along_main.size()):
+		assert_float(along_main[i]).is_equal_approx(TownGrid.cell_centre(Vector2i(i, i)).x, 0.001)
 
 
 func test_each_blocks_bench_and_planter_stand_between_it_and_its_street() -> void:

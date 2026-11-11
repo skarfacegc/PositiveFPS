@@ -127,7 +127,7 @@ func test_a_take_by_e_is_logged_with_its_spirit_gates_and_people() -> void:
 	assert_int(takes.size()).is_equal(1)
 	var take: Dictionary = takes[0]
 	assert_array(take["cell"]).is_equal([float(c.x), float(c.y)])
-	assert_bool(take["free"]).is_false()  # Today's rules: a take always costs spirit.
+	assert_bool(take["free"]).is_false()  # Its pips were not full: a paid take.
 	assert_float(take["spirit_paid"]).is_equal_approx(BorderConfig.TAKE_SPIRIT_COST, 0.01)
 	assert_float(take["spirit"]).is_equal_approx(80.0 - BorderConfig.TAKE_SPIRIT_COST, 0.1)
 	assert_bool(take["gates_after"] > take["gates_before"]).is_true()
@@ -150,15 +150,40 @@ func test_a_take_refused_for_spirit_is_logged_with_its_reason() -> void:
 	assert_float(refused[0]["spirit"]).is_equal_approx(BorderConfig.TAKE_SPIRIT_COST - 1.0, 0.1)
 
 
-func test_a_take_refused_for_people_is_logged_with_its_reason() -> void:
+func test_a_take_with_too_few_people_is_not_refused_and_logs_the_shortfall() -> void:
 	var s: Dictionary = await _start()
 	var td: TopDownMain = s["td"]
 	td.player.spirit = 80.0
-	assert_bool(td.take_block.take_now(_neighbour())).is_false()
+	assert_bool(td.take_block.take_now(_neighbour())).is_true()
+	var events := _events(td)
+	assert_int(_of_type(events, "take_refused").size()).is_equal(0)
+	var takes := _of_type(events, "take")
+	assert_int(takes.size()).is_equal(1)
+	assert_float(takes[0]["people_free"]).is_equal(0.0)
+	assert_float(takes[0]["people_needed"]).is_greater(0.0)
+
+
+func test_a_free_take_of_a_ready_cell_is_logged_free_with_no_spirit_paid() -> void:
+	var s: Dictionary = await _start()
+	var td: TopDownMain = s["td"]
+	var c := _neighbour()
+	td.player.spirit = 3.0
+	td.border.pips.counts[c] = BorderConfig.TAKE_RESCUES
+	assert_bool(td.take_block.take_now(c)).is_true()
+	var takes := _of_type(_events(td), "take")
+	assert_bool(takes[0]["free"]).is_true()
+	assert_float(takes[0]["spirit_paid"]).is_equal(0.0)
+	assert_float(takes[0]["spirit"]).is_equal_approx(3.0, 0.1)
+
+
+func test_a_cell_already_held_is_refused_as_already_held_not_not_next() -> void:
+	var s: Dictionary = await _start()
+	var td: TopDownMain = s["td"]
+	td.player.spirit = 80.0
+	assert_bool(td.take_block.take_now(TownGrid.start_cell())).is_false()
 	var refused := _of_type(_events(td), "take_refused")
 	assert_int(refused.size()).is_equal(1)
-	assert_str(refused[0]["reason"]).is_equal("people_short")
-	assert_float(refused[0]["people_free"]).is_equal(0.0)
+	assert_str(refused[0]["reason"]).is_equal("already_held")
 
 
 func test_a_cell_not_beside_the_zone_is_refused_as_not_next() -> void:
@@ -192,7 +217,7 @@ func test_right_click_while_holding_e_is_logged_as_cancelled() -> void:
 	assert_int(_of_type(_events(td), "take").size()).is_equal(0)
 
 
-func test_rescues_log_pips_a_ready_cell_and_the_auto_join_with_the_gates_it_adds() -> void:
+func test_rescues_log_pips_and_a_ready_cell_and_nothing_joins_by_itself() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -201,20 +226,14 @@ func test_rescues_log_pips_a_ready_cell_and_the_auto_join_with_the_gates_it_adds
 	for i: int in range(BorderConfig.TAKE_RESCUES):
 		_rescue(td.people[i], spot)
 		await runner.simulate_frames(2)
-	assert_bool(td.border.zone.has(c)).is_true()
+	assert_bool(td.border.zone.has(c)).is_false()  # Ready, waiting for E.
 	var events := _events(td)
 	var pips := _of_type(events, "pip")
 	assert_int(pips.size()).is_equal(BorderConfig.TAKE_RESCUES)
 	assert_float(pips[0]["pips"]).is_equal(1.0)
 	assert_array(pips[0]["cell"]).is_equal([float(c.x), float(c.y)])
 	assert_int(_of_type(events, "cell_ready").size()).is_equal(1)
-	var joins := _of_type(events, "auto_join")
-	assert_int(joins.size()).is_equal(1)
-	assert_array(joins[0]["cell"]).is_equal([float(c.x), float(c.y)])
-	assert_bool(joins[0]["gates_after"] > joins[0]["gates_before"]).is_true()
-	assert_float(joins[0]["people_free"]).is_greater_equal(float(BorderConfig.TAKE_RESCUES) - 1.0)
-	assert_bool(joins[0].has("people_needed")).is_true()
-	# An auto-join is not a take: nothing was paid for it.
+	assert_int(_of_type(events, "auto_join").size()).is_equal(0)  # Gone with auto-join.
 	assert_int(_of_type(events, "take").size()).is_equal(0)
 
 

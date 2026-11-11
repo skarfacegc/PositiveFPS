@@ -84,7 +84,7 @@ func test_a_hedge_follows_a_wall_run_on_the_street_side_and_skips_the_map_edge_a
 		# Outside the block, but within a metre or so of its face.
 		assert_bool(block_rect.has_point((a + b) * 0.5)).is_false()
 		assert_bool(block_rect.grow(StyleHedge.OFFSET + 0.1).has_point((a + b) * 0.5)).is_true()
-	assert_bool(StyleHedge.on_map_edge(Vector2(50.0, -10.0), Vector2(50.0, 10.0))).is_true()
+	assert_bool(StyleHedge.on_map_edge(Vector2(57.0, -10.0), Vector2(57.0, 10.0))).is_true()
 	assert_bool(StyleHedge.on_map_edge(Vector2(10.0, 6.0), Vector2(20.0, 6.0))).is_false()
 	assert_int(StyleHedge.lamp_count(0.5)).is_equal(1)
 	assert_int(StyleHedge.lamp_count(12.0)).is_equal(4)
