@@ -5,12 +5,13 @@ extends RefCounted
 
 # Only visible things push the line. A dimmed person within PUSH_LEAN_RANGE outside it leans on it with force
 # PUSH_PER_PERSON x the night's strength x their push strength (joy at them takes PUSH_JOY_WEAKEN off it for a while,
-# and it comes back at PUSH_WEAKEN_RECOVER a second). A passing tide shoves the side it comes from with TIDE_PUSH
-# (see the tide block). Force spreads along the loop (PUSH_SPREAD radians) and bows the line inward: the dent follows
-# force x PUSH_DENT_PER_FORCE (at most PUSH_DENT_MAX metres), deepening at PUSH_GIVE_SPEED metres a second and springing
-# back at PUSH_SPRING_SPEED when relieved. Joy at a bending member (or a burst near the spot) calms it: the force is cut
-# by PUSH_CALM_CUT while the calm lasts (PUSH_CALM_SECONDS) and the spring is PUSH_CALM_SPRING times as fast. Past
-# PUSH_BREAK_DEPTH the line snaps (a break, PUSH_BREAK_HALF samples either side); dimmed people then pass through.
+# and it comes back at PUSH_WEAKEN_RECOVER a second). The night's surge shoves the gates it meets with SURGE_PUSH
+# (see the surge block in night_config.gd). Force spreads along the loop (PUSH_SPREAD radians) and bows the line
+# inward: the dent follows force x PUSH_DENT_PER_FORCE (at most PUSH_DENT_MAX metres), deepening at PUSH_GIVE_SPEED
+# metres a second and springing back at PUSH_SPRING_SPEED when relieved. Joy at a bending member (or a burst near
+# the spot) calms it: the force is cut by PUSH_CALM_CUT while the calm lasts (PUSH_CALM_SECONDS) and the spring is
+# PUSH_CALM_SPRING times as fast. Past PUSH_BREAK_DEPTH the line snaps (a break, PUSH_BREAK_HALF samples either
+# side); dimmed people then pass through.
 # A break mends when no dimmed person is within PUSH_MEND_CLEAR of it and a member near it has had joy since it
 # opened (PUSH_MEND_NEEDS_JOY; with it off, or after PUSH_MEND_AUTO seconds clear, it mends by itself).
 const PUSH_PER_PERSON := 1.0
@@ -55,3 +56,8 @@ const PUSH_POINTER_FROM := 0.5  # Share of PUSH_BREAK_DEPTH where an off-screen 
 const PUSH_ALERT_WIDTH := 1.6  # Metres: the glow bar at full dent (it starts at half of this).
 const PUSH_ALERT_PULSE_SECONDS := 0.9
 const PUSH_ALERT_COLOUR := Color(1.0, 0.36, 0.3)
+
+# Walls and gates: Pressure (#12). A stretched line is thin: a gate's break depth is PUSH_BREAK_DEPTH x lerp(
+# THIN_LINE_MIN_STRENGTH, 1, fill) x its strength_mult, where fill is its members over its need (at most 1). A gate with
+# nobody on it breaks at half the dent; the members of a short gate stand further apart (BorderSlots spreads them).
+const THIN_LINE_MIN_STRENGTH := 0.5

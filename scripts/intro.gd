@@ -12,9 +12,10 @@ extends RefCounted
 # no prompt ever shows.
 
 # BREAK is the first time the line breaks (round 26, was GAP), FIRST_LIGHT the notice when first light starts
-# (first_light.gd), TIDE the notice that a gloom tide is coming (gloom_tide.gd; the words name the side) and PUSH the
-# first time the line bends under a push. (0.4 removed the beacon prompts.)
-enum Prompt { BREAK, GUARDED, SKITTISH, GLUM, SHELTERED, SPIRIT_LOW, DIM, DIM_HELP, FIRST_LIGHT, TIDE, PUSH }
+# (first_light.gd), TIDE the notice that the night's surge is coming (gloom_tide.gd; the words name the street), PUSH
+# the first time the line bends under a push and LOST the notice that the gloom took a block. (0.4 removed the beacon
+# prompts.)
+enum Prompt { BREAK, GUARDED, SKITTISH, GLUM, SHELTERED, SPIRIT_LOW, DIM, DIM_HELP, FIRST_LIGHT, TIDE, PUSH, LOST }
 
 var enabled: bool = true
 var night: NightCycle
@@ -189,7 +190,9 @@ static func text_for(id: int) -> String:
 		Prompt.FIRST_LIGHT:
 			return NightConfig.FIRST_LIGHT_TEXT
 		Prompt.TIDE:
-			return NightConfig.TIDE_PLAIN_TEXT
+			return NightConfig.SURGE_PLAIN_TEXT
+		Prompt.LOST:
+			return BorderConfig.LOST_TEXT
 	return "You're dim — rest inside your border"
 
 
@@ -206,6 +209,6 @@ static func icon_for(id: int) -> int:
 			return MoodIcons.Kind.CLOUD
 		Prompt.SHELTERED:
 			return MoodIcons.Kind.UMBRELLA
-		Prompt.TIDE:
+		Prompt.TIDE, Prompt.LOST:
 			return MoodIcons.Kind.CLOUD
 	return MoodIcons.Kind.NONE

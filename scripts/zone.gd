@@ -171,6 +171,41 @@ func nearest_gate(pos: Vector2) -> Dictionary:
 	return best
 
 
+# Walls and gates: Pressure (#13). The held cell behind `gate` (a Dictionary from `gates`): the one whose ground the
+# point just inside the gate's middle lies on or nearest to. A gate across a street mouth sits between two held cells;
+# the one farther from the start square is taken. Returns (-1, -1) when the zone holds no cell.
+func cell_behind(gate: Dictionary) -> Vector2i:
+	var start := TownGrid.start_cell()
+	var best := Vector2i(-1, -1)
+	var best_far := -1
+	for c: Vector2i in cells_behind(gate):
+		var far := absi(c.x - start.x) + absi(c.y - start.y)
+		if far > best_far:
+			best = c
+			best_far = far
+	return best
+
+
+# Every held cell that stands equally close behind `gate` (one for a square's side, the two beside a street mouth).
+func cells_behind(gate: Dictionary) -> Array[Vector2i]:
+	var mid: Vector2 = gate["mid"]
+	var out: Vector2 = gate["out"]
+	var probe := mid - out * 0.5
+	var found: Array[Vector2i] = []
+	var best_d := INF
+	for c: Vector2i in held:
+		var rect := TownGrid.cell_rect(c)
+		var near := Vector2(clampf(probe.x, rect.position.x, rect.end.x), clampf(probe.y, rect.position.y, rect.end.y))
+		var d := near.distance_to(probe)
+		if d < best_d - 0.01:
+			best_d = d
+			found.clear()
+			found.append(c)
+		elif absf(d - best_d) <= 0.01:
+			found.append(c)
+	return found
+
+
 # ---- Tracing (pure: a held set in, an outline out) ----------------------------------------------------------------
 
 

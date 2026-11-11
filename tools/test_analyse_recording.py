@@ -227,44 +227,75 @@ class CompareTest(unittest.TestCase):
             self.assertEqual(ar.cli(["--compare", os.path.join(tmp, "missing")]), 2)
 
 
-class TidesTest(unittest.TestCase):
-    """Round 25: the TIDES section (its own events only)."""
+class SurgeTest(unittest.TestCase):
+    """Pressure (#14): the SURGE section (its own events only; it reads old tide recordings too)."""
 
-    def test_each_tide_reports_its_side_members_and_what_happened_in_it(self):
+    def test_the_surge_reports_its_street_members_and_what_happened_in_it(self):
+        events = [
+            {"t": 1.0, "type": "session_start"},
+            {"t": 25.0, "type": "surge_warn", "street": "north end of the far east", "side": "north", "angle": -1.2},
+            {"t": 65.0, "type": "surge_start", "street": "north end of the far east", "side": "north", "angle": -1.2,
+             "members": 4},
+            {"t": 67.0, "type": "wobble"},
+            {"t": 68.0, "type": "break_open"},
+            {"t": 68.0, "type": "gate_break", "gate": 1},
+            {"t": 69.0, "type": "relapse"},
+            {"t": 80.0, "type": "cell_lost", "cell": [3, 2], "gate": 1, "members": 2, "need": 5, "cells": 3,
+             "surge": True},
+            {"t": 115.0, "type": "surge_end", "street": "north end of the far east", "side": "north", "angle": -1.2,
+             "members": 3},
+            {"t": 130.0, "type": "wobble"},
+            {"t": 140.0, "type": "session_end", "reason": "win"},
+        ]
+        res = ar.analyse(events)
+        lines = ar.surge_lines(res)
+        self.assertEqual(lines[0], "SURGE (walls and gates): 1 surges started, 1 warnings")
+        self.assertIn("surge at t=65 s down north end of the far east, 4 members on the gate it met: 1 wobbles, "
+                      "1 relapses, 1 gate breaks, 1 gaps opened, 1 cells lost", lines[1])
+
+    def test_old_tide_recordings_are_still_read(self):
         events = [
             {"t": 1.0, "type": "session_start"},
             {"t": 40.0, "type": "tide_warn", "side": "north", "angle": -1.57},
             {"t": 55.0, "type": "tide_start", "side": "north", "angle": -1.57, "members": 4},
             {"t": 57.0, "type": "wobble"},
-            {"t": 58.0, "type": "break_open"},
-            {"t": 59.0, "type": "relapse"},
             {"t": 67.0, "type": "tide_end", "side": "north", "angle": -1.57, "members": 3},
-            {"t": 80.0, "type": "wobble"},
             {"t": 95.0, "type": "tide_start", "side": "west", "angle": 3.1, "members": 2},
             {"t": 97.0, "type": "relapse"},
-            {"t": 98.0, "type": "relapse"},
             {"t": 120.0, "type": "tide_end", "side": "west", "angle": 3.1, "members": 0},
             {"t": 130.0, "type": "session_end", "reason": "win"},
         ]
-        res = ar.analyse(events)
-        lines = ar.tide_lines(res)
-        self.assertEqual(lines[0], "TIDES (round 25): 2 tides started, 1 warnings")
-        self.assertIn("tide at t=55 s from the north, 4 members on that side: 1 wobbles, 1 relapses, 1 gaps opened",
-                      lines[1])
-        self.assertIn("tide at t=95 s from the west, 2 members on that side: 0 wobbles, 2 relapses, 0 gaps opened",
-                      lines[2])
+        lines = ar.surge_lines(ar.analyse(events))
+        self.assertEqual(lines[0], "SURGE (walls and gates): 2 surges started, 1 warnings")
+        self.assertIn("surge at t=55 s down the north, 4 members on the gate it met: 1 wobbles, 0 relapses", lines[1])
+        self.assertIn("surge at t=95 s down the west, 2 members on the gate it met: 0 wobbles, 1 relapses", lines[2])
 
-    def test_no_tides_is_a_zero_line_and_a_tide_still_running_ends_at_the_recording(self):
+    def test_no_surge_is_a_zero_line_and_a_surge_still_running_ends_at_the_recording(self):
         res = ar.analyse([{"t": 1.0, "type": "session_start"}, {"t": 30.0, "type": "sample", "stages": {}}])
-        self.assertEqual(ar.tide_lines(res), ["TIDES (round 25): 0 tides started, 0 warnings"])
+        self.assertEqual(ar.surge_lines(res), ["SURGE (walls and gates): 0 surges started, 0 warnings"])
         res = ar.analyse([
             {"t": 1.0, "type": "session_start"},
-            {"t": 60.0, "type": "tide_start", "side": "east", "angle": 0.0, "members": 1},
+            {"t": 60.0, "type": "surge_start", "street": "west end of the east", "members": 1},
             {"t": 75.0, "type": "wobble"},
             {"t": 90.0, "type": "session_end", "reason": "quit"},
         ])
-        lines = ar.tide_lines(res)
-        self.assertIn("1 wobbles, 0 relapses, 0 gaps opened", lines[1])
+        lines = ar.surge_lines(res)
+        self.assertIn("1 wobbles, 0 relapses, 0 gate breaks, 0 gaps opened, 0 cells lost", lines[1])
+
+    def test_blocks_list_the_cells_the_gloom_took(self):
+        events = [
+            {"t": 1.0, "type": "session_start"},
+            {"t": 80.0, "type": "cell_lost", "cell": [3, 2], "gate": 1, "members": 2, "need": 5, "cells": 3,
+             "surge": True},
+            {"t": 100.0, "type": "cell_lost", "cell": [1, 2], "gate": 0, "members": 5, "need": 5, "cells": 2,
+             "surge": False},
+            {"t": 120.0, "type": "session_end", "reason": "win"},
+        ]
+        text = "\n".join(ar.block_lines(ar.analyse(events)))
+        self.assertIn("cells lost to the gloom: 2 (1 in the surge)", text)
+        self.assertIn("cell lost at t=80 s: cell [3, 2] through gate 1 (2 of 5 people), 3 cells held after, in the surge",
+                      text)
+        self.assertIn("cell lost at t=100 s: cell [1, 2] through gate 0 (5 of 5 people), 2 cells held after", text)
 
 
 def walls_events():

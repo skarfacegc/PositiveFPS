@@ -188,11 +188,8 @@ func _c7_push(label: String, prefix: String = "") -> void:
 	await _c7_move_player(player_at)
 	Config.tides_override = 1
 	var tide := main.gloom_tide
-	var angle := atan2(out.z, out.x)
-	tide.tides[1]["angle"] = angle
-	tide.tides[1]["side"] = GloomTide.side_name(angle)
-	var tide_start: float = tide.tides[1]["start"]
-	main.night.elapsed = tide_start + NightConfig.TIDE_SECONDS * 0.5
+	var tide_start: float = tide.surge["start"]  # Pressure: the night's one surge, in the middle of its push.
+	main.night.elapsed = tide_start + NightConfig.SURGE_SECONDS * 0.5
 	main.running = true
 	tide.update(0.0)
 	_r20_run(45)

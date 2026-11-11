@@ -22,7 +22,15 @@ func _border(cells: Array[Vector2i] = []) -> Border:
 	border._trace()
 	border.polygon = border._base.duplicate()
 	border._mark_gaps()
+	border._slots.gate_counts.assign(_needs(border))  # Fully staffed, so a gate breaks at the full PUSH_BREAK_DEPTH.
 	return border
+
+
+func _needs(border: Border) -> Array[int]:
+	var needs: Array[int] = []
+	for g: Dictionary in border.zone.gates:
+		needs.append(g["need"])
+	return needs
 
 
 func _member(border: Border, pos: Vector3) -> Person:
@@ -254,25 +262,30 @@ func test_pushers_walk_through_a_break_and_push_nothing_there() -> void:
 	assert_int(border.push.pushers).is_equal(0)
 
 
-func test_the_tide_wave_pushes_the_gates_on_the_side_it_comes_from() -> void:
+func test_the_surge_pushes_the_gates_it_is_given_and_no_others() -> void:
 	var border := _border()
 	var nobody: Array[Person] = []
-	# The wave is centred on the angle of the east gate's middle point (the gate has no point exactly due east).
-	border.push.set_wave(border.point_angle(_east(border)), NightConfig.TIDE_HALF_WIDTH, NightConfig.TIDE_PUSH)
-	assert_float(border.push.wave[_east(border)]).is_equal_approx(NightConfig.TIDE_PUSH, 0.001)
+	var east := border.segment_gate(_east(border))
+	border.push.set_gate_wave({east: 1.0}, NightConfig.SURGE_PUSH)
+	assert_float(border.push.wave[_east(border)]).is_equal_approx(NightConfig.SURGE_PUSH, 0.001)
 	assert_float(border.push.wave[_west(border)]).is_equal(0.0)
 	_run(border, nobody, 1.0)
 	assert_float(border.push.dent[_east(border)]).is_greater(0.3)
 	assert_float(border.push.dent[_west(border)]).is_equal(0.0)
+	border.push.set_gate_wave({east: NightConfig.SURGE_SIDE_SHARE}, NightConfig.SURGE_PUSH)
+	assert_float(border.push.wave[_east(border)]).is_equal_approx(NightConfig.SURGE_PUSH * 0.5, 0.001)
 	border.push.clear_wave()
 	assert_float(border.push.wave[_east(border)]).is_equal(0.0)
 
 
-func test_walls_take_no_dent_from_the_tide_and_nobody_leans_on_them() -> void:
+func test_walls_take_no_dent_from_the_surge_and_nobody_leans_on_them() -> void:
 	var border := _border([EAST_BLOCK])
 	var nobody: Array[Person] = []
-	for angle: float in [0.0, PI * 0.5, PI, -PI * 0.5]:
-		border.push.set_wave(angle, NightConfig.TIDE_HALF_WIDTH, NightConfig.TIDE_PUSH)
+	var every_gate := {}
+	for g: int in range(border.zone.gates.size()):
+		every_gate[g] = 1.0
+	for round_i: int in range(4):
+		border.push.set_gate_wave(every_gate, NightConfig.SURGE_PUSH)
 		_run(border, nobody, 1.0)
 	for i: int in range(border.point_count()):
 		if not border.point_dentable(i):

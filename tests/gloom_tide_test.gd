@@ -1,11 +1,11 @@
+# gdlint: ignore=max-public-methods
 extends GdUnitTestSuite
 
-# Round 25: gloom tides. Two a night (rising and midnight), each from a seeded side; a warning TIDE_WARN_SECONDS
-# before; while it passes a wave of fog with figures in it rolls in and shoves the side it comes from (round 26;
-# nobody drains by itself any more). The warning shows the minimap's fog edge, one edge pointer inside the safe
-# rectangle and a notice; the recorder logs tide_warn / tide_start / tide_end. Times are set on the night's clock
-# (night.elapsed) and update() is called directly, so nothing waits on frames. The recorder is pointed at a throw-away
-# folder (as in recorder_test).
+# Walls and gates: Pressure (#14). The night's one surge (it replaced the two gloom tides; the class is still
+# GloomTide): it comes down one street, peaks at midnight, and has a warning (fog at the far end, a minimap mark, the
+# edge pointer, the cooling light and a banner), a push on the gate it meets and the gates beside it, and an aftermath
+# where arrivals ease. Times are set on the night's clock (night.elapsed) and update() is called directly, so nothing
+# waits on frames. The recorder is pointed at a throw-away folder (as in recorder_test).
 
 var _base: String = ""
 
@@ -14,7 +14,7 @@ func before_test() -> void:
 	_base = "user://rec_tests/%d_%d" % [OS.get_process_id(), Time.get_ticks_usec()]
 	Recorder.base_dir_override = _base
 	Recorder.enabled = false
-	Config.tides_override = 1  # Tides are off under automated tests unless a test turns them on (see Config.tides_on).
+	Config.tides_override = 1  # The surge is off under automated tests unless a test turns it on (see Config.tides_on).
 
 
 func after_test() -> void:
@@ -51,173 +51,281 @@ func _level() -> Array:
 	return [runner, td]
 
 
-# Makes person `index` a rescued border member standing at `pos` (on the ground), with joy to spare and no grace.
-func _member_at(td: TopDownMain, pos: Vector3, index: int) -> Person:
-	var p: Person = td.people[index]
-	p.is_rescued = true
-	p.grace_left = 0.0
-	p.mood = Person.Mood.NONE
-	p.global_position = Vector3(pos.x, 0.0, pos.z)
-	p.joy = p.joy_needed()
-	return p
-
-
-# Puts the night clock at `seconds` and runs the tides' update once (no frames, so nothing else moves).
+# Puts the night clock at `seconds` and runs the surge's update once (no frames, so nothing else moves).
 func _at(td: TopDownMain, seconds: float) -> void:
 	td.night.elapsed = seconds
 	td.gloom_tide.update(0.0)
 
 
+func _start(td: TopDownMain) -> float:
+	var s: float = td.gloom_tide.surge["start"]
+	return s
+
+
+# A border that exists only as far as the surge cares: active, the start square's line traced, fully staffed.
+func _pretend_border(td: TopDownMain) -> void:
+	td.border.active = true
+	td.border._trace()  # The start square's line, so the push has points for the surge to shove.
+	td.border.polygon = td.border._base.duplicate()
+	var needs: Array[int] = []
+	for g: Dictionary in td.border.zone.gates:
+		needs.append(g["need"])
+	td.border._slots.gate_counts.assign(needs)
+
+
 # --- The schedule ---------------------------------------------------------------------------------------------------
 
 
-func test_two_tides_start_in_the_rising_phase_and_at_midnight() -> void:
+func test_the_surge_is_timed_to_peak_at_midnight() -> void:
 	var parts := await _level()
 	var td: TopDownMain = parts[1]
-	var tides: Array[Dictionary] = td.gloom_tide.tides
-	assert_int(tides.size()).is_equal(2)
-	var rising: float = tides[0]["start"] / NightConfig.NIGHT_LENGTH
-	var midnight: float = tides[1]["start"] / NightConfig.NIGHT_LENGTH
-	assert_float(rising).is_greater_equal(NightConfig.TIDE_RISING_FROM)
-	assert_float(rising).is_less_equal(NightConfig.TIDE_RISING_TO)
-	assert_str(Recorder.phase_for(rising)).is_equal("rising")
-	assert_float(midnight).is_greater_equal(NightConfig.TIDE_MIDNIGHT_FROM)
-	assert_float(midnight).is_less_equal(NightConfig.TIDE_MIDNIGHT_TO)
-	assert_str(Recorder.phase_for(midnight)).is_equal("midnight")
+	var middle := _start(td) + NightConfig.SURGE_SECONDS * 0.5
+	assert_float(middle / NightConfig.NIGHT_LENGTH).is_equal_approx(NightConfig.SURGE_PEAK_PROGRESS, 0.0001)
+	assert_str(Recorder.phase_for(middle / NightConfig.NIGHT_LENGTH)).is_equal("midnight")
+	# The warning is a whole warning long before the push and still comes after dusk.
+	assert_float(_start(td) - NightConfig.SURGE_WARN_SECONDS).is_greater(0.0)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_same_seed_gives_the_same_tides() -> void:
+func test_the_same_seed_gives_the_same_surge() -> void:
 	var parts := await _level()
 	var td: TopDownMain = parts[1]
-	var first: Array = td.gloom_tide.tides.duplicate(true)
+	var first: Dictionary = td.gloom_tide.surge.duplicate(true)
+	_at(td, _start(td) - NightConfig.SURGE_WARN_SECONDS + 0.1)
+	var street_a: int = td.gloom_tide.surge["street"]
 	await TopDownTestUtil.leave_loaded_scene(td)
 	parts = await _level()
 	td = parts[1]
-	var second: Array[Dictionary] = td.gloom_tide.tides
-	for i: int in range(2):
-		var start_a: float = first[i]["start"]
-		var start_b: float = second[i]["start"]
-		var angle_a: float = first[i]["angle"]
-		var angle_b: float = second[i]["angle"]
-		assert_float(start_b).is_equal_approx(start_a, 0.0001)
-		assert_float(angle_b).is_equal_approx(angle_a, 0.0001)
-		assert_str(second[i]["side"]).is_equal(first[i]["side"])
+	var roll_a: float = first["roll"]
+	var roll_b: float = td.gloom_tide.surge["roll"]
+	assert_float(roll_b).is_equal_approx(roll_a, 0.0001)
+	_at(td, _start(td) - NightConfig.SURGE_WARN_SECONDS + 0.1)
+	assert_int(td.gloom_tide.surge["street"]).is_equal(street_a)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_side_names_and_the_facing_rule_are_pure() -> void:
+func test_side_names_are_pure() -> void:
 	assert_str(GloomTide.side_name(0.0)).is_equal("east")
 	assert_str(GloomTide.side_name(PI)).is_equal("west")
 	assert_str(GloomTide.side_name(-PI / 2.0)).is_equal("north")
 	assert_str(GloomTide.side_name(PI / 2.0)).is_equal("south")
-	assert_bool(GloomTide.faces(Vector3(10.0, 0.0, 0.0), Vector3.ZERO, 0.0)).is_true()
-	assert_bool(GloomTide.faces(Vector3(0.0, 0.0, 10.0), Vector3.ZERO, 0.0)).is_false()
-	assert_bool(GloomTide.faces(Vector3(-10.0, 0.0, 0.0), Vector3.ZERO, PI)).is_true()
-	# Just inside and just outside the half-width (TIDE_HALF_WIDTH is 45 degrees).
-	var inside := Vector3(cos(NightConfig.TIDE_HALF_WIDTH - 0.05), 0.0, sin(NightConfig.TIDE_HALF_WIDTH - 0.05)) * 10.0
-	var outside := Vector3(cos(NightConfig.TIDE_HALF_WIDTH + 0.05), 0.0, sin(NightConfig.TIDE_HALF_WIDTH + 0.05)) * 10.0
-	assert_bool(GloomTide.faces(inside, Vector3.ZERO, 0.0)).is_true()
-	assert_bool(GloomTide.faces(outside, Vector3.ZERO, 0.0)).is_false()
 
 
-# --- The warning and the passing ------------------------------------------------------------------------------------
+func test_there_are_sixteen_streets_each_running_in_from_the_edge_of_the_map() -> void:
+	var all := GloomTide.streets()
+	assert_int(all.size()).is_equal(16)
+	var half := TownGrid.span() * 0.5
+	var names: Dictionary = {}
+	for s: Dictionary in all:
+		var origin: Vector2 = s["origin"]
+		var dir: Vector2 = s["dir"]
+		assert_float(dir.length()).is_equal_approx(1.0, 0.0001)
+		assert_float(maxf(absf(origin.x), absf(origin.y))).is_equal_approx(half, 0.0001)
+		assert_float((Vector2.ZERO - origin).dot(dir)).is_greater(0.0)  # It runs toward the middle of the town.
+		names[s["name"]] = true
+	assert_int(names.size()).is_equal(8)  # Four vertical and four horizontal streets, each with a name.
 
 
-func test_the_warning_comes_about_15_seconds_before_the_tide() -> void:
+func test_a_street_meets_the_first_gate_facing_it_that_it_runs_alongside() -> void:
+	var zone := Zone.new()  # The start square: four 18 m gates.
+	var all := GloomTide.streets()
+	var meeting := 0
+	for s: Dictionary in all:
+		var hit := GloomTide.street_meets(s, zone.gates)
+		var line: float = s["line"]
+		# Only the streets beside the square (their middle 15 m out either side) meet one of its gates.
+		var beside := absf(line) < 20.0
+		assert_bool(not hit.is_empty()).is_equal(beside)
+		if beside:
+			meeting += 1
+			var gate: Dictionary = zone.gates[hit["gate"]]
+			var out: Vector2 = gate["out"]
+			var dir: Vector2 = s["dir"]
+			assert_float(out.dot(dir)).is_less(-0.99)
+			assert_float(hit["along"]).is_equal_approx(TownGrid.span() * 0.5 - 9.0, 0.01)
+	assert_int(meeting).is_equal(8)
+	assert_int(GloomTide.candidates(zone.gates).size()).is_equal(8)
+
+
+func test_a_street_meets_the_nearest_gate_when_the_zone_has_grown() -> void:
+	var zone := Zone.new()
+	zone.take(Vector2i(3, 2))  # The east cell: a street piece joins it to the start square.
+	var all := GloomTide.streets()
+	var from_north_east := {}
+	for s: Dictionary in all:
+		var line: float = s["line"]
+		var dir: Vector2 = s["dir"]
+		var vertical: bool = s["vertical"]
+		if vertical and is_equal_approx(line, 15.0) and dir.y > 0.0:
+			from_north_east = s
+	var hit := GloomTide.street_meets(from_north_east, zone.gates)
+	assert_bool(hit.is_empty()).is_false()
+	var gate: Dictionary = zone.gates[hit["gate"]]
+	# The street runs over the street piece that joins the two cells, so it meets that piece's mouth first.
+	var mid: Vector2 = gate["mid"]
+	assert_float(mid.x).is_equal_approx(15.0, 0.01)
+	assert_float(mid.y).is_equal_approx(-9.0, 0.01)
+
+
+# --- The warning, the push and the aftermath ------------------------------------------------------------------------
+
+
+func test_the_warning_comes_forty_seconds_before_the_push() -> void:
 	var parts := await _level()
 	var td: TopDownMain = parts[1]
-	var start: float = td.gloom_tide.tides[0]["start"]
-	_at(td, start - NightConfig.TIDE_WARN_SECONDS - 0.5)
-	assert_int(td.gloom_tide.warning_index()).is_equal(-1)
-	assert_bool(td.minimap.tide_fog == Vector2.INF).is_true()
-	_at(td, start - NightConfig.TIDE_WARN_SECONDS + 0.1)
-	assert_int(td.gloom_tide.warning_index()).is_equal(0)
+	var start := _start(td)
+	_at(td, start - NightConfig.SURGE_WARN_SECONDS - 0.5)
+	assert_int(td.gloom_tide.phase()).is_equal(GloomTide.Phase.IDLE)
+	assert_bool(td.minimap.surge_from == Vector2.INF).is_true()
+	assert_bool(td.gloom_tide.fog.visible).is_false()
+	_at(td, start - NightConfig.SURGE_WARN_SECONDS + 0.1)
+	assert_int(td.gloom_tide.phase()).is_equal(GloomTide.Phase.WARNING)
 	assert_bool(td.gloom_tide.pointer.shown).is_true()
 	assert_int(td.intro.current).is_equal(Intro.Prompt.TIDE)
-	assert_bool(td.gloom_tide.fog.visible).is_false()
+	assert_bool(td.minimap.surge_from == Vector2.INF).is_false()
+	_at(td, start - NightConfig.SURGE_WARN_SECONDS * 0.5)
+	assert_bool(td.gloom_tide.fog.visible).is_true()  # Fog has gathered at the far end of the street.
 	_at(td, start - 0.1)
-	assert_int(td.gloom_tide.passing_index()).is_equal(-1)
-	_at(td, start + 0.1)
-	assert_int(td.gloom_tide.passing_index()).is_equal(0)
-	assert_bool(td.gloom_tide.pointer.shown).is_false()
-	assert_bool(td.gloom_tide.fog.visible).is_true()
-	_at(td, start + NightConfig.TIDE_SECONDS + 0.1)
-	assert_int(td.gloom_tide.passing_index()).is_equal(-1)
-	assert_bool(td.gloom_tide.fog.visible).is_false()
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-# A border that exists only as far as the tide cares: active, centred on the origin, with a body radius of 10 m.
-func _pretend_border(td: TopDownMain) -> void:
-	td.border.active = true
-	td.border._trace()  # The start square's line, so the push has points for the wave to shove.
-	td.border.polygon = td.border._base.duplicate()
-	td.border.body_radius = 10.0
-
-
-# The dentable point of the line whose direction from the centre is nearest `angle` (or, with `away`, farthest from it).
-func _gate_point_toward(td: TopDownMain, angle: float, away: bool = false) -> int:
-	var best := -1
-	var best_d := INF
-	for i: int in range(td.border.point_count()):
-		if not td.border.point_dentable(i):
-			continue
-		var d := absf(angle_difference(td.border.point_angle(i), angle + (PI if away else 0.0)))
-		if d < best_d:
-			best_d = d
-			best = i
-	return best
-
-
-func test_a_passing_tide_does_not_drain_anyone_by_itself() -> void:
-	var parts := await _level()
-	var td: TopDownMain = parts[1]
-	var start: float = td.gloom_tide.tides[0]["start"]
-	var angle: float = td.gloom_tide.tides[0]["angle"]
-	var dir := Vector2.from_angle(angle)
-	var facing := _member_at(td, td.border.centre + Vector3(dir.x, 0.0, dir.y) * 10.0, 0)
-	_at(td, start + 4.0)
-	var before := facing.joy
-	facing.drain_joy(10.0)
-	assert_float(before - facing.joy).is_equal_approx(10.0, 0.0001)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_the_front_of_the_wave_arrives_and_holds_just_past_the_line() -> void:
-	var parts := await _level()
-	var td: TopDownMain = parts[1]
-	_pretend_border(td)
-	var start: float = td.gloom_tide.tides[0]["start"]
-	_at(td, start)
-	var far: float = td.gloom_tide.front_distance(0)
-	assert_float(far).is_equal_approx(NightConfig.TIDE_FOG_FAR - NightConfig.TIDE_FOG_DEPTH * 0.5, 0.01)
-	_at(td, start + NightConfig.TIDE_SECONDS * NightConfig.TIDE_ARRIVE)
-	assert_float(td.gloom_tide.front_distance(0)).is_equal_approx(10.0 - NightConfig.TIDE_SHOVE_DEPTH, 0.01)
-	_at(td, start + NightConfig.TIDE_SECONDS * 0.8)
-	assert_float(td.gloom_tide.front_distance(0)).is_equal_approx(10.0 - NightConfig.TIDE_SHOVE_DEPTH, 0.01)
-	await TopDownTestUtil.leave_loaded_scene(td)
-
-
-func test_the_wave_shoves_only_the_side_it_comes_from_and_only_while_it_passes() -> void:
-	var parts := await _level()
-	var td: TopDownMain = parts[1]
-	_pretend_border(td)
-	var tide: Dictionary = td.gloom_tide.tides[0]
-	var start: float = tide["start"]
-	var angle: float = tide["angle"]
-	var facing_sample := _gate_point_toward(td, angle)
-	var away_sample := _gate_point_toward(td, angle, true)
-	_at(td, start - 60.0)
-	assert_float(td.border.push.wave[facing_sample]).is_equal(0.0)
-	_at(td, start + 0.5)  # The front is still far out: no shove yet.
+	assert_int(td.gloom_tide.phase()).is_equal(GloomTide.Phase.WARNING)
 	assert_float(td.gloom_tide.wave_force).is_equal(0.0)
-	_at(td, start + NightConfig.TIDE_SECONDS * 0.6)
-	assert_float(td.gloom_tide.wave_force).is_equal_approx(NightConfig.TIDE_PUSH, 0.001)
-	assert_float(td.border.push.wave[facing_sample]).is_between(NightConfig.TIDE_PUSH * 0.8, NightConfig.TIDE_PUSH)
-	assert_float(td.border.push.wave[away_sample]).is_equal(0.0)
-	_at(td, start + NightConfig.TIDE_SECONDS + 1.0)
-	assert_float(td.border.push.wave[facing_sample]).is_equal(0.0)
+	_at(td, start + 0.1)
+	assert_int(td.gloom_tide.phase()).is_equal(GloomTide.Phase.SURGE)
+	assert_bool(td.gloom_tide.pointer.shown).is_false()
+	_at(td, start + NightConfig.SURGE_SECONDS + 0.1)
+	assert_int(td.gloom_tide.phase()).is_equal(GloomTide.Phase.AFTERMATH)
+	assert_bool(td.gloom_tide.fog.visible).is_false()
+	assert_bool(td.minimap.surge_from == Vector2.INF).is_true()
+	_at(td, start + NightConfig.SURGE_SECONDS + NightConfig.SURGE_AFTERMATH_SECONDS + 0.1)
+	assert_int(td.gloom_tide.phase()).is_equal(GloomTide.Phase.DONE)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_banners_name_the_street_at_the_warning_again_and_at_the_start() -> void:
+	var parts := await _level()
+	var td: TopDownMain = parts[1]
+	var start := _start(td)
+	_at(td, start - NightConfig.SURGE_WARN_SECONDS + 0.1)
+	var street: Dictionary = GloomTide.streets()[td.gloom_tide.surge["street"]]
+	assert_str(td.intro.current_text()).is_equal(NightConfig.SURGE_WARN_TEXT % [street["end_name"], street["name"]])
+	assert_bool(td.intro.coral).is_true()  # A slim banner under the night bar, wherever the player is.
+	_at(td, start - NightConfig.SURGE_SOON_SECONDS + 0.1)
+	assert_str(td.intro.current_text()).is_equal(NightConfig.SURGE_SOON_TEXT % street["name"])
+	_at(td, start + 0.1)
+	assert_str(td.intro.current_text()).is_equal(NightConfig.SURGE_START_TEXT % street["name"])
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_warning_waits_while_the_zone_has_no_gate_for_a_street_to_meet() -> void:
+	var parts := await _level()
+	var td: TopDownMain = parts[1]
+	td.border.zone.gates.clear()
+	_at(td, _start(td) - NightConfig.SURGE_WARN_SECONDS + 0.1)
+	assert_int(td.gloom_tide.phase()).is_equal(GloomTide.Phase.IDLE)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_chosen_street_meets_a_gate_and_the_pushed_gates_are_that_one_and_its_neighbours() -> void:
+	var parts := await _level()
+	var td: TopDownMain = parts[1]
+	_at(td, _start(td) - NightConfig.SURGE_WARN_SECONDS + 0.1)
+	var surge: Dictionary = td.gloom_tide.surge
+	var gate: int = surge["gate"]
+	assert_int(gate).is_greater_equal(0)
+	var pushed: Dictionary = td.gloom_tide.pushed_gates()
+	assert_float(pushed[gate]).is_equal(1.0)
+	assert_int(pushed.size()).is_equal(3)  # The start square has four gates: the one it meets and the two beside it.
+	var n := td.border.zone.gates.size()
+	assert_float(pushed[posmod(gate + 1, n)]).is_equal(NightConfig.SURGE_SIDE_SHARE)
+	assert_float(pushed[posmod(gate - 1, n)]).is_equal(NightConfig.SURGE_SIDE_SHARE)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_surge_pushes_the_gate_it_meets_in_full_and_the_gates_beside_it_at_half() -> void:
+	var parts := await _level()
+	var td: TopDownMain = parts[1]
+	_pretend_border(td)
+	var start := _start(td)
+	_at(td, start - 1.0)
+	assert_float(td.gloom_tide.wave_force).is_equal(0.0)
+	_at(td, start + 0.5)  # The front is still far up the street: no shove yet.
+	assert_float(td.gloom_tide.wave_force).is_equal(0.0)
+	_at(td, start + NightConfig.SURGE_SECONDS * 0.5)
+	assert_float(td.gloom_tide.wave_force).is_equal_approx(NightConfig.SURGE_PUSH, 0.001)
+	var gate: int = td.gloom_tide.surge["gate"]
+	var n := td.border.zone.gates.size()
+	var met := _point_of_gate(td, gate)
+	var beside := _point_of_gate(td, posmod(gate + 1, n))
+	var across := _point_of_gate(td, posmod(gate + 2, n))
+	assert_float(td.border.push.wave[met]).is_equal_approx(NightConfig.SURGE_PUSH, 0.001)
+	assert_float(td.border.push.wave[beside]).is_equal_approx(
+		NightConfig.SURGE_PUSH * NightConfig.SURGE_SIDE_SHARE, 0.001
+	)
+	assert_float(td.border.push.wave[across]).is_equal(0.0)
+	_at(td, start + NightConfig.SURGE_SECONDS + 1.0)
+	assert_float(td.border.push.wave[met]).is_equal(0.0)
+	assert_float(td.gloom_tide.wave_force).is_equal(0.0)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+# A dentable point of gate `g`.
+func _point_of_gate(td: TopDownMain, g: int) -> int:
+	for i: int in range(td.border.point_count()):
+		if td.border.point_gate(i) == g and td.border.point_dentable(i):
+			return i
+	return -1
+
+
+func test_the_push_builds_as_the_front_arrives_and_fades_at_the_end() -> void:
+	var parts := await _level()
+	var td: TopDownMain = parts[1]
+	_at(td, _start(td) - NightConfig.SURGE_WARN_SECONDS + 0.1)
+	var start := _start(td)
+	_at(td, start + 0.1)
+	assert_float(td.gloom_tide.push_share()).is_equal(0.0)
+	_at(td, start + NightConfig.SURGE_SECONDS * NightConfig.SURGE_ARRIVE * 0.8)
+	var mid_build := td.gloom_tide.push_share()
+	assert_float(mid_build).is_between(0.01, 0.99)
+	_at(td, start + NightConfig.SURGE_SECONDS * 0.6)
+	assert_float(td.gloom_tide.push_share()).is_equal(1.0)
+	_at(td, start + NightConfig.SURGE_SECONDS * (1.0 - NightConfig.SURGE_FADE * 0.5))
+	assert_float(td.gloom_tide.push_share()).is_between(0.01, 0.99)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_front_rolls_down_the_street_and_holds_just_past_the_gate() -> void:
+	var parts := await _level()
+	var td: TopDownMain = parts[1]
+	var start := _start(td)
+	_at(td, start - 1.0)
+	assert_float(td.gloom_tide.front_distance()).is_equal_approx(NightConfig.TIDE_FOG_DEPTH, 0.01)
+	var along: float = td.gloom_tide.surge["gate_along"]
+	_at(td, start + NightConfig.SURGE_SECONDS * 0.1)
+	var early := td.gloom_tide.front_distance()
+	assert_float(early).is_greater(NightConfig.TIDE_FOG_DEPTH)
+	assert_float(early).is_less(along)
+	_at(td, start + NightConfig.SURGE_SECONDS * NightConfig.SURGE_ARRIVE)
+	assert_float(td.gloom_tide.front_distance()).is_equal_approx(along + 1.5, 0.01)
+	_at(td, start + NightConfig.SURGE_SECONDS * 0.8)
+	assert_float(td.gloom_tide.front_distance()).is_equal_approx(along + 1.5, 0.01)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_fog_gathers_at_the_far_end_then_comes_down_the_street() -> void:
+	var parts := await _level()
+	var td: TopDownMain = parts[1]
+	var start := _start(td)
+	_at(td, start - NightConfig.SURGE_WARN_SECONDS * 0.5)
+	var origin: Vector2 = td.gloom_tide.surge["origin"]
+	var dir: Vector2 = td.gloom_tide.surge["dir"]
+	var gathered := Vector2(td.gloom_tide.fog.position.x, td.gloom_tide.fog.position.z)
+	assert_float(gathered.distance_to(origin + dir * NightConfig.TIDE_FOG_DEPTH * 0.5)).is_less(0.01)
+	_at(td, start + NightConfig.SURGE_SECONDS * 0.4)
+	var rolled := Vector2(td.gloom_tide.fog.position.x, td.gloom_tide.fog.position.z)
+	assert_float((rolled - origin).dot(dir)).is_greater((gathered - origin).dot(dir) + 5.0)
+	# It stays on the street's middle line.
+	var line: float = GloomTide.streets()[td.gloom_tide.surge["street"]]["line"]
+	var along_x := absf(dir.y) > 0.5  # A vertical street: its middle is an x.
+	assert_float(rolled.x if along_x else rolled.y).is_equal_approx(line, 0.01)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -225,7 +333,7 @@ func test_the_wave_comes_with_dark_figures_in_the_fog() -> void:
 	var parts := await _level()
 	var td: TopDownMain = parts[1]
 	assert_int(td.gloom_tide.figures.size()).is_equal(NightConfig.TIDE_FIGURES)
-	var start: float = td.gloom_tide.tides[0]["start"]
+	var start := _start(td)
 	_at(td, start + 3.0)
 	var a := td.gloom_tide.figures[0].position
 	_at(td, start + 3.4)
@@ -234,17 +342,42 @@ func test_the_wave_comes_with_dark_figures_in_the_fog() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_facing_count_is_the_members_on_that_side() -> void:
+func test_the_light_cools_through_the_warning_and_the_surge_and_warms_in_the_aftermath() -> void:
 	var parts := await _level()
 	var td: TopDownMain = parts[1]
-	var tide: Dictionary = td.gloom_tide.tides[0]
-	var angle: float = tide["angle"]
-	var dir := Vector2.from_angle(angle)
-	td.border.members.clear()
-	td.border.members.append(_member_at(td, td.border.centre + Vector3(dir.x, 0.0, dir.y) * 8.0, 0))
-	td.border.members.append(_member_at(td, td.border.centre + Vector3(dir.x, 0.0, dir.y) * 12.0, 1))
-	td.border.members.append(_member_at(td, td.border.centre - Vector3(dir.x, 0.0, dir.y) * 8.0, 2))
-	assert_int(td.gloom_tide.count_facing(angle)).is_equal(2)
+	var start := _start(td)
+	_at(td, start - NightConfig.SURGE_WARN_SECONDS - 1.0)
+	assert_float(td.night.chill).is_equal(0.0)
+	var plain := td.night.sun_color()
+	_at(td, start - NightConfig.SURGE_WARN_SECONDS * 0.5)
+	assert_float(td.night.chill).is_between(0.1, 0.9)
+	_at(td, start + 10.0)
+	assert_float(td.night.chill).is_equal(1.0)
+	assert_bool(td.night.sun_color().is_equal_approx(plain)).is_false()
+	_at(td, start + NightConfig.SURGE_SECONDS + NightConfig.SURGE_AFTERMATH_SECONDS * 0.5)
+	assert_float(td.night.chill).is_between(0.1, 0.9)
+	_at(td, start + NightConfig.SURGE_SECONDS + NightConfig.SURGE_AFTERMATH_SECONDS + 1.0)
+	assert_float(td.night.chill).is_equal(0.0)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_dimmed_arrivals_ease_after_the_surge_and_come_back_to_normal() -> void:
+	var parts := await _level()
+	var td: TopDownMain = parts[1]
+	var start := _start(td)
+	_at(td, start + 10.0)
+	assert_float(td.night.arrival_ease).is_equal(1.0)
+	_at(td, start + NightConfig.SURGE_SECONDS + 0.01)
+	assert_float(td.night.arrival_ease).is_equal_approx(NightConfig.SURGE_AFTERMATH_GAP_MULT, 0.01)
+	_at(td, start + NightConfig.SURGE_SECONDS + NightConfig.SURGE_AFTERMATH_SECONDS * 0.5)
+	assert_float(td.night.arrival_ease).is_between(1.1, NightConfig.SURGE_AFTERMATH_GAP_MULT - 0.1)
+	_at(td, start + NightConfig.SURGE_SECONDS + NightConfig.SURGE_AFTERMATH_SECONDS + 1.0)
+	assert_float(td.night.arrival_ease).is_equal(1.0)
+	# The dimmed-arrival gate waits longer in the aftermath.
+	_at(td, start + NightConfig.SURGE_SECONDS + 1.0)
+	td.dim_gate.clock = 1000.0
+	td.dim_gate.last_sink = td.dim_gate.clock - NightCycle.dim_gap_at(td.night.progress()) * 1.2
+	assert_bool(td.dim_gate.ask()).is_false()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -254,8 +387,7 @@ func test_the_facing_count_is_the_members_on_that_side() -> void:
 func test_the_pointer_stays_inside_the_safe_rect() -> void:
 	var parts := await _level()
 	var td: TopDownMain = parts[1]
-	var start: float = td.gloom_tide.tides[0]["start"]
-	_at(td, start - NightConfig.TIDE_WARN_SECONDS + 0.1)
+	_at(td, _start(td) - NightConfig.SURGE_WARN_SECONDS + 0.1)
 	td.gloom_tide.refresh_pointer()
 	var screen := td.get_viewport().get_visible_rect().size
 	var safe: Rect2 = HudSafeArea.current(td, screen)
@@ -270,70 +402,87 @@ func test_the_pointer_stays_inside_the_safe_rect() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_minimap_fog_edge_shows_on_the_side_of_the_tide() -> void:
+func test_the_minimap_mark_follows_the_street_and_the_front() -> void:
 	var parts := await _level()
 	var td: TopDownMain = parts[1]
-	var tide: Dictionary = td.gloom_tide.tides[0]
-	var start: float = tide["start"]
-	var angle: float = tide["angle"]
-	_at(td, start - NightConfig.TIDE_WARN_SECONDS - 1.0)
-	assert_bool(td.minimap.tide_fog == Vector2.INF).is_true()
-	_at(td, start - 1.0)
-	assert_float(td.minimap.tide_fog.distance_to(Vector2.from_angle(angle))).is_less(0.0001)
-	assert_str(td.intro.current_text()).is_equal(NightConfig.TIDE_TEXT % tide["side"])
-	# Once this tide has ended the edge shows the next tide only if that one is already warned (the midnight tide can be).
-	_at(td, start + NightConfig.TIDE_SECONDS + 1.0)
-	var showing: int = td.gloom_tide.showing_index()
-	assert_int(showing).is_not_equal(0)
-	if showing < 0:
-		assert_bool(td.minimap.tide_fog == Vector2.INF).is_true()
-	else:
-		var next_angle: float = td.gloom_tide.tides[showing]["angle"]
-		assert_float(td.minimap.tide_fog.distance_to(Vector2.from_angle(next_angle))).is_less(0.0001)
+	var start := _start(td)
+	_at(td, start - NightConfig.SURGE_WARN_SECONDS + 0.1)
+	var origin: Vector2 = td.gloom_tide.surge["origin"]
+	var dir: Vector2 = td.gloom_tide.surge["dir"]
+	assert_bool(td.minimap.surge_from.is_equal_approx(origin)).is_true()
+	assert_bool(td.minimap.surge_dir.is_equal_approx(dir)).is_true()
+	var gathering := td.minimap.surge_front
+	_at(td, start + NightConfig.SURGE_SECONDS * 0.4)
+	assert_float(td.minimap.surge_front).is_greater(gathering)
+	_at(td, start + NightConfig.SURGE_SECONDS + 1.0)
+	assert_bool(td.minimap.surge_from == Vector2.INF).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_fog_band_drifts_in_from_that_side() -> void:
+func test_the_fog_is_thickest_in_the_surge_and_thin_in_the_warning() -> void:
 	var parts := await _level()
 	var td: TopDownMain = parts[1]
-	var tide: Dictionary = td.gloom_tide.tides[0]
-	var start: float = tide["start"]
-	var angle: float = tide["angle"]
-	_at(td, start + 0.5)
-	var early := Vector2(td.gloom_tide.fog.position.x, td.gloom_tide.fog.position.z)
-	_at(td, start + NightConfig.TIDE_SECONDS - 0.5)
-	var late := Vector2(td.gloom_tide.fog.position.x, td.gloom_tide.fog.position.z)
-	assert_float(early.normalized().distance_to(Vector2.from_angle(angle))).is_less(0.0001)
-	assert_float(late.length()).is_less(early.length())
+	var start := _start(td)
+	assert_float(td.gloom_tide.fog_density()).is_equal(0.0)
+	_at(td, start - 1.0)
+	var warning := td.gloom_tide.fog_density()
+	assert_float(warning).is_between(0.2, 0.5)
+	_at(td, start + NightConfig.SURGE_SECONDS * 0.6)
+	assert_float(td.gloom_tide.fog_density()).is_equal(1.0)
+	_at(td, start + NightConfig.SURGE_SECONDS - 0.5)
+	assert_float(td.gloom_tide.fog_density()).is_less(0.5)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
 # --- The recorder ---------------------------------------------------------------------------------------------------
 
 
-func test_the_tide_events_go_to_the_recorder() -> void:
+func test_the_surge_events_go_to_the_recorder() -> void:
 	Recorder.enabled = true
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
 	TopDownTestUtil.send_everyone_away(td)
 	assert_object(td.recorder).is_not_null()
-	var tide: Dictionary = td.gloom_tide.tides[0]
-	var start: float = tide["start"]
-	_at(td, start - 1.0)
+	var start := _start(td)
+	_at(td, start - NightConfig.SURGE_WARN_SECONDS + 1.0)
 	_at(td, start + 1.0)
-	_at(td, start + NightConfig.TIDE_SECONDS + 1.0)
-	# The midnight tide may also warn during this walk through the rising one, so only the rising tide's events count.
+	_at(td, start + NightConfig.SURGE_SECONDS + 1.0)
 	var events := _events(td)
-	var angle_true: float = tide["angle"]
-	var warns := _with_angle(events, "tide_warn", angle_true)
-	var starts := _with_angle(events, "tide_start", angle_true)
-	var ends := _with_angle(events, "tide_end", angle_true)
+	var warns := _of_type(events, "surge_warn")
+	var starts := _of_type(events, "surge_start")
+	var ends := _of_type(events, "surge_end")
 	assert_int(warns.size()).is_equal(1)
 	assert_int(starts.size()).is_equal(1)
 	assert_int(ends.size()).is_equal(1)
-	assert_str(warns[0]["side"]).is_equal(tide["side"])
+	var street: Dictionary = GloomTide.streets()[td.gloom_tide.surge["street"]]
+	var street_name: String = street["name"]
+	var end_name: String = street["end_name"]
+	var warned_street: String = warns[0]["street"]
+	var warned_side: String = warns[0]["side"]
+	assert_str(warned_street).contains(street_name)
+	assert_str(warned_side).is_equal(end_name)
 	assert_bool(starts[0].has("members")).is_true()
+	assert_bool(starts[0].has("gate")).is_true()
+	assert_bool(ends[0].has("cells")).is_true()
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_a_lost_cell_goes_to_the_recorder_with_its_gate_and_the_people_on_it() -> void:
+	Recorder.enabled = true
+	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
+	await runner.simulate_frames(5)
+	var td: TopDownMain = runner.scene()
+	TopDownTestUtil.send_everyone_away(td)
+	td.border.last_loss = {"gate": 2, "members": 3, "need": 5, "seconds": 12.0}
+	td.border.cells_lost.emit([Vector2i(3, 2)] as Array[Vector2i], 2)
+	var lost := _of_type(_events(td), "cell_lost")
+	assert_int(lost.size()).is_equal(1)
+	assert_float(lost[0]["gate"]).is_equal(2.0)  # (Numbers come back from the file as floats.)
+	assert_float(lost[0]["members"]).is_equal(3.0)
+	assert_float(lost[0]["need"]).is_equal(5.0)
+	assert_bool(lost[0]["surge"]).is_false()
+	assert_float(lost[0]["cells"]).is_equal(float(td.border.zone.held.size()))
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -355,15 +504,5 @@ func _of_type(events: Array[Dictionary], type: String) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for e: Dictionary in events:
 		if e["type"] == type:
-			out.append(e)
-	return out
-
-
-# The events of `type` for the tide at `angle` (the recorder rounds angles to 0.01, so the match allows that much).
-func _with_angle(events: Array[Dictionary], type: String, angle: float) -> Array[Dictionary]:
-	var out: Array[Dictionary] = []
-	for e: Dictionary in _of_type(events, type):
-		var logged: float = e["angle"]
-		if absf(logged - angle) < 0.006:
 			out.append(e)
 	return out

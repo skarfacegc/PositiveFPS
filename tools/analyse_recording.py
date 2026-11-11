@@ -26,7 +26,11 @@ Definitions
 - PRESSURE CURVE (15 s steps: mean dimmed, gaps and pressers, relapses and threats in the step, rescued at its end).
 - BLOCKS (walls and gates, #59): takes (free against paid, the spirit at each take, the gates before and after, the people
   needed against the people free), refusals by reason, the time between takes, ready cells (pips full, not yet taken)
-  and how long each waited, auto-joins, and takes or auto-joins with too few people.
+  and how long each waited, auto-joins, and takes or auto-joins with too few people; and (Pressure, #13) the cells the
+  gloom took (`cell_lost`: which cell, the people on its gate against the need, the cells held after, in the surge or not).
+- SURGE (Pressure, #14; was TIDES): the night's one surge (`surge_warn`, `surge_start`, `surge_end`): the street, the members
+  on the gate it met, and the wobbles, relapses, gate breaks and lost cells while it ran. Older recordings with two tides
+  (`tide_*` events) are read the same way.
 - GATES (#59): gate breaks and holds, seconds under push before a break, pushers per break, breaks per minute by phase.
 - MARKS (#60): each mark (F8) with its time, phase and the events 10 s either side, counted by type.
 - A screenshot is listed beside the event that asked for it (#61; the `screenshot` event's `cause`).
@@ -162,7 +166,7 @@ def analyse(events, quiet_window=5.0):
         "first_light_starts": [e for e in real if e["type"] == "first_light_start"],
         "first_light_ends": [e for e in real if e["type"] == "first_light_end"],
         "win": next((e for e in real if e["type"] == "win"), None),
-        "real": real,  # Round 25: the TIDES section reads the events between a tide's start and end.
+        "real": real,  # The SURGE section reads the events between the surge's start and end.
     }
 
 
@@ -257,7 +261,7 @@ def report(res, folder):
     add("LANDMARKS: %d claimed, %d lost" % (claims, len(lm_events) - claims))
     for e in lm_events:
         add("  t=%.0f s  %s %s (%s held)" % (e["t"], e.get("name"), e["type"].split("_")[1], e.get("held")))
-    for block in pressure_curve_lines(res) + tide_lines(res) + block_lines(res) + gate_lines(res) + mark_lines(res):
+    for block in pressure_curve_lines(res) + surge_lines(res) + block_lines(res) + gate_lines(res) + mark_lines(res):
         add(block)
     win = res["win"]
     if win:
@@ -275,22 +279,31 @@ def report(res, folder):
     return "\n".join(lines)
 
 
-def tide_lines(res):
-    """Round 25: the gloom tides. Each tide's side, the rescued border members on that side when it started, and the
-    wobbles, relapses and gaps opened between its start and its end (or the end of the recording)."""
+SURGE_EVENTS = {"start": ("surge_start", "tide_start"), "end": ("surge_end", "tide_end"),
+                "warn": ("surge_warn", "tide_warn")}
+
+
+def surge_lines(res):
+    """Walls and gates: Pressure (#14). The night's surge: the street it came down, the members on the gate it met when
+    it started and ended, and the wobbles, relapses, gate breaks and lost cells between its start and its end (or the end
+    of the recording). Recordings from before the surge hold two tides (tide_* events); they are read the same way."""
     real = res["real"]
-    starts = [e for e in real if e["type"] == "tide_start"]
-    ends = [e for e in real if e["type"] == "tide_end"]
-    warns = sum(1 for e in real if e["type"] == "tide_warn")
-    lines = ["TIDES (round 25): %d tides started, %d warnings" % (len(starts), warns)]
+    starts = [e for e in real if e["type"] in SURGE_EVENTS["start"]]
+    ends = [e for e in real if e["type"] in SURGE_EVENTS["end"]]
+    warns = sum(1 for e in real if e["type"] in SURGE_EVENTS["warn"])
+    lines = ["SURGE (walls and gates): %d surges started, %d warnings" % (len(starts), warns)]
     for s in starts:
         end_t = next((e["t"] for e in ends if e["t"] >= s["t"]), res["duration"])
         during = [e for e in real if s["t"] <= e["t"] <= end_t]
-        lines.append("  tide at t=%.0f s from the %s, %s members on that side: %d wobbles, %d relapses, %d gaps opened" % (
-            s["t"], s.get("side", "?"), s.get("members", "?"),
-            sum(1 for e in during if e["type"] == "wobble"),
-            sum(1 for e in during if e["type"] == "relapse"),
-            sum(1 for e in during if e["type"] == "break_open")))
+        where = s.get("street") or "the %s" % s.get("side", "?")
+        lines.append("  surge at t=%.0f s down %s, %s members on the gate it met: %d wobbles, %d relapses, "
+                     "%d gate breaks, %d gaps opened, %d cells lost" % (
+                         s["t"], where, s.get("members", "?"),
+                         sum(1 for e in during if e["type"] == "wobble"),
+                         sum(1 for e in during if e["type"] == "relapse"),
+                         sum(1 for e in during if e["type"] == "gate_break"),
+                         sum(1 for e in during if e["type"] == "break_open"),
+                         sum(1 for e in during if e["type"] == "cell_lost")))
     return lines
 
 
@@ -514,6 +527,7 @@ def block_facts(res):
         "ready_waits": waits,
         "still_ready": still_ready,
         "short": sum(1 for e in takes + joins if e.get("people_needed", 0) > e.get("people_free", 0)),
+        "lost": [e for e in real if e["type"] == "cell_lost"],
         "breaks": [e for e in real if e["type"] == "gate_break"],
         "holds": [e for e in real if e["type"] == "gate_hold"],
     }
@@ -542,6 +556,13 @@ def block_lines(res):
         lines.append("  auto-join at t=%.0f s: cell %s, gates %s -> %s, people %s needed, %s free%s" % (
             e["t"], e.get("cell"), e.get("gates_before"), e.get("gates_after"), e.get("people_needed"),
             e.get("people_free"), shot_note(shots, e)))
+    lost = facts["lost"]
+    in_surge = sum(1 for e in lost if e.get("surge"))
+    lines.append("  cells lost to the gloom: %d (%d in the surge)" % (len(lost), in_surge))
+    for e in lost:
+        lines.append("  cell lost at t=%.0f s: cell %s through gate %s (%s of %s people), %s cells held after%s" % (
+            e["t"], e.get("cell"), e.get("gate"), e.get("members", "?"), e.get("need", "?"), e.get("cells", "?"),
+            ", in the surge" if e.get("surge") else ""))
     return lines
 
 

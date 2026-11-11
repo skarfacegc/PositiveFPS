@@ -41,6 +41,13 @@ func prune(zone: Zone) -> void:
 			version += 1
 
 
+# Walls and gates: Pressure (#13). A cell the gloom took starts again: its pips go back to 0.
+func reset(cell: Vector2i) -> void:
+	if counts.has(cell):
+		counts.erase(cell)
+		version += 1
+
+
 # The pips filled on `cell` (0 when none).
 func filled(cell: Vector2i) -> int:
 	var have: int = counts.get(cell, 0)

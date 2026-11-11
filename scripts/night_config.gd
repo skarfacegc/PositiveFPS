@@ -61,48 +61,51 @@ const FIRST_LIGHT_TEXT := "First light: dawn is coming in from the edges"  # The
 const FIRST_LIGHT_START_RADIUS := 81.0  # Metres: just over half the plaza's diagonal (57 x 1.414 = 80.6; Grid fixes).
 const FIRST_LIGHT_RING_SEGMENTS := 72  # Straight pieces in the placeholder ring and in the minimap outline.
 
-# Two tides a night: one in the rising phase and one at midnight. Each comes from an angle drawn from the level's seed
-# (RNG_SEED + TIDE_SEED_OFFSET), starting at a time drawn inside its window (night progress). TIDE_WARN_SECONDS before
-# it hits: a fog edge on the minimap, one edge pointer toward that side and a notice. While it passes (TIDE_SECONDS,
-# constant) border members within TIDE_HALF_WIDTH of that direction (seen from the border's centre) drain joy
-# TIDE_DRAIN_MULT times as fast (Person.tide_mult, on their normal drain only). Placeholder look: a grey fog band.
-const TIDE_SEED_OFFSET := 25
-const TIDE_RISING_FROM := 0.3  # Night progress window for the rising tide's start (the rising phase is 0.25 to 0.5).
-const TIDE_RISING_TO := 0.42
-const TIDE_MIDNIGHT_FROM := 0.5  # The midnight tide's window (the midnight phase is 0.5 to 0.75).
-const TIDE_MIDNIGHT_TO := 0.6
-const TIDE_WARN_SECONDS := 15.0
-const TIDE_SECONDS := 12.0
-const TIDE_HALF_WIDTH := PI / 4.0  # Radians either side of the tide's direction: a quarter of the compass (90 degrees).
+# Walls and gates: Pressure (#14). One surge a night replaces the two tides. It comes down one street (drawn from the
+# level's seed, RNG_SEED + SURGE_SEED_OFFSET, among the streets that meet a gate of the zone when the warning starts)
+# and peaks at midnight (the middle of the push is SURGE_PEAK_PROGRESS of the night). Warning (SURGE_WARN_SECONDS): fog
+# gathers at the far end of that street, a mark on the minimap, one edge pointer, the light cools and a banner (again
+# SURGE_SOON_SECONDS before the push). Surge (SURGE_SECONDS): the fog rolls down the street and pushes the gate it
+# meets with SURGE_PUSH (times the night's strength) and the gates either side with SURGE_SIDE_SHARE of that. Aftermath
+# (SURGE_AFTERMATH_SECONDS): the fog is gone, the light warms again and dimmed arrivals ease (the gap between two is
+# SURGE_AFTERMATH_GAP_MULT times longer, easing back to normal).
+const SURGE_SEED_OFFSET := 25
+const SURGE_WARN_SECONDS := 40.0
+const SURGE_SOON_SECONDS := 12.0
+const SURGE_SECONDS := 50.0
+const SURGE_PEAK_PROGRESS := 0.5
+const SURGE_AFTERMATH_SECONDS := 30.0
+const SURGE_AFTERMATH_GAP_MULT := 2.0
+const SURGE_PUSH := 1.5
+const SURGE_SIDE_SHARE := 0.5
+const SURGE_ARRIVE := 0.4  # The front reaches the gate over this share of the surge; the push builds as it does.
+const SURGE_FADE := 0.2  # The push (and the fog) fade over the last share of the surge.
+const SURGE_STREET_REACH := 0.25  # Metres beyond half a street's width within which a gate counts as meeting it.
+const SURGE_CHILL := 0.45  # How far the light cools toward SURGE_CHILL_COLOUR at the height of a warning or surge.
+const SURGE_CHILL_COLOUR := Color(0.5, 0.62, 0.82)
+const SURGE_FOG_WIDTH := 16.0  # Metres across the street the fog band spreads (a street is 12 m wide).
+const SURGE_WARN_TEXT := "The gloom is gathering at the %s end of the %s street"  # %s: the end, then the street.
+const SURGE_SOON_TEXT := "The gloom is close: hold the %s street"
+const SURGE_START_TEXT := "The gloom is surging down the %s street"
+const SURGE_PLAIN_TEXT := "A gloomy surge is coming"  # The prompt's own line, when no street is given.
+const SURGE_MINIMAP_LENGTH := 30.0  # Metres of the street the minimap marks from its far end.
+const SURGE_MINIMAP_BANDS := 3
+const SURGE_MINIMAP_STEP := 1.2  # Metres between two bands of the mark.
 
-# Round 26: the wave shoves instead of draining. TIDE_PUSH is the force it puts on the side it comes from once its front
-# is TIDE_SHOVE_DEPTH metres past the line (it ramps in over TIDE_PUSH_REACH + TIDE_SHOVE_DEPTH of approach); the front
-# arrives over the first TIDE_ARRIVE share of the passing. TIDE_FIGURES dark figures walk in the fog band.
-const TIDE_PUSH := 2.0
-const TIDE_PUSH_REACH := 4.0
-const TIDE_SHOVE_DEPTH := 2.0
-const TIDE_ARRIVE := 0.4
+# The fog band and its dark figures (the placeholder look; the styled look has its own, see StylePush).
+const TIDE_HALF_WIDTH := PI / 4.0  # StylePush.fog_length: the stretch a cloud covers seen from the centre.
 const TIDE_FIGURES := 9
 const TIDE_FIGURE_HEIGHT := 1.7
 const TIDE_FIGURE_SPREAD := 20.0  # Metres either side of the band's middle the figures spread.
 const TIDE_FIGURE_COLOUR := Color(0.2, 0.22, 0.27, 0.85)
-const TIDE_TEXT := "A gloomy tide is rolling in from the %s"  # The notice at the warning (%s is the side).
-const TIDE_PLAIN_TEXT := "A gloomy tide is rolling in"  # The prompt's own line, when no side is given.
 const TIDE_POINTER_REFRESH := 0.2  # Seconds between two works-out of the edge pointer.
 const TIDE_POINTER_FAR := 100.0  # Metres out from the border's centre: the pointer uses only the direction.
 const TIDE_POINTER_RING := 9.0  # Pixels, as WOBBLE_ALERT_RING.
 const TIDE_POINTER_ARROW := 8.0  # Pixels, as WOBBLE_ALERT_ARROW.
 const TIDE_POINTER_COLOUR := Color(0.74, 0.8, 0.86)  # A cool grey (gaps are coral, wobbles amber).
-const TIDE_FOG_FAR := float(Config.TD_PLAZA_SIZE) * 0.6  # Metres from the centre: where the fog band starts (outside).
-# Metres from the centre: where its drift in over the passing ends.
-const TIDE_FOG_NEAR := float(Config.TD_PLAZA_SIZE) * 0.2
 const TIDE_FOG_WIDTH := float(Config.TD_PLAZA_SIZE) * 0.9  # The band's length along the side.
 const TIDE_FOG_DEPTH := 12.0 * Config.WORLD_SCALE  # The band's depth (metres).
 const TIDE_FOG_Y := 0.06  # Height above the ground (just above the first light front's 0.05).
 const TIDE_FOG_COLOUR := Color(0.6, 0.64, 0.7)
 const TIDE_FOG_ALPHA := 0.42  # The band's most opaque alpha.
-const TIDE_FOG_FADE := 0.15  # The share of the passing over which the band fades in and out.
-const TIDE_MINIMAP_COLOUR := Color(0.7, 0.74, 0.8, 0.9)  # The minimap's fog edge (the outer band; inner ones fade).
-const TIDE_MINIMAP_BANDS := 3  # Concentric arcs making the edge.
-const TIDE_MINIMAP_BAND_STEP := 1.6  # Metres between two arcs of the edge (about two minimap pixels).
-const TIDE_MINIMAP_SEGMENTS := 16  # Straight pieces per arc.
+const TIDE_MINIMAP_COLOUR := Color(0.7, 0.74, 0.8, 0.9)  # The minimap's surge mark (the outer band; inner ones fade).

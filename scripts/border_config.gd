@@ -146,6 +146,14 @@ const TAKE_MARK_INSET := 0.8  # Metres: the glow stops this far inside the cell 
 const TAKE_MARK_Y := 0.12  # Metres above the ground.
 const TAKE_PULSE_SECONDS := 1.0  # A taken cell pulses for this long.
 const TAKE_PULSE_COLOUR := Color(1.0, 0.95, 0.7, 0.6)
+# Walls and gates: Pressure (#13). A gate that stays broken for GATE_LOST_SECONDS loses the held cell behind it
+# (never the start square; a cell the loss cuts off from the start goes with it). The cell's pips reset, nobody
+# relapses, a slim banner says so and the cell pulses grey for LOST_PULSE_SECONDS (placeholder look).
+const GATE_LOST_SECONDS := 12.0
+const LOST_TEXT := "The gloom took a block."
+const LOST_PULSE_SECONDS := 1.6
+const LOST_PULSE_COLOUR := Color(0.55, 0.57, 0.6, 0.65)
+const LOST_PULSE_Y := 0.14  # Metres above the ground.
 const GATE_COUNT_HEIGHT := 1.6  # Metres above the ground: the members/need label on a gate.
 const GATE_COUNT_OK_COLOUR := Color(1.0, 0.95, 0.8)
 const GATE_COUNT_SHORT_COLOUR := Color(1.0, 0.3, 0.28)
