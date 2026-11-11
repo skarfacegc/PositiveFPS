@@ -153,6 +153,63 @@ Guides a Godot style test (round 6 or later). Mockups: design/style_mockups*.htm
 
 Wider world and level progression ideas: see `VISION.md`.
 
+## Codebase cleanup (2026-11-11 review)
+
+Backlog, no target yet. Found by a read-only review of tests, code, docs and token cost. Small items can go together
+in one Haiku pass; "Lighter tests" and "Styled-look tier" need the user's call on the coverage rule first.
+
+### Cleanup: Test weights (#63, XS)
+`tools/test_weights.json` has 203 entries for tests that no longer exist (15 whole suites, such as `beacon_test`) and
+no entry for 233 of the 801 live tests, which then count as 0.5 s. The fast tier ("under 5 s") and the parallel
+scheduling both use these numbers, so a slow new level test can slip into every commit's hook. Run
+`run_tests.py --update-weights`, make the update drop entries for tests that are gone, and have the gate or
+`board.py scan` warn when more than about 10% of tests have no weight.
+
+### Cleanup: Search noise (#64, S)
+About 126 MB of `design/` (renders, mockups, `gap_pulse.html` at 1.6 MB) is tracked and makes up most of the 60 MB
+pack; it, `addons/gdUnit4` (508 files) and `IDEAS_RESOLVED.md` (220 KB) show up in broad Grep/Glob searches. Add a root
+`.ignore` (ripgrep skips it; direct reads still work) for `design/`, `addons/` and `IDEAS_RESOLVED.md`. Decide whether
+the renders move out of git (LFS, or untracked with a note).
+
+### Cleanup: Housekeeping (#65, XS)
+Five agent worktrees in `.claude/worktrees` (one locked), three playtest worktrees in old scratchpads and 117 MB in
+`.scratch/`. Run `tools/cleanup_worktrees.py`, prune `.scratch`.
+
+### Cleanup: Permissions (#66, XS)
+`.claude/settings.json` allows about 14 commands; `run_tests.py`, `gate.py`, `source_map.py` and read-only git commands
+are missing, so they prompt (a round trip each, and a stall for background agents). Build the list with the
+`fewer-permission-prompts` skill.
+
+### Cleanup: History out of code (#67, L)
+707 comments carry `Round N:` or `Checkpoint N:` tags; 92 constant names have history prefixes (`C7_`, `L31_`, `L32_`,
+`CP7_`); test files are named by round, not purpose (`checkpoint7_test`, `looks_round19_test`, `looks_round20_*`,
+`hud_checkpoint6_test`, `looks_checkpoint5_test`, `style_props_032_test`); some comments still describe removed
+concepts (arms, reach, beacon). Git history keeps the history. Rename by purpose, strip the tags, update
+`SOURCE_MAP.md`, `ARCHITECTURE.md` and `tools/checkpoint` sets that name them. One Haiku pass, mechanical.
+
+### Cleanup: Unused constants (#68, XS)
+11 config constants are never used (`REACT_PATCH_*`, `GLUM_SLUMP_SCALE`, `TOWN_BLOCK_HEIGHT`, `CUE_PLAYER_RANGE`,
+`CUE_ALPHA`, `WOBBLE_ALERT_BADGE`, `BORDER_LANDMARK_COLOUR`, `C7_LAMP_LEAN`, `L31_LAMP_HALO`) and 8 are used only by
+tests. Remove the dead ones and add a check to `lint.py` or `source_map.py`.
+
+### Cleanup: Trim docs (#71, S)
+The 0.4 plan is 23 KB of IDEAS.md's 40 KB; move the finished passes to IDEAS_RESOLVED.md and keep what is open. The
+border paragraph in ARCHITECTURE.md "Areas" is about 2 KB on one line: split it into short bullets. Merge memory notes
+that repeat CLAUDE.md (coordinator work, `consolidate-memory`).
+
+### Cleanup: Lighter tests (#69, L)
+65 of 89 suites boot the full level; tests simulate about 22,700 frames and the weighted tests add up to about 17 min
+serial, the slowest 20-43 s each (`reactions_test` arms, `stagger_test` nine seconds apart, `world_scale_test` local
+gap). Many check rules that already live in pure code (`BorderShape`, `Zone`, `TownGrid`, `DawnRating`, the night
+clock). Test the rule as a unit test and keep one level test per feature; step the clock instead of playing 2000+
+frames for timing rules. No threshold or perf budget is loosened. Sonnet.
+
+### Cleanup: Styled-look tier (#72, M)
+25 suites switch to the styled look, and many of their tests pin art details (for example a bandstand luminance above
+0.5), so art tweaks break tests and the 100% line-coverage ratchet pushes coverage-only tests. Put styled-look tests in
+their own tier, run in look-focused targets and the full gate, and decide (user's call) whether `scripts/looks/style_*`
+keeps the 100% floor.
+
 ## 0.4 Walls and gates plan (2026-11-07; called "Tug of war" until 2026-11-09)
 
 Planned as rounds 27 and 28 before the switch to targets. **Order** (confirmed by the user, 2026-11-09: code health

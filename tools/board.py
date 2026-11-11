@@ -3,7 +3,7 @@
 
     python tools/board.py list [--status S] [--milestone M] [--backlog]
     python tools/board.py add TITLE --label L --size SZ --pointer P [--milestone M] [--status S]
-    python tools/board.py set N [--status S] [--size SZ] [--milestone M | --no-milestone]
+    python tools/board.py set N [--add-to-board] [--status S] [--size SZ] [--milestone M | --no-milestone]
                                 [--add-label L] [--remove-label L] [--pointer P] [--title T]
     python tools/board.py archive N
     python tools/board.py drop N
@@ -11,6 +11,14 @@
 
 Every write command takes --dry-run, which prints the gh commands instead of running them. Reads (list, scan, and the
 item lookups a write needs) always run. The board is the user's live planning board: test with --dry-run first.
+
+GitHub rate limits: GraphQL writes trip GitHub's short-term (secondary) limits quickly, and `gh issue create` and
+`gh project ...` make extra GraphQL lookups of their own. So: issues are created over REST (`gh api repos/...`, the
+separate core quota); an issue goes onto the board with one addProjectV2ItemById mutation; the project id and field
+options are cached in .git/positivefps-board-cache.json (refreshed when an option is missing); `set`/`archive`/`drop`
+look up one issue's item with a single small query, never the whole board. A rate-limit error is retried after each
+wait in RATE_LIMIT_WAITS. Only `list` and `scan` read the whole board, once each. Space out bulk adds (about 20 s).
+If an add stops half way, `set N --add-to-board --status S --size Z` finishes it.
 """
 import argparse
 import json
@@ -26,12 +34,15 @@ REPO_ROOT = os.path.dirname(HERE)
 OWNER = "skarfacegc"
 REPO = "skarfacegc/PositiveFPS"
 PROJECT_NUMBER = 3
-PROJECT_TITLE = "Positive game dev"
 GH_DEFAULT_PATH = r"C:\Program Files\GitHub CLI\gh.exe"
 STATUSES = ["Backlog", "Ready", "In progress", "In review", "Done"]
 SIZES = ["XS", "S", "M", "L", "XL"]
 DEFAULT_DOCS = ["IDEAS.md", "VISION.md"]
 BODY_TAIL = "Headline only; the repo docs hold the full plan."
+# Seconds to wait before each retry of a gh call that hit a rate limit (then it fails with a clear message).
+RATE_LIMIT_WAITS = (60, 180)
+RATE_LIMIT_RE = re.compile(r"rate limit|abuse detection", re.IGNORECASE)
+BOARD_CACHE = "auto"  # "auto": inside .git (see _board_cache_path); None: no cache (the self-tests use this)
 
 # Section markers for the docs scan. Change these if the docs change their headings.
 IDEAS_OPEN_ITEMS_MARKER = "**Open items**"
@@ -67,13 +78,23 @@ def find_gh():
 
 
 def run_gh(args):
-    """Run gh with the given argument list and return its stdout. Raises BoardError on failure."""
-    proc = subprocess.run([find_gh()] + list(args), capture_output=True, text=True,
-                          encoding="utf-8", errors="replace")
-    if proc.returncode != 0:
+    """Run gh with the given argument list and return its stdout. Raises BoardError on failure.
+
+    A rate-limit error is retried after each wait in RATE_LIMIT_WAITS; if it still fails, the error says so."""
+    gh = find_gh()
+    detail = ""
+    for attempt in range(len(RATE_LIMIT_WAITS) + 1):
+        proc = subprocess.run([gh] + list(args), capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if proc.returncode == 0:
+            return proc.stdout
         detail = proc.stderr.strip() or proc.stdout.strip()
-        raise BoardError(f"gh {' '.join(args[:2])} failed: {detail}")
-    return proc.stdout
+        if not RATE_LIMIT_RE.search(detail) or attempt == len(RATE_LIMIT_WAITS):
+            break
+        wait = RATE_LIMIT_WAITS[attempt]
+        print(f"board: GitHub rate limit on gh {' '.join(args[:2])}; retrying in {wait} s", file=sys.stderr)
+        time.sleep(wait)
+    hint = " (still rate limited: wait, then rerun; see `gh api rate_limit`)" if RATE_LIMIT_RE.search(detail) else ""
+    raise BoardError(f"gh {' '.join(args[:2])} failed: {detail}{hint}")
 
 
 def gh_json(args):
@@ -92,11 +113,64 @@ def fetch_issues():
                     "--json", "number,title,author,labels,milestone,state"])
 
 
-def board_context():
-    """The project node id and the field list (with option ids) that item edits need."""
+def _board_cache_path():
+    """The cache file inside .git (never committed), or None outside a checkout."""
+    if BOARD_CACHE != "auto":
+        return BOARD_CACHE
+    try:
+        out = subprocess.run(["git", "rev-parse", "--git-common-dir"], capture_output=True, text=True, cwd=REPO_ROOT)
+    except OSError:
+        return None
+    if out.returncode != 0:
+        return None
+    return os.path.join(REPO_ROOT, out.stdout.strip(), "positivefps-board-cache.json")
+
+
+def board_context(refresh=False):
+    """The project node id and the field list (with option ids) that item edits need, cached (they rarely change)."""
+    path = _board_cache_path()
+    if path and not refresh:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                cached = json.load(fh)
+            if cached.get("project") and cached.get("fields"):
+                return cached
+        except (OSError, ValueError):
+            pass
     project = gh_json(["project", "view", str(PROJECT_NUMBER), "--owner", OWNER, "--format", "json"])
     fields = gh_json(["project", "field-list", str(PROJECT_NUMBER), "--owner", OWNER, "--format", "json"])
-    return {"project": project["id"], "fields": fields.get("fields", [])}
+    board = {"project": project["id"], "fields": fields.get("fields", [])}
+    if path:
+        try:
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(board, fh)
+        except OSError:
+            pass
+    return board
+
+
+def edit_commands(item_id, status=None, size=None):
+    """item_edit_commands on the cached board, refreshing the cache once if an option is missing from it."""
+    try:
+        return item_edit_commands(board_context(), item_id, status, size)
+    except BoardError:
+        return item_edit_commands(board_context(refresh=True), item_id, status, size)
+
+
+ITEM_QUERY = ("query($owner: String!, $repo: String!, $number: Int!) { repository(owner: $owner, name: $repo) { "
+              "issue(number: $number) { projectItems(first: 20) { nodes { id project { number } } } } } }")
+
+
+def item_id_for(number):
+    """The board item id of issue `number`, or None if it is not on the board. One small query, not the whole board."""
+    owner, repo = REPO.split("/")
+    data = gh_json(["api", "graphql", "-f", f"query={ITEM_QUERY}", "-F", f"owner={owner}", "-F", f"repo={repo}",
+                    "-F", f"number={number}"])
+    issue = ((data.get("data") or {}).get("repository") or {}).get("issue") or {}
+    for node in (issue.get("projectItems") or {}).get("nodes", []):
+        if (node.get("project") or {}).get("number") == PROJECT_NUMBER:
+            return node.get("id")
+    return None
 
 
 # ---------------------------------------------------------------- pure helpers
@@ -312,6 +386,40 @@ def item_edit_commands(board, item_id, status=None, size=None):
     return commands
 
 
+ADD_ITEM_MUTATION = ("mutation($project: ID!, $content: ID!) { addProjectV2ItemById(input: "
+                     "{projectId: $project, contentId: $content}) { item { id } } }")
+
+
+def add_item_args(project_id, node_id):
+    return ["api", "graphql", "-f", f"query={ADD_ITEM_MUTATION}", "-F", f"project={project_id}",
+            "-F", f"content={node_id}"]
+
+
+def create_issue_args(title, body, labels, milestone_number=None):
+    """REST issue create (core quota, no GraphQL)."""
+    args = ["api", f"repos/{REPO}/issues", "-X", "POST", "-f", f"title={title}", "-f", f"body={body}"]
+    for label in labels:
+        args += ["-f", f"labels[]={label}"]
+    if milestone_number is not None:
+        args += ["-F", f"milestone={milestone_number}"]
+    return args
+
+
+def milestone_number(title):
+    milestones = gh_json(["api", f"repos/{REPO}/milestones?state=all&per_page=100"])
+    for milestone in milestones:
+        if milestone.get("title") == title:
+            return milestone["number"]
+    raise BoardError(f"no milestone called '{title}'")
+
+
+def add_to_board(number):
+    """Put issue `number` on the board; returns the item id (an issue already on it returns its existing item)."""
+    node_id = gh_json(["api", f"repos/{REPO}/issues/{number}"])["node_id"]
+    data = gh_json(add_item_args(board_context()["project"], node_id))
+    return data["data"]["addProjectV2ItemById"]["item"]["id"]
+
+
 def archive_args(item_id):
     return ["project", "item-archive", str(PROJECT_NUMBER), "--owner", OWNER, "--id", item_id]
 
@@ -375,21 +483,6 @@ def perform(commands, dry_run):
             run_gh(args)
 
 
-def find_item(items, number):
-    return next((item for item in items if item_number(item) == number), None)
-
-
-def wait_for_item(number, attempts=6, delay=2.0):
-    """Item lookup that retries: item-list can lag a second or two behind issue create."""
-    for attempt in range(attempts):
-        item = find_item(fetch_items(), number)
-        if item is not None:
-            return item
-        if attempt < attempts - 1:
-            time.sleep(delay)
-    raise BoardError(f"#{number} is not on the board yet; run `set {number} --status ... --size ...` once it is")
-
-
 # ---------------------------------------------------------------- commands
 
 def cmd_list(args):
@@ -401,28 +494,23 @@ def cmd_list(args):
 
 
 def cmd_add(args):
-    board = board_context()
     status = args.status
     # Validate the options before anything is created.
-    item_edit_commands(board, "<ITEM_ID>", status, args.size)
-    create = ["issue", "create", "-R", REPO, "--title", args.title, "--body", issue_body(args.pointer),
-              "--project", PROJECT_TITLE]
-    for label in args.label:
-        create += ["--label", label]
-    if args.milestone:
-        create += ["--milestone", args.milestone]
+    edit_commands("<ITEM_ID>", status, args.size)
+    milestone = milestone_number(args.milestone) if args.milestone else None
+    create = create_issue_args(args.title, issue_body(args.pointer), args.label, milestone)
     if args.dry_run:
-        perform([create], True)
-        perform(item_edit_commands(board, "<ITEM_ID>", status, args.size), True)
+        perform([create, add_item_args(board_context()["project"], "<ISSUE_NODE_ID>")], True)
+        perform(edit_commands("<ITEM_ID>", status, args.size), True)
         return 0
-    out = run_gh(create)
-    url = out.strip().splitlines()[-1]
-    match = re.search(r"/issues/(\d+)", url)
-    if match is None:
-        raise BoardError(f"could not read the new issue number from gh output: {url}")
-    number = int(match.group(1))
-    item = wait_for_item(number)
-    perform(item_edit_commands(board, item["id"], status, args.size), False)
+    created = json.loads(run_gh(create))
+    number, url = created["number"], created["html_url"]
+    try:
+        item_id = add_to_board(number)
+        perform(edit_commands(item_id, status, args.size), False)
+    except (BoardError, ValueError, KeyError, TypeError) as exc:
+        raise BoardError(f"#{number} was created but is not finished on the board ({exc}). Once GitHub allows it, run "
+                         f"`board.py set {number} --add-to-board --status \"{status}\" --size {args.size}`")
     print(f"#{number} {url}")
     return 0
 
@@ -435,30 +523,31 @@ def cmd_set(args):
         raise BoardError("nothing to change: give at least one option")
     commands = [edit] if edit else []
     if args.status or args.size:
-        board = board_context()
-        item = find_item(fetch_items(), args.number)
-        if item is None:
-            raise BoardError(f"#{args.number} is not on the board")
-        commands += item_edit_commands(board, item["id"], args.status, args.size)
+        item_id = item_id_for(args.number)
+        if item_id is None and args.add_to_board:
+            item_id = "<ITEM_ID>" if args.dry_run else add_to_board(args.number)
+        if item_id is None:
+            raise BoardError(f"#{args.number} is not on the board (add --add-to-board to put it there)")
+        commands += edit_commands(item_id, args.status, args.size)
     perform(commands, args.dry_run)
     return 0
 
 
 def cmd_archive(args):
-    item = find_item(fetch_items(), args.number)
-    if item is None:
+    item_id = item_id_for(args.number)
+    if item_id is None:
         raise BoardError(f"#{args.number} is not on the board")
-    perform([archive_args(item["id"])], args.dry_run)
+    perform([archive_args(item_id)], args.dry_run)
     return 0
 
 
 def cmd_drop(args):
-    item = find_item(fetch_items(), args.number)
+    item_id = item_id_for(args.number)
     commands = [["issue", "close", str(args.number), "-R", REPO, "--reason", "not planned"]]
-    if item is not None:
-        commands.append(archive_args(item["id"]))
+    if item_id is not None:
+        commands.append(archive_args(item_id))
     perform(commands, args.dry_run)
-    if item is None:
+    if item_id is None:
         print(f"#{args.number} is not on the board: closed only")
     return 0
 
@@ -510,6 +599,8 @@ def build_parser():
     p.add_argument("--remove-label", action="append", default=[])
     p.add_argument("--pointer", help="rewrite the body in the board's format")
     p.add_argument("--title")
+    p.add_argument("--add-to-board", action="store_true",
+                   help="put the issue on the board first if it is not there (finishes a half-done add)")
     p.add_argument("--dry-run", action="store_true")
     p.set_defaults(run=cmd_set)
 

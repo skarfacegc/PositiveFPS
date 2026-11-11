@@ -46,7 +46,16 @@ ISSUES = [
      "milestone": None},
 ]
 
+def _item_query(args):
+    """The one-issue item lookup (board.item_id_for): answers from ITEMS."""
+    number = int(next(a for a in args if a.startswith("number=")).split("=", 1)[1])
+    nodes = [{"id": item["id"], "project": {"number": bd.PROJECT_NUMBER}} for item in ITEMS
+             if bd.item_number(item) == number]
+    return {"data": {"repository": {"issue": {"projectItems": {"nodes": nodes}}}}}
+
+
 READS = {
+    ("api", "graphql"): _item_query,
     ("project", "item-list"): lambda: {"items": ITEMS},
     ("project", "view"): lambda: {"id": "PVT_1"},
     ("project", "field-list"): lambda: {"fields": FIELDS},
@@ -61,22 +70,44 @@ class FakeGh:
         self.allow_writes = allow_writes
         self.calls = []
 
+    @staticmethod
+    def kind(args):
+        """'read' or a short write name for one gh call."""
+        joined = " ".join(args)
+        if args[:2] == ["api", "graphql"]:
+            return "add-item" if "addProjectV2ItemById" in joined else "read"
+        if args[:1] == ["api"]:
+            return "create-issue" if "POST" in args else "read"
+        return "read" if tuple(args[:2]) in READS else " ".join(args[:2])
+
     def __call__(self, args):
-        self.calls.append(list(args))
-        reader = READS.get(tuple(args[:2]))
-        if reader is not None:
-            return json.dumps(reader())
+        args = list(args)
+        self.calls.append(args)
+        kind = self.kind(args)
+        if kind == "read":
+            if args[:2] == ["api", "graphql"]:
+                return json.dumps(_item_query(args))
+            if args[:1] == ["api"]:
+                if "milestones" in args[1]:
+                    return json.dumps([{"title": "0.5", "number": 4}])
+                return json.dumps({"node_id": "I_" + args[1].rsplit("/", 1)[1]})
+            return json.dumps(READS[tuple(args[:2])]())
         if not self.allow_writes:
             raise AssertionError(f"a write ran in a dry-run test: {args}")
-        return "https://github.com/skarfacegc/PositiveFPS/issues/9\n"
+        if kind == "add-item":
+            return json.dumps({"data": {"addProjectV2ItemById": {"item": {"id": "PVTI_9"}}}})
+        if kind == "create-issue":
+            return json.dumps({"number": 9, "html_url": "https://github.com/skarfacegc/PositiveFPS/issues/9"})
+        return ""
 
     def writes(self):
-        return [c for c in self.calls if tuple(c[:2]) not in READS]
+        return [c for c in self.calls if self.kind(c) != "read"]
 
 
 def run_cli(argv, fake):
     out = io.StringIO()
-    with mock.patch.object(bd, "run_gh", fake), mock.patch("sys.stdout", out):
+    with mock.patch.object(bd, "run_gh", fake), mock.patch.object(bd, "BOARD_CACHE", None), \
+            mock.patch("sys.stdout", out):
         code = bd.main(argv)
     return code, out.getvalue()
 
@@ -217,6 +248,12 @@ class Commands(unittest.TestCase):
         code, _ = run_cli(["set", "5", "--size", "S", "--dry-run"], FakeGh())
         self.assertEqual(code, 1)
 
+    def test_set_add_to_board_finishes_a_half_done_add(self):
+        fake = FakeGh(allow_writes=True)
+        code, _ = run_cli(["set", "5", "--add-to-board", "--size", "S"], fake)
+        self.assertEqual(code, 0)
+        self.assertEqual([fake.kind(c) for c in fake.writes()], ["add-item", "project item-edit"])
+
     def test_drop_dry_run_closes_then_archives(self):
         fake = FakeGh()
         _, out = run_cli(["drop", "1", "--dry-run"], fake)
@@ -231,9 +268,76 @@ class Commands(unittest.TestCase):
         code, out = run_cli(["add", "New thing", "--label", "gameplay", "--size", "S",
                              "--pointer", "VISION.md → Layer", "--milestone", "0.5", "--dry-run"], fake)
         self.assertEqual(code, 0)
-        self.assertIn("DRY RUN: gh issue create", out)
-        self.assertIn("--project", out)
+        self.assertIn("DRY RUN: gh api repos/skarfacegc/PositiveFPS/issues -X POST", out)
+        self.assertIn("milestone=4", out)
+        self.assertIn("addProjectV2ItemById", out)
         self.assertEqual(fake.writes(), [])
+
+    def test_add_creates_over_rest_adds_by_mutation_and_never_reads_the_whole_board(self):
+        fake = FakeGh(allow_writes=True)
+        code, out = run_cli(["add", "New", "--label", "tooling", "--size", "XS", "--status", "Backlog",
+                             "--pointer", "IDEAS.md → x"], fake)
+        self.assertEqual(code, 0)
+        self.assertIn("#9 ", out)
+        self.assertEqual([fake.kind(c) for c in fake.writes()],
+                         ["create-issue", "add-item", "project item-edit", "project item-edit"])
+        self.assertIn("content=I_9", fake.writes()[1])
+        self.assertTrue(all("PVTI_9" in c for c in fake.writes()[2:]))
+        self.assertNotIn(["issue", "create"], [c[:2] for c in fake.calls])
+        self.assertNotIn(["project", "item-list"], [c[:2] for c in fake.calls])
+
+    def test_set_looks_up_one_issue_not_the_whole_board(self):
+        fake = FakeGh()
+        run_cli(["set", "2", "--size", "XS", "--dry-run"], fake)
+        self.assertNotIn(["project", "item-list"], [c[:2] for c in fake.calls])
+        self.assertIn(["api", "graphql"], [c[:2] for c in fake.calls])
+
+
+class GhAccess(unittest.TestCase):
+    def test_the_board_fields_are_cached_and_refreshed_when_an_option_is_missing(self):
+        os.makedirs(SCRATCH, exist_ok=True)
+        folder = tempfile.mkdtemp(prefix="board-cache-", dir=SCRATCH)
+        self.addCleanup(shutil.rmtree, folder, True)
+        cache = os.path.join(folder, "cache.json")
+        stale = {"project": "PVT_1", "fields": [{"id": "F_SIZE", "name": "Size", "options": []}]}
+        with open(cache, "w", encoding="utf-8") as fh:
+            json.dump(stale, fh)
+        fake = FakeGh()
+        with mock.patch.object(bd, "run_gh", fake), mock.patch.object(bd, "BOARD_CACHE", cache):
+            self.assertEqual(bd.board_context(), stale)
+            self.assertEqual(fake.calls, [])
+            commands = bd.edit_commands("PVTI_2", size="XS")
+        self.assertIn("O_XS", commands[0])
+        with open(cache, encoding="utf-8") as fh:
+            self.assertEqual(json.load(fh)["fields"], FIELDS)
+
+    def test_run_gh_retries_a_rate_limit_then_succeeds(self):
+        limited = mock.Mock(returncode=1, stderr="GraphQL: API rate limit exceeded for user ID 1", stdout="")
+        ok = mock.Mock(returncode=0, stdout="done", stderr="")
+        with mock.patch.object(bd, "find_gh", return_value="gh"), \
+                mock.patch.object(bd.subprocess, "run", side_effect=[limited, ok]) as run, \
+                mock.patch.object(bd.time, "sleep") as sleep, mock.patch("sys.stderr", io.StringIO()):
+            self.assertEqual(bd.run_gh(["project", "view"]), "done")
+        self.assertEqual(run.call_count, 2)
+        sleep.assert_called_once_with(bd.RATE_LIMIT_WAITS[0])
+
+    def test_run_gh_gives_up_after_the_waits_and_says_it_is_rate_limited(self):
+        limited = mock.Mock(returncode=1, stderr="API rate limit exceeded", stdout="")
+        with mock.patch.object(bd, "find_gh", return_value="gh"), \
+                mock.patch.object(bd.subprocess, "run", return_value=limited) as run, \
+                mock.patch.object(bd.time, "sleep"), mock.patch("sys.stderr", io.StringIO()):
+            with self.assertRaises(bd.BoardError) as err:
+                bd.run_gh(["project", "view"])
+        self.assertEqual(run.call_count, len(bd.RATE_LIMIT_WAITS) + 1)
+        self.assertIn("still rate limited", str(err.exception))
+
+    def test_run_gh_does_not_retry_other_errors(self):
+        failed = mock.Mock(returncode=1, stderr="not found", stdout="")
+        with mock.patch.object(bd, "find_gh", return_value="gh"), \
+                mock.patch.object(bd.subprocess, "run", return_value=failed) as run, mock.patch.object(bd.time, "sleep"):
+            with self.assertRaises(bd.BoardError):
+                bd.run_gh(["issue", "view"])
+        self.assertEqual(run.call_count, 1)
 
     def test_add_rejects_an_unknown_size_before_creating_anything(self):
         with self.assertRaises(SystemExit):
