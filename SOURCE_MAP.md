@@ -1201,7 +1201,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 - dawn_rating_test (tests/dawn_rating_test.gd): 8 tests
 - debug_overlay_test (tests/debug_overlay_test.gd): 1 tests
 - defence_cues_test (tests/defence_cues_test.gd): 3 tests
-- defences_test (tests/defences_test.gd): 20 tests
+- defences_test (tests/defences_test.gd): 26 tests
 - dimmed_help_test (tests/dimmed_help_test.gd): 4 tests
 - dimmed_waves_test (tests/dimmed_waves_test.gd): 18 tests
 - edge_cleanup_test (tests/edge_cleanup_test.gd): 5 tests
@@ -1255,7 +1255,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 - readability_test (tests/readability_test.gd): 10 tests
 - recorder_blocks_test (tests/recorder_blocks_test.gd): 26 tests
 - recorder_defences_test (tests/recorder_defences_test.gd): 1 tests
-- recorder_more_test (tests/recorder_more_test.gd): 10 tests
+- recorder_more_test (tests/recorder_more_test.gd): 11 tests
 - recorder_polled_test (tests/recorder_polled_test.gd): 9 tests
 - recorder_shots_test (tests/recorder_shots_test.gd): 1 tests
 - recorder_test (tests/recorder_test.gd): 15 tests

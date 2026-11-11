@@ -104,6 +104,13 @@ func test_a_second_session_in_the_same_second_gets_its_own_folder() -> void:
 	assert_bool(second.is_open()).is_false()
 
 
+func test_the_need_of_a_gate_that_does_not_exist_is_zero() -> void:
+	var s: Dictionary = await _start(true)
+	var td: TopDownMain = s["td"]
+	assert_int(td.recorder._need_of(-1)).is_equal(0)
+	assert_int(td.recorder._need_of(td.border.zone.gates.size())).is_equal(0)
+
+
 func test_the_default_places_are_the_user_folder_and_in_the_editor_the_project_folder() -> void:
 	Recorder.base_dir_override = ""
 	var rec: Recorder = auto_free(Recorder.new())

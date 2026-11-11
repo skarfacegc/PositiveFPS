@@ -497,3 +497,77 @@ func test_the_posts_the_ghost_and_the_labels_draw_in_both_looks() -> void:
 	td.set_look(Looks.Mode.PLACEHOLDER)
 	await runner.simulate_frames(5)
 	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+# ---- guards and odd states (coverage of the refusal and hand-back corners) -----------------------------------------
+
+
+func test_a_defences_node_with_no_level_ignores_input_and_frames() -> void:
+	var node: Defences = auto_free(Defences.new())
+	node._unhandled_input(InputEventKey.new())
+	node._process(0.1)
+	assert_bool(node.holding).is_false()
+
+
+func test_a_gate_that_does_not_exist_has_no_free_member_and_no_post_position() -> void:
+	var s: Dictionary = await _level(10)
+	var td: TopDownMain = s["td"]
+	assert_object(td.defences.free_member_for(-1)).is_null()
+	assert_object(td.defences.free_member_for(td.border.zone.gates.size())).is_null()
+	assert_object(td.defences.post_position(-1)).is_equal(Vector3.ZERO)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_a_post_whose_gate_id_shifted_follows_its_gate_by_key() -> void:
+	var s: Dictionary = await _level()
+	var td: TopDownMain = s["td"]
+	td.landmarks.unlock(Landmarks.GARDEN)
+	assert_bool(td.defences.plant_now(0, Landmarks.GARDEN)).is_true()
+	td.defences.posts[0]["gate"] = 99  # Stale id: the key still finds gate 0.
+	td.defences._resync()
+	assert_int(td.defences.posts[0]["gate"] as int).is_equal(0)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_a_post_with_no_staff_node_is_skipped_when_staff_move() -> void:
+	var s: Dictionary = await _level()
+	var td: TopDownMain = s["td"]
+	td.landmarks.unlock(Landmarks.GARDEN)
+	assert_bool(td.defences.plant_now(0, Landmarks.GARDEN)).is_true()
+	td.defences.posts[0]["staff"] = null
+	td.defences._move_staff(0.1)
+	assert_int(td.defences.posts.size()).is_equal(1)
+	td.defences.posts.clear()
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_aiming_falls_back_when_the_type_is_locked_or_nothing_is_pointed_at() -> void:
+	var s: Dictionary = await _level()
+	var td: TopDownMain = s["td"]
+	td.landmarks.unlock(Landmarks.GARDEN)
+	td.defences.aim_type = Landmarks.BELL_TOWER  # Not unlocked.
+	td.defences._refresh()
+	assert_int(td.defences.aim_type).is_equal(Landmarks.GARDEN)
+	# No aim point at all.
+	td.player._has_aim = false
+	assert_int(td.defences._gate_at_aim()).is_equal(Defences.NO_GATE)
+	# An aim point but a zone with no gates.
+	td.player._has_aim = true
+	var saved: Array[Dictionary] = td.border.zone.gates.duplicate()
+	td.border.zone.gates.clear()
+	assert_int(td.defences._gate_at_aim()).is_equal(Defences.NO_GATE)
+	td.border.zone.gates.append_array(saved)
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
+func test_the_label_says_a_gate_is_already_defended() -> void:
+	var s: Dictionary = await _level()
+	var td: TopDownMain = s["td"]
+	td.landmarks.unlock(Landmarks.GARDEN)
+	assert_bool(td.defences.plant_now(0, Landmarks.GARDEN)).is_true()
+	td.defences.holding = true
+	td.defences.target_gate = 0
+	td.defences.aim_type = Landmarks.GARDEN
+	assert_str(td.defences._aim_text()).is_equal("Already defended")
+	td.defences.holding = false
+	await TopDownTestUtil.leave_loaded_scene(td)
