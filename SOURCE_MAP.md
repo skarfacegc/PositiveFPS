@@ -1138,6 +1138,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 
 - border_gates_test (tests/border_gates_test.gd): 14 tests
 - border_level_test (tests/border_level_test.gd): 23 tests
+- border_misc_test (tests/border_misc_test.gd): 4 tests
 - border_push_test (tests/border_push_test.gd): 26 tests
 - border_shape_test (tests/border_shape_test.gd): 12 tests
 - burst_clear_test (tests/burst_clear_test.gd): 2 tests
@@ -1203,6 +1204,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 - recorder_blocks_test (tests/recorder_blocks_test.gd): 26 tests
 - recorder_more_test (tests/recorder_more_test.gd): 10 tests
 - recorder_polled_test (tests/recorder_polled_test.gd): 9 tests
+- recorder_shots_test (tests/recorder_shots_test.gd): 1 tests
 - recorder_test (tests/recorder_test.gd): 15 tests
 - shader_instances_test (tests/shader_instances_test.gd): 2 tests
 - shelter_nearest_test (tests/shelter_nearest_test.gd): 3 tests
