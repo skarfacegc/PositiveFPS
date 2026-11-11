@@ -18,6 +18,8 @@ extends Node3D
 # Round 26: the line snapped under a push (`pos` is the middle of the break), and a break mended (`seconds` open).
 signal line_broke(pos: Vector3)
 signal line_mended(pos: Vector3, seconds: float)
+# Walls and gates: gate modifiers (shared with Pressure). A gate disappeared on a re-trace (`g` is the id it had).
+signal gate_closed(g: int)
 
 # The zone: the cells held and the line they make. The next pass grows and shrinks it (`zone.take`, `zone.lose`).
 var zone: Zone = Zone.new()
@@ -54,6 +56,8 @@ var landmark_buildings: Array[Building] = []
 # the line should flicker to show it. Set by set_player_dim().
 var loss_mult: float = 1.0
 var player_dim: bool = false
+# Walls and gates: Defences (#15). People who staff a defence leave the line (Defences owns the list).
+var staffed: Array[Person] = []
 
 # The look: draws the line, the haze and the gap glow from the state above (see scripts/looks/border_look.gd).
 var look: BorderLook
@@ -87,6 +91,10 @@ var _slots: BorderSlots = BorderSlots.new(self)
 var _flow: Dictionary = {}
 var _debug_on: bool = false
 var _debug_labels: Array[Label3D] = []
+# Walls and gates: gate modifiers (shared with Pressure). Gate key -> its modifiers (only gates that differ from the
+# defaults are stored), and the keys of the gates at the last trace (ids are indexes and shift when the zone changes).
+var _gate_mods: Dictionary = {}
+var _gate_keys: Array[String] = []
 
 
 func _init() -> void:
@@ -221,6 +229,7 @@ func _trace() -> void:
 			_pt_dentable.append(k > 0)
 			_seg_gate.append(gate_id)
 	_built_version = zone.version
+	_close_gone_gates()
 	var sum := 0.0
 	var seen := 0
 	for i: int in range(_base.size()):
@@ -229,6 +238,53 @@ func _trace() -> void:
 			seen += 1
 	body_radius = sum / float(maxi(seen, 1))
 	push.carry(old_base, _base)
+
+
+# ---- Walls and gates: gate modifiers (shared with Pressure)
+# ---------------------------------------------------------------------------------------------------
+# What a defence does to a gate: {"strength_mult": float (default 1), "cannot_break": bool, "cannot_lose": bool}.
+# Kept by the gate's key, so a gate keeps them when a re-trace shifts the ids; a gate that disappears loses them and
+# emits gate_closed. (This block is the minimal version; the Pressure agent's replaces it at the merge.)
+
+
+func set_gate_modifiers(g: int, mods: Dictionary) -> void:
+	if g < 0 or g >= zone.gates.size():
+		return
+	var key: String = zone.gates[g]["key"]
+	var full := _full_modifiers(mods)
+	if full == _full_modifiers({}):
+		_gate_mods.erase(key)
+	else:
+		_gate_mods[key] = full
+
+
+func gate_modifiers(g: int) -> Dictionary:
+	if g < 0 or g >= zone.gates.size():
+		return _full_modifiers({})
+	var key: String = zone.gates[g]["key"]
+	var found: Dictionary = _gate_mods.get(key, {})
+	return _full_modifiers(found)
+
+
+func _full_modifiers(mods: Dictionary) -> Dictionary:
+	var strength: float = mods.get("strength_mult", 1.0)
+	var no_break: bool = mods.get("cannot_break", false)
+	var no_lose: bool = mods.get("cannot_lose", false)
+	return {"strength_mult": strength, "cannot_break": no_break, "cannot_lose": no_lose}
+
+
+# After a trace: forgets the modifiers of gates that are gone and says so.
+func _close_gone_gates() -> void:
+	var now: Array[String] = []
+	for gate: Dictionary in zone.gates:
+		var key: String = gate["key"]
+		now.append(key)
+	var old := _gate_keys
+	_gate_keys = now
+	for i: int in range(old.size()):
+		if not now.has(old[i]):
+			_gate_mods.erase(old[i])
+			gate_closed.emit(i)
 
 
 # The traced line with the gates' dents applied: a dented point moves inward by its dent.
@@ -615,7 +671,14 @@ func _update_falter(rescued: Array[Person], delta: float) -> void:
 
 
 func _assign_members(rescued: Array[Person]) -> void:
-	_slots.assign_members(rescued)
+	if staffed.is_empty():
+		_slots.assign_members(rescued)
+		return
+	var on_line: Array[Person] = []
+	for p: Person in rescued:  # Walls and gates: Defences (#15). A defence's staff are not on the line.
+		if not staffed.has(p):
+			on_line.append(p)
+	_slots.assign_members(on_line)
 
 
 # The block footprints (BorderShape.footprints), rebuilt when blocks were added or removed.

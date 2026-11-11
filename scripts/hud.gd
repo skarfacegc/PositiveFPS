@@ -1,3 +1,4 @@
+# gdlint: ignore=max-public-methods
 class_name Hud
 extends CanvasLayer
 
@@ -12,6 +13,8 @@ var hint_label: Label
 var rescued_label: Label
 var targeting_label: Label
 var alert_label: Label
+# Walls and gates: Capture polish (#75). The people line under the spirit meter.
+var people_label: Label
 var debug_hint_label: Label
 # Round 10: the live floor-effect counts, shown under the F3 hint (see set_floor_text).
 var floor_label: Label
@@ -132,6 +135,21 @@ func _ready() -> void:
 	spirit_view.visible = false
 	spirit_view.draw.connect(_draw_spirit_view)
 	add_child(spirit_view)
+
+	# Walls and gates: Capture polish (#75). One plain line under the spirit meter: the people on the line against the
+	# people it needs (see Defences.people_text). Plain text in both looks.
+	people_label = Label.new()
+	people_label.add_theme_font_size_override("font_size", 18)
+	people_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	people_label.add_theme_constant_override("outline_size", 5)
+	people_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	people_label.offset_left = -half
+	people_label.offset_right = half
+	people_label.offset_top = -84.0
+	people_label.offset_bottom = -58.0
+	people_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	people_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(people_label)
 
 	# Controls hint under the element label (set by the level, see set_hint).
 	hint_label = Label.new()
@@ -465,6 +483,14 @@ func flash_marked() -> void:
 	_mark_tween.tween_callback(mark_label.hide)
 
 
+# Walls and gates: Capture polish (#75). The people line ("People: 31 on the line, 23 short"), red while it is short.
+func set_people(text: String, short: bool) -> void:
+	if people_label.text != text:
+		people_label.text = text
+	var col := BorderConfig.GATE_COUNT_SHORT_COLOUR if short else BorderConfig.GATE_COUNT_OK_COLOUR
+	people_label.add_theme_color_override("font_color", col)
+
+
 # Shows the player's spirit and whether they are dim (the bar and the label go grey).
 func set_spirit(spirit: float, is_dim: bool) -> void:
 	_spirit_shown = true
@@ -530,6 +556,7 @@ func layout_controls() -> Array[Control]:
 		burst_label,
 		spirit_label,
 		spirit_bar,
+		people_label,
 		hint_label,
 		rescued_label,
 		targeting_label,

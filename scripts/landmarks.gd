@@ -8,12 +8,18 @@ extends Node3D
 #   Bell tower: border members within LANDMARK_BELL_RADIUS take x LANDMARK_BELL_LOSS_MULT of the gloom's drain.
 # A boost applies only while its landmark is held; the next update after the border drops it takes it away.
 
+# Walls and gates: Defences (#16). A landmark's defence type was unlocked by claiming it, for the rest of the night.
+signal defence_unlocked(index: int)
+
 const BANDSTAND := 0
 const GARDEN := 1
 const BELL_TOWER := 2
 const GALLERY := 3
 
 var items: Array[Landmark] = []
+# Walls and gates: Defences (#16). The landmarks claimed so far, in the order they were claimed (a landmark that is
+# lost again stays unlocked).
+var unlock_order: Array[int] = []
 
 
 # Creates the landmark nodes (call once, after adding this node to the level).
@@ -35,6 +41,35 @@ func rebuild_look() -> void:
 func update(delta: float, border: Border) -> void:
 	for lm: Landmark in items:
 		lm.update(delta, border.landmark_beautified(lm.index))
+		if lm.is_held():
+			unlock(lm.index)
+
+
+# Walls and gates: Defences (#16). Unlocks the defence of landmark `index` (once). Returns true when it was new.
+func unlock(index: int) -> bool:
+	if index < 0 or index >= items.size() or unlock_order.has(index):
+		return false
+	unlock_order.append(index)
+	defence_unlocked.emit(index)
+	return true
+
+
+func is_unlocked(index: int) -> bool:
+	return unlock_order.has(index)
+
+
+# The unlocked defence types in landmark order.
+func unlocked_types() -> Array[int]:
+	var out: Array[int] = []
+	for i: int in range(items.size()):
+		if unlock_order.has(i):
+			out.append(i)
+	return out
+
+
+# The most recently unlocked type, or -1 when none is.
+func last_unlocked() -> int:
+	return -1 if unlock_order.is_empty() else unlock_order[unlock_order.size() - 1]
 
 
 func is_held(index: int) -> bool:

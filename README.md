@@ -19,10 +19,16 @@ mode was retired.)
   urgent). **G** or **Q** clears dimmed people off the border with a joy burst.
 - **Rescues pull the line:** each cell beside your border shows pips. Rescuing someone who belongs to that cell fills
   one; at three the cell is ready. Cells never join by themselves: **E** (hold, point, release) takes a cell. A ready
-  cell glows gold on the ground and the minimap and is free; any other cell beside the border glows blue and costs 25
-  spirit. Each gate shows the people on it against the people it needs (3/4, red when short) and the take preview shows
-  the people the new gates need against the free ones. People never refuse a take: a short line is shared out thinly.
+  cell is a filled gold square tagged **Free** on the ground and the minimap; any other cell beside the border is a blue
+  outline tagged **25** (its spirit cost). Every cell beside the border shows its pips as "2/3". Each gate shows the
+  people on it against the people it needs (3/4, red when short), one line under the spirit meter says it plainly
+  ("People: 31 on the line, 23 short" or "54 on the line, 6 spare"), and the take preview says "+5 gates: 18 more
+  people" (or "covered by spare people"). People never refuse a take: a short line is shared out thinly.
   A gate being pushed glows coral from across the screen (and an edge pointer shows when it is off screen).
+- **Defences:** claiming a landmark unlocks its defence for the night. **F** (hold, point at a gate, release) plants it;
+  one per gate, four in all, each staffed by the nearest member of the line. Bandstand weakens pushers, Garden keeps the
+  gate from breaking, Gallery keeps the cells beside it, and the Bell tower rings a free burst when its gate is pressed
+  hard (every 20 s at most). The wheel changes the type while F is held. A defence whose gate closes is handed back.
 - **Wobble, burst and first light (round 24):** a border person who is drained too far **wobbles** (greys and sways) for
   about five seconds before they relapse, and a joy hit in that time saves them. A joy burst lifts every dimmed person
   near you, and joy wins a dimmed person back faster. In the last 45 seconds **first light** closes in as a ring from
@@ -46,7 +52,7 @@ mode was retired.)
 - **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered (its pips count the four hits left) · ! = faltering. The night
   introduces them one at a time, with a short one-time prompt each.
 - **Keys:** WASD move · Shift run · G or Q
-  joy burst · **E** = take a block (hold, point, release; right-click cancels) · Mouse point at people (F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look ·
+  joy burst · **E** = take a block (hold, point, release; right-click cancels) · **F** = plant a defence at a gate (hold, point at the gate, release; the wheel changes the type) · Mouse point at people (F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look ·
   R restart · M menu
 
 ## How to run
@@ -139,6 +145,7 @@ element, and F3 labels it above the person.
 ## Controls
 
 - **WASD** move, **Shift** run. **E** (hold, point at a cell beside your border, release) takes it; right-click cancels.
+  **F** (hold, point at a gate, release) plants a defence there; right-click cancels, the wheel changes the type.
 - **Click** a person to lock on (in lock-on mode). The default is **hover**: the person under the mouse becomes the
   target. **F2** cycles the modes: lock-on, hover (default) and auto (the most urgent person in range).
 - Every shot uses the target's element, so it is always a best match. Music is quick and small, art is slow and big

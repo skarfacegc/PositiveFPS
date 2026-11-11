@@ -24,6 +24,7 @@ var border: Border
 var burst_cue: BurstCue  # Round 22 (round 26: no patches): the burst cue and marks.
 var gate_marks: GateMarks  # Grid fixes: the people count and the push glow on each gate (#56).
 var take_block: TakeBlock  # Walls and gates: hold E to take a block (#10); the rescue pips (#11) are drawn here too.
+var defences: Defences  # Walls and gates: hold F to plant a defence at a gate (#15, #16); the people numbers (#75).
 var first_light: FirstLight  # Round 24: the dawn front of the last 45 s.
 var wobble_alert: WobbleAlert  # Checkpoint 5: the edge pointers toward off-screen wobblers.
 var spirit_warmth: SpiritWarmth  # Checkpoint 5: spare spirit warms the border.
@@ -118,6 +119,7 @@ func _ready() -> void:
 	burst_cue = BurstCue.attach(self)
 	take_block = TakeBlock.attach(self)
 	gate_marks = GateMarks.attach(self)
+	defences = Defences.attach(self)
 	first_light = FirstLight.attach(self)
 	wobble_alert = WobbleAlert.attach(self)
 	spirit_warmth = SpiritWarmth.attach(self)

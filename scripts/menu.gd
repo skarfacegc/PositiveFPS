@@ -5,8 +5,9 @@ extends Control
 
 const TOP_DOWN_SCENE := "res://topdown.tscn"
 const STYLED_NOTE := "Styled look: visual test only — not the current game."
-# Checkpoint 5 follow-up: wider (was 760) so the longer Keys line stays two lines at 720p.
-const HOW_TO_PLAY_WIDTH := 880
+# Checkpoint 5 follow-up: wider (was 760) so the longer Keys line stays two lines at 720p. Walls and gates: Defences
+# (#15): wider again (was 880) for the defences paragraph.
+const HOW_TO_PLAY_WIDTH := 1120
 const HOW_TO_PLAY_FONT := 18
 const HOW_TO_PLAY_TEXT := (
 	"[center][font_size=26][b]How to play[/b][/font_size][/center]\n"
@@ -19,12 +20,16 @@ const HOW_TO_PLAY_TEXT := (
 	+ "out of reach), and gloomy tides roll in and shove it. The line bends inward where it is pushed and snaps if "
 	+ "pushed too far. Joy at the dimmed ones weakens their push; joy at the bending folk makes them push back.\n"
 	+ "[b]Rescues:[/b] Rescuing people beside your line fills pips on the cell they belong to. "
-	+ "At three pips E takes the glowing cell free; other cells beside the line cost 25 spirit.\n"
+	+ "At three pips E takes the filled cell free; an outlined cell costs 25 spirit. The people line under the "
+	+ "spirit meter says how many are on the line, short or spare.\n"
+	+ "[b]Defences:[/b] Claim a landmark, then hold F at a gate to plant its defence (the wheel picks the type). "
+	+ "Each takes one member off the line: one per gate, four in all.\n"
 	+ "[b]Spirit:[/b] Helping fills it. G (joy burst) lifts dimmed people off the border and lets it spring back. "
 	+ "At zero you go dim.\n"
 	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered ·"
 	+ "! faltering.\n"
 	+ "[b]Keys:[/b] WASD move · Shift run · hold E to take a block, release to take it (right-click cancels) · "
+	+ "hold F to plant a defence at a gate · "
 	+ "G or Q burst · "
 	+ "Mouse point "
 	+ "(F2 targeting) · Wheel zoom · F3 debug · F4 look · R restart · M menu"

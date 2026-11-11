@@ -18,8 +18,8 @@ enum Mark { NONE, PAID, FREE }
 
 const NO_CELL := Vector2i(-99, -99)
 const LINE_Y := 0.3
-const PIP_HALF := 0.35
-const PIP_STEP := 1.0
+const PIP_HALF := 0.65  # Walls and gates: Capture polish (#75): larger pips (were 0.35 and 1.0).
+const PIP_STEP := 1.9
 
 var level: TopDownMain
 var holding := false
@@ -38,6 +38,8 @@ var _drawn_holding := false
 var _drawn_marks := -1
 var _styled_root: Node3D
 var _label: Label3D
+# Walls and gates: Capture polish (#75). The tag and pips label on every cell next to the zone: cell -> Label3D.
+var _cell_labels: Dictionary = {}
 # The cells that pulse after a take: {"cell": Vector2i, "left": float}.
 var _pulses: Array[Dictionary] = []
 
@@ -153,16 +155,42 @@ func is_pulsing(cell: Vector2i) -> bool:
 	return false
 
 
-# What the preview label says: the price of the cell, then the people the new gates need against the free people.
+# What the preview label says: the price of the cell, then the gates it adds and the people they need beyond the ones
+# you have ("+5 gates: 18 more people", or "+2 gates: covered by spare people").
 func preview_text() -> String:
 	var valid: bool = preview.get("valid", false)
 	if not valid:
 		return ""
-	var needed: int = preview["members_needed"]
 	var price := (
 		"Free: ready" if level.border.pips.is_ready(target_cell) else "%d spirit" % int(BorderConfig.TAKE_SPIRIT_COST)
 	)
-	return "%s\nPeople: need %d, free %d" % [price, needed, _rescued_count()]
+	var after: Array = preview["gates"]
+	var added := after.size() - level.border.zone.gates.size()
+	var gates_word := "gate" if absi(added) == 1 else "gates"
+	var more := _more_people_needed()
+	var people := "%d more people" % more if more > 0 else "covered by spare people"
+	return "%s\n%+d %s: %s" % [price, added, gates_word, people]
+
+
+# The people the previewed cell's gates need beyond the people you have free (those not on a defence).
+func _more_people_needed() -> int:
+	var needed: int = preview.get("members_needed", 0)
+	var have: int = level.defences.people_numbers()["available"]
+	return maxi(needed - have, 0)
+
+
+# The label on a cell next to the zone: the tag ("Free", or the price for a paid cell; none when it is not takeable now)
+# over the pips as "2/3". Empty for a cell that is not next to the zone.
+func cell_label_text(c: Vector2i) -> String:
+	if not level.border.zone.can_take(c):
+		return ""
+	var pips := "%d/%d" % [level.border.pips.filled(c), BorderConfig.TAKE_RESCUES]
+	match mark_of(c):
+		Mark.FREE:
+			return "%s\n%s" % [DefenceConfig.CAPTURE_FREE_TAG, pips]
+		Mark.PAID:
+			return "%d\n%s" % [int(BorderConfig.TAKE_SPIRIT_COST), pips]
+	return pips
 
 
 func _update_label() -> void:
@@ -174,10 +202,53 @@ func _update_label() -> void:
 		_label.text = text
 	var centre := TownGrid.cell_centre(target_cell)
 	_label.position = Vector3(centre.x, BorderConfig.GATE_COUNT_HEIGHT + 1.2, centre.z)
-	var needed: int = preview["members_needed"]
 	_label.modulate = (
-		BorderConfig.GATE_COUNT_SHORT_COLOUR if needed > _rescued_count() else BorderConfig.GATE_COUNT_OK_COLOUR
+		BorderConfig.GATE_COUNT_SHORT_COLOUR if _more_people_needed() > 0 else BorderConfig.GATE_COUNT_OK_COLOUR
 	)
+
+
+# One label per cell next to the zone, made and removed as the cells change (both looks draw them).
+func _sync_cell_labels() -> void:
+	var wanted: Dictionary = {}
+	for c: Vector2i in TownGrid.all_cells():
+		var text := cell_label_text(c)
+		if text == "":
+			continue
+		wanted[c] = true
+		var label := _cell_label(c)
+		if label.text != text:
+			label.text = text
+		var centre := TownGrid.cell_centre(c)
+		label.position = Vector3(centre.x, DefenceConfig.CAPTURE_LABEL_HEIGHT, centre.z)
+		match mark_of(c):
+			Mark.FREE:
+				label.modulate = Color(BorderConfig.TAKE_MARK_FREE_COLOUR, 1.0)
+			Mark.PAID:
+				label.modulate = Color(BorderConfig.TAKE_MARK_PAID_COLOUR, 1.0)
+			_:
+				label.modulate = DefenceConfig.CAPTURE_LABEL_NONE_COLOUR
+	for key: Variant in _cell_labels.keys():
+		var gone: Vector2i = key
+		if not wanted.has(gone):
+			var old: Label3D = _cell_labels[gone]
+			old.queue_free()
+			_cell_labels.erase(gone)
+
+
+func _cell_label(c: Vector2i) -> Label3D:
+	if _cell_labels.has(c):
+		var have: Label3D = _cell_labels[c]
+		return have
+	var label := Label3D.new()
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.pixel_size = DefenceConfig.CAPTURE_LABEL_PIXEL_SIZE
+	label.font_size = DefenceConfig.CAPTURE_LABEL_FONT_SIZE
+	label.outline_size = 14
+	label.outline_modulate = Color(0.1, 0.08, 0.06, 0.9)
+	add_child(label)
+	_cell_labels[c] = label
+	return label
 
 
 # Takes `cell` (free when its pips are full, else for the spirit cost), or refuses with the slim banner when spirit is
@@ -281,6 +352,7 @@ func _draw_all() -> void:
 		child.queue_free()
 	_mesh.clear_surfaces()
 	_draw_marks()
+	_sync_cell_labels()
 	if _drawn_styled:
 		_draw_styled(zone, holding and valid)
 		return
@@ -299,8 +371,8 @@ func _draw_all() -> void:
 	_surface(pip_off, _mat(Color(0.5, 0.5, 0.5)))
 
 
-# The glow on every takeable cell (free and paid look different) and the pulse on cells just taken. Flat quads on the
-# ground; both looks draw them.
+# The glow on every takeable cell and the pulse on cells just taken. Flat quads on the ground; both looks draw them.
+# Free and paid differ in shape as well as colour (#75): a free cell is filled, a paid one is an outline.
 func _draw_marks() -> void:
 	var free_pts := Array()
 	var paid_pts := Array()
@@ -309,7 +381,7 @@ func _draw_marks() -> void:
 		if kind == Mark.FREE:
 			_add_quad(free_pts, TownGrid.cell_rect(c))
 		elif kind == Mark.PAID:
-			_add_quad(paid_pts, TownGrid.cell_rect(c))
+			_add_frame(paid_pts, TownGrid.cell_rect(c))
 	_triangles(free_pts, _alpha_mat(BorderConfig.TAKE_MARK_FREE_COLOUR))
 	_triangles(paid_pts, _alpha_mat(BorderConfig.TAKE_MARK_PAID_COLOUR))
 	for pulse: Dictionary in _pulses:
@@ -377,6 +449,25 @@ func _add_quad(pts: Array, r: Rect2) -> void:
 	var c := Vector3(q.end.x, y, q.end.y)
 	var d := Vector3(q.position.x, y, q.end.y)
 	pts.append_array([a, b, c, a, c, d])
+
+
+# Four thin quads making an outline just inside `r`, flat on the ground.
+func _add_frame(pts: Array, r: Rect2) -> void:
+	var q := r.grow(-BorderConfig.TAKE_MARK_INSET)
+	var w := DefenceConfig.CAPTURE_OUTLINE_WIDTH
+	var strips: Array[Rect2] = [
+		Rect2(q.position, Vector2(q.size.x, w)),
+		Rect2(Vector2(q.position.x, q.end.y - w), Vector2(q.size.x, w)),
+		Rect2(Vector2(q.position.x, q.position.y + w), Vector2(w, q.size.y - 2.0 * w)),
+		Rect2(Vector2(q.end.x - w, q.position.y + w), Vector2(w, q.size.y - 2.0 * w)),
+	]
+	var y := BorderConfig.TAKE_MARK_Y
+	for s: Rect2 in strips:
+		var a := Vector3(s.position.x, y, s.position.y)
+		var b := Vector3(s.end.x, y, s.position.y)
+		var c := Vector3(s.end.x, y, s.end.y)
+		var d := Vector3(s.position.x, y, s.end.y)
+		pts.append_array([a, b, c, a, c, d])
 
 
 func _add_seg(pts: Array, a: Vector2, b: Vector2) -> void:

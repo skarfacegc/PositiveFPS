@@ -364,6 +364,29 @@ class GatesTest(unittest.TestCase):
         self.assertEqual(calm.split(), ["breaks", "in", "calm", "0", "0.00", "/min"])
 
 
+class DefencesTest(unittest.TestCase):
+    def test_plants_refusals_hand_backs_and_bells_are_counted_and_listed(self):
+        events = [
+            {"t": 20.0, "type": "defence_plant", "gate": 2, "defences": 1, "kind": "Garden"},
+            {"t": 30.0, "type": "defence_refused", "reason": "no_member"},
+            {"t": 31.0, "type": "defence_refused", "reason": "no_member"},
+            {"t": 40.0, "type": "defence_returned", "gate": 2, "reason": "gate_closed"},
+            {"t": 50.0, "type": "bell_ring", "gate": 3, "bend": 0.55, "lifted": 4},
+        ]
+        text = "\n".join(ar.defence_lines(ar.analyse(events)))
+        self.assertIn("DEFENCES (walls and gates): 1 planted (Garden 1), 2 refused", text)
+        self.assertIn("(no_member 2), 1 handed back, 1 bell rings", text)
+        self.assertIn("plant at t=20 s: Garden at gate 2, 1 defences now", text)
+        self.assertIn("handed back at t=40 s", text)
+        self.assertIn("bell at t=50 s: gate 3, bent 0.55, 4 lifted", text)
+        self.assertIn("seconds from the start to the first defence: 20", text)
+
+    def test_an_old_recording_has_an_empty_defences_section(self):
+        old = [{"t": 0.0, "type": "session_start"}, {"t": 30.0, "type": "session_end", "outcome": "quit"}]
+        text = "\n".join(ar.defence_lines(ar.analyse(old)))
+        self.assertIn("DEFENCES (walls and gates): 0 planted (none), 0 refused (none), 0 handed back, 0 bell rings", text)
+
+
 class MarksTest(unittest.TestCase):
     def test_a_mark_lists_its_time_phase_and_the_events_10_seconds_either_side(self):
         events = sorted(synthetic() + [
