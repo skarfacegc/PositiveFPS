@@ -167,6 +167,11 @@ Guides a Godot style test (round 6 or later). Mockups: design/style_mockups*.htm
   have a Python tool draw a top-down replay with a time slider and a heatmap of where people bunch or stick, as one
   HTML page. It would have proved the 0.3.3 snag ("logs no member positions, so the cause is unproven"). Keep the
   file small (rounded positions, short keys).
+- **Rename to Mirthwood** (#89, S; chosen 2026-11-11): "PositiveFPS" no longer fits a top-down territory game.
+  Mirthwood came out of a naming talk (Rekindle and its variants were taken many times on Steam and itch.io).
+  **Before building, review the change with the user again**: confirm the name still feels right, run a fresh
+  Steam / itch.io / domain check, and agree the scope (player-facing title, window and exe name, README and docs, or
+  also the repo, folder and code identifiers).
 
 Wider world and level progression ideas: see `VISION.md`.
 
