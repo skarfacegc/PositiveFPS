@@ -329,6 +329,18 @@ refusal. First defences planted: 2 at the Gallery (t=143 s and 159 s), one hande
 - F (defences, #15) "did something, still not entirely clear": what is unclear is **whether it helped**. Noted on #15
   (0.5 Why expand): a defence needs visible feedback that it made a difference.
 
+### Walls and gates: Surge on the radar (#91; planned 2026-11-12)
+
+**Why.** Played 2026-11-12: the surge reads now, but the radar should show the pulse, and the street names in the banner
+("the south street") are not obvious. The user's call: mark it on the radar and drop the name from the banner.
+
+**Build** (one Haiku agent, size XS; visual and text only, no timing or push change):
+1. **Radar pulse.** The minimap's surge mark pulses with the same beats as the edge pointer and banner
+   (`SURGE_PULSE_SECONDS` / `SURGE_PULSE_BEATS`): at the warning and again at the soon mark, it swells and brightens.
+2. **No street names on screen.** The warning, soon and start banners say what is happening without naming the street
+   or its end, and point the player to the radar (gloom terms only). The street names stay internal: the recorder,
+   signals and analyser keep them.
+
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; moved to 0.5 Why expand 2026-11-11)
 
 Tests are frame-bound: the 2400-frame border test sets the suite's floor. Let people, gloom and border advance on a
