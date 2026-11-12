@@ -3070,3 +3070,59 @@ coverage ratchet needed more recorder and defence tests (commit after the merge)
 976 lines against the 1000 cap. Tide tests became surge tests (`gloom_tide_test`, `gloom_tide_edges_test`,
 `border_push_test`, `checkpoint7_test`, `edge_cleanup_test`); `edge_ribbon_test` and `gate_marks_test` adjusted for
 staffed gates.
+
+## 0.4 Walls and gates: Cleanup passes A and B (Done 2026-11-11 after a clean-agent review)
+
+The user cannot review tooling work by playing, so a fresh read-only Sonnet agent checked each item against its plan
+and the commits (tooling unit tests: 61 passed). It agreed on the seven below, which moved to Done. Small notes it
+raised, not worth reopening: the missing-weights warning lives in `run_tests.py` (#63); the "57 commits ahead" line in
+Current state goes stale with every commit (#77); `git log/diff/show *` and `run_tests.py *` in the allow list also
+permit `--output=` and `--update-weights` (#66, low risk); ARCHITECTURE.md's coordinator notes still say the test-times
+file comes from the "last full plain run" (#80; since #76 every full run writes it). Playtest skill (#78), Housekeeping
+(#65) and Trim docs (#71) stayed open (see IDEAS.md).
+
+### Cleanup: Test timings (#76, S)
+`.git/positivefps-test-times.json`, which `run_tests.py` plans from, was last written on 2026-11-09: it holds 15
+deleted suites and nothing for 8 live ones (`take_block_test`, `zone_test`, `border_gates_test`, `gate_marks_test`,
+`border_misc_test`, `style_grid_test`, `recorder_blocks_test`, `recorder_shots_test`). An untimed test counts as 0.5 s,
+so all of them land in the "under 5 s" fast tier on every commit and the parallel plan cannot balance them. Only a
+full plain run writes the file, and a pass ends with coverage runs. Save the times from every full run (plain or
+instrumented, scaled if needed), drop entries for tests that are gone, and cover it in `tools/test_run_tests.py`.
+Do it together with Test weights (#63).
+
+### Cleanup: Stale state (#77, XS)
+"Current state" above has facts that are no longer true: `origin/main` is `3d52b58`, not `fc2a37c`, and local main
+is 47 commits ahead; it points to a "Round 26 build" section "below" that has moved to `IDEAS_RESOLVED.md`; "Watch
+in the next playtest" says 10 m streets (they are 12 m, and `README.md` line 68 says 10 m too); the Recorder line
+says the analyser still reads the old `gap_*` names, but `analyse_recording.py` already maps them; the open items
+say "checked 2026-11-07". Correct each against the code.
+
+### Cleanup: Coordinator rules (#79, S)
+`CLAUDE.md` is 8 KB and every build agent loads it, but about 70% (the board, the target loop, keeping targets
+cheap, parallel builds) is for the coordinating session only. Keep "Rules for every agent", the targets and
+versions summary and the pointers in `CLAUDE.md`; move the rest to a coordinator skill or doc that only the main
+session loads, and remove what the three skills repeat. No rule is dropped or weakened.
+
+### Cleanup: Agent tool notes (#80, XS)
+The brief template sends every agent to ARCHITECTURE.md's "Quality gate and tools", about 30 dense lines, most of
+them about `round_end.py`, the board, the dashboard, `perf_compare.py` and cache internals. Split it into a short
+agent part (own suites, `--check-files`, lint, `godot_run.py`, the source map) and a coordinator part, and stop the
+template restating the `CLAUDE.md` rules it already tells agents to read. Do it with Coordinator rules (#79).
+
+### Cleanup: Test weights (#63, XS)
+`tools/test_weights.json` has 203 entries for tests that no longer exist (15 whole suites, such as `beacon_test`) and
+no entry for 233 of the 801 live tests, which then count as 0.5 s. The fast tier ("under 5 s") and the parallel
+scheduling both use these numbers, so a slow new level test can slip into every commit's hook. Run
+`run_tests.py --update-weights`, make the update drop entries for tests that are gone, and have the gate or
+`board.py scan` warn when more than about 10% of tests have no weight.
+
+### Cleanup: Search noise (#64, S)
+About 126 MB of `design/` (renders, mockups, `gap_pulse.html` at 1.6 MB) is tracked and makes up most of the 60 MB
+pack; it, `addons/gdUnit4` (508 files) and `IDEAS_RESOLVED.md` (220 KB) show up in broad Grep/Glob searches. Add a root
+`.ignore` (ripgrep skips it; direct reads still work) for `design/`, `addons/` and `IDEAS_RESOLVED.md`. Decide whether
+the renders move out of git (LFS, or untracked with a note).
+
+### Cleanup: Permissions (#66, XS)
+`.claude/settings.json` allows about 14 commands; `run_tests.py`, `gate.py`, `source_map.py` and read-only git commands
+are missing, so they prompt (a round trip each, and a stall for background agents). Build the list with the
+`fewer-permission-prompts` skill.
