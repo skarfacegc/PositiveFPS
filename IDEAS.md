@@ -204,7 +204,8 @@ tools and docs passes touch no gameplay files, so they can also run while the us
 1. **Cleanup pass A, quick wins** (one Haiku pass): Test timings (#76), Test weights (#63), Stale state (#77),
    Playtest skill (#78), Search noise (#64), Housekeeping (#65), Permissions (#66).
 2. **Cleanup pass B, agent docs** (one pass): Coordinator rules (#79), Agent tool notes (#80), Trim docs (#71).
-3. **Lighter tests** (#69, Sonnet), once pass A has refreshed the timings. Rule stepping (#18) serves the same goal
+3. **Slowest tests** (#88, Sonnet), the first slice of Lighter tests, added 2026-11-11.
+4. **Lighter tests** (#69, Sonnet), once pass A has refreshed the timings. Rule stepping (#18) serves the same goal
    but moved to 0.5 on 2026-11-11, so Lighter tests goes first.
 
 Still Backlog, as filler beside playtests: History out of code (#67), Unused constants (#68),
@@ -288,6 +289,17 @@ serial, the slowest 20-43 s each (`reactions_test` arms, `stagger_test` nine sec
 gap). Many check rules that already live in pure code (`BorderShape`, `Zone`, `TownGrid`, `DawnRating`, the night
 clock). Test the rule as a unit test and keep one level test per feature; step the clock instead of playing 2000+
 frames for timing rules. No threshold or perf budget is loosened. Sonnet.
+
+### Cleanup: Slowest tests (#88, S)
+The parallel gate can finish no sooner than its slowest single test. From `tools/test_weights.json` (2026-11-11):
+892 tests, about 1,137 s serial; the 64 tests of 5 s or more are 64% of it, and eight take over 20 s each:
+`border_gates_test` settle-on-gates (48 s) and never-inside-a-block (22.5 s), `stagger_test` nine-seconds-apart
+(39 s), both `pressure_balance_test` surge tests (30 s, 25 s), `edge_pressure_test` cannot-get-inside (25.5 s),
+`push_defence_test` weakened-pushers (21 s), `edge_ribbon_test` both-looks (20.4 s). Make each one cheaper without
+weakening what it checks: test the rule as a unit test where it lives in pure code, shorten the setup (fewer people, a
+closer start, one look where the look does not matter), or step the clock for timing rules. Target: none over 10 s.
+No threshold or perf budget is loosened; stop and report a test that cannot be made cheaper honestly. Run
+`run_tests.py --update-weights` after. The rest of #69 follows.
 
 ### Cleanup: Styled-look tier (#72, M)
 25 suites switch to the styled look, and many of their tests pin art details (for example a bandstand luminance above
