@@ -87,7 +87,7 @@ placeholder, `tide_pointer` still is.
 - The player's jog barely differs from the walk in the styled look. (#27)
 - Sound cues: not designed yet. (#25)
 - The town is dense for how it plays and the game does not flow yet. Decided 2026-11-09: the town becomes a grid the
-  line follows (walls and gates, block by block); see the 0.4 plan. (#55, #56)
+  line follows (walls and gates, block by block); see the 0.4 plan.
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Walls and gates's push and pull. (#22)
 - The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
@@ -107,9 +107,9 @@ placeholder, `tide_pointer` still is.
   together break a gate in about 25 to 30 s; one alone never does.
 - Pass 3: does a short-handed gate read as thin (people further apart) and does it now need you? Does losing a cell
   feel fair? Is the surge's warning seen wherever you are, and is one surge enough tension? Are defences worth a member
-  each? After the capture polish (#75): can you tell free from paid, pips, and people free against needed at a glance?
+  each? After the capture polish: can you tell free from paid, pips, and people free against needed at a glance?
 
-**Recorder:** breaks are logged as `break_open` / `break_close` (#23); `analyse_recording.py` reads the old `gap_open` / `gap_close` names too and renames them.
+**Recorder:** breaks are logged as `break_open` / `break_close`; `analyse_recording.py` reads the old `gap_open` / `gap_close` names too and renames them.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
 **0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #12 to #14 stay In review, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
@@ -163,7 +163,7 @@ Guides a Godot style test (round 6 or later). Mockups: design/style_mockups*.htm
 - Extra elements: food/cooking and play/sport (five elements also make a clean cycle); new elements could unlock via rebuilt buildings (bakery, playground) with new people of that affinity. (#28)
 - Building to unlock mapping (music shop: guitar upgrades, garden centre: flower variants, cafe: healing item). (#29)
 - Enemy tiers and bosses: light routine people as the bulk, grey normal, dark spreaders rarer and tougher; bosses such as a heavily gloomed figure with a big aura, in a dedicated later target. (#30)
-- Visual progression: the town goes from desaturated to full colour as it is rebuilt; the placeholder look is plain, a richer style comes in look-focused targets. (#2, largely built in 0.3 Living town)
+- Visual progression: the town goes from desaturated to full colour as it is rebuilt; the placeholder look is plain, a richer style comes in look-focused targets. (largely built in 0.3 Living town)
 - From the 0.3.1 playtests: butterfly styling (#46); the push and storm need more impact and more room to play around, to discuss (#47).
 - **Recorder replay** (#62, M): every 2 s, log the position and stage of every person and member (and the gates), and
   have a Python tool draw a top-down replay with a time slider and a heatmap of where people bunch or stick, as one
@@ -172,7 +172,7 @@ Guides a Godot style test (round 6 or later). Mockups: design/style_mockups*.htm
 
 Wider world and level progression ideas: see `VISION.md`.
 
-## 0.5 Why expand (sketch; from the #82 design talk, 2026-11-11)
+## 0.5 Why expand (sketch; from the design talk, 2026-11-11)
 
 0.4 stays on the mechanics (walls, gates, pressure); this is the content for the next target. The 0.4 pass 3
 playtest showed the problem: expanding costs about 5 gates and 20 people a cell and gives little back (16% ground barely
@@ -331,8 +331,8 @@ no gate in range). Answers:
 - Lost cells: fair, but the surge warning was missed. Wants a sound cue and a much bigger fog visual (#81).
 - Defences: no reason to plant one; capturing ground was already going well. The wider theme is **why expand, what is
   there**: the boosts are thin. To explore in a design conversation first, covering cells that give things, landmarks
-  that matter more, and pressure that punishes staying small (#82; talked through 2026-11-11, see "0.5 Why expand").
-- Capture cues: mostly clear, needs polish (no detail given). #75 accepted (Done).
+  that matter more, and pressure that punishes staying small (talked through 2026-11-11, see "0.5 Why expand").
+- Capture cues: mostly clear, needs polish (no detail given). Accepted (Done).
 - #12 to #16 stay In review: they work, refine in the next pass and play again.
 - Moved 2026-11-11: Defences (#15, #16) go to 0.5 Why expand, still In review; #12 to #14 stay in 0.4.
 
