@@ -85,7 +85,7 @@ placeholder, `tide_pointer` still is.
 **Open items** (listed 2026-11-11; each one's issue id is on the board):
 - Gap arrows now sit at the edge of the safe band, so a gap straight north shows its arrow part way down the screen. (#24)
 - The player's jog barely differs from the walk in the styled look. (#27)
-- Sound cues: not designed yet. (#25)
+- Sound cues: not designed yet; first wanted for the surge warning (from #81, 2026-11-12). (#25)
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Walls and gates's push and pull. (#22)
 - The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
@@ -289,6 +289,22 @@ no gate in range). Answers:
 - #12 to #16 stay In review: they work, refine in the next pass and play again.
 - Moved 2026-11-11: Defences (#15, #16) go to 0.5 Why expand, still In review; #12 to #14 stay in 0.4.
 - Moved 2026-11-11: #12 (stretched line is thin) goes to Backlog with no target, as built; the user dropped it for now. #14 is next.
+
+### Walls and gates: Surge warning (#14, #81; planned 2026-11-12)
+
+**Why.** In the pass 3 playtest the surge's lost cells felt fair, but the warning was missed. #12 went to Backlog
+(2026-11-11), so #14 is the 0.4 item being refined. The user's call (2026-11-12): **visual only**; the sound cue part of
+#81 goes to the sound discussion (#25). No change to timing or strength (40 s warning, 50 s push, `SURGE_PUSH` 1.5).
+
+**Build** (one Sonnet agent, size S):
+1. **A much bigger fog.** From the start of the warning the fog reads at a glance: taller than the buildings so it shows
+   over blocks at play zoom, spilling past the street's width, and denser early in the warning (now 0 rising to 0.5).
+   Both looks: the placeholder band and figures, and the styled cloud (StylePush) that follows it. The user asked for
+   this cue, so it is the one styled change in this pass; checkpoint screenshots are not refreshed.
+2. **A warning you notice wherever you are.** The edge pointer and the banner pulse when the warning starts and again
+   at the "soon" mark (`SURGE_SOON_SECONDS`), so a player busy elsewhere sees it.
+3. **Proof:** visual only, so the determinism check gives the same lines; the surge tests stay green. New constants go
+   in `night_config.gd` under the surge block.
 
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; moved to 0.5 Why expand 2026-11-11)
 
