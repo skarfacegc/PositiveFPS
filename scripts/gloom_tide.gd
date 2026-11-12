@@ -29,11 +29,13 @@ var main: TopDownMain
 var surge: Dictionary = {}
 var pointer: TidePointer  # The edge pointer (placeholder look), shown during the warning.
 var fog: MeshInstance3D  # The fog band (placeholder look), shown through the warning and the surge.
+var fog_volume: MeshInstance3D  # The tall box of the placeholder fog (child of `fog`, shares its material).
 var figures: Array[MeshInstance3D] = []  # Dark figures walking in the fog (children of `fog`).
 var styled_fog: Node3D  # The styled fog banks and figures (shown in the styled look, see StylePush).
 var styled_figures: Array[Node3D] = []  # The styled figures, children of `styled_fog`.
 var wave_force: float = 0.0  # The force the surge puts on the line now (before the night's strength).
 var front: float = 0.0  # Metres down the street the fog's leading edge has got to.
+var pulse_count: int = 0  # How many times the warning pulsed the pointer and the banner (the warning, then "soon").
 var _rng := RandomNumberGenerator.new()
 var _pointer_since: float = 0.0
 
@@ -271,10 +273,12 @@ func _advance() -> void:
 		main.intro.notice(Intro.Prompt.TIDE, NightConfig.SURGE_WARN_TEXT % [street["end_name"], street["name"]])
 		surge_warned.emit(street_name, surge["angle"])
 		refresh_pointer()
+		_pulse_warning()
 	if surge["warned"] and not surge["soon"] and now >= start - NightConfig.SURGE_SOON_SECONDS:
 		surge["soon"] = true
 		var street: Dictionary = streets()[surge["street"]]
 		main.intro.notice(Intro.Prompt.TIDE, NightConfig.SURGE_SOON_TEXT % street["name"])
+		_pulse_warning()
 	if surge["warned"] and not surge["started"] and now >= start:
 		surge["started"] = true
 		pointer.hide_pointer()
@@ -287,6 +291,13 @@ func _advance() -> void:
 		surge["ended"] = true
 		var street: Dictionary = streets()[surge["street"]]
 		surge_ended.emit(_label(street), surge["angle"], _members_on_target())
+
+
+# Surge warning: the edge pointer and the banner swell (visual only), at the warning and again at the "soon" mark.
+func _pulse_warning() -> void:
+	pulse_count += 1
+	pointer.pulse()
+	main.intro.pulse()
 
 
 # A street's label for the recorder and the signals: the end it comes from and the street, "north end of the far east".
@@ -407,7 +418,8 @@ func fog_density() -> float:
 	match phase():
 		Phase.WARNING:
 			var start: float = surge["start"]
-			return 0.5 * smoothstep(start - NightConfig.SURGE_WARN_SECONDS, start, main.night.elapsed)
+			var rise := smoothstep(start - NightConfig.SURGE_WARN_SECONDS, start, main.night.elapsed)
+			return lerpf(NightConfig.SURGE_FOG_START_DENSITY, 0.5, rise)
 		Phase.SURGE:
 			var f := progress()
 			return (
@@ -431,7 +443,7 @@ func _place_fog() -> void:
 	mat.albedo_color = Color(c.r, c.g, c.b, NightConfig.TIDE_FOG_ALPHA * density)
 	styled_fog.position = fog.position
 	styled_fog.rotation = fog.rotation
-	styled_fog.scale.y = maxf(density, 0.02)
+	styled_fog.scale.y = clampf(density / NightConfig.SURGE_FOG_FULL_DENSITY, 0.02, 1.0)
 	_set_fog_shown(density > 0.01)
 	if styled_fog.visible:
 		StylePush.set_length(styled_fog, NightConfig.SURGE_FOG_WIDTH)
@@ -494,11 +506,22 @@ func _build_fog() -> void:
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mat.albedo_color = NightConfig.TIDE_FOG_COLOUR
 	fog.material_override = mat
+	# Surge warning: a tall volume over the plane, so the fog shows over the blocks (a block is 3 m, the fog 6 m).
+	fog_volume = MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(NightConfig.SURGE_FOG_WIDTH, NightConfig.SURGE_FOG_HEIGHT, NightConfig.TIDE_FOG_DEPTH)
+	fog_volume.mesh = box
+	fog_volume.position.y = NightConfig.SURGE_FOG_HEIGHT * 0.5 - NightConfig.TIDE_FOG_Y
+	fog_volume.material_override = mat
+	fog_volume.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	fog.add_child(fog_volume)
 	fog.visible = false
 	_build_figures()
 	main.add_child(fog)
 	# The placeholder plane is not noted as a fallback: the styled storm cloud below covers it.
-	styled_fog = StylePush.build_fog(main, NightConfig.SURGE_FOG_WIDTH, NightConfig.TIDE_FOG_DEPTH)
+	styled_fog = StylePush.build_fog(
+		main, NightConfig.SURGE_FOG_WIDTH, NightConfig.TIDE_FOG_DEPTH, NightConfig.SURGE_FOG_HEIGHT
+	)
 	styled_fog.visible = false
 	for i: int in range(NightConfig.TIDE_FIGURES):
 		var fig := StylePush.build_figure(styled_fog)

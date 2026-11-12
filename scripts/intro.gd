@@ -22,6 +22,7 @@ var night: NightCycle
 # The prompt on show (a Prompt value, or -1 for none), the seconds it has left, and the ones waiting.
 var current: int = -1
 var time_left: float = 0.0
+var pulse_left: float = 0.0  # Seconds the banner's surge pulse has to go.
 # Round 22: a notice (a refusal or a fall-back) stays NOTICE_SECONDS and may carry its own words (the plan's reason);
 # it is drawn coral (`coral`). The ordinary prompts keep PROMPT_SECONDS. Round 26: every prompt and notice is a slim
 # banner under the night bar (`big` stays true), one at a time.
@@ -86,6 +87,16 @@ func notice(id: int, words: String = "") -> void:
 	time_left = duration
 
 
+# Surge warning: makes the banner on show swell for NightConfig.SURGE_PULSE_SECONDS (PromptBar reads pulse_amount).
+func pulse() -> void:
+	pulse_left = NightConfig.SURGE_PULSE_SECONDS
+
+
+# How big the banner's pulse is now, 0 (none) to 1.
+func pulse_amount() -> float:
+	return TidePointer.pulse_shape(pulse_left)
+
+
 # Grid fixes: a notice for something good (a block taken): the same slim banner, but warm instead of coral.
 func calm_notice(id: int, words: String) -> void:
 	notice(id, words)
@@ -132,6 +143,7 @@ func check_level(main: TopDownMain, delta: float) -> void:
 
 # Counts the current prompt down and moves on to the next one in the queue.
 func update(delta: float) -> void:
+	pulse_left = maxf(pulse_left - delta, 0.0)
 	if current < 0:
 		return
 	time_left -= delta

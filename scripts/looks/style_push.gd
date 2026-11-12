@@ -12,7 +12,7 @@ const SHADER := "res://shaders/style_cloud.gdshader"
 
 # The cloud: a MultiMesh of puffs (child 0 of the returned node, which stands at the fog's height) at most `width`
 # metres long and `depth` deep. `set_length` then lays the puffs out for the stretch being pushed.
-static func build_fog(parent: Node3D, width: float, depth: float) -> Node3D:
+static func build_fog(parent: Node3D, width: float, depth: float, top: float = StyleConfig.L31_FOG_TOP) -> Node3D:
 	var root := Node3D.new()
 	parent.add_child(root)
 	var quad := QuadMesh.new()
@@ -38,6 +38,7 @@ static func build_fog(parent: Node3D, width: float, depth: float) -> Node3D:
 	mi.custom_aabb = AABB(Vector3(-width, -4.0, -depth * 2.0), Vector3(width * 2.0, 12.0, depth * 4.0))
 	root.add_child(mi)
 	root.set_meta("depth", depth)
+	root.set_meta("top", top)
 	root.set_meta("length", -1.0)
 	set_length(root, minf(width, StyleConfig.L31_FOG_MIN_LENGTH))
 	return root
@@ -58,7 +59,7 @@ static func fog_length(distance: float) -> float:
 # The puffs of a cloud `length` metres long and `depth` deep: position (x along the band, z across it, y up from
 # the fog's origin, which stands TIDE_FOG_Y above the ground), diameter and colour. Rows near the middle of the
 # depth, and puffs near the middle of the length, are darker, bigger and more opaque; the ends and edges taper off.
-static func layout_puffs(length: float, depth: float) -> Array[Dictionary]:
+static func layout_puffs(length: float, depth: float, top: float = StyleConfig.L31_FOG_TOP) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var along := maxi(2, ceili(length / StyleConfig.L31_FOG_SPACING))
 	var rows := maxi(1, StyleConfig.L31_FOG_ROWS)
@@ -78,8 +79,8 @@ static func layout_puffs(length: float, depth: float) -> Array[Dictionary]:
 			var z := zn * depth * 0.4 + (h1 - 0.5) * depth * 0.1
 			var colour := edge.lerp(core, clampf(heart * 1.1, 0.0, 1.0))
 			colour.a = lerpf(0.55, 1.0, heart)
-			# The blob's height is L31_FOG_TOP for the biggest puff; its bottom rests on the ground.
-			var height := StyleConfig.L31_FOG_TOP * size / (1.1 * StyleConfig.L31_FOG_PUFF)
+			# The blob's height is `top` for the biggest puff; its bottom rests on the ground.
+			var height := top * size / (1.1 * StyleConfig.L31_FOG_PUFF)
 			var y := height * 0.5 - NightConfig.TIDE_FOG_Y
 			out.append({"pos": Vector3(x, y, z), "size": size, "height": height, "colour": colour})
 	return out
@@ -93,7 +94,8 @@ static func set_length(fog: Node3D, length: float) -> void:
 	fog.set_meta("length", length)
 	var depth: float = fog.get_meta("depth", NightConfig.TIDE_FOG_DEPTH)
 	var mm := (fog.get_child(0) as MultiMeshInstance3D).multimesh
-	var puffs := layout_puffs(length, depth)
+	var top: float = fog.get_meta("top", StyleConfig.L31_FOG_TOP)
+	var puffs := layout_puffs(length, depth, top)
 	var n := mini(puffs.size(), mm.instance_count)
 	for i: int in range(n):
 		var p: Dictionary = puffs[i]

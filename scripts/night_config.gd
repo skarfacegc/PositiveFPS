@@ -83,7 +83,7 @@ const SURGE_FADE := 0.2  # The push (and the fog) fade over the last share of th
 const SURGE_STREET_REACH := 0.25  # Metres beyond half a street's width within which a gate counts as meeting it.
 const SURGE_CHILL := 0.45  # How far the light cools toward SURGE_CHILL_COLOUR at the height of a warning or surge.
 const SURGE_CHILL_COLOUR := Color(0.5, 0.62, 0.82)
-const SURGE_FOG_WIDTH := 16.0  # Metres across the street the fog band spreads (a street is 12 m wide).
+const SURGE_FOG_WIDTH := 26.0  # Metres across the street the fog band spreads (a street is 12 m wide; was 16).
 const SURGE_WARN_TEXT := "The gloom is gathering at the %s end of the %s street"  # %s: the end, then the street.
 const SURGE_SOON_TEXT := "The gloom is close: hold the %s street"
 const SURGE_START_TEXT := "The gloom is surging down the %s street"
@@ -91,6 +91,16 @@ const SURGE_PLAIN_TEXT := "A gloomy surge is coming"  # The prompt's own line, w
 const SURGE_MINIMAP_LENGTH := 30.0  # Metres of the street the minimap marks from its far end.
 const SURGE_MINIMAP_BANDS := 3
 const SURGE_MINIMAP_STEP := 1.2  # Metres between two bands of the mark.
+
+# Walls and gates: Surge warning (#14, #81). Visual only: a big fog the moment the warning starts, and a pulse of the
+# edge pointer and the banner when the warning starts and again at the "soon" mark. Nothing here touches the rules.
+const SURGE_FOG_HEIGHT := 6.0  # Metres the fog stands (a built block is 3 m: the fog shows over the blocks).
+const SURGE_FOG_START_DENSITY := 0.3  # The fog's density the moment the warning starts (it rises to 0.5 by the push).
+const SURGE_FOG_FULL_DENSITY := 0.3  # The styled cloud stands at its full height from this density up.
+const SURGE_PULSE_SECONDS := 2.4  # How long one pulse of the pointer and the banner lasts.
+const SURGE_PULSE_BEATS := 3.0  # Swells in one pulse.
+const SURGE_PULSE_POINTER := 1.2  # How much bigger the pointer swells at the top of a beat (a share of its size).
+const SURGE_PULSE_BANNER := 16.0  # Pixels the banner grows each way at the top of a beat.
 
 # The fog band and its dark figures (the placeholder look; the styled look has its own, see StylePush).
 const TIDE_HALF_WIDTH := PI / 4.0  # StylePush.fog_length: the stretch a cloud covers seen from the centre.

@@ -19,6 +19,7 @@ var main: TopDownMain
 var big: bool = true
 var coral: bool = false
 var font_px: int = FONT_SIZE  # The text size of the bar on show (a banner may shrink it to fit).
+var pulse: float = 0.0  # Surge warning: how big the banner's pulse is now, 0 to 1 (it swells the banner).
 var _rect := Rect2()
 var _showing: bool = false
 
@@ -48,6 +49,10 @@ func tick(screen: Rect2) -> void:
 	var elapsed := intro.duration - intro.time_left
 	alpha = clampf(minf(elapsed / fade, intro.time_left / fade), 0.0, 1.0)
 	_rect = _place(screen)
+	pulse = intro.pulse_amount()
+	if pulse > 0.0:
+		_rect = _rect.grow(NightConfig.SURGE_PULSE_BANNER * pulse)
+		alpha = 1.0
 	queue_redraw()
 
 
