@@ -2803,7 +2803,7 @@ so an agent tuning one system searches both.
    `coverage_baseline.json` gets the new file paths (never a lower total). Regenerate SOURCE_MAP.md and update
    ARCHITECTURE.md (script map, areas, tuning).
 
-**Built (2026-11-09, merged `ffe5e44`; In review, no playtest).** `config_base.gd` is gone: the 783 constants are in
+**Built (2026-11-09, merged `ffe5e44`; no playtest). Done 2026-11-11.** `config_base.gd` is gone: the 783 constants are in
 18 per-system scripts (`scripts/*_config.gd`, listed in ARCHITECTURE.md "Tuning"); `beacon_config.gd` and
 `round_loop_config.gd` hold what pass 2 deletes. `config.gd` keeps the shared core and helpers. `topdown_main.gd` is
 about 230 lines (was 860) and builds and calls ten new system scripts (`plaza`, `camera_rig`, `target_highlight`,

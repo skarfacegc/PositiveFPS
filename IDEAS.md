@@ -254,7 +254,7 @@ keeps the 100% floor.
 
 Planned as rounds 27 and 28 before the switch to targets. **Order** (confirmed by the user, 2026-11-09: code health
 first, then the gameplay changes):
-- **Pass 1, Reorg** (#3, #4): the code-health items. No gameplay change, so no playtest: the gate, the determinism
+- **Pass 1, Reorg** (#3, #4; Done 2026-11-11): the code-health items. No gameplay change, so no playtest: the gate, the determinism
   check and the timings are the proof. (Quick wins were done in 0.3.3.)
 - **Pass 2, Grid and Line** and **pass 3, Pressure and Defences:** Walls and gates on the reorganised layout (reshaped
   2026-11-09: the town becomes a grid and the line follows it).
