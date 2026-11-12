@@ -8,6 +8,7 @@ extends Control
 var shown: bool = false
 var tip := Vector2.ZERO
 var dir := Vector2.UP
+var pulse_left: float = 0.0  # Seconds the current pulse has to go (see pulse).
 
 
 func _ready() -> void:
@@ -30,14 +31,44 @@ func hide_pointer() -> void:
 	queue_redraw()
 
 
+# Surge warning: swells the pointer for NightConfig.SURGE_PULSE_SECONDS (the warning and the "soon" mark ask for it).
+func pulse() -> void:
+	pulse_left = NightConfig.SURGE_PULSE_SECONDS
+	queue_redraw()
+
+
+# How big the pulse is now, 0 (none) to 1 (the top of a beat).
+func pulse_amount() -> float:
+	return pulse_shape(pulse_left)
+
+
+# The size of a pulse with `left` seconds to go, 0 to 1: SURGE_PULSE_BEATS swells that die away (the pointer and the
+# banner share it).
+static func pulse_shape(left: float) -> float:
+	if left <= 0.0:
+		return 0.0
+	var t := clampf(1.0 - left / NightConfig.SURGE_PULSE_SECONDS, 0.0, 1.0)
+	return absf(sin(t * PI * NightConfig.SURGE_PULSE_BEATS)) * (1.0 - t * 0.5)
+
+
+func _process(delta: float) -> void:
+	if pulse_left <= 0.0:
+		return
+	pulse_left = maxf(pulse_left - delta, 0.0)
+	queue_redraw()
+
+
 func _draw() -> void:
 	if not shown:
 		return
+	var swell := 1.0 + NightConfig.SURGE_PULSE_POINTER * pulse_amount()
 	var col := NightConfig.TIDE_POINTER_COLOUR
-	var centre := tip - dir * (NightConfig.TIDE_POINTER_ARROW + NightConfig.TIDE_POINTER_RING)
-	draw_circle(centre, NightConfig.TIDE_POINTER_RING, Color(col.r, col.g, col.b, 0.2))
-	draw_arc(centre, NightConfig.TIDE_POINTER_RING, 0.0, TAU, 24, col, 2.0, true)
+	var ring := NightConfig.TIDE_POINTER_RING * swell
+	var arrow := NightConfig.TIDE_POINTER_ARROW * swell
+	var centre := tip - dir * (arrow + ring)
+	draw_circle(centre, ring, Color(col.r, col.g, col.b, 0.2 + 0.3 * pulse_amount()))
+	draw_arc(centre, ring, 0.0, TAU, 24, col, 2.0, true)
 	var side := Vector2(-dir.y, dir.x)
-	var base := tip - dir * NightConfig.TIDE_POINTER_ARROW
-	var a := NightConfig.TIDE_POINTER_ARROW * 0.6
+	var base := tip - dir * arrow
+	var a := arrow * 0.6
 	draw_colored_polygon(PackedVector2Array([tip, base + side * a, base - side * a]), col)

@@ -282,20 +282,20 @@ extends RefCounted | 0 const | Shared gloom rules for the top-down territory gam
 ### scripts/gloom_tide.gd (GloomTide)
 extends Node | 0 const | Walls and gates: Pressure (#14). One surge a night replaces the two gloom tides (the class keeps its old na...
 signals: surge_warned(street: String, angle: float), surge_started(street: String, angle: float, members: int), surge_ended(street: String, angle: float, members: int)
-- L42 `static attach(level: TopDownMain) -> GloomTide` - Builds the schedule, the fog band and the edge pointer, and wires them to `level`. One line in TopDownMain.
-- L61 `update(delta: float) -> void` - Advances the surge by the night's clock and applies it: the warning, the start and the end (with their sign...
-- L73 `phase() -> int` - Where the surge is now (see Phase).
-- L85 `is_up() -> bool` - True from the warning until the surge ends (the fog and the pointer are up).
-- L91 `progress() -> float` - How far through the push the surge is, 0 (not started) to 1 (over).
-- L99 `push_share() -> float` - How hard the surge pushes now, 0 to 1: it builds as the front arrives and fades over the last SURGE_FADE of...
-- L109 `pushed_gates() -> Dictionary` - The gates the surge pushes and their shares: the gate it meets at 1, the gates either side of that one (nex...
-- L128 `refresh_pointer() -> void` - Works the edge pointer out now: its tip sits where the ray from the screen centre toward the street's far e...
-- L148 `static side_name(angle: float) -> String` - The compass name of a side (north is -z, as the camera sees it: north is up the screen).
-- L162 `static streets() -> Array[Dictionary]` - Every street the surge can come down: each of the town's four vertical and four horizontal streets from eit...
-- L203 `static street_meets(street: Dictionary, gates: Array[Dictionary]) -> Dictionary` - The first gate of `gates` the surge down `street` meets: a gate facing the way it comes from, whose line li...
-- L232 `static candidates(gates: Array[Dictionary]) -> Array[int]` - The streets (indexes into streets()) whose surge would meet a gate of `gates`.
-- L394 `front_distance() -> float` - How far down the street the fog's leading edge is. In the warning it sits at the far end; in the surge it r...
-- L406 `fog_density() -> float` - How solid the fog is now, 0 to 1: it thickens through the warning, holds through the surge and thins at the...
+- L44 `static attach(level: TopDownMain) -> GloomTide` - Builds the schedule, the fog band and the edge pointer, and wires them to `level`. One line in TopDownMain.
+- L63 `update(delta: float) -> void` - Advances the surge by the night's clock and applies it: the warning, the start and the end (with their sign...
+- L75 `phase() -> int` - Where the surge is now (see Phase).
+- L87 `is_up() -> bool` - True from the warning until the surge ends (the fog and the pointer are up).
+- L93 `progress() -> float` - How far through the push the surge is, 0 (not started) to 1 (over).
+- L101 `push_share() -> float` - How hard the surge pushes now, 0 to 1: it builds as the front arrives and fades over the last SURGE_FADE of...
+- L111 `pushed_gates() -> Dictionary` - The gates the surge pushes and their shares: the gate it meets at 1, the gates either side of that one (nex...
+- L130 `refresh_pointer() -> void` - Works the edge pointer out now: its tip sits where the ray from the screen centre toward the street's far e...
+- L150 `static side_name(angle: float) -> String` - The compass name of a side (north is -z, as the camera sees it: north is up the screen).
+- L164 `static streets() -> Array[Dictionary]` - Every street the surge can come down: each of the town's four vertical and four horizontal streets from eit...
+- L205 `static street_meets(street: Dictionary, gates: Array[Dictionary]) -> Dictionary` - The first gate of `gates` the surge down `street` meets: a gate facing the way it comes from, whose line li...
+- L234 `static candidates(gates: Array[Dictionary]) -> Array[int]` - The streets (indexes into streets()) whose surge would meet a gate of `gates`.
+- L405 `front_distance() -> float` - How far down the street the fog's leading edge is. In the warning it sits at the far end; in the surge it r...
+- L417 `fog_density() -> float` - How solid the fog is now, 0 to 1: it thickens through the warning, holds through the surge and thins at the...
 
 ### scripts/grabs.gd (Grabs)
 extends Node | 0 const | Round 12a, dance with the gloom: dimmed people within GRAB_RANGE of a player who is not dim start a grab. A...
@@ -344,17 +344,19 @@ extends RefCounted | 0 const | Checkpoint 6: the rectangle the edge pointers sta
 
 ### scripts/intro.gd (Intro)
 extends RefCounted | 0 const | Round 13b, the layered introduction through the night. It is driven by the night's progress (NightCycle), s...
-- L47 `dimmed_allowed() -> bool` - True once dimmed people may emerge (the calm opening is over). Always true when the intro is off.
-- L54 `mood_active(mood: int) -> bool` - True when `mood` (a Person.Mood) is switched on. Always true when the intro is off.
-- L65 `request(id: int, at: Vector3 = Vector3.INF) -> bool` - Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and alway...
-- L78 `notice(id: int, words: String = "") -> void` - Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the i...
-- L90 `calm_notice(id: int, words: String) -> void` - Grid fixes: a notice for something good (a block taken): the same slim banner, but warm instead of coral.
-- L96 `current_text() -> String` - The words of the prompt on show (a notice may carry its own).
-- L102 `check_level(main: TopDownMain, delta: float) -> void` - Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
-- L134 `update(delta: float) -> void` - Counts the current prompt down and moves on to the next one in the queue.
-- L162 `static prompt_for_mood(mood: int) -> int` - The prompt for a mood (Person.Mood).
-- L172 `static text_for(id: int) -> String` - The short line of a prompt (the icon sits beside it).
-- L200 `static icon_for(id: int) -> int` - The icon (MoodIcons.Kind) that goes with a prompt.
+- L48 `dimmed_allowed() -> bool` - True once dimmed people may emerge (the calm opening is over). Always true when the intro is off.
+- L55 `mood_active(mood: int) -> bool` - True when `mood` (a Person.Mood) is switched on. Always true when the intro is off.
+- L66 `request(id: int, at: Vector3 = Vector3.INF) -> bool` - Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and alway...
+- L79 `notice(id: int, words: String = "") -> void` - Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the i...
+- L91 `pulse() -> void` - Surge warning: makes the banner on show swell for NightConfig.SURGE_PULSE_SECONDS (PromptBar reads pulse_am...
+- L96 `pulse_amount() -> float` - How big the banner's pulse is now, 0 (none) to 1.
+- L101 `calm_notice(id: int, words: String) -> void` - Grid fixes: a notice for something good (a block taken): the same slim banner, but warm instead of coral.
+- L107 `current_text() -> String` - The words of the prompt on show (a notice may carry its own).
+- L113 `check_level(main: TopDownMain, delta: float) -> void` - Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
+- L145 `update(delta: float) -> void` - Counts the current prompt down and moves on to the next one in the queue.
+- L174 `static prompt_for_mood(mood: int) -> int` - The prompt for a mood (Person.Mood).
+- L184 `static text_for(id: int) -> String` - The short line of a prompt (the icon sits beside it).
+- L212 `static icon_for(id: int) -> int` - The icon (MoodIcons.Kind) that goes with a prompt.
 
 ### scripts/joy_projectile.gd (JoyProjectile)
 extends Node3D | 6 const | A joy projectile for top-down mode. It has no physics body: each physics frame it steers, moves, and checks
@@ -823,14 +825,14 @@ extends Node3D | 37 const | Checkpoint 7: street props in the styled look. Lamp 
 
 ### scripts/looks/style_push.gd (StylePush)
 extends RefCounted | 1 const | The styled gloom tide. 0.3.1: the wave is a low, churning storm cloud (shaders/style_cloud.gdshader): rows...
-- L15 `static build_fog(parent: Node3D, width: float, depth: float) -> Node3D` - The cloud: a MultiMesh of puffs (child 0 of the returned node, which stands at the fog's height) at most `w...
-- L47 `static max_puffs(width: float) -> int` - The most puffs a cloud `width` metres long holds.
-- L53 `static fog_length(distance: float) -> float` - How long the cloud is for a wave whose middle stands `distance` metres from the border's centre: the chord...
-- L61 `static layout_puffs(length: float, depth: float) -> Array[Dictionary]` - The puffs of a cloud `length` metres long and `depth` deep: position (x along the band, z across it, y up from
-- L89 `static set_length(fog: Node3D, length: float) -> void` - Lays the puffs of `fog` out for a cloud `length` metres long (skipped when it is already about that long).
-- L109 `static puff_count(fog: Node3D) -> int` - How many puffs `fog` shows now.
-- L114 `static current_length(fog: Node3D) -> float` - The length `fog` is laid out for now.
-- L123 `static build_figure(parent: Node3D) -> Node3D` - One figure: a dark pixel body with a round head, standing on its origin (the base). The sway sets its posit...
+- L15 `static build_fog(parent: Node3D, width: float, depth: float, top: float = StyleConfig.L31_FOG_TOP) -> Node3D` - The cloud: a MultiMesh of puffs (child 0 of the returned node, which stands at the fog's height) at most `w...
+- L48 `static max_puffs(width: float) -> int` - The most puffs a cloud `width` metres long holds.
+- L54 `static fog_length(distance: float) -> float` - How long the cloud is for a wave whose middle stands `distance` metres from the border's centre: the chord...
+- L62 `static layout_puffs(length: float, depth: float, top: float = StyleConfig.L31_FOG_TOP) -> Array[Dictionary]` - The puffs of a cloud `length` metres long and `depth` deep: position (x along the band, z across it, y up from
+- L90 `static set_length(fog: Node3D, length: float) -> void` - Lays the puffs of `fog` out for a cloud `length` metres long (skipped when it is already about that long).
+- L111 `static puff_count(fog: Node3D) -> int` - How many puffs `fog` shows now.
+- L116 `static current_length(fog: Node3D) -> float` - The length `fog` is laid out for now.
+- L125 `static build_figure(parent: Node3D) -> Node3D` - One figure: a dark pixel body with a round head, standing on its origin (the base). The sway sets its posit...
 
 ### scripts/looks/style_take.gd (StyleTake)
 extends RefCounted | 13 const | 0.4 pass 2b (#58): the styled "take a block" preview and rescue pips, in the same toon and glow materials a...
@@ -924,7 +926,7 @@ extends Node | 0 const | Round 12b, read the person: the moods of unrescued wist
 - L95 `flee_dir(p: Person) -> Vector3` - The flat direction `p` backs away in: straight away from the point they fled from.
 
 ### scripts/night_config.gd (NightConfig)
-extends RefCounted | 60 const | The night: its length and strength curve, dimmed arrivals, first light and the gloom tides.
+extends RefCounted | 67 const | The night: its length and strength curve, dimmed arrivals, first light and the gloom tides.
 
 ### scripts/night_cycle.gd (NightCycle)
 extends RefCounted | 9 const | Dusk to dawn. The level lasts NIGHT_LENGTH seconds: dusk (warm light, grey normal) to midnight (dim blue, grey
@@ -1002,8 +1004,8 @@ extends RefCounted | 57 const | Joy projectiles (notes, paint, flowers), blooms,
 
 ### scripts/prompt_bar.gd (PromptBar)
 extends Control | 2 const | Round 13b: the one-time prompt of the layered introduction (see intro.gd). Round 26: a slim banner with an...
-- L32 `tick(screen: Rect2) -> void` - Reads the intro's current prompt and redraws. `screen` is the window rectangle.
-- L75 `rebuild_look() -> void` - The look was swapped (F4): draw again in the new style.
+- L33 `tick(screen: Rect2) -> void` - Reads the intro's current prompt and redraws. `screen` is the window rectangle.
+- L80 `rebuild_look() -> void` - The look was swapped (F4): draw again in the new style.
 
 ### scripts/push_config.gd (PushConfig)
 extends RefCounted | 37 const | The physical push on the line (scripts/border_push.gd).
@@ -1088,8 +1090,11 @@ extends MeshInstance3D | 0 const | The ring under the target's feet: a flat warm
 
 ### scripts/tide_pointer.gd (TidePointer)
 extends Control | 0 const | Round 25: the gloom tide's edge pointer. A grey ring and arrow at the screen edge, pointing toward the side...
-- L19 `show_at(at: Vector2, direction: Vector2) -> void` - Shows the pointer with its tip at `at` (window pixels) and its outward direction `direction` (a unit vector).
-- L26 `hide_pointer() -> void`
+- L20 `show_at(at: Vector2, direction: Vector2) -> void` - Shows the pointer with its tip at `at` (window pixels) and its outward direction `direction` (a unit vector).
+- L27 `hide_pointer() -> void`
+- L35 `pulse() -> void` - Surge warning: swells the pointer for NightConfig.SURGE_PULSE_SECONDS (the warning and the "soon" mark ask...
+- L41 `pulse_amount() -> float` - How big the pulse is now, 0 (none) to 1 (the top of a beat).
+- L47 `static pulse_shape(left: float) -> float` - The size of a pulse with `left` seconds to go, 0 to 1: SURGE_PULSE_BEATS swells that die away (the pointer...
 
 ### scripts/topdown_main.gd (TopDownMain)
 extends Node3D | 0 const | The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a...
@@ -1271,6 +1276,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 - style_props_032_test (tests/style_props_032_test.gd): 11 tests
 - style_props_plaza_test (tests/style_props_plaza_test.gd): 8 tests
 - style_scenery_test (tests/style_scenery_test.gd): 19 tests
+- surge_warning_test (tests/surge_warning_test.gd): 5 tests
 - take_block_test (tests/take_block_test.gd): 18 tests
 - targeting_test (tests/targeting_test.gd): 11 tests
 - topdown_crowd_test (tests/topdown_crowd_test.gd): 8 tests
