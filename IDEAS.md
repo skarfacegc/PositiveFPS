@@ -110,7 +110,7 @@ placeholder, `tide_pointer` still is.
 **Recorder:** breaks are logged as `break_open` / `break_close`; `analyse_recording.py` reads the old `gap_open` / `gap_close` names too and renames them.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
-**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 stays In review, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 and #81 (surge warning, built 2026-11-12) In review, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -305,6 +305,18 @@ no gate in range). Answers:
    at the "soon" mark (`SURGE_SOON_SECONDS`), so a player busy elsewhere sees it.
 3. **Proof:** visual only, so the determinism check gives the same lines; the surge tests stay green. New constants go
    in `night_config.gd` under the surge block.
+
+**Built (2026-11-12, merged `ecd22a7`; In review, to play).** Fog `SURGE_FOG_WIDTH` 26 m (was 16; a street is 12 m) and
+6 m tall (`SURGE_FOG_HEIGHT`; blocks are 3 m): the placeholder adds a tall box over the band, and the styled cloud is
+built to the same top. Fog density starts at 0.3 at the warning (`SURGE_FOG_START_DENSITY`, was 0) and rises to 0.5; the
+styled cloud stands at full height from the start. At the warning and again at the soon mark the edge pointer swells to
+2.2x with a stronger ring and the banner grows, 3 swells over 2.4 s (`SURGE_PULSE_*`). Timing and push unchanged. New
+`tests/surge_warning_test.gd` (5 tests). Gate `--full` 897 tests in 230 s; determinism the same 11564 lines; baseline
+updated. Nothing loosened. Not checked by eye: whether the placeholder box's transparency and the 26 m width read well
+at play zoom. The first determinism run failed in 18 units that the two passes had packed differently (the new suite's
+time was recorded in between; 0 lines differed in total); a fresh run of both passes was clean. Tool fix: #90.
+
+**To play:** is the surge warning seen now, wherever you are? Is the fog too big or too opaque?
 
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; moved to 0.5 Why expand 2026-11-11)
 
