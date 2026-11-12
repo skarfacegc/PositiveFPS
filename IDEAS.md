@@ -110,7 +110,7 @@ placeholder, `tide_pointer` still is.
 **Recorder:** breaks are logged as `break_open` / `break_close`; `analyse_recording.py` reads the old `gap_open` / `gap_close` names too and renames them.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
-**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 and #81 (surge warning, built 2026-11-12) In review, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 and #81 (surge warning) played and Done 2026-11-12, radar follow-up #91 in Backlog, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -195,7 +195,8 @@ defence was worth a member. Goal: ground worth holding. Not a plan yet; plan it 
   more spirit); **stronger joy (#87, S)**, spend for a short boost (wider, faster joy).
 - **Defences (#15, L) and landmark unlocks (#16, S), moved here from 0.4 on 2026-11-11:** built in 0.4 pass 3 and
   still In review. Nobody planted one because there was nothing worth defending, so they are judged again once ground
-  is worth holding. Decide in the 0.5 plan how the defence unlocks (#16) sit beside Landmark powers (#85).
+  is worth holding. Played 2026-11-12: 2 planted, but it was not clear whether a defence helped; it needs
+  visible feedback that it made a difference. Decide in the 0.5 plan how the defence unlocks (#16) sit beside Landmark powers (#85).
 - **Rule stepping (#18, L), moved here from 0.4 on 2026-11-11:** tooling, not content; 0.5 adds long-night balance
   tests, which is where it pays. Lighter tests (#69) stays in 0.4 and no longer waits on it.
 - **Not now:** pressure that punishes staying small (unheld blocks dimming their residents into pushers, or rising
@@ -317,6 +318,16 @@ at play zoom. The first determinism run failed in 18 units that the two passes h
 time was recorded in between; 0 lines differed in total); a fresh run of both passes was clean. Tool fix: #90.
 
 **To play:** is the surge warning seen now, wherever you are? Is the fog too big or too opaque?
+
+**Played (2026-11-12, `5729f42`, recording `20261112-185114`; #14 and #81 accepted, Done).** "A really good iteration."
+Win, 2/3 dawn lights (pass 3: 3/3), 39 rescued (45), 3 relapses (2), strict quiet 2.8% (15.1%). The surge warned at
+about 25 s and came down the south street from its west end at 65 s, meeting a gate with 0 members: 12 gate breaks and
+9 gaps in all, 0 cells lost in the surge (2 lost at 115 s through gate 0, at midnight). 4 takes (2 free, 2 paid), 1
+refusal. First defences planted: 2 at the Gallery (t=143 s and 159 s), one handed back when its gate closed. Answers:
+- The push is visible now. The radar should show the pulse too, and the street names are not obvious: the user's call is
+  to mark it on the radar and drop the name from the banner (#91, Backlog).
+- F (defences, #15) "did something, still not entirely clear": what is unclear is **whether it helped**. Noted on #15
+  (0.5 Why expand): a defence needs visible feedback that it made a difference.
 
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; moved to 0.5 Why expand 2026-11-11)
 
