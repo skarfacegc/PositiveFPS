@@ -1884,6 +1884,9 @@ and does it help hold midnight? Is the third dawn light now earned? Does the bor
 
 ## Resolved since they were last listed (moved 2026-11-07)
 
+- The town is dense for how it plays and the game does not flow yet. Decided 2026-11-09: the town becomes a grid the
+  line follows (walls and gates, block by block); see the 0.4 plan. (#55, #56) Resolved by 0.4 Walls and gates (the town grid).
+
 `topdown_main.gd` size (992 then 805
 lines, split into `crowd_movement.gd`); `config.gd` and `border.gd` near the 1000-line cap (now 444 and 821; `config_base.gd`
 and `border_shape.gd` hold the rest); the determinism check's 1088 differing lines and the `looks_*` wobble (the styled look

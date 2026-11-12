@@ -86,8 +86,6 @@ placeholder, `tide_pointer` still is.
 - Gap arrows now sit at the edge of the safe band, so a gap straight north shows its arrow part way down the screen. (#24)
 - The player's jog barely differs from the walk in the styled look. (#27)
 - Sound cues: not designed yet. (#25)
-- The town is dense for how it plays and the game does not flow yet. Decided 2026-11-09: the town becomes a grid the
-  line follows (walls and gates, block by block); see the 0.4 plan.
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Walls and gates's push and pull. (#22)
 - The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
