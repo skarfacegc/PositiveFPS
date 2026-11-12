@@ -200,28 +200,14 @@ defence was worth a member. Goal: ground worth holding. Not a plan yet; plan it 
 
 Found by two read-only reviews of tests, code, docs and token cost on 2026-11-11. **Targeted at 0.4 Walls and gates on 2026-11-11, in this order** (after pass 3, which is being built; the
 tools and docs passes touch no gameplay files, so they can also run while the user plays):
-1. **Cleanup passes A and B** are built. A clean-agent review on 2026-11-11 agreed on seven, now Done (see
-   `IDEAS_RESOLVED.md`); three stay In review with a gap each: Playtest skill (#78), Housekeeping (#65), Trim docs (#71).
-2. **Review leftovers** (one small Haiku pass, or by the coordinator): the three gaps below.
-3. **Slowest tests** (#88, Sonnet), the first slice of Lighter tests, added 2026-11-11.
-4. **Lighter tests** (#69, Sonnet), once pass A has refreshed the timings. Rule stepping (#18) serves the same goal
+1. **Cleanup passes A and B** are Done (2026-11-11, after a clean-agent review and a fix for its three gaps; see
+   `IDEAS_RESOLVED.md`).
+2. **Slowest tests** (#88, Sonnet), the first slice of Lighter tests, added 2026-11-11.
+3. **Lighter tests** (#69, Sonnet), once pass A has refreshed the timings. Rule stepping (#18) serves the same goal
    but moved to 0.5 on 2026-11-11, so Lighter tests goes first.
 
 Still Backlog, as filler beside playtests: History out of code (#67), Unused constants (#68),
 Styled-look tier (#72, needs the user's call on the coverage rule first), the checkpoint scripts (#74).
-
-### Cleanup: Playtest skill (#78, XS)
-`.claude/skills/launch-playtest/SKILL.md` step 5 tells the coordinator to quote a "PATCH EFFECT" section and to
-summarise "beacons", and calls the sections "round 23 sections"; patches and beacons are gone. Rewrite step 5 from
-what `tools/analyse_recording.py` prints now (its sections for takes, pips, gates and breaks).
-**Review 2026-11-11: partial.** The old sections are gone and the names match, but the skill says "in this order" and
-lists DAWN RATING before PRESSURE CURVE; the analyser prints it last, after MARKS, and only for a won night.
-
-### Cleanup: Housekeeping (#65, XS)
-Five agent worktrees in `.claude/worktrees` (one locked), three playtest worktrees in old scratchpads and 117 MB in
-`.scratch/`. Run `tools/cleanup_worktrees.py`, prune `.scratch`.
-**Review 2026-11-11: not done.** Eight agent worktrees remain (all at commits already in main), 14 merged
-`worktree-*` branches, and `.scratch/` is 119 MB. Clear them once no agent is running.
 
 ### Cleanup: History out of code (#67, L)
 707 comments carry `Round N:` or `Checkpoint N:` tags; 92 constant names have history prefixes (`C7_`, `L31_`, `L32_`,
@@ -234,13 +220,6 @@ concepts (arms, reach, beacon). Git history keeps the history. Rename by purpose
 11 config constants are never used (`REACT_PATCH_*`, `GLUM_SLUMP_SCALE`, `TOWN_BLOCK_HEIGHT`, `CUE_PLAYER_RANGE`,
 `CUE_ALPHA`, `WOBBLE_ALERT_BADGE`, `BORDER_LANDMARK_COLOUR`, `C7_LAMP_LEAN`, `L31_LAMP_HALO`) and 8 are used only by
 tests. Remove the dead ones and add a check to `lint.py` or `source_map.py`.
-
-### Cleanup: Trim docs (#71, S)
-The 0.4 plan is 23 KB of IDEAS.md's 40 KB; move the finished passes to IDEAS_RESOLVED.md and keep what is open. The
-border paragraph in ARCHITECTURE.md "Areas" is about 2 KB on one line: split it into short bullets. Merge memory notes
-that repeat CLAUDE.md (coordinator work, `consolidate-memory`).
-**Review 2026-11-11: partial.** The doc moves and the border bullets are done; the memory notes are not merged
-(`targets-and-versions`, `project-board-source-of-truth` and `board-size-by-token-cost` repeat the rules).
 
 ### Cleanup: Lighter tests (#69, L)
 65 of 89 suites boot the full level; tests simulate about 22,700 frames and the weighted tests add up to about 17 min
@@ -274,7 +253,7 @@ first, then the gameplay changes):
   check and the timings are the proof. (Quick wins were done in 0.3.3.)
 - **Pass 2, Grid and Line** and **pass 3, Pressure and Defences:** Walls and gates on the reorganised layout (reshaped
   2026-11-09: the town becomes a grid and the line follows it).
-- **Cleanup** (added 2026-11-11): the review leftovers (#78, #65, #71), then Slowest tests (#88) and Lighter tests
+- **Cleanup** (added 2026-11-11): cleanup passes A and B are done; next Slowest tests (#88) and Lighter tests
   (#69); the finished items are in `IDEAS_RESOLVED.md`. Order and detail in "Codebase cleanup" above.
 - **Rule stepping** (#18) moved to 0.5 Why expand on 2026-11-11.
 

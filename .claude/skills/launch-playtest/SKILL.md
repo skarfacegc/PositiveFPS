@@ -83,11 +83,12 @@ people rescued):
 - **THREAT CADENCE** (threats per minute by type, seconds between threats) and **GAP OPEN DURATIONS**; **DECISION
   DENSITY** (target changes per minute).
 - **FIGHTING BACK** (bursts and dimmed people cleared), **WOBBLES**, **SPARE SPIRIT**, **GAP BLINKS**, **FIRST LIGHT**
-  (starts and ends), **LANDMARKS** (claimed and lost, with times) and **DAWN RATING** (lights, people and ground shares).
+  (starts and ends) and **LANDMARKS** (claimed and lost, with times).
 - **PRESSURE CURVE** (15 s steps: mean dimmed, gaps and pressers, relapses, threats and rescued at the end of each
   step), **SURGE** (the street it came down, the members on the gate it met, and the wobbles, relapses, gate breaks,
   gaps and lost cells during it), **BLOCKS** (takes, free and paid, spirit paid), **GATES** (breaks and holds),
   **DEFENCES** (planted, refused, handed back, bell rings) and **MARKS** (F8 marks).
+- **DAWN RATING** (lights, people and ground shares, landmarks held), only when the night was won.
 - **STAGE COUNTS OVER TIME** (mean per 30 s: wistful, gloomy, dimmed, rescued, gaps, pressers).
 
 Quote the sections that answer the question (pressure and surge questions: PRESSURE CURVE and SURGE; walls and gates:

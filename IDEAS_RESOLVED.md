@@ -3126,3 +3126,30 @@ the renders move out of git (LFS, or untracked with a note).
 `.claude/settings.json` allows about 14 commands; `run_tests.py`, `gate.py`, `source_map.py` and read-only git commands
 are missing, so they prompt (a round trip each, and a stall for background agents). Build the list with the
 `fewer-permission-prompts` skill.
+
+### Review gaps fixed (2026-11-11, by the coordinator)
+- Playtest skill (#78): DAWN RATING now listed last, after MARKS, and only for a won night, as the analyser prints it.
+- Housekeeping (#65): the eight agent worktrees (all clean and merged) removed, 14 merged `worktree-*` branches
+  deleted, `.scratch/` pruned from 119 MB to 3 MB (entries from 7 to 9 November; today's kept).
+- Trim docs (#71): the three memory notes that repeated the board and target rules merged into one note of extras
+  (`board-and-targets`); memory went from 20 notes to 18.
+
+### Cleanup: Playtest skill (#78, XS)
+`.claude/skills/launch-playtest/SKILL.md` step 5 tells the coordinator to quote a "PATCH EFFECT" section and to
+summarise "beacons", and calls the sections "round 23 sections"; patches and beacons are gone. Rewrite step 5 from
+what `tools/analyse_recording.py` prints now (its sections for takes, pips, gates and breaks).
+**Review 2026-11-11: partial.** The old sections are gone and the names match, but the skill says "in this order" and
+lists DAWN RATING before PRESSURE CURVE; the analyser prints it last, after MARKS, and only for a won night.
+
+### Cleanup: Housekeeping (#65, XS)
+Five agent worktrees in `.claude/worktrees` (one locked), three playtest worktrees in old scratchpads and 117 MB in
+`.scratch/`. Run `tools/cleanup_worktrees.py`, prune `.scratch`.
+**Review 2026-11-11: not done.** Eight agent worktrees remain (all at commits already in main), 14 merged
+`worktree-*` branches, and `.scratch/` is 119 MB. Clear them once no agent is running.
+
+### Cleanup: Trim docs (#71, S)
+The 0.4 plan is 23 KB of IDEAS.md's 40 KB; move the finished passes to IDEAS_RESOLVED.md and keep what is open. The
+border paragraph in ARCHITECTURE.md "Areas" is about 2 KB on one line: split it into short bullets. Merge memory notes
+that repeat CLAUDE.md (coordinator work, `consolidate-memory`).
+**Review 2026-11-11: partial.** The doc moves and the border bullets are done; the memory notes are not merged
+(`targets-and-versions`, `project-board-source-of-truth` and `board-size-by-token-cost` repeat the rules).
