@@ -110,7 +110,7 @@ placeholder, `tide_pointer` still is.
 **Recorder:** breaks are logged as `break_open` / `break_close`; `analyse_recording.py` reads the old `gap_open` / `gap_close` names too and renames them.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
-**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #12 to #14 stay In review, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 stays In review, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -270,7 +270,7 @@ first, then the gameplay changes):
 - 25 cells with 20 built blocks, or a smaller 3 by 3 town with wider cells?
 - This also answers #47 (more room to play around the push): the gates are that room. Close #47 once pass 2 is played?
 
-### Walls and gates: Pass 3 playtest and open items (#12 to #14, In review)
+### Walls and gates: Pass 3 playtest and open items (#14 In review; #12 to Backlog)
 
 **Open for the user** (defaults used unless overruled): `GATE_LOST_SECONDS` 12; surge 40 s warning and 50 s push; four
 defences in all; defences cost a member each, no spirit (all used as built). Close #47 (room to play around the push) now that gates and
@@ -288,6 +288,7 @@ no gate in range). Answers:
 - Capture cues: mostly clear, needs polish (no detail given). Accepted (Done).
 - #12 to #16 stay In review: they work, refine in the next pass and play again.
 - Moved 2026-11-11: Defences (#15, #16) go to 0.5 Why expand, still In review; #12 to #14 stay in 0.4.
+- Moved 2026-11-11: #12 (stretched line is thin) goes to Backlog with no target, as built; the user dropped it for now. #14 is next.
 
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; moved to 0.5 Why expand 2026-11-11)
 
