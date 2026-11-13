@@ -223,6 +223,22 @@ func test_takeable_cells_pulses_and_the_preview_are_washes_in_the_styled_look() 
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
+func test_the_preview_panel_hides_when_neither_side_of_the_cell_is_clear_of_the_hud() -> void:
+	var s: Dictionary = await _start(true)
+	var td: TopDownMain = s["td"]
+	var take := td.take_block
+	var c := TownGrid.neighbours(TownGrid.start_cell())[0]
+	take.target_cell = c
+	var screen := td.get_viewport().get_visible_rect().size
+	assert_bool(HudSafeArea.usable(screen)).is_true()
+	# A minimap that covers the whole window leaves no clear spot on either side of the cell.
+	td.minimap.position = Vector2.ZERO
+	td.minimap.size = screen
+	take._sync_panel("25 spirit\n0/3 pips\n+2 gates", false, TownGrid.cell_centre(c))
+	assert_bool(take._panel.visible).is_false()
+	await TopDownTestUtil.leave_loaded_scene(td)
+
+
 func test_a_lost_cell_pulses_a_cold_wash_and_a_planted_defence_is_styled_furniture() -> void:
 	var s: Dictionary = await _start(true)
 	var td: TopDownMain = s["td"]

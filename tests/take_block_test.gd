@@ -415,3 +415,17 @@ func test_a_taken_cell_pulses_for_a_moment() -> void:
 	assert_bool(td.take_block.is_pulsing(c)).is_true()
 	await runner.simulate_frames(int(BorderConfig.TAKE_PULSE_SECONDS * 60.0) + 20)
 	assert_bool(td.take_block.is_pulsing(c)).is_false()
+
+
+func test_a_take_block_with_no_level_does_nothing_and_no_aim_means_no_cell() -> void:
+	var idle := TakeBlock.new()
+	idle._process(0.016)  # No level yet: nothing to do.
+	idle._cull_cell_labels()  # No labels: nothing to cull.
+	idle.free()
+	var s: Dictionary = await _start()
+	var td: TopDownMain = s["td"]
+	td.take_block.preview = {"valid": true}
+	td.player._has_aim = false
+	td.take_block._refresh()
+	assert_bool(td.take_block.target_cell == TakeBlock.NO_CELL).is_true()
+	assert_bool(td.take_block.preview.is_empty()).is_true()

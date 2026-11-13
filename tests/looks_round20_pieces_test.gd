@@ -64,6 +64,17 @@ func test_the_styled_alert_panel_still_draws_its_banner() -> void:
 	Looks.set_mode(Looks.Mode.PLACEHOLDER)
 
 
+func test_the_styled_alert_panel_draws_nothing_for_empty_text() -> void:
+	Looks.set_mode(Looks.Mode.STYLED)
+	var panel: StyledPanel = auto_free(StyledPanel.new())
+	panel.kind = StyledPanel.Kind.ALERT
+	add_child(panel)
+	panel.set_alert("", LandmarkConfig.LANDMARK_CLAIM_COLOUR)
+	panel._draw()
+	assert_str(panel.alert_text).is_equal("")
+	Looks.set_mode(Looks.Mode.PLACEHOLDER)
+
+
 # --- The round 19 flags
 # ----------------------------------------------------------------------------------------------
 

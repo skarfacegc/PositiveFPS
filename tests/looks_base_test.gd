@@ -142,3 +142,21 @@ func test_an_unrescued_person_with_enough_joy_is_rescued_on_the_next_tick() -> v
 	p._since_hit = 0.0
 	p.tick(1.0 / 60.0)
 	assert_bool(p.is_rescued).is_true()
+
+
+func test_the_fallback_summary_counts_live_objects_by_kind_and_forgets_freed_ones() -> void:
+	Looks.set_mode(Looks.Mode.STYLED)
+	var before := Looks.placeholder_fallback_count()
+	var a := Node.new()
+	var b := Node.new()
+	var gone := Node.new()
+	Looks.note_placeholder(a, "zz_probe")
+	Looks.note_placeholder(b, "zz_probe")
+	Looks.note_placeholder(gone, "zz_gone")
+	gone.free()
+	assert_int(Looks.placeholder_fallback_count()).is_equal(before + 2)
+	assert_str(Looks.fallback_summary()).contains("zz_probe x2")
+	assert_str(Looks.fallback_summary()).not_contains("zz_gone")
+	a.free()
+	b.free()
+	assert_str(Looks.fallback_summary()).not_contains("zz_probe")
