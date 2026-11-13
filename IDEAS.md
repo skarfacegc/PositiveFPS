@@ -110,7 +110,7 @@ placeholder, `tide_pointer` still is.
 **Recorder:** breaks are logged as `break_open` / `break_close`; `analyse_recording.py` reads the old `gap_open` / `gap_close` names too and renames them.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
-**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 and #81 (surge warning) played and Done 2026-11-12, radar follow-up #91 built 2026-11-12, In review, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 and #81 (surge warning) played and Done 2026-11-12, next pass planned 2026-11-13: Clean HUD and loop tuning, #92 and #93 Ready; radar follow-up #91 built 2026-11-12, In review, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -349,6 +349,69 @@ determinism the same 11572 lines (the first run again tripped on unit packing, #
 clean); baseline passed. Nothing loosened.
 
 **To play:** do you notice the radar pulse, and do the banners plus the radar tell you where the surge is coming from?
+
+### Walls and gates: Clean HUD and loop tuning (#92, #93; planned 2026-11-13)
+
+**Why.** The user's read (2026-11-12): "almost a game, some pieces are there, but it's not fun yet." A review of
+recording `20261112-185114` and its screenshots found:
+- The HUD is crowded: three message systems at once, labelled landmark pointers that overlap, world labels drawn through
+  HUD counters, and a controls strip that runs off the screen.
+- The reward dries up: 19 rescues in the first 45 s, 10 in the next 90 s; no target for 104 of 179 s.
+- Spirit is not scarce: full for 103 of 179 s, 106 overflowed.
+- Expanding is a trap: a paid take at 72 s left the line 18 short, gate 9 broke ten times and both new cells were lost
+  at 115 s; the night ended with 8% ground. The start square alone had 12 spare people.
+- The burst is weak: 3 bursts, 90 spirit, 1 dimmed person lifted.
+
+The supply of easy rescues is 0.5's job (Residents, #83). This pass cleans the screen and makes the three cheap tuning
+changes, so the next playtest judges the loop without the noise. Two independent parts, built in parallel.
+
+**Part "Clean HUD" (#92, M; one Sonnet agent).** Screen-space layout and text only; no rule changes. The layout applies
+in both looks, but no styled drawing is restyled and no checkpoint screenshot is refreshed. Files: `hud.gd`,
+`level_hud.gd`, `hud_config.gd`, `prompt_bar.gd`, `intro.gd`, `landmark_pointers.gd`, `gate_marks.gd`, `take_block.gd`
+(preview labels), `feedback_layer.gd`, `looks/landmark_look_placeholder.gd`.
+1. **Controls strip:** shown for the first 20 s of a night, then hidden; H shows it again while held (through
+   `controls.gd`). Shortened so it fits a 960 px wide window.
+2. **Landmark pointers:** an arrow and the landmark's icon or initial, no boost text. The boost text shows on the
+   landmark's own world label only.
+3. **One banner:** landmark claimed and lost, defence planted and "someone lost their joy" go through the slim banner
+   under the night bar. The big centre alert line is removed. Events beat tips: a mood tip never replaces or sits beside
+   an event banner, and waits until it has gone.
+4. **Take preview:** cost, pips and "+5 gates: 18 more people" in one small panel beside the cell, never stacked on each
+   other or on the banner.
+5. **World labels keep off the HUD:** cell tags, pips and gate counts are hidden where they would overlap a HUD panel
+   or the minimap (the same rectangles the edge pointers avoid, `HudSafeArea`).
+6. **Gate counts:** shown only when the gate is short and being pushed, or while E or F is held. A full gate shows
+   nothing.
+7. **Targeting mode:** "Targeting: Hover [F2]" moves to the F3 overlay; F2 still switches and says so in the banner.
+8. **Target line:** "Target: Art / No target" is removed; the player's ring colour already shows the element. The mood
+   stays as the icon over the person.
+9. **People line:** given a dark backing and moved clear of the spirit meter's marker.
+10. **Joy numbers:** one running total per person per second, not a pile of "+32 +64".
+
+Proof: layout tests that the HUD rectangles do not overlap at 960x540 and 1920x1080, and that only one banner shows at
+a time; the existing HUD tests updated to the new layout (an updated expectation is not a loosened one; say which).
+
+**Part "Loop tuning" (#93, S; one Haiku agent).** Rules and numbers; touches the simulation, so the determinism check
+runs after the merge and its lines will change. Files: `spirit_config.gd`, `zone.gd` / `border_config.gd` (people per
+gate), `burst_clear.gd`, `border_push.gd`.
+1. **Cheaper takes in people:** a gate asks for about one member per 6 m (now about 3.7 m), so a new cell wants about
+   12 people, not 20. The break rule still uses members / need.
+2. **Scarcer spirit:** `SPIRIT_PER_RESCUE` 20 to 10. Takes stay 25 and the burst stays 30.
+3. **A burst that mends:** a burst mends every break within `BURST_LIFT_RADIUS` at once (pushers are already shoved
+   back) and that gate is calm for `BURST_CALM_SECONDS`. The cue panel says "G: mend" when a break is in range.
+4. **Check, not change:** find out whether gate 9's ten `gate_break` events in 24 s were one break logged ten times or
+   a gate that re-breaks every few seconds, and report. Fix only if it is a logging fault.
+
+Proof: bot nights before and after (spirit mean, seconds at full spirit, takes, cells lost, gate breaks); tests that
+assert the old numbers are moved to the new ones and listed in the report. No `test_perf_*` budget or threshold is
+loosened.
+
+**Open for the user** (defaults above are used unless overruled): one member per 6 m; rescue pays 10; the burst mends
+at no extra cost; H as the help key; gate counts hidden unless short and pushed. Not in this pass: the third dawn light
+tied to ground held (wait for 0.5, when ground is worth something).
+
+**To play:** is the screen calmer, and is anything you relied on now missing? Does a take in the calm feel like a fair
+bet? Is spirit something you now think about? Is the burst the thing you reach for when a gate breaks?
 
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; moved to 0.5 Why expand 2026-11-11)
 
