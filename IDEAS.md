@@ -110,7 +110,7 @@ placeholder, `tide_pointer` still is.
 **Recorder:** breaks are logged as `break_open` / `break_close`; `analyse_recording.py` reads the old `gap_open` / `gap_close` names too and renames them.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
-**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 and #81 (surge warning) played and Done 2026-11-12, next pass planned 2026-11-13: Clean HUD and loop tuning, #92 and #93 Ready; radar follow-up #91 built 2026-11-12, In review, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 and #81 (surge warning) played and Done 2026-11-12, next pass planned 2026-11-13: Clean HUD and loop tuning, #92 and #93 being built 2026-11-13, then Slowest tests #88, Lighter tests #69 and the Style update #94 with #74; radar follow-up #91 built 2026-11-12, In review, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -213,7 +213,8 @@ tools and docs passes touch no gameplay files, so they can also run while the us
    but moved to 0.5 on 2026-11-11, so Lighter tests goes first.
 
 Still Backlog, as filler beside playtests: History out of code (#67), Unused constants (#68),
-Styled-look tier (#72, needs the user's call on the coverage rule first), the checkpoint scripts (#74).
+Styled-look tier (#72, needs the user's call on the coverage rule first). The checkpoint scripts (#74) were targeted
+at 0.4 on 2026-11-13 with the Style update (#94).
 
 ### Cleanup: History out of code (#67, L)
 707 comments carry `Round N:` or `Checkpoint N:` tags; 92 constant names have history prefixes (`C7_`, `L31_`, `L32_`,
@@ -412,6 +413,40 @@ tied to ground held (wait for 0.5, when ground is worth something).
 
 **To play:** is the screen calmer, and is anything you relied on now missing? Does a take in the calm feel like a fair
 bet? Is spirit something you now think about? Is the burst the thing you reach for when a gate breaks?
+
+### Walls and gates: Style update (#94, #74; planned 2026-11-13)
+
+**Why.** The user asked (2026-11-13) for a style update with the rest of 0.4, and chose all four parts: styled HUD
+catch-up, surge and radar polish, a town look pass, and fresh screenshots and README. Passes 2c and 3 and the Clean HUD
+pass changed the placeholder only, so the styled look is behind the game. A look-focused pass: the styled look,
+checkpoint shots and README may change; the placeholder look and the rules do not.
+
+**Build** (one Sonnet agent, size L; starts after Clean HUD (#92) and Loop tuning (#93) are merged). Files:
+`scripts/looks/style_*`, the styled branches of the HUD scripts, `tools/checkpoint*`, `design/renders/`, `README.md`.
+1. **Styled HUD catch-up.** The Clean HUD layout drawn in the styled look: the single banner, the take preview panel,
+   the slim landmark pointers (arrow and icon), the people line's backing, the per-second joy total. Fallback font
+   stays (pixel font is #26).
+2. **Passes 2c and 3 in the styled look.** Anything still drawn as a placeholder in styled mode: takeable-cell glow
+   (gold free, blue paid) and its tags, gate counts, the lost-cell grey pulse, planted defences, and the take preview's
+   faint glow plane (left over from #58).
+3. **Surge and radar polish.** The styled surge cloud at its new size (26 m by 6 m) shaped as a storm front, not a box;
+   a styled surge edge pointer (`tide_pointer`, the last placeholder piece of the push); the radar's surge mark and
+   pulse in the minimap's styled palette; a styled burst that shows a break mending (#93).
+4. **Town look pass** (defaults, no detail given by the user): held ground reads as different from unheld at play zoom.
+   Unheld blocks get the cold industrial dressing from the style pillars (pipes, vents, soot; kept sparse and
+   readable); a taken block blooms to its warm counterpart with a short, soft transition; a lost block cools again.
+   Gates read as gates (a lantern arch or posts at each street mouth) and hedged walls stay. Original art only.
+5. **Screenshots and README.** Fix the checkpoint screenshot scripts for the pass 2c town coordinates (#74), take a
+   new set in `design/renders/v0.4-style/`, and update README.md's images and controls text (H for help, no Embrace).
+
+Proof: styled tests for each new piece; `test_perf_*` budgets unchanged; the determinism check gives the same lines as
+after Loop tuning (visual only). Not included: the Gallery's own styled model (#16, 0.5), the styled jog (#27).
+
+**Open for the user** (defaults above are used unless overruled): what the town look pass should change, beyond held
+against unheld blocks and gate arches.
+
+**To play:** in the styled look, can you tell held ground from unheld at a glance, and is the HUD as calm as in the
+placeholder?
 
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; moved to 0.5 Why expand 2026-11-11)
 
