@@ -52,7 +52,7 @@ func test_a_rescue_made_by_hover_fire_adds_spirit() -> void:
 	assert_bool(target.is_rescued).is_true()
 	assert_float(td.player.spirit).is_equal_approx(10.0 + SpiritConfig.SPIRIT_PER_RESCUE, 0.01)
 	await runner.simulate_frames(2)
-	assert_str(td.hud.spirit_label.text).contains("30")
+	assert_str(td.hud.spirit_label.text).contains("20")  # Loop tuning (#93): 10 + 10 a rescue (was 30 at 20 a rescue).
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

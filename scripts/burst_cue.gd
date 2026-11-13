@@ -69,6 +69,9 @@ func _process(delta: float) -> void:
 # acted on right now: "G: lift N" when a burst would lift N dimmed people off the border. Nothing is shown otherwise.
 func cue_text() -> String:
 	cue_ready = false
+	if main.player.can_burst() and main.border.push.breaks_in_reach(main.player.global_position) > 0:
+		cue_ready = true  # Walls and gates: Loop tuning (#93): a break in reach is mended by the burst.
+		return SpiritConfig.BURST_MEND_CUE_TEXT
 	if burst_targets > 0 and main.player.can_burst():
 		cue_ready = true
 		return HudConfig.CUE_BURST_TEXT % burst_targets

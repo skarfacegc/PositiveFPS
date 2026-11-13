@@ -29,6 +29,8 @@ var pushers: int = 0
 var deepest: float = 0.0
 var _force: Array[float] = []
 var _calm: Array[float] = []
+# Walls and gates: Loop tuning (#93): seconds left on a burst's hold, per point (the gate stays calm while it runs).
+var _hold: Array[float] = []
 var _seen_hits: Dictionary = {}
 
 
@@ -49,12 +51,14 @@ func resize(n: int) -> void:
 	wave.clear()
 	_force.clear()
 	_calm.clear()
+	_hold.clear()
 	for i: int in range(n):
 		dent.append(0.0)
 		broken.append(false)
 		wave.append(0.0)
 		_force.append(0.0)
 		_calm.append(0.0)
+		_hold.append(0.0)
 	breaks.clear()
 	_seen_hits.clear()
 	pushers = 0
@@ -66,6 +70,7 @@ func carry(old_pts: PackedVector2Array, new_pts: PackedVector2Array) -> void:
 	var old_dent := dent.duplicate()
 	var old_broken := broken.duplicate()
 	var old_calm := _calm.duplicate()
+	var old_hold := _hold.duplicate()
 	var old_breaks := breaks.duplicate(true)
 	resize(new_pts.size())
 	var lookup: Dictionary = {}
@@ -77,6 +82,7 @@ func carry(old_pts: PackedVector2Array, new_pts: PackedVector2Array) -> void:
 			dent[k] = old_dent[i]
 			broken[k] = old_broken[i]
 			_calm[k] = old_calm[i]
+			_hold[k] = old_hold[i]
 	for br: Dictionary in old_breaks:
 		var was: int = br["at"]
 		var k: int = lookup.get(_key(old_pts[was]), -1) if was < old_pts.size() else -1
@@ -216,7 +222,11 @@ func _read_joy(delta: float) -> void:
 				br["joyed"] = true
 	_seen_hits = next
 	for i: int in range(_calm.size()):
-		_calm[i] = maxf(0.0, _calm[i] - delta / PushConfig.PUSH_CALM_SECONDS)
+		if _hold[i] > 0.0:  # A burst's hold: the gate stays calm (and does not spring back as fast) until it runs out.
+			_hold[i] = maxf(0.0, _hold[i] - delta)
+			_calm[i] = maxf(_calm[i], PushConfig.PUSH_BURST_CALM)
+		else:
+			_calm[i] = maxf(0.0, _calm[i] - delta / PushConfig.PUSH_CALM_SECONDS)
 
 
 # Calms the points within `spread` of the one nearest `pos` (a joy hit on a member, or a burst).
@@ -231,6 +241,8 @@ func calm_at(pos: Vector3, amount: float, spread: int) -> void:
 
 
 # A burst at `at` relieves the line within PUSH_BURST_REACH of it: the force there is cut and the gate springs back.
+# Walls and gates: Loop tuning (#93): it also mends every break within BURST_LIFT_RADIUS of `at` at once, and each
+# mended break's gate is held calm for BURST_CALM_SECONDS.
 func relieve(at: Vector3) -> void:
 	if not b.active:
 		return
@@ -238,6 +250,29 @@ func relieve(at: Vector3) -> void:
 	for i: int in range(_calm.size()):
 		if b.polygon.size() > i and b.polygon[i].distance_to(at2) <= PushConfig.PUSH_BURST_REACH:
 			_calm[i] = maxf(_calm[i], PushConfig.PUSH_BURST_CALM)
+	for k: int in range(breaks.size() - 1, -1, -1):
+		var br: Dictionary = breaks[k]
+		if _flat(at, _break_point(br)) <= SpiritConfig.BURST_LIFT_RADIUS:
+			var at_i: int = br["at"]
+			_hold_gate(at_i)
+			_mend(k)
+
+
+# How many open breaks lie within BURST_LIFT_RADIUS of `at` (a burst there mends them: the cue asks for it).
+func breaks_in_reach(at: Vector3) -> int:
+	var n := 0
+	for br: Dictionary in breaks:
+		if _flat(at, _break_point(br)) <= SpiritConfig.BURST_LIFT_RADIUS:
+			n += 1
+	return n
+
+
+# Holds the gate that point `i` lies on calm for BURST_CALM_SECONDS.
+func _hold_gate(i: int) -> void:
+	var gate := b.point_gate(i)
+	for k: int in range(_hold.size()):
+		if b.point_gate(k) == gate:
+			_hold[k] = SpiritConfig.BURST_CALM_SECONDS
 
 
 func _move_dents(delta: float) -> void:

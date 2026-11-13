@@ -41,12 +41,13 @@ func test_each_gate_shows_its_people_against_its_need_and_is_red_when_short() ->
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	_rescue_ring(td, 12)
+	# Loop tuning (#93): a gate now needs 3, so 12 people would fill four gates exactly; 8 leaves each short.
+	_rescue_ring(td, 8)
 	await runner.simulate_frames(120)
 	var marks := td.gate_marks
 	assert_int(td.border.zone.gates.size()).is_equal(4)
 	for g: int in range(4):
-		assert_str(marks.label_text(g)).is_equal(GateMarks.count_text(3, 5))  # 12 people share four gates of 5.
+		assert_str(marks.label_text(g)).is_equal(GateMarks.count_text(2, 3))  # 8 people share four gates of 3 (was 12 of 5).
 		assert_bool(marks.is_short(g)).is_true()
 		var label: Label3D = marks._labels[g]
 		# Clean HUD (#92): a short gate nobody pushes shows no count until E or F is held.
@@ -70,7 +71,7 @@ func test_each_gate_shows_its_people_against_its_need_and_is_red_when_short() ->
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
 	await runner.simulate_frames(120)
 	for g: int in range(4):
-		assert_str(marks.label_text(g)).is_equal("5/5")
+		assert_str(marks.label_text(g)).is_equal(GateMarks.count_text(3, 3))  # Loop tuning (#93): need 3 (was 5/5).
 		assert_bool(marks.is_short(g)).is_false()
 		var label: Label3D = marks._labels[g]
 		assert_object(label.modulate).is_equal(BorderConfig.GATE_COUNT_OK_COLOUR)

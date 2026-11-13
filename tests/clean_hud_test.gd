@@ -327,8 +327,8 @@ func test_gate_counts_show_only_for_a_short_pushed_gate_or_while_e_or_f_is_held(
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	var marks := td.gate_marks
-	for i: int in range(12):
-		var a := TAU * float(i) / 12.0
+	for i: int in range(8):  # Loop tuning (#93): a gate needs 3 now, so eight people leave each of four gates short.
+		var a := TAU * float(i) / 8.0
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * 3.0, 0.0, sin(a) * 3.0), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
@@ -365,8 +365,9 @@ func test_a_short_gate_that_is_being_pushed_shows_its_count_and_a_full_one_does_
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	var marks := td.gate_marks
-	for i: int in range(12):  # Twelve people share four gates of five: every gate is short.
-		var a := TAU * float(i) / 12.0
+	# Loop tuning (#93): eight people share four gates of three, so every gate is short (was 12 of 5).
+	for i: int in range(8):
+		var a := TAU * float(i) / 8.0
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * 3.0, 0.0, sin(a) * 3.0), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)

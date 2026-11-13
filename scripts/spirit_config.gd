@@ -20,7 +20,7 @@ const TD_BURST_TIME := 0.35
 # it.
 const SPIRIT_MAX := 100.0
 const SPIRIT_START := 50.0
-const SPIRIT_PER_RESCUE := 20.0
+const SPIRIT_PER_RESCUE := 10.0  # Walls and gates: Loop tuning (#93): was 20.
 const BURST_SPIRIT_COST := 30.0
 
 # Joy fire rate: full at this fraction of spirit or more, then down linearly to SPIRIT_MIN_FIRE_FRACTION at 0+.
@@ -98,3 +98,7 @@ const SPARE_WARM_RATE := 80.0
 const SPARE_WARM_INTERVAL := 0.5
 const SPARE_WARM_CEILING := 0.9
 const SPARE_GLOW_SECONDS := 1.4  # How long a warmed person is marked (Person.React.WARM; round 25: a gift marker).
+
+# Walls and gates: Loop tuning (#93). A burst mends every break within BURST_LIFT_RADIUS at once and holds that gate
+# calm for BURST_CALM_SECONDS; the cue beside the spirit meter says BURST_MEND_CUE_TEXT when a break is in that range.
+const BURST_MEND_CUE_TEXT := "G: mend"
