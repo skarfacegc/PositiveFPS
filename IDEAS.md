@@ -7,7 +7,7 @@ at its top, plus the map from old round numbers to versions). This file keeps th
 the current targets' plans. To find code use `SOURCE_MAP.md`
 (`python tools/source_map.py`); for where things live and how to brief an agent use `ARCHITECTURE.md`.
 
-## Current state (as of 2026-11-11, after 0.4 pass 3 Pressure and Defences)
+## Current state (as of 2026-11-13, after 0.4 Clean HUD, Loop tuning and Style update)
 
 **What the game is.** A gentle top-down territory game in Godot 4.7 (GDScript, strict typing). Dimmed people slowly take
 over a plaza; the player rescues them with joy, and the rescued form a living border that holds the gloom back and paints
@@ -26,8 +26,8 @@ never "dark people". Art is original, technique-level inspiration only.
   gate it meets (1.5) and that gate's neighbours at half; then an aftermath where arrivals ease.
 - **Zone and line (0.4 pass 2):** the zone is a set of held grid cells (`scripts/zone.gd`); the line is its outline.
   Along a held block's face it is a **wall** (firm, needs nobody); across a street mouth or a square's open side it is a
-  **gate**, the only place the gloom can push. Members stand only on gates (about one per 3.7 m, shared out when
-  short). Dimmed people walk the streets to the nearest gate. The push below now happens per gate.
+  **gate**, the only place the gloom can push. Members stand only on gates (about one per 6 m since Loop tuning,
+  2026-11-13; shared out when short). Dimmed people walk the streets to the nearest gate. The push below now happens per gate.
 - **Border (physical push):** only visible things push: dimmed people leaning on the line from outside, and the surge.
   The line bends inward where pushed (the loop dents; members brace and lean) and springs back when relieved. Past
   `PUSH_BREAK_DEPTH` (2.4 m of dent) it breaks: a gap made by pushing. Pushers walk through and drain people and erode
@@ -43,7 +43,7 @@ never "dark people". Art is original, technique-level inspiration only.
   One per gate, 4 in all, each staffed by the nearest free member, who leaves the line. Claiming a landmark unlocks its
   type for the night: Bandstand (gate 1.5x stronger), Garden (cannot break), Gallery (its cells cannot be lost), Bell
   tower (a free burst when the gate is bent past half, 20 s cooldown). A defence whose gate closes is handed back.
-- **Spirit:** 0 to 100, start 50; +20 a rescue. At 0 the player goes dim (half speed, no fire, border loses heart). Spare
+- **Spirit:** 0 to 100, start 50; +10 a rescue (was 20 until 2026-11-13). At 0 the player goes dim (half speed, no fire, border loses heart). Spare
   spirit at a full meter pools and warms the most strained border member (`spirit_warmth.gd`).
 - **Spirit actions:** take a block with E (pass 2c: the only way the zone grows): hold E and point at a cell next to
   the zone to preview its new gates and the people they need against the people free, release to take it, right-click
@@ -53,12 +53,13 @@ never "dark people". Art is original, technique-level inspiration only.
   paid; pass 3: free is a filled cell tagged "Free", paid an outline tagged "25", each with pips "2/3"); the
   preview reads "+5 gates: 18 more people" or "covered by spare people"; a HUD line under the spirit meter says
   "People: 31 on the line, 23 short" (or "6 spare"); a taken cell pulses and the slim banner says what it cost. G or Q (30, 8 s cooldown) bursts: lifts dimmed
-  people nearby, pushes back those on the border line and lets the line near the burst spring back.
+  people nearby, pushes back those on the border line, lets the line near the burst spring back, and mends every
+  break within reach, holding that gate calm for 16 s (the cue says "G: mend").
 - **Gate cues (pass 2c):** each gate shows members/need, red when short; a pushed gate glows coral from 20% of
   `PUSH_BREAK_DEPTH`, and past 50% an off-screen gate gets an edge pointer (`gate_marks.gd`). Embrace is removed.
 - **Town grid (0.4 pass 2, spread out in 2c):** 5 by 5 cells, 12 m streets; the start square is 18 m (its row and
   column are 18 m wide, so the blocks beside it are 18 x 12), other cells 12 m, plaza 114 m (`scripts/town_grid.gd`). The
-  start square needs 20 members. The middle cell is the start square, the four diagonal cells next to it are landmark squares, the other 20 are solid built blocks (for the
+  start square needs 12 members. The middle cell is the start square, the four diagonal cells next to it are landmark squares, the other 20 are solid built blocks (for the
   player too). Posts are gone (walls replace them).
 - **Landmarks:** Bandstand, Garden, Bell Tower and Gallery, on the diagonal squares, about 27 m from the start (the Gallery is
   placed and claimable only, no boost, no styled art yet). Holding one (3 s inside the border) boosts joy; the third dawn
@@ -66,11 +67,14 @@ never "dark people". Art is original, technique-level inspiration only.
 - **First light:** over the last 45 s a square front moves in from the map edge; people it passes lift and stop draining.
 - **Cues:** the bending line is the warning (ribbon colour and width follow the bend; members lean and struggle). Gap
   arrows point at an off-screen break; wobble edge pointers, minimap blips, landmark pointers and a cue panel beside the
-  spirit meter (glows when G can be used). Prompts and notices are one slim banner under the night bar, one at a time.
+  spirit meter (glows when G can be used). Prompts, notices and events (claims, losses, lost joy) are one slim banner
+  under the night bar, one at a time, events first. Clean HUD (2026-11-13): the controls strip shows for 20 s (H
+  again), landmark pointers are an arrow and initial, gate counts show only when short and bent or while E/F is held,
+  the targeting line is in F3, and no target or mood line.
   Strain markers, strain rings and the border warning are gone.
 
 **Controls.** WASD move, Shift run, mouse to point, hold E / release E take a block (right-click cancels), G or Q
-burst, hold F / release F plant a defence (wheel picks the type), F2 targeting mode, mouse wheel zoom, F3 debug, F4 switch look, R restart, M menu. Menu: Play (Enter, 1, click), Look.
+burst, hold F / release F plant a defence (wheel picks the type), F2 targeting mode, mouse wheel zoom, F3 debug, F4 switch look, hold H show controls, R restart, M menu. Menu: Play (Enter, 1, click), Look.
 
 **Look modes.** Placeholder (default, plain shapes, what the tests run) and styled (pixel-diorama 3D: toon, outline, ground
 and post shaders, in a 640x360 SubViewport). F4 or the menu switches mid-game. Gameplay rounds touch the placeholder only;
@@ -89,7 +93,6 @@ placeholder, `tide_pointer` still is.
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Walls and gates's push and pull. (#22)
 - The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
-- The checkpoint screenshot scripts (`tools/checkpoint`) still use the town coordinates from before pass 2c. (#74)
 - The Gallery has no styled art (it uses the bandstand model); its dent-fade protection and defence unlock were built in 0.4 pass 3 and are judged in 0.5. (#16)
 
 **Watch in the next playtest** (no issue: questions for the interview, not work):
@@ -110,7 +113,8 @@ placeholder, `tide_pointer` still is.
 **Recorder:** breaks are logged as `break_open` / `break_close`; `analyse_recording.py` reads the old `gap_open` / `gap_close` names too and renames them.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
-**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 and #81 (surge warning) played and Done 2026-11-12, next pass planned 2026-11-13: Clean HUD and loop tuning, #92 and #93 being built 2026-11-13, then Slowest tests #88, Lighter tests #69 and the Style update #94 with #74; radar follow-up #91 built 2026-11-12, In review, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 and #81 (surge warning) played and Done 2026-11-12, next pass planned 2026-11-13: Clean HUD and loop tuning, #92, #93, Slowest tests #88, the first slice of Lighter tests #69, and the Style update #94 with #74 all built
+2026-11-13 and In review; radar follow-up #91 built 2026-11-12, In review, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -246,6 +250,19 @@ closer start, one look where the look does not matter), or step the clock for ti
 No threshold or perf budget is loosened; stop and report a test that cannot be made cheaper honestly. Run
 `run_tests.py --update-weights` after. The rest of #69 follows.
 
+**Built (2026-11-13, merged `d4231ac`; In review).** Seven of the eight tests are now under 10 s, standalone:
+- settle-on-gates 24 -> 8.5 s; nine-seconds-apart 19.6 -> 1.3 s (it steps the DimGate clock)
+- wide surge 13.9 -> 9.3 s; cannot-get-inside 13.9 -> 8.1 s; never-in-block 11.3 -> 5.3 s
+- weakened pushers 10.9 -> 4.4 s; edge ribbon both-looks 10.7 -> under 3 s
+- Left over 10 s: the compact surge test, 16.8 -> 11.2 s. It must play the whole 51 s surge.
+
+New helpers in `tests/topdown_test_util.gd`: `trim_crowd`, and `settle_on_line` (stops once the members are on the
+line). The settle-on-gates test uses 12 people (the new need), with the walker started further south so a block still
+stands between it and the gate. Nothing is deleted or loosened.
+
+#69, first slice: the same setup trims went into 18 more suites, and the summed test weights fell from 1128 to 629 s.
+Moving rule checks to unit tests is not started; #69 stays open for that.
+
 ### Cleanup: Styled-look tier (#72, M)
 25 suites switch to the styled look, and many of their tests pin art details (for example a bandstand luminance above
 0.5), so art tweaks break tests and the 100% line-coverage ratchet pushes coverage-only tests. Put styled-look tests in
@@ -291,44 +308,6 @@ no gate in range). Answers:
 - #12 to #16 stay In review: they work, refine in the next pass and play again.
 - Moved 2026-11-11: Defences (#15, #16) go to 0.5 Why expand, still In review; #12 to #14 stay in 0.4.
 - Moved 2026-11-11: #12 (stretched line is thin) goes to Backlog with no target, as built; the user dropped it for now. #14 is next.
-
-### Walls and gates: Surge warning (#14, #81; planned 2026-11-12)
-
-**Why.** In the pass 3 playtest the surge's lost cells felt fair, but the warning was missed. #12 went to Backlog
-(2026-11-11), so #14 is the 0.4 item being refined. The user's call (2026-11-12): **visual only**; the sound cue part of
-#81 goes to the sound discussion (#25). No change to timing or strength (40 s warning, 50 s push, `SURGE_PUSH` 1.5).
-
-**Build** (one Sonnet agent, size S):
-1. **A much bigger fog.** From the start of the warning the fog reads at a glance: taller than the buildings so it shows
-   over blocks at play zoom, spilling past the street's width, and denser early in the warning (now 0 rising to 0.5).
-   Both looks: the placeholder band and figures, and the styled cloud (StylePush) that follows it. The user asked for
-   this cue, so it is the one styled change in this pass; checkpoint screenshots are not refreshed.
-2. **A warning you notice wherever you are.** The edge pointer and the banner pulse when the warning starts and again
-   at the "soon" mark (`SURGE_SOON_SECONDS`), so a player busy elsewhere sees it.
-3. **Proof:** visual only, so the determinism check gives the same lines; the surge tests stay green. New constants go
-   in `night_config.gd` under the surge block.
-
-**Built (2026-11-12, merged `ecd22a7`; In review, to play).** Fog `SURGE_FOG_WIDTH` 26 m (was 16; a street is 12 m) and
-6 m tall (`SURGE_FOG_HEIGHT`; blocks are 3 m): the placeholder adds a tall box over the band, and the styled cloud is
-built to the same top. Fog density starts at 0.3 at the warning (`SURGE_FOG_START_DENSITY`, was 0) and rises to 0.5; the
-styled cloud stands at full height from the start. At the warning and again at the soon mark the edge pointer swells to
-2.2x with a stronger ring and the banner grows, 3 swells over 2.4 s (`SURGE_PULSE_*`). Timing and push unchanged. New
-`tests/surge_warning_test.gd` (5 tests). Gate `--full` 897 tests in 230 s; determinism the same 11564 lines; baseline
-updated. Nothing loosened. Not checked by eye: whether the placeholder box's transparency and the 26 m width read well
-at play zoom. The first determinism run failed in 18 units that the two passes had packed differently (the new suite's
-time was recorded in between; 0 lines differed in total); a fresh run of both passes was clean. Tool fix: #90.
-
-**To play:** is the surge warning seen now, wherever you are? Is the fog too big or too opaque?
-
-**Played (2026-11-12, `5729f42`, recording `20261112-185114`; #14 and #81 accepted, Done).** "A really good iteration."
-Win, 2/3 dawn lights (pass 3: 3/3), 39 rescued (45), 3 relapses (2), strict quiet 2.8% (15.1%). The surge warned at
-about 25 s and came down the south street from its west end at 65 s, meeting a gate with 0 members: 12 gate breaks and
-9 gaps in all, 0 cells lost in the surge (2 lost at 115 s through gate 0, at midnight). 4 takes (2 free, 2 paid), 1
-refusal. First defences planted: 2 at the Gallery (t=143 s and 159 s), one handed back when its gate closed. Answers:
-- The push is visible now. The radar should show the pulse too, and the street names are not obvious: the user's call is
-  to mark it on the radar and drop the name from the banner (#91, Backlog).
-- F (defences, #15) "did something, still not entirely clear": what is unclear is **whether it helped**. Noted on #15
-  (0.5 Why expand): a defence needs visible feedback that it made a difference.
 
 ### Walls and gates: Surge on the radar (#91; planned 2026-11-12)
 
@@ -411,6 +390,28 @@ loosened.
 at no extra cost; H as the help key; gate counts hidden unless short and pushed. Not in this pass: the third dawn light
 tied to ground held (wait for 0.5, when ground is worth something).
 
+**Built (2026-11-13, merged `138cc6a` Clean HUD and `295723f` Loop tuning; In review, to play).**
+- Clean HUD (#92): all ten items. The controls strip shows for 20 s, and H shows it again while held. Landmark
+  pointers are an arrow and an initial. One event banner (`Intro.event_notice`) replaces the centre alert line, and
+  events beat tips. The take preview is one 3-line panel. World labels hide under HUD rectangles. Gate counts show
+  only when a gate is short and bent, or while E or F is held. The targeting line moved to F3, and the target and mood
+  lines are gone. The people line has a backing. Joy numbers are one total per person per second. New
+  `clean_hud_test` (20 tests); 13 HUD suites read the new layout (updated expectations, nothing loosened).
+- Loop tuning (#93): `BORDER_TARGET_SPACING` 6 m, so the start square needs 12, not 20. `SPIRIT_PER_RESCUE` is 10.
+  A burst mends every break within `BURST_LIFT_RADIUS` and calms that gate for `BURST_CALM_SECONDS` (16 s); the cue
+  says "G: mend". Gate 9's ten breaks were real re-breaks: after a mend the dent is still half deep, and it breaks
+  again about 2 s later under steady push. That is not a logging fault, so it is unchanged. New `loop_tuning_test`
+  (7). Pinned old numbers were moved in 11 suites. The over-reached surge test now has 6 people, not 12, so it stays
+  3x short; that was the user's call (2026-11-13), and it still loses one cell. `feedback_test`'s ring test now aims
+  at a Music member: a matched Art shot filled the person in one hit. Nothing loosened.
+- **Not done:** bot nights before and after. The repo has no bot harness (the plan was wrong to ask for one).
+- Menu text: the burst mends breaks, and H lists the controls.
+- **Gate after all four merges (2026-11-13, `f8faa0f`):** `gate --full` 944 tests in 181 s, line coverage 99.9%.
+  Determinism 12095 lines, with only the recorder race differing (2 lines). The first determinism run failed on unit
+  packing (#90) after the test weights changed; a fresh run of both passes was clean. The baseline was updated after
+  a Sonnet agent added tests for `looks.gd`, `style_dawn.gd` and `take_block.gd`, and an unreachable hide loop was
+  removed from `burst_fx.gd`. Nothing loosened.
+
 **To play:** is the screen calmer, and is anything you relied on now missing? Does a take in the calm feel like a fair
 bet? Is spirit something you now think about? Is the burst the thing you reach for when a gate breaks?
 
@@ -444,6 +445,23 @@ after Loop tuning (visual only). Not included: the Gallery's own styled model (#
 
 **Open for the user** (defaults above are used unless overruled): what the town look pass should change, beyond held
 against unheld blocks and gate arches.
+
+**Built (2026-11-13, merged `27bdbda`; In review, to play styled).**
+- HUD: parchment panels for the people line and the take preview, a styled event banner, landmark pointer tags with
+  pixel icons, and ink-edged joy numbers.
+- Placeholder pieces from passes 2c and 3: a takeable-cell wash (gold free, blue paid, with lanterns,
+  `shaders/style_wash.gdshader`), styled tags (`style_tags.gd`), a cold wash for the lost-cell pulse, and defences as
+  street furniture (`style_defence.gd`).
+- Surge: a storm-front puff layout, a styled `tide_pointer` (no longer a placeholder piece), the radar mark in a storm
+  palette, and a gold mend ring on `Border.line_mended`.
+- Town: unheld blocks get cold dressing (`style_dress.gd`), which blooms warm through the dissolve when taken and
+  cools when lost. Gates get lantern posts and a festoon above head height (`style_gates.gd`).
+- Screenshots: #74 fixed the grid coordinates, and the new `checkpoint_shots.py --set style04` writes to
+  `design/renders/v0.4-style/`. README.md updated.
+- New `style_update_04_test` (16). Nothing loosened.
+- **Seen in the screenshots (coordinator):** unheld blocks read as near-black boxes at play zoom, and the cold
+  dressing does not show. About five close-ups frame the landmarks panel or are half black. The storm front shows
+  only as a pale haze, unconfirmed by eye. The takeable-cell wash is faint; the lanterns carry the cue.
 
 **To play:** in the styled look, can you tell held ground from unheld at a glance, and is the HUD as calm as in the
 placeholder?
