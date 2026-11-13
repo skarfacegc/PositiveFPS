@@ -92,6 +92,11 @@ placeholder, `tide_pointer` still is.
 - Sound cues: not designed yet; first wanted for the surge warning (from #81, 2026-11-12). (#25)
 - Parked (2026-11-07): members pop out of a deep dent and start dimming again, recoverable with a quick joy hit, as a
   step before a break. Investigate after 0.4 Walls and gates's push and pull. (#22)
+- The line as a tug of war, where a stretched line is thin, was built in 0.4 pass 3 and put back to Backlog on
+  2026-11-11. (#12)
+- The determinism check's first run fails when the test weights change, because the two passes group tests into
+  workers differently (0 lines differ in total); a fresh run of both passes is clean. Match units by their tests.
+  (#90)
 - The gold inner ring (#38) was not raised in any 0.3.1 playtest; it stays in Backlog.
 - The Gallery has no styled art (it uses the bandstand model); its dent-fade protection and defence unlock were built in 0.4 pass 3 and are judged in 0.5. (#16)
 
