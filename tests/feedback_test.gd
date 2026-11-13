@@ -12,6 +12,7 @@ func _border_level(count: int = 16, r: float = 6.0) -> Dictionary:
 	await runner.simulate_frames(10)
 	var td: TopDownMain = runner.scene()
 	TopDownTestUtil.send_everyone_away(td)
+	TopDownTestUtil.trim_crowd(td, count + 2)  # Slowest tests (#88): the parked crowd is not used.
 	td.player.global_position = Vector3.ZERO
 	for i: int in range(count):
 		var a := TAU * float(i) / float(count)
@@ -19,7 +20,7 @@ func _border_level(count: int = 16, r: float = 6.0) -> Dictionary:
 		TopDownTestUtil.place(p, Vector3(cos(a) * r, 0.0, sin(a) * r), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
 	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
-	await runner.simulate_frames(600)
+	await TopDownTestUtil.settle_on_line(runner, td)  # Up to 600 frames; stops once the members are on the line.
 	# Checkpoint 5: the rescues above spilled spirit past a full meter; that pool would warm the faltering members
 	# these tests set up, so it is emptied (this suite is about the markers, not spare spirit).
 	td.spirit_warmth.pool = 0.0

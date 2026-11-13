@@ -116,13 +116,14 @@ func test_the_cue_says_mend_when_a_break_is_in_reach_and_not_otherwise() -> void
 	await runner.simulate_frames(10)
 	var td: TopDownMain = runner.scene()
 	TopDownTestUtil.send_everyone_away(td)
+	TopDownTestUtil.trim_crowd(td, 24)  # Slowest tests (#88): the parked crowd beyond the people used is dropped.
 	for i: int in range(16):
 		var a := TAU * float(i) / 16.0
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * 6.0, 0.0, sin(a) * 6.0), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
 	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
-	await runner.simulate_frames(600)
+	await TopDownTestUtil.settle_on_line(runner, td)  # Up to 600 frames; stops once the members are on the line.
 	td.player.add_spirit(100.0)
 	var border: Border = td.border
 	var spot: Vector3 = border.members[3].position

@@ -163,16 +163,22 @@ static func settled_level(
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
 	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
 	if until_on_line:
-		var played := 0
-		while played < frames:
-			var step := mini(10, frames - played)
-			await runner.simulate_frames(step)
-			played += step
-			if played >= 60 and members_on_line(td):
-				break
+		await settle_on_line(runner, td, frames)
 	else:
 		await runner.simulate_frames(frames)
 	return {"runner": runner, "td": td}
+
+
+# Slowest tests (#88): plays frames, ten at a time, until every border member stands on the line (checked after the
+# first 60 frames) or `max_frames` have passed.
+static func settle_on_line(runner: GdUnitSceneRunner, td: TopDownMain, max_frames: int = 600) -> void:
+	var played := 0
+	while played < max_frames:
+		var step := mini(10, max_frames - played)
+		await runner.simulate_frames(step)
+		played += step
+		if played >= 60 and members_on_line(td):
+			break
 
 
 # True when the border has members and every one of them stands within `tolerance` metres of its line.

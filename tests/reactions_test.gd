@@ -11,7 +11,9 @@ func after_test() -> void:
 
 # The settled start square: `count` rescued people, at midnight, with nobody else about.
 func _border_level(count: int) -> Dictionary:
-	return await TopDownTestUtil.settled_level(self, count)
+	# Slowest tests (#88): the parked crowd beyond the people used (up to index 21) is dropped, and the settling stops
+	# once the members stand on the line.
+	return await TopDownTestUtil.settled_level(self, count, 600, count + 8, true)
 
 
 # --- A patch makes people react -------------------------------------------------------------------------------------
