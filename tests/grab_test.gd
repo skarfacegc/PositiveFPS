@@ -26,6 +26,7 @@ func _start(dist: float = 1.2) -> Dictionary:
 	await runner.simulate_frames(20)
 	var td: TopDownMain = runner.scene()
 	TopDownTestUtil.send_everyone_away(td)
+	TopDownTestUtil.trim_crowd(td, 24)  # Lighter tests (#69): the parked crowd beyond the people used is dropped.
 	td.player.global_position = Vector3.ZERO
 	td.player.spirit = 80.0
 	var grabber: Person = td.people[0]

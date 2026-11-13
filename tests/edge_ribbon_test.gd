@@ -9,9 +9,10 @@ func after_test() -> void:
 	Looks.set_mode(Looks.Mode.PLACEHOLDER)
 
 
-# A settled start square: 16 rescued people, four to a gate, at midnight.
+# A settled start square: 16 rescued people (12 on the gates), at midnight. Slowest tests (#88): the rest of the
+# crowd is dropped and the settling stops once every member stands on the line.
 func _level() -> Dictionary:
-	return await TopDownTestUtil.settled_level(self, 16)
+	return await TopDownTestUtil.settled_level(self, 16, 600, 16, true)
 
 
 func _nearest(strips: Array[EdgeStrip], at: Vector2) -> float:

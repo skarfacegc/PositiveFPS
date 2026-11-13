@@ -137,7 +137,10 @@ func test_a_dimmed_person_outside_heads_round_the_blocks_toward_the_nearest_gate
 
 
 func test_members_settle_on_the_gates_and_a_dimmed_person_walks_to_one() -> void:
-	var s: Dictionary = await TopDownTestUtil.settled_level(self, 20)
+	# Slowest tests (#88): 12 people for the start square's 12 places (the spare-people count is in the unit test above),
+	# the rest of the crowd dropped, and the dimmed person starts at the south end of the west street with the block
+	# still between them and the west gate (the longer way round from (-39, 0, 0) is walked by the unit test above).
+	var s: Dictionary = await TopDownTestUtil.settled_level(self, 12, 600, 28, true)
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	var border: Border = td.border
@@ -153,7 +156,7 @@ func test_members_settle_on_the_gates_and_a_dimmed_person_walks_to_one() -> void
 	td.spirit_warmth.pool = 0.0
 	TopDownTestUtil.open_dim_gate(td)
 	var dimmed: Person = td.people[24]
-	TopDownTestUtil.place(dimmed, Vector3(-39.0, 0.0, 0.0), 1, 0.95)
+	TopDownTestUtil.place(dimmed, Vector3(-39.0, 0.0, 12.0), 1, 0.95)
 	dimmed.level = 2  # Dimmed at once (the midnight stagger would take its time).
 	var frames := 0
 	var reached := false
@@ -170,7 +173,9 @@ func test_members_settle_on_the_gates_and_a_dimmed_person_walks_to_one() -> void
 
 
 func test_dimmed_people_never_stand_inside_a_block_while_they_head_for_a_gate() -> void:
-	var s: Dictionary = await TopDownTestUtil.settled_level(self, 20, 300)
+	# Slowest tests (#88): the gates and the route come from the zone, not from where the members stand, so 12 people and
+	# a short settle are enough (was 20 people and 300 frames).
+	var s: Dictionary = await TopDownTestUtil.settled_level(self, 12, 60, 28)
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	td.spirit_warmth.pool = 0.0

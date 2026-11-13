@@ -7,8 +7,11 @@ extends GdUnitTestSuite
 # PaintedGround directly.
 
 
-func _start() -> Dictionary:
+# `keep` (when 0 or more): the people beyond the first `keep` are dropped (see TopDownTestUtil.trim_crowd).
+func _start(keep: int = -1) -> Dictionary:
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
+	if keep >= 0:
+		TopDownTestUtil.trim_crowd(runner.scene() as TopDownMain, keep)
 	await runner.simulate_frames(60)
 	return {"runner": runner, "td": runner.scene()}
 
@@ -105,7 +108,7 @@ func test_cover_excluding_own_paint_matches_others_paint_on_the_ground() -> void
 
 
 func test_a_lone_rescued_person_next_to_a_dimmed_person_relapses_within_a_bounded_time() -> void:
-	var s: Dictionary = await _start()
+	var s: Dictionary = await _start(2)  # Slowest tests (#88): only the two people used are kept.
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)
@@ -128,7 +131,7 @@ func test_a_lone_rescued_person_next_to_a_dimmed_person_relapses_within_a_bounde
 
 # Round 9: a dimmed person outside the border presses against its line. It cannot get inside, however long it stays.
 func test_a_dimmed_person_outside_the_border_cannot_get_inside_it() -> void:
-	var s: Dictionary = await _start()
+	var s: Dictionary = await _start(9)  # Slowest tests (#88): only the nine people used are kept.
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	TopDownTestUtil.send_everyone_away(td)

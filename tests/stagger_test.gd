@@ -27,19 +27,34 @@ func test_many_people_ready_to_sink_at_midnight_enter_dimmed_at_least_nine_secon
 		var p := td.people[i]
 		TopDownTestUtil.place(p, Vector3(-30 + 12 * i, 0, 30), i % 3, 0.9)
 		ready.append(p)
+	# Slowest tests (#88): the gate's own clock is stepped instead of playing a minute of frames. After each sink the
+	# clock jumps to half a second before the gap is up (nobody may sink yet), then plays frame by frame until the next
+	# one goes; the time of each sink is the gate's clock when it happened.
 	var sank_at: Dictionary = {}
+	var times: Array[float] = []
+	var start_clock := td.dim_gate.clock
 	var frame := 0
-	for step: int in range(60 * 60):  # 60 seconds (round 17): long enough for all six to take their turn at 9 s apart.
+	while times.size() < 6 and frame < 60 * 60:
 		await runner.simulate_frames(1)
 		frame += 1
 		for p: Person in ready:
 			if p.level >= 2 and not sank_at.has(p):
-				sank_at[p] = frame / 60.0
+				sank_at[p] = td.dim_gate.last_sink - start_clock
+				times.append(td.dim_gate.last_sink - start_clock)
+				# Step the clock to just short of the next opening and check that nobody sinks before it.
+				td.dim_gate.clock = td.dim_gate.last_sink + NightConfig.DIM_ARRIVAL_MIN_GAP - 0.5
+				assert_float(NightCycle.dim_gap_at(td.night.progress()) * td.night.arrival_ease).is_equal_approx(
+					NightConfig.DIM_ARRIVAL_MIN_GAP, 0.001
+				)
+				await runner.simulate_frames(3)
+				frame += 3
+				var sunk := 0
+				for q: Person in ready:
+					if q.level >= 2:
+						sunk += 1
+				assert_int(sunk).is_equal(times.size())
 	assert_int(sank_at.size()).is_equal(6)
 
-	var times: Array[float] = []
-	for p: Person in ready:
-		times.append(sank_at[p])
 	times.sort()
 	# The first one goes at once (the gate is open at the start of the night).
 	assert_float(times[0]).is_less(0.2)

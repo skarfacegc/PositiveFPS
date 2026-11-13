@@ -35,12 +35,13 @@ func _mooded(td: TopDownMain, index: int, spot: Vector3, mood: int) -> Person:
 
 # Rescues `count` people on a ring around the origin and lets the border settle.
 func _border(td: TopDownMain, runner: GdUnitSceneRunner, count: int, r: float) -> void:
+	TopDownTestUtil.trim_crowd(td, count + 4)  # Slowest tests (#88): the parked crowd is not used.
 	for i: int in range(count):
 		var a := TAU * float(i) / float(count)
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * r, 0.0, sin(a) * r), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
-	await runner.simulate_frames(600)
+	await TopDownTestUtil.settle_on_line(runner, td)  # Up to 600 frames; stops once the members are on the line.
 
 
 # --- Dusk, then dimmed people, then moods ---------------------------------------------------------------------------

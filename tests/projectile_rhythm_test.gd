@@ -7,6 +7,7 @@ extends GdUnitTestSuite
 
 func _start() -> Dictionary:
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
+	TopDownTestUtil.trim_crowd(runner.scene() as TopDownMain, 8)  # Lighter tests (#69): only people 0 to 2 are used.
 	await runner.simulate_frames(60)
 	return {"runner": runner, "td": runner.scene()}
 

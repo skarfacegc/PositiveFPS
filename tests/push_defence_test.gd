@@ -11,7 +11,8 @@ const HORIZON_FRAMES := 2400
 
 # The settled square at midnight, with two dimmed pushers outside the east member nearest the middle of the gate.
 func _scenario() -> Dictionary:
-	var s: Dictionary = await TopDownTestUtil.settled_level(self, RING)
+	# Slowest tests (#88): only the ring and the two pushers are kept; the parked crowd costs a frame's work each.
+	var s: Dictionary = await TopDownTestUtil.settled_level(self, RING, 600, RING + 2, true)
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	td.spirit_warmth.pool = 0.0

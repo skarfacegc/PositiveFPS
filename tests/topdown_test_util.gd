@@ -35,6 +35,15 @@ static func send_everyone_away(td: TopDownMain) -> void:
 		p.global_position = FAR
 
 
+# Slowest tests (#88): drops the people beyond the first `keep` from the level (frees them and takes them off
+# `td.people`), so a long run does not pay a frame's work for a crowd that is parked and unused. Only for a test that
+# places no more than `keep` people and checks nothing about the rest of the crowd.
+static func trim_crowd(td: TopDownMain, keep: int) -> void:
+	while td.people.size() > keep:
+		var gone: Person = td.people.pop_back()
+		gone.queue_free()
+
+
 # Puts a person on the floor at `spot` with the given affinity (0 music, 1 art, 2 nature) and gloom level.
 static func place(p: Person, spot: Vector3, affinity: int, gloom: float) -> void:
 	p.affinity = affinity
@@ -134,11 +143,18 @@ static func bare_border(suite: GdUnitTestSuite, cells: Array[Vector2i] = []) -> 
 # 0.4 (#56): the level with `count` people rescued on the start square (a ring of radius 3 round the start), the night
 # at midnight and everyone else parked far away; returns {"runner", "td"} after `frames` frames, enough for the
 # members to walk to their places on the gates. Used by the border tests that need a settled line.
-static func settled_level(suite: GdUnitTestSuite, count: int, frames: int = 600) -> Dictionary:
+# Slowest tests (#88): `keep` (when 0 or more) drops the people beyond the first `keep` first (see trim_crowd);
+# `until_on_line` stops settling, checked every 10 frames after the first 60, once every member stands on the line
+# (`frames` is then the most it plays).
+static func settled_level(
+	suite: GdUnitTestSuite, count: int, frames: int = 600, keep: int = -1, until_on_line: bool = false
+) -> Dictionary:
 	var runner: GdUnitSceneRunner = await level_runner(suite)
 	await runner.simulate_frames(10)
 	var td: TopDownMain = runner.scene()
 	send_everyone_away(td)
+	if keep >= 0:
+		trim_crowd(td, keep)
 	td.player.global_position = Vector3.ZERO
 	for i: int in range(count):
 		var a := TAU * float(i) / float(maxi(count, 1))
@@ -146,5 +162,28 @@ static func settled_level(suite: GdUnitTestSuite, count: int, frames: int = 600)
 		place(p, Vector3(cos(a) * 3.0, 0.0, sin(a) * 3.0), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
 	td.night.elapsed = NightConfig.NIGHT_LENGTH / 2.0
-	await runner.simulate_frames(frames)
+	if until_on_line:
+		await settle_on_line(runner, td, frames)
+	else:
+		await runner.simulate_frames(frames)
 	return {"runner": runner, "td": td}
+
+
+# Slowest tests (#88): plays frames, ten at a time, until every border member stands on the line (checked after the
+# first 60 frames) or `max_frames` have passed.
+static func settle_on_line(runner: GdUnitSceneRunner, td: TopDownMain, max_frames: int = 600) -> void:
+	var played := 0
+	while played < max_frames:
+		var step := mini(10, max_frames - played)
+		await runner.simulate_frames(step)
+		played += step
+		if played >= 60 and members_on_line(td):
+			break
+
+
+# True when the border has members and every one of them stands within `tolerance` metres of its line.
+static func members_on_line(td: TopDownMain, tolerance: float = 0.2) -> bool:
+	for m: Person in td.border.members:
+		if BorderShape.distance_to_line(td.border.polygon, Vector2(m.position.x, m.position.z)) > tolerance:
+			return false
+	return not td.border.members.is_empty()
