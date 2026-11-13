@@ -190,9 +190,7 @@ func _sync_results(delta: float) -> void:
 # The mend marks (styled look only): a gold ring that closes on the spot and a seam of light that rises and thins.
 func _sync_mends(delta: float) -> void:
 	_age(_mends, delta)
-	if not _built_styled:
-		for n: Node3D in _mend_nodes:
-			n.visible = false
+	if not _built_styled:  # A look change clears the pools, so the placeholder look never holds mend nodes.
 		return
 	while _mend_nodes.size() < _mends.size():
 		_mend_nodes.append(_make_mend())
