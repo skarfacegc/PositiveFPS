@@ -19,6 +19,8 @@ const PHASE_NAMES: Array[String] = ["calm", "rising", "midnight", "easing"]
 static var enabled: bool = false
 # Tests set this to put session folders somewhere else (a user:// path). Empty = the normal places.
 static var base_dir_override: String = ""
+# 0.4 release: an exported build never records and its menu has no recording check box. Tests flip this.
+static var exported_build: bool = OS.has_feature("template")
 
 # The session folder (absolute or user:// path) and the events file.
 var session_dir: String = ""
@@ -54,9 +56,14 @@ var _break_shot_phases: Dictionary = {}
 var _pushes: Dictionary = {}
 
 
-# True when this game should record: the menu toggle or the `--record` user argument.
+# True when this build can record at all (a project run, not an exported release).
+static func available() -> bool:
+	return not exported_build
+
+
+# True when this game should record: the menu toggle or the `--record` user argument, never in an exported build.
 static func requested() -> bool:
-	return enabled or "--record" in OS.get_cmdline_user_args()
+	return available() and (enabled or "--record" in OS.get_cmdline_user_args())
 
 
 # Starts recording `main`'s level when it was asked for (the menu check box or `-- --record`); null when not, or when

@@ -219,3 +219,22 @@ func test_the_record_toggle_sets_the_recorder_flag() -> void:
 	assert_bool(Recorder.enabled).is_true()
 	toggle.button_pressed = false
 	assert_bool(Recorder.enabled).is_false()
+	assert_bool(toggle.visible).is_true()  # A project run shows the check box.
+
+
+# 0.4 release: an exported build hides the check box and never records, even with the box saved on or `--record`.
+func test_an_exported_build_has_no_record_toggle_and_never_records() -> void:
+	var was_exported := Recorder.exported_build
+	var was_enabled := Recorder.enabled
+	Recorder.exported_build = true
+	var runner: GdUnitSceneRunner = await _start_menu()
+	var menu: Control = runner.scene()
+	var toggle: CheckBox = menu.get("record_toggle")
+	assert_bool(toggle.visible).is_false()
+	Recorder.enabled = true
+	assert_bool(Recorder.available()).is_false()
+	assert_bool(Recorder.requested()).is_false()
+	Recorder.exported_build = false
+	assert_bool(Recorder.requested()).is_true()
+	Recorder.exported_build = was_exported
+	Recorder.enabled = was_enabled

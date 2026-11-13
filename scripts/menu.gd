@@ -89,6 +89,7 @@ func _ready() -> void:
 	record_toggle.offset_top = 16
 	record_toggle.offset_bottom = 52
 	record_toggle.toggled.connect(_on_record_toggled)
+	record_toggle.visible = Recorder.available()  # Hidden in an exported release, which never records.
 	var window_layer := CanvasLayer.new()
 	add_child(window_layer)
 	window_layer.add_child(record_toggle)

@@ -938,7 +938,7 @@ extends Node3D | 0 const | Walls and gates: Pressure (#13). A cell the gloom too
 
 ### scripts/menu.gd
 extends Control | 5 const | The start menu: a title, one Play button, the Look toggle and a "How to play" panel. Play is the button,
-- L105 `look_text() -> String` - The text of the look button.
+- L106 `look_text() -> String` - The text of the look button.
 
 ### scripts/minimap.gd (Minimap)
 extends Control | 2 const | The round minimap (round 10), top-left, about TD_MINIMAP_WIDTH_FRACTION of the screen width. It shows the w...
@@ -1059,20 +1059,21 @@ extends RefCounted | 37 const | The physical push on the line (scripts/border_pu
 
 ### scripts/recorder.gd (Recorder)
 extends Node | 3 const | Round 18: the gameplay recorder. While it is on, each game writes a session folder with `events.jsonl` (one...
-- L58 `static requested() -> bool` - True when this game should record: the menu toggle or the `--record` user argument.
-- L64 `static start(main: TopDownMain) -> Recorder` - Starts recording `main`'s level when it was asked for (the menu check box or `-- --record`); null when not,...
-- L76 `static load_setting() -> void` - Loads the saved menu choice (not under automated tests, which must not read a player's settings).
-- L83 `static load_setting_from(path: String) -> void` - Reads the menu choice from the config file at `path` (a missing or unreadable file leaves it as it is).
-- L89 `static save_setting() -> void`
-- L96 `static save_setting_to(path: String) -> void` - Writes the menu choice into the config file at `path`, keeping whatever else that file holds.
-- L104 `static phase_for(progress: float) -> String` - The night phase name for a night progress 0..1 (the calm opening, then thirds up to dawn).
-- L115 `attach(main: TopDownMain) -> bool` - Starts a session for `main` (call at the end of its _ready). Returns false when it could not open a file.
-- L236 `is_open() -> bool`
-- L286 `mark() -> void` - Logs a mark at this moment, flashes "Marked" and takes a screenshot at once (a mark is never throttled).
-- L296 `note_exit(reason: String) -> void` - Marks why the level is being left (the restart and menu keys call this just before changing scene).
-- L302 `end(reason: String) -> void` - Writes session_end (once) and closes the file. `reason` is "win", "loss", "dawn", "restart", "menu", "quit" or
-- L330 `on_round_end(title: String) -> void` - The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn...
-- L350 `emit_event(type: String, fields: Dictionary = {}) -> void` - Adds one line: t, night_phase and night are filled in; `fields` are the rest. Cheap: one JSON string into a...
+- L60 `static available() -> bool` - True when this build can record at all (a project run, not an exported release).
+- L65 `static requested() -> bool` - True when this game should record: the menu toggle or the `--record` user argument, never in an exported bu...
+- L71 `static start(main: TopDownMain) -> Recorder` - Starts recording `main`'s level when it was asked for (the menu check box or `-- --record`); null when not,...
+- L83 `static load_setting() -> void` - Loads the saved menu choice (not under automated tests, which must not read a player's settings).
+- L90 `static load_setting_from(path: String) -> void` - Reads the menu choice from the config file at `path` (a missing or unreadable file leaves it as it is).
+- L96 `static save_setting() -> void`
+- L103 `static save_setting_to(path: String) -> void` - Writes the menu choice into the config file at `path`, keeping whatever else that file holds.
+- L111 `static phase_for(progress: float) -> String` - The night phase name for a night progress 0..1 (the calm opening, then thirds up to dawn).
+- L122 `attach(main: TopDownMain) -> bool` - Starts a session for `main` (call at the end of its _ready). Returns false when it could not open a file.
+- L243 `is_open() -> bool`
+- L293 `mark() -> void` - Logs a mark at this moment, flashes "Marked" and takes a screenshot at once (a mark is never throttled).
+- L303 `note_exit(reason: String) -> void` - Marks why the level is being left (the restart and menu keys call this just before changing scene).
+- L309 `end(reason: String) -> void` - Writes session_end (once) and closes the file. `reason` is "win", "loss", "dawn", "restart", "menu", "quit" or
+- L337 `on_round_end(title: String) -> void` - The round ended in `title` (TopDownMain._end_round): the loss or win event, then session_end. Reaching dawn...
+- L357 `emit_event(type: String, fields: Dictionary = {}) -> void` - Adds one line: t, night_phase and night are filled in; `fields` are the rest. Cheap: one JSON string into a...
 
 ### scripts/recorder_config.gd (RecorderConfig)
 extends RefCounted | 9 const | The gameplay recorder (scripts/recorder.gd).
@@ -1290,7 +1291,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 - looks_round20_test (tests/looks_round20_test.gd): 17 tests
 - looks_test (tests/looks_test.gd): 19 tests
 - loop_tuning_test (tests/loop_tuning_test.gd): 8 tests
-- menu_test (tests/menu_test.gd): 14 tests
+- menu_test (tests/menu_test.gd): 15 tests
 - minimap_clouds_test (tests/minimap_clouds_test.gd): 18 tests
 - moods_test (tests/moods_test.gd): 14 tests
 - night_cycle_test (tests/night_cycle_test.gd): 9 tests
