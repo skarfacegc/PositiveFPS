@@ -40,10 +40,15 @@ func _scenario(cells: Array[Vector2i], count: int) -> Dictionary:
 		var p: Person = td.people[i]
 		TopDownTestUtil.place(p, Vector3(cos(a) * 3.0, 0.0, sin(a) * 3.0), p.affinity, 0.0)
 		p.receive_joy(p.affinity, Config.JOY_MAX, 0.0)
+	# Slowest tests (#88): the parked crowd is not needed (nobody outside is ever dimmed here), and costs a frame's work
+	# each; keep only the rescued people and a few spare, and stop settling once every member stands on the line.
+	TopDownTestUtil.trim_crowd(td, rescue_count + 4)
 	td.night.elapsed = 5.0
 	for frame: int in range(SETTLE_FRAMES):
 		_keep_calm(td)
 		await runner.simulate_frames(1)
+		if frame >= 60 and frame % 10 == 0 and TopDownTestUtil.members_on_line(td):
+			break
 	return {"runner": runner, "td": td, "need": need}
 
 
