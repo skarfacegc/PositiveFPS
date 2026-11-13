@@ -14,8 +14,9 @@ const TAKE_RESCUES := 3
 
 # Walls and gates: Line (0.4, #56). The line is the outline of the zone (Zone); only its gates carry members and the
 # push. A gate has a point of the traced line every GATE_POINT_STEP metres (so a dent shows); a gate needs its length
-# over BORDER_TARGET_SPACING members, rounded up (a 10 m street mouth 3, a 12 m square side 4). People who are not on
-# a gate stand on the zone's open ground, GATE_INNER_INSET metres in from the edges of its rectangles.
+# over BORDER_TARGET_SPACING members, rounded up (a 10 m street mouth 2, a 12 m square side 2, the start square's
+# 18 m side 3). People who are not on a gate stand on the zone's open ground, GATE_INNER_INSET metres in from the edges
+# of its rectangles.
 const GATE_POINT_STEP := 2.0
 const BORDER_MAP_LIMIT := Config.TD_PLAZA_SIZE / 2.0 - Config.TD_EDGE_MARGIN  # People stay inside this (x and z).
 const GATE_INNER_INSET := 2.4
@@ -24,8 +25,9 @@ const GATE_MOUTH_OUTSIDE := 3.0  # Metres outside a gate's middle: where a dimme
 const GATE_MOUTH_REACH := 4.0  # Within this many metres of a gate a dimmed person is at its mouth: straight on.
 
 # Members stand this far apart along a gate, in metres. A gate's member count is its length / this, rounded up. Round
-# 10: 3.0 (was 2.2), so growing is easier.
-const BORDER_TARGET_SPACING := 2.6 * Config.WORLD_SCALE
+# 10: 3.0 (was 2.2), so growing is easier. Walls and gates: Loop tuning (#93): one member per 6 m on the ground (was
+# 2.6 x WORLD_SCALE, about 3.7 m), so a new cell wants about 12 people, not 20.
+const BORDER_TARGET_SPACING := 4.2 * Config.WORLD_SCALE
 
 # Members walk to their slot at this speed, in metres per second.
 const BORDER_WALK_SPEED := 3.0

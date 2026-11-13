@@ -26,7 +26,7 @@ func test_the_ribbon_is_one_closed_loop_along_the_line_through_every_member() ->
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
 	assert_int(td.border.gap_count()).is_equal(0)
-	assert_int(td.border.member_count).is_equal(16)
+	assert_int(td.border.member_count).is_equal(12)  # Loop tuning (#93): the start square's 12 places (was 16).
 	var strips := EdgeRibbon.build(td.border)
 	assert_int(strips.size()).is_equal(1)
 	assert_bool(strips[0].closed).is_true()

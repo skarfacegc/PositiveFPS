@@ -66,19 +66,20 @@ extends RefCounted | 78 const | The living border: members, slots, gaps, ribbon,
 
 ### scripts/border_push.gd (BorderPush)
 extends RefCounted | 0 const | Round 26, physical push; 0.4 (#56): it lives on gates. The only things that push the line are visible: dimm...
-- L41 `reset() -> void` - Back to flat gates with nothing pushing (a new border, or no border).
-- L46 `resize(n: int) -> void` - Fresh state for `n` points of the line.
-- L65 `carry(old_pts: PackedVector2Array, new_pts: PackedVector2Array) -> void` - The line was traced again (the zone changed): keeps dents, calm and breaks at the points that are still there.
-- L99 `sample_of(pos: Vector3) -> int` - The point of the line nearest to `pos`.
-- L105 `set_gate_wave(weights: Dictionary, force: float) -> void` - The surge pushes whole gates: `weights` maps a gate index to its share (1 for the gate it meets, less besid...
-- L116 `clear_wave() -> void`
-- L122 `bend_at(pos: Vector3) -> float` - How bent the line is at `pos`, 0 (flat) to 1 (at the break depth): what the ribbon colours and a member bra...
-- L129 `bend_of_point(i: int) -> float` - How bent the line is at point `i`: its dent over the break depth of its gate (a thin gate is bent sooner).
-- L136 `segment_broken(j: int) -> bool` - True when polygon segment `j` lies in a break.
-- L141 `update(people: Array[Person], delta: float, strength: float) -> void` - One frame. Called by Border.update before the polygon is built, so the dent it makes is in this frame's pol...
-- L223 `calm_at(pos: Vector3, amount: float, spread: int) -> void` - Calms the points within `spread` of the one nearest `pos` (a joy hit on a member, or a burst).
-- L234 `relieve(at: Vector3) -> void` - A burst at `at` relieves the line within PUSH_BURST_REACH of it: the force there is cut and the gate spring...
-- L358 `break_points() -> Array[Vector3]` - The break points, for the pointer to an off-screen break and the recorder.
+- L43 `reset() -> void` - Back to flat gates with nothing pushing (a new border, or no border).
+- L48 `resize(n: int) -> void` - Fresh state for `n` points of the line.
+- L69 `carry(old_pts: PackedVector2Array, new_pts: PackedVector2Array) -> void` - The line was traced again (the zone changed): keeps dents, calm and breaks at the points that are still there.
+- L105 `sample_of(pos: Vector3) -> int` - The point of the line nearest to `pos`.
+- L111 `set_gate_wave(weights: Dictionary, force: float) -> void` - The surge pushes whole gates: `weights` maps a gate index to its share (1 for the gate it meets, less besid...
+- L122 `clear_wave() -> void`
+- L128 `bend_at(pos: Vector3) -> float` - How bent the line is at `pos`, 0 (flat) to 1 (at the break depth): what the ribbon colours and a member bra...
+- L135 `bend_of_point(i: int) -> float` - How bent the line is at point `i`: its dent over the break depth of its gate (a thin gate is bent sooner).
+- L142 `segment_broken(j: int) -> bool` - True when polygon segment `j` lies in a break.
+- L147 `update(people: Array[Person], delta: float, strength: float) -> void` - One frame. Called by Border.update before the polygon is built, so the dent it makes is in this frame's pol...
+- L233 `calm_at(pos: Vector3, amount: float, spread: int) -> void` - Calms the points within `spread` of the one nearest `pos` (a joy hit on a member, or a burst).
+- L246 `relieve(at: Vector3) -> void` - A burst at `at` relieves the line within PUSH_BURST_REACH of it: the force there is cut and the gate spring...
+- L262 `breaks_in_reach(at: Vector3) -> int` - How many open breaks lie within BURST_LIFT_RADIUS of `at` (a burst there mends them: the cue asks for it).
+- L393 `break_points() -> Array[Vector3]` - The break points, for the pointer to an off-screen break and the recorder.
 
 ### scripts/border_shape.gd (BorderShape)
 extends RefCounted | 0 const | Pure rules for the line and for walking round blocks, split out of border.gd. 0.4 (Walls and gates) removed...
@@ -1050,7 +1051,7 @@ signals: pip_added(cell: Vector2i, pips: int), cell_ready(cell: Vector2i)
 - L58 `is_ready(cell: Vector2i) -> bool` - True when `cell` has all its pips: taking it with E is free.
 
 ### scripts/spirit_config.gd (SpiritConfig)
-extends RefCounted | 50 const | Spirit, going dim, grabs, the joy burst, spare spirit and the burst's result effects.
+extends RefCounted | 51 const | Spirit, going dim, grabs, the joy burst, spare spirit and the burst's result effects.
 
 ### scripts/spirit_meter.gd (SpiritMeter)
 extends Control | 1 const | Round 13b: the spirit meter, bottom centre (SPIRIT_METER_WIDTH wide), drawn over the HUD's spirit bar. It s...
@@ -1247,6 +1248,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 - looks_round20_pieces_test (tests/looks_round20_pieces_test.gd): 7 tests
 - looks_round20_test (tests/looks_round20_test.gd): 17 tests
 - looks_test (tests/looks_test.gd): 19 tests
+- loop_tuning_test (tests/loop_tuning_test.gd): 8 tests
 - menu_test (tests/menu_test.gd): 14 tests
 - minimap_clouds_test (tests/minimap_clouds_test.gd): 18 tests
 - moods_test (tests/moods_test.gd): 14 tests

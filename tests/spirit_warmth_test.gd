@@ -229,7 +229,9 @@ func test_spare_spirit_from_rescues_at_full_spirit_warms_a_strained_border_in_th
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	await _ring(td, runner, 24, 0.7)
-	var weakest: Person = td.people[5]
+	# Loop tuning (#93): a gate now asks for fewer people, so the 24-person ring has fewer members; the most strained
+	# one is a member (people[5] may now stand inside the line).
+	var weakest: Person = td.border.members[0]
 	weakest.joy = weakest.joy_needed() * 0.4
 	td.player.spirit = SpiritConfig.SPIRIT_MAX
 	td.spirit_warmth.pool = 0.0  # the rescues that built the ring spilled some already

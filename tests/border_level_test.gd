@@ -125,9 +125,9 @@ func test_members_beyond_what_the_gates_need_stand_inside_on_open_ground() -> vo
 	_rescue_ring(td, Vector3(0, 0, 0), 3.0, 24)
 	await runner.simulate_frames(400)
 	var border: Border = td.border
-	assert_int(border.required_members()).is_equal(20)
-	assert_int(border.member_count).is_equal(20)
-	assert_int(border.inner_count).is_equal(4)
+	assert_int(border.required_members()).is_equal(12)  # Loop tuning (#93): was 20.
+	assert_int(border.member_count).is_equal(12)
+	assert_int(border.inner_count).is_equal(12)  # 24 rescued: 12 spare stand inside (was 4).
 	for p: Person in border.inner:
 		assert_bool(BorderShape.is_inside(border.polygon, Vector2(p.position.x, p.position.z))).is_true()
 		assert_float(maxf(absf(p.position.x), absf(p.position.z))).is_less(9.0 - BorderConfig.GATE_INNER_INSET + 0.3)
@@ -166,7 +166,7 @@ func test_few_people_spread_over_the_gates_and_the_line_is_still_intact() -> voi
 		rescued.append(people[i])
 	border._assign_members(rescued)
 	assert_int(border.member_count).is_equal(3)
-	assert_int(border.slot_count).is_equal(20)
+	assert_int(border.slot_count).is_equal(12)  # Loop tuning (#93): was 20.
 	assert_int(border.gap_count()).is_equal(0)  # A thin line is not a broken one (the next pass makes it dent sooner).
 	assert_bool(border.segment_is_gap(0)).is_false()
 	assert_bool(border.segment_colour(0).is_equal_approx(BorderConfig.BORDER_INTACT_COLOUR)).is_true()

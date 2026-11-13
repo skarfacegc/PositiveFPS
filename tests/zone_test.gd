@@ -40,8 +40,8 @@ func test_the_zone_starts_as_the_start_square_with_four_open_sides() -> void:
 	assert_float(_wall_length(z)).is_equal(0.0)
 	for g: Dictionary in z.gates:
 		assert_float(g["length"] as float).is_equal(18.0)
-		assert_int(g["need"] as int).is_equal(5)  # 18 m over 3.7 m: the start square's side asks for 5.
-	assert_int(z.members_needed()).is_equal(20)
+		assert_int(g["need"] as int).is_equal(3)  # Loop tuning (#93): 18 m over 6 m asks for 3 (was 5 at 3.7 m).
+	assert_int(z.members_needed()).is_equal(12)  # Loop tuning (#93): was 20.
 	assert_vector(z.centre()).is_equal(Vector3.ZERO)
 	assert_bool(z.contains(Vector3(5, 0, 5))).is_true()
 	assert_bool(z.contains(Vector3(12, 0, 0))).is_false()
@@ -81,7 +81,8 @@ func test_taking_a_block_adds_walls_a_street_between_and_two_street_mouths() -> 
 	# Gates: the start square's west, north and south sides (18 m), and the street's north and south mouths (12 m).
 	assert_int(z.gates.size()).is_equal(5)
 	assert_float(_gate_length(z)).is_equal(18.0 + 18.0 + 18.0 + 12.0 + 12.0)
-	assert_int(z.members_needed()).is_equal(5 + 5 + 5 + 4 + 4)  # The street mouths ask for 4, a start side 5.
+	# Loop tuning (#93): the street mouths ask for 2, a start side 3.
+	assert_int(z.members_needed()).is_equal(3 + 3 + 3 + 2 + 2)
 	# Walls: the block's three outer faces (12 + 18 + 12 m).
 	assert_float(_wall_length(z)).is_equal(42.0)
 	for run: Dictionary in z.runs:
@@ -146,8 +147,8 @@ func test_preview_shows_the_gates_a_change_opens_and_closes_and_changes_nothing(
 	assert_int((p["opened"] as Array).size()).is_equal(2)  # The street's two mouths.
 	assert_int((p["closed"] as Array).size()).is_equal(1)  # The start square's east side.
 	assert_int((p["gates"] as Array).size()).is_equal(5)
-	assert_int(p["members_needed"] as int).is_equal(23)
-	assert_int(p["members_added"] as int).is_equal(3)
+	assert_int(p["members_needed"] as int).is_equal(13)  # Loop tuning (#93): was 23 at 3.7 m.
+	assert_int(p["members_added"] as int).is_equal(1)  # Was 3.
 	assert_int((p["cells"] as Array).size()).is_equal(2)
 	assert_int(z.version).is_equal(version)
 	assert_int(z.held.size()).is_equal(1)
@@ -193,7 +194,7 @@ func test_losing_a_cell_loses_what_it_cut_off_and_never_the_start_square() -> vo
 	var p := z2.preview(EAST_BLOCK, false)
 	assert_bool(p["valid"] as bool).is_true()
 	assert_int((p["cells"] as Array).size()).is_equal(1)
-	assert_int(p["members_added"] as int).is_equal(20 - 23)
+	assert_int(p["members_added"] as int).is_equal(12 - 13)  # Loop tuning (#93): was 20 - 23.
 	assert_bool(z2.preview(TownGrid.start_cell(), false)["valid"] as bool).is_false()
 
 

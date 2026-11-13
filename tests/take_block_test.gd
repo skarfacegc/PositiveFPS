@@ -279,11 +279,11 @@ func test_the_preview_says_what_the_cell_costs_and_the_people_it_needs_against_t
 	runner.simulate_key_press(KEY_E)
 	await runner.simulate_frames(3)
 	var needed: int = td.take_block.preview["members_needed"]
-	assert_int(needed).is_equal(23)
+	assert_int(needed).is_equal(13)  # Loop tuning (#93): was 23 at 3.7 m.
 	var text := td.take_block.preview_text()
 	var added: int = (td.take_block.preview["gates"] as Array).size() - td.border.zone.gates.size()
 	var word := "gate" if absi(added) == 1 else "gates"
-	assert_str(text).contains("%+d %s: 11 more people" % [added, word])  # 23 needed, 12 free.
+	assert_str(text).contains("%+d %s: 1 more people" % [added, word])  # 13 needed, 12 free (was 11 more of 23).
 	assert_str(text).contains("25 spirit")
 	assert_bool(td.take_block._label.visible).is_true()
 	assert_object(td.take_block._label.modulate).is_equal(BorderConfig.GATE_COUNT_SHORT_COLOUR)  # 12 free < 23 needed.

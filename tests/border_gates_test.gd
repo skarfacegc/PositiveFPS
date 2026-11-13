@@ -88,14 +88,16 @@ func test_the_line_is_traced_again_when_the_zone_changes_and_members_keep_to_the
 	var border := _bare_border()
 	var people := _rescued(16)
 	border.update(people, 1.0 / 60.0, 1.0)
-	assert_int(border.member_count).is_equal(16)  # 16 people for the start square's 20 places: shared out.
+	# Loop tuning (#93): 16 people for the start square's 12 places; 4 spare (was 16 of 20).
+	assert_int(border.member_count).is_equal(12)
 	var before := border.polygon.size()
 	border.zone.take(EAST_BLOCK)
 	border.update(people, 1.0 / 60.0, 1.0)
 	assert_int(border.polygon.size()).is_not_equal(before)
-	assert_int(border.slot_count).is_equal(23)
-	assert_int(border.member_count).is_equal(16)  # 16 people for 23 places: shared out, none left over.
-	assert_int(border.inner_count).is_equal(0)
+	assert_int(border.slot_count).is_equal(13)  # Loop tuning (#93): was 23.
+	# 16 people for 13 places: 13 on the gates, 3 spare inside (was 16 of 23).
+	assert_int(border.member_count).is_equal(13)
+	assert_int(border.inner_count).is_equal(3)
 	for m: Person in border.members:
 		var target: Vector3 = border._targets[m]
 		assert_float(BorderShape.distance_to_line(border.polygon, Vector2(target.x, target.z))).is_less(0.01)
@@ -103,8 +105,8 @@ func test_the_line_is_traced_again_when_the_zone_changes_and_members_keep_to_the
 	# More people than places: the rest are inner and inside.
 	var many := _rescued(26)
 	border.update(many, 1.0 / 60.0, 1.0)
-	assert_int(border.member_count).is_equal(23)
-	assert_int(border.inner_count).is_equal(3)
+	assert_int(border.member_count).is_equal(13)  # Loop tuning (#93): 13 places (was 23).
+	assert_int(border.inner_count).is_equal(13)  # 26 people: 13 spare inside (was 3).
 	assert_float(border.perimeter).is_equal(78.0)  # Three 18 m gates and two 12 m street mouths.
 
 
@@ -139,14 +141,14 @@ func test_members_settle_on_the_gates_and_a_dimmed_person_walks_to_one() -> void
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
 	var border: Border = td.border
-	assert_int(border.member_count).is_equal(20)
+	assert_int(border.member_count).is_equal(12)  # Loop tuning (#93): the start square's 12 places (was 20).
 	var per_gate: Dictionary = {}
 	for m: Person in border.members:
 		assert_float(BorderShape.distance_to_line(border.polygon, Vector2(m.position.x, m.position.z))).is_less(0.2)
 		var g: int = border.zone.nearest_gate(Vector2(m.position.x, m.position.z))["id"]
 		per_gate[g] = (per_gate.get(g, 0) as int) + 1
 	for g: int in per_gate:
-		assert_int(per_gate[g] as int).is_equal(5)
+		assert_int(per_gate[g] as int).is_equal(3)  # Four gates of 18 m: 3 each at one per 6 m (was 5 at 3.7 m).
 	# A dimmed person in the street west of the square goes round the block and comes up to a gate.
 	td.spirit_warmth.pool = 0.0
 	TopDownTestUtil.open_dim_gate(td)

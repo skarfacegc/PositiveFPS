@@ -9,7 +9,8 @@ extends GdUnitTestSuite
 const SETTLE_FRAMES := 480
 const COMPACT_CELLS: Array[Vector2i] = [Vector2i(3, 2)]
 const WIDE_CELLS: Array[Vector2i] = [Vector2i(3, 2), Vector2i(4, 2), Vector2i(2, 1), Vector2i(1, 2), Vector2i(2, 3)]
-const WIDE_PEOPLE := 12
+# Loop tuning (#93): was 12. At one member per 6 m the wide zone needs 20, so 6 keeps it 3x short.
+const WIDE_PEOPLE := 6
 
 
 func before_test() -> void:
@@ -127,8 +128,8 @@ func test_a_compact_fully_staffed_zone_keeps_its_cells_through_the_surge() -> vo
 	assert_int(td.border.member_count).is_equal(s["need"])  # Every gate has everyone it needs.
 	var stats: Dictionary = await _play(s)
 	print(_report("compact", s, stats))
-	# Measured at the plan's defaults (2026-11-11): street south, need 23 of 23, break depth 2.40, deepest dent 2.23,
-	# no break, cells 2 -> 2, 3061 frames.
+	# Measured at the plan's defaults (2026-11-13, 6 m spacing): street south, need 13, members 13, break depth 2.40,
+	# deepest dent 2.23, no break, cells 2 -> 2 (0 lost), 3061 frames. (Was need 23 at 3.7 m.)
 	assert_int(td.gloom_tide.phase()).is_equal(GloomTide.Phase.AFTERMATH)  # The whole surge was played.
 	assert_int(stats["held_min"]).is_equal(1 + COMPACT_CELLS.size())
 	assert_int(stats["lost"]).is_equal(0)
@@ -143,8 +144,8 @@ func test_an_over_reached_zone_short_of_people_loses_a_cell_during_the_surge() -
 	var lost: Callable = func() -> bool: return td.border.zone.held.size() < 1 + WIDE_CELLS.size()
 	var stats: Dictionary = await _play(s, lost)
 	print(_report("wide", s, stats))
-	# Measured at the plan's defaults (2026-11-11): street south, need 40 with 12 members (break depth 1.20), deepest
-	# dent 2.23, one break open for 12.0 s, cells 6 -> 5, 1815 frames.
+	# Measured at the plan's defaults (2026-11-13, 6 m spacing, WIDE_PEOPLE 6): street south, need 20 with 6 members
+	# (break depth 1.20), deepest dent 2.23, one break open for 12.0 s, cells 6 -> 5 (1 lost), 1769 frames.
 	assert_int(stats["lost"]).is_greater_equal(1)
 	assert_int(td.border.zone.held.size()).is_less(1 + WIDE_CELLS.size())
 	assert_bool(td.border.zone.has(TownGrid.start_cell())).is_true()  # The start square is never lost.

@@ -125,6 +125,10 @@ func test_the_progress_ring_fills_as_the_player_rejoys_them_and_a_closed_flash_f
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
 	var m: Person = td.border.members[3]
+	# Loop tuning (#93): the start square now has 12 members, so members[3] can be an Art person. Each shot is at their
+	# own element, and a matched Art shot (680) passes a 500-joy member in one hit, so the ring never shows a rise. Music
+	# (170 a shot) rises over several frames, as this test needs.
+	m.affinity = Config.Element.MUSIC
 	_falter(m, 0.5)
 	await runner.simulate_frames(3)
 	var start: float = td.feedback.marker_for(m)["progress"]
@@ -255,7 +259,7 @@ func test_a_rescue_flashes_the_meter_with_a_plus_number_and_pulses_the_player() 
 	var meter: SpiritMeter = td.spirit_meter
 	assert_int(meter.popups.size()).is_greater(0)
 	var popup: Dictionary = meter.popups[meter.popups.size() - 1]
-	assert_str(popup["text"]).is_equal("+20")
+	assert_str(popup["text"]).is_equal("+10")  # Loop tuning (#93): a rescue gives SPIRIT_PER_RESCUE 10 (was +20).
 	assert_object(popup["colour"]).is_equal(HudConfig.SPIRIT_GAIN_COLOUR)
 	assert_float(meter.flash).is_greater(0.3)
 	assert_int(td.feedback.player_pulses.size()).is_greater(0)

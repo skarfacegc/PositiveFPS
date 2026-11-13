@@ -50,7 +50,7 @@ func test_territory_constants_scale_and_interaction_constants_do_not() -> void:
 	var s := Config.WORLD_SCALE
 	# Territory: the old (round 12) value times WORLD_SCALE.
 	var territory: Dictionary = {
-		"BORDER_TARGET_SPACING": [BorderConfig.BORDER_TARGET_SPACING, 2.6],
+		"BORDER_TARGET_SPACING": [BorderConfig.BORDER_TARGET_SPACING, 4.2],  # Loop tuning (#93): was 2.6 (3.7 m), now 6 m.
 		"BORDER_EDGE_BAND": [BorderConfig.BORDER_EDGE_BAND, 1.0],
 		"BORDER_OUTWARD_STEP": [BorderConfig.BORDER_OUTWARD_STEP, 1.0],
 		"TD_COVER_RADIUS": [GroundConfig.TD_COVER_RADIUS, 3.0],
@@ -75,7 +75,7 @@ func test_territory_constants_scale_and_interaction_constants_do_not() -> void:
 	# A per-metre rate shrinks by the same factor, so the same fraction of the way gives the same rate.
 	assert_float(PeopleConfig.GLOOM_GROWTH_PER_METER * s).is_equal_approx(0.0008, 0.000001)
 	# Round numbers from the brief.
-	assert_float(BorderConfig.BORDER_TARGET_SPACING).is_equal_approx(3.71, 0.01)
+	assert_float(BorderConfig.BORDER_TARGET_SPACING).is_equal_approx(6.0, 0.01)  # Loop tuning (#93): was 3.71.
 
 	# Interaction and bodies: exactly the round 12 values.
 	assert_float(PlayerConfig.TD_AUTO_RANGE).is_equal(10.0)
@@ -120,12 +120,13 @@ func test_the_camera_is_nineteen_and_a_half_metres_tall_and_the_ten_metre_ring_f
 # --- The rules behave the same, bigger ----------------------------------------------------------------------------
 
 
-# Gates need their width over the territory spacing members (an 18 m start side 5, a 12 m side or street mouth 4).
+# Gates need their width over the territory spacing members (an 18 m start side 3, a 12 m side or street mouth 2).
+# Loop tuning (#93): the spacing is 6 m, so the start square needs 12 (was 20 at 3.7 m).
 func test_a_gate_asks_for_its_width_over_the_scaled_spacing() -> void:
 	var z := Zone.new()
-	assert_int(z.members_needed()).is_equal(20)
-	assert_int(ceili(18.0 / BorderConfig.BORDER_TARGET_SPACING)).is_equal(5)
-	assert_int(ceili(12.0 / BorderConfig.BORDER_TARGET_SPACING)).is_equal(4)
+	assert_int(z.members_needed()).is_equal(12)
+	assert_int(ceili(18.0 / BorderConfig.BORDER_TARGET_SPACING - 0.001)).is_equal(3)
+	assert_int(ceili(12.0 / BorderConfig.BORDER_TARGET_SPACING - 0.001)).is_equal(2)
 
 
 # --- Performance --------------------------------------------------------------------------------------------------
