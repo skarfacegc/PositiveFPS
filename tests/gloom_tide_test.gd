@@ -200,18 +200,20 @@ func test_the_warning_comes_forty_seconds_before_the_push() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_banners_name_the_street_at_the_warning_again_and_at_the_start() -> void:
+func test_the_banners_point_to_the_radar_without_naming_the_street_at_the_warning_again_and_at_the_start() -> void:
 	var parts := await _level()
 	var td: TopDownMain = parts[1]
 	var start := _start(td)
 	_at(td, start - NightConfig.SURGE_WARN_SECONDS + 0.1)
-	var street: Dictionary = GloomTide.streets()[td.gloom_tide.surge["street"]]
-	assert_str(td.intro.current_text()).is_equal(NightConfig.SURGE_WARN_TEXT % [street["end_name"], street["name"]])
+	assert_str(td.intro.current_text()).is_equal("The gloom is gathering: watch the radar")
+	assert_str(td.intro.current_text()).is_equal(NightConfig.SURGE_WARN_TEXT)
 	assert_bool(td.intro.coral).is_true()  # A slim banner under the night bar, wherever the player is.
 	_at(td, start - NightConfig.SURGE_SOON_SECONDS + 0.1)
-	assert_str(td.intro.current_text()).is_equal(NightConfig.SURGE_SOON_TEXT % street["name"])
+	assert_str(td.intro.current_text()).is_equal("The gloom is close: hold the marked gate")
+	assert_str(td.intro.current_text()).is_equal(NightConfig.SURGE_SOON_TEXT)
 	_at(td, start + 0.1)
-	assert_str(td.intro.current_text()).is_equal(NightConfig.SURGE_START_TEXT % street["name"])
+	assert_str(td.intro.current_text()).is_equal("The gloom is surging in")
+	assert_str(td.intro.current_text()).is_equal(NightConfig.SURGE_START_TEXT)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

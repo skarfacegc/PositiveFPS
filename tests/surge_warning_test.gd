@@ -147,3 +147,77 @@ func test_a_pulse_swells_the_pointer_and_the_banner() -> void:
 	bar.tick(Rect2(0, 0, 1280, 720))
 	assert_float(bar.pulse).is_greater(0.0)
 	assert_float(bar._rect.size.x).is_greater(plain)
+
+
+# Surge on the radar (#91): a minimap with the surge's mark drawn on a plain ground, no people and no clouds.
+func _radar() -> Minimap:
+	var m: Minimap = auto_free(Minimap.new())
+	add_child(m)
+	m.border_pts = PackedVector2Array([Vector2(-10, -10), Vector2(10, -10), Vector2(0, 10)])
+	m.gap_flags = [false, false, false]
+	m.surge_from = Vector2(-5, 0)
+	m.surge_dir = Vector2(1, 0)
+	m.surge_front = 5.0
+	return m
+
+
+# The pixels of the picture that differ from `plain` (the picture without the mark): x is how many, y their mean alpha.
+func _mark_pixels(m: Minimap, plain: PackedByteArray) -> Vector2:
+	var data := m._image.get_data()
+	var count := 0.0
+	var alpha := 0.0
+	for i: int in range(m._image.get_width() * m._image.get_height()):
+		var k := i * 4
+		if (
+			data[k] != plain[k]
+			or data[k + 1] != plain[k + 1]
+			or data[k + 2] != plain[k + 2]
+			or data[k + 3] != plain[k + 3]
+		):
+			count += 1.0
+			alpha += float(data[k + 3]) / 255.0
+	return Vector2(count, alpha / maxf(count, 1.0))
+
+
+func test_the_radar_mark_swells_and_brightens_in_a_pulse_and_is_normal_after() -> void:
+	var plain := _radar()
+	plain.surge_from = Vector2.INF
+	plain._render()
+	var base := plain._image.get_data()
+	var rest := _radar()
+	rest._render()
+	var at_rest := _mark_pixels(rest, base)
+	assert_float(at_rest.x).is_greater(0.0)
+	var peak := _radar()
+	peak.pulse_surge()
+	# The top of the first beat: the pulse shape peaks a sixth of the way through a three-beat pulse.
+	peak.tick(NightConfig.SURGE_PULSE_SECONDS / (2.0 * NightConfig.SURGE_PULSE_BEATS))
+	assert_float(peak.surge_pulse_amount()).is_greater(0.9)
+	peak._render()
+	var in_pulse := _mark_pixels(peak, base)
+	assert_float(in_pulse.x).is_greater(at_rest.x)  # Bigger: more of the picture is the mark.
+	assert_float(in_pulse.y).is_greater(at_rest.y)  # Brighter: the mark's pixels are more opaque.
+	var after := _radar()
+	after.pulse_surge()
+	after.tick(NightConfig.SURGE_PULSE_SECONDS + 1.0)
+	assert_float(after.surge_pulse_amount()).is_equal(0.0)
+	after._render()
+	var normal := _mark_pixels(after, base)
+	assert_float(normal.x).is_equal(at_rest.x)
+	assert_float(normal.y).is_equal_approx(at_rest.y, 0.0001)
+
+
+func test_the_radar_mark_pulses_with_the_pointer_and_the_banner_at_the_warning_and_at_soon() -> void:
+	var parts := await _level()
+	var td: TopDownMain = parts[1]
+	var start := _start(td)
+	assert_float(td.minimap.surge_pulse_left).is_equal(0.0)
+	_at(td, start - NightConfig.SURGE_WARN_SECONDS + 0.1)
+	assert_float(td.minimap.surge_pulse_left).is_equal(NightConfig.SURGE_PULSE_SECONDS)
+	assert_float(td.minimap.surge_pulse_left).is_equal(td.gloom_tide.pointer.pulse_left)
+	td.minimap.tick(NightConfig.SURGE_PULSE_SECONDS + 1.0)
+	assert_float(td.minimap.surge_pulse_left).is_equal(0.0)
+	_at(td, start - NightConfig.SURGE_SOON_SECONDS + 0.1)
+	assert_float(td.minimap.surge_pulse_left).is_equal(NightConfig.SURGE_PULSE_SECONDS)
+	assert_float(td.minimap.surge_pulse_left).is_equal(td.intro.pulse_left)
+	await TopDownTestUtil.leave_loaded_scene(td)

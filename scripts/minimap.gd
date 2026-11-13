@@ -52,6 +52,9 @@ var wobble_marks: Array[Dictionary] = []
 var surge_from := Vector2.INF
 var surge_dir := Vector2.ZERO
 var surge_front: float = 0.0
+# Walls and gates: Surge on the radar (#91). The mark pulses with the edge pointer and the banner: the seconds the pulse
+# has to go (see pulse_surge). Visual only.
+var surge_pulse_left: float = 0.0
 
 # The look: the palette and the frame (see scripts/looks/minimap_look.gd). The picture itself is built here.
 var look: MinimapLook
@@ -116,6 +119,7 @@ func radius() -> float:
 # second).
 func tick(delta: float) -> bool:
 	_wobble_clock += delta
+	surge_pulse_left = maxf(surge_pulse_left - delta, 0.0)
 	for i: int in range(blips.size() - 1, -1, -1):
 		var left: float = blips[i]["left"] - delta
 		blips[i]["left"] = left
@@ -489,17 +493,34 @@ func _first_light_line() -> void:
 		_round_line(maxf(0.0, e - px_metres * float(k)), look.first_light("line", Color.WHITE, 0, 0))
 
 
+# Surge on the radar (#91): the surge's mark pulses for SURGE_PULSE_SECONDS, as the edge pointer and the banner do (the
+# warning and the "soon" mark ask for it, see GloomTide._pulse_warning). Visual only.
+func pulse_surge() -> void:
+	surge_pulse_left = NightConfig.SURGE_PULSE_SECONDS
+
+
+# How big the surge mark's pulse is now, 0 (none) to 1 (the top of a beat): the shape the edge pointer uses.
+func surge_pulse_amount() -> float:
+	return TidePointer.pulse_shape(surge_pulse_left)
+
+
 # Walls and gates: Pressure (#14). The surge's mark: SURGE_MINIMAP_BANDS lines side by side down the street from its far
-# end for SURGE_MINIMAP_LENGTH metres (each band fainter), and a ring where the fog has got to.
+# end for SURGE_MINIMAP_LENGTH metres (each band fainter), and a ring where the fog has got to. In a pulse (#91) the
+# mark swells (SURGE_PULSE_MINIMAP) and brightens (SURGE_PULSE_MINIMAP_BRIGHT); at rest it is drawn as before.
 func _surge_mark() -> void:
+	var pulse := surge_pulse_amount()
+	var swell := 1.0 + NightConfig.SURGE_PULSE_MINIMAP * pulse
+	var bright := 1.0 + NightConfig.SURGE_PULSE_MINIMAP_BRIGHT * pulse
 	var side := Vector2(-surge_dir.y, surge_dir.x)
 	for k: int in range(NightConfig.SURGE_MINIMAP_BANDS):
 		var off := (float(k) - float(NightConfig.SURGE_MINIMAP_BANDS - 1) * 0.5) * NightConfig.SURGE_MINIMAP_STEP
 		var col := NightConfig.TIDE_MINIMAP_COLOUR
-		col.a *= 1.0 - 0.3 * absf(off) / maxf(NightConfig.SURGE_MINIMAP_STEP, 0.01)
-		var a := surge_from + side * off
+		col.a = minf(1.0, col.a * (1.0 - 0.3 * absf(off) / maxf(NightConfig.SURGE_MINIMAP_STEP, 0.01)) * bright)
+		var a := surge_from + side * off * swell
 		_line(a, a + surge_dir * NightConfig.SURGE_MINIMAP_LENGTH, col)
-	_ring(surge_from + surge_dir * surge_front, 3.0, NightConfig.TIDE_MINIMAP_COLOUR)
+	var ring := NightConfig.TIDE_MINIMAP_COLOUR
+	ring.a = minf(1.0, ring.a * bright)
+	_ring(surge_from + surge_dir * surge_front, 3.0 * swell, ring)
 
 
 # A circle of `radius` metres about the centre, drawn as short straight pieces.

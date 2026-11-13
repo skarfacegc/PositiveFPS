@@ -294,8 +294,8 @@ signals: surge_warned(street: String, angle: float), surge_started(street: Strin
 - L164 `static streets() -> Array[Dictionary]` - Every street the surge can come down: each of the town's four vertical and four horizontal streets from eit...
 - L205 `static street_meets(street: Dictionary, gates: Array[Dictionary]) -> Dictionary` - The first gate of `gates` the surge down `street` meets: a gate facing the way it comes from, whose line li...
 - L234 `static candidates(gates: Array[Dictionary]) -> Array[int]` - The streets (indexes into streets()) whose surge would meet a gate of `gates`.
-- L405 `front_distance() -> float` - How far down the street the fog's leading edge is. In the warning it sits at the far end; in the surge it r...
-- L417 `fog_density() -> float` - How solid the fog is now, 0 to 1: it thickens through the warning, holds through the surge and thins at the...
+- L406 `front_distance() -> float` - How far down the street the fog's leading edge is. In the warning it sits at the far end; in the surge it r...
+- L418 `fog_density() -> float` - How solid the fog is now, 0 to 1: it thickens through the warning, holds through the surge and thins at the...
 
 ### scripts/grabs.gd (Grabs)
 extends Node | 0 const | Round 12a, dance with the gloom: dimmed people within GRAB_RANGE of a player who is not dim start a grab. A...
@@ -897,15 +897,17 @@ extends Control | 5 const | The start menu: a title, one Play button, the Look t
 
 ### scripts/minimap.gd (Minimap)
 extends Control | 2 const | The round minimap (round 10), top-left, about TD_MINIMAP_WIDTH_FRACTION of the screen width. It shows the w...
-- L99 `rebuild_look() -> void` - Swaps the look in place (F4): the data model is kept, the picture is redrawn with the new palette.
-- L106 `is_circular() -> bool` - The minimap is a circle: the picture is clipped to it, and the frame is drawn round it.
-- L111 `radius() -> float` - The circle's radius on screen, in pixels.
-- L117 `tick(delta: float) -> bool` - Advances the refresh timer by `delta`. Returns true when the picture should be rebuilt now (about 10 times a
-- L138 `clouds_due() -> bool` - Round 20: true when the people clouds are due a recount (at the next refresh_from).
-- L144 `refresh_from(ground: PaintedGround, border: Border, people: Array[Person], player_at: Vector3, view_centre: Vector3, view_half: Vector2) -> void` - Reads the level into the data model and redraws the picture. `view_half` is the half size of the camera's v...
-- L204 `refresh_clouds(people: Array[Person]) -> void` - Round 20: bins the unrescued people into the coarse grid and sets one blob per busy cell, at the mean of it...
-- L291 `cloud_alpha_at(px: int, py: int) -> float` - Round 20: the alpha of the people clouds at picture pixel (px, py), 0 to 1. Zero outside every blob.
-- L349 `add_blip(world: Vector2) -> void` - Round 12b: a blip at a world point (x, z) for MINIMAP_BLIP_SECONDS, drawn as a ring (someone became dimmed).
+- L102 `rebuild_look() -> void` - Swaps the look in place (F4): the data model is kept, the picture is redrawn with the new palette.
+- L109 `is_circular() -> bool` - The minimap is a circle: the picture is clipped to it, and the frame is drawn round it.
+- L114 `radius() -> float` - The circle's radius on screen, in pixels.
+- L120 `tick(delta: float) -> bool` - Advances the refresh timer by `delta`. Returns true when the picture should be rebuilt now (about 10 times a
+- L142 `clouds_due() -> bool` - Round 20: true when the people clouds are due a recount (at the next refresh_from).
+- L148 `refresh_from(ground: PaintedGround, border: Border, people: Array[Person], player_at: Vector3, view_centre: Vector3, view_half: Vector2) -> void` - Reads the level into the data model and redraws the picture. `view_half` is the half size of the camera's v...
+- L208 `refresh_clouds(people: Array[Person]) -> void` - Round 20: bins the unrescued people into the coarse grid and sets one blob per busy cell, at the mean of it...
+- L295 `cloud_alpha_at(px: int, py: int) -> float` - Round 20: the alpha of the people clouds at picture pixel (px, py), 0 to 1. Zero outside every blob.
+- L353 `add_blip(world: Vector2) -> void` - Round 12b: a blip at a world point (x, z) for MINIMAP_BLIP_SECONDS, drawn as a ring (someone became dimmed).
+- L498 `pulse_surge() -> void` - Surge on the radar (#91): the surge's mark pulses for SURGE_PULSE_SECONDS, as the edge pointer and the bann...
+- L503 `surge_pulse_amount() -> float` - How big the surge mark's pulse is now, 0 (none) to 1 (the top of a beat): the shape the edge pointer uses.
 
 ### scripts/mood_config.gd (MoodConfig)
 extends RefCounted | 48 const | Moods, sheltering, the shield and its readability (umbrella, pips, tethers, mood icons).
@@ -926,7 +928,7 @@ extends Node | 0 const | Round 12b, read the person: the moods of unrescued wist
 - L95 `flee_dir(p: Person) -> Vector3` - The flat direction `p` backs away in: straight away from the point they fled from.
 
 ### scripts/night_config.gd (NightConfig)
-extends RefCounted | 67 const | The night: its length and strength curve, dimmed arrivals, first light and the gloom tides.
+extends RefCounted | 69 const | The night: its length and strength curve, dimmed arrivals, first light and the gloom tides.
 
 ### scripts/night_cycle.gd (NightCycle)
 extends RefCounted | 9 const | Dusk to dawn. The level lasts NIGHT_LENGTH seconds: dusk (warm light, grey normal) to midnight (dim blue, grey
@@ -1276,7 +1278,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 - style_props_032_test (tests/style_props_032_test.gd): 11 tests
 - style_props_plaza_test (tests/style_props_plaza_test.gd): 8 tests
 - style_scenery_test (tests/style_scenery_test.gd): 19 tests
-- surge_warning_test (tests/surge_warning_test.gd): 5 tests
+- surge_warning_test (tests/surge_warning_test.gd): 7 tests
 - take_block_test (tests/take_block_test.gd): 18 tests
 - targeting_test (tests/targeting_test.gd): 11 tests
 - topdown_crowd_test (tests/topdown_crowd_test.gd): 8 tests

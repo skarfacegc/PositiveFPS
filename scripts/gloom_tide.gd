@@ -270,20 +270,19 @@ func _advance() -> void:
 		surge["warned"] = true
 		var street: Dictionary = streets()[surge["street"]]
 		var street_name := _label(street)
-		main.intro.notice(Intro.Prompt.TIDE, NightConfig.SURGE_WARN_TEXT % [street["end_name"], street["name"]])
+		main.intro.notice(Intro.Prompt.TIDE, NightConfig.SURGE_WARN_TEXT)
 		surge_warned.emit(street_name, surge["angle"])
 		refresh_pointer()
 		_pulse_warning()
 	if surge["warned"] and not surge["soon"] and now >= start - NightConfig.SURGE_SOON_SECONDS:
 		surge["soon"] = true
-		var street: Dictionary = streets()[surge["street"]]
-		main.intro.notice(Intro.Prompt.TIDE, NightConfig.SURGE_SOON_TEXT % street["name"])
+		main.intro.notice(Intro.Prompt.TIDE, NightConfig.SURGE_SOON_TEXT)
 		_pulse_warning()
 	if surge["warned"] and not surge["started"] and now >= start:
 		surge["started"] = true
 		pointer.hide_pointer()
 		var street: Dictionary = streets()[surge["street"]]
-		main.intro.notice(Intro.Prompt.TIDE, NightConfig.SURGE_START_TEXT % street["name"])
+		main.intro.notice(Intro.Prompt.TIDE, NightConfig.SURGE_START_TEXT)
 		var members := _members_on_target()
 		surge["members"] = members
 		surge_started.emit(_label(street), surge["angle"], members)
@@ -293,10 +292,12 @@ func _advance() -> void:
 		surge_ended.emit(_label(street), surge["angle"], _members_on_target())
 
 
-# Surge warning: the edge pointer and the banner swell (visual only), at the warning and again at the "soon" mark.
+# Surge warning: the edge pointer, the radar mark and the banner swell (visual only), at the warning and again at the
+# "soon" mark (#91).
 func _pulse_warning() -> void:
 	pulse_count += 1
 	pointer.pulse()
+	main.minimap.pulse_surge()
 	main.intro.pulse()
 
 
