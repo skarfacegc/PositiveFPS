@@ -73,7 +73,14 @@ static func draw(ci: Control, kind: int, text: String, state: int, colour: Color
 		fill = READY_FILL
 	elif state == WARN:
 		rim = CORAL
-	StyleUi.panel(ci, Rect2(Vector2.ZERO, ci.size), c, fill, rim)
+	if kind == StyledPanel.Kind.PEOPLE:
+		# Walls and gates: Style update (#94). The people line is slimmer than the others (it sits in the 25 px between
+		# the spirit meter's marker and the key strip): an ink outline round a parchment fill, coral when short.
+		var edge := CORAL if state == WARN else StyleUi.INK
+		StyleUi.cut_rect(ci, Rect2(Vector2.ZERO, ci.size), c, edge)
+		StyleUi.cut_rect(ci, Rect2(Vector2.ZERO, ci.size).grow(-c), c, fill)
+	else:
+		StyleUi.panel(ci, Rect2(Vector2.ZERO, ci.size), c, fill, rim)
 	var mid := ci.size.y * 0.5
 	if kind == StyledPanel.Kind.KEYS:
 		_draw_keys(ci, text, mid)
@@ -91,7 +98,11 @@ static func draw(ci: Control, kind: int, text: String, state: int, colour: Color
 
 
 static func _draw_icon(ci: Control, kind: int, state: int, colour: Color, centre: Vector2, c: float) -> void:
-	if kind == StyledPanel.Kind.RESCUED:
+	if kind == StyledPanel.Kind.PEOPLE:  # A small bead (the line is too slim for the person glyph): gold, coral if short.
+		_disc(ci, centre, 3, c, StyleUi.INK)
+		_disc(ci, centre, 2, c, CORAL if state == WARN else StyleUi.GOLD)
+		_disc(ci, centre + Vector2(-c, -c), 1, c, StyleUi.GOLD_LIGHT)
+	elif kind == StyledPanel.Kind.RESCUED:
 		var rows := StyleGlyphs.PERSON
 		var cells := StyleGlyphs.size_of("hud_person", rows)
 		var at := centre - Vector2(cells) * c * 0.5

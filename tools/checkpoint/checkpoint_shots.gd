@@ -75,6 +75,10 @@ func _ready() -> void:
 		await call("_run_grid")  # defined by checkpoint_grid.gd, which extends this script
 		_quit()
 		return
+	if scenario_set == "style04":
+		await call("_run_style04")  # defined by checkpoint_style04.gd, which extends checkpoint_grid.gd
+		_quit()
+		return
 	if scenario_set == "checkpoint7":
 		await call("_run_checkpoint7")  # defined by checkpoint_checkpoint7.gd, which extends checkpoint_round20.gd
 		_quit()

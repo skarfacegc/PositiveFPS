@@ -1,3 +1,4 @@
+# gdlint: ignore=max-public-methods
 class_name MinimapLook
 extends RefCounted
 
@@ -76,6 +77,25 @@ func first_light(part: String, col: Color, _px: int, _py: int) -> Color:
 
 # Round 20: the colour of the soft people clouds (minimap.gd). Alpha 0 means the look draws none (the styled look).
 func cloud_colour() -> Color:
+	return Color(0, 0, 0, 0)
+
+
+# Walls and gates: Style update (#94). The surge's mark on the radar (minimap.gd _surge_mark): the colour of its bands
+# (the outer band; the inner ones fade) and of its ring, an ink edge round both and a tint it flushes toward on each
+# beat of the warning pulse. Alpha 0 means none (the ink and the beat in the placeholder look).
+func surge_colour() -> Color:
+	return NightConfig.TIDE_MINIMAP_COLOUR
+
+
+func surge_ring_colour() -> Color:
+	return NightConfig.TIDE_MINIMAP_COLOUR
+
+
+func surge_ink() -> Color:
+	return Color(0, 0, 0, 0)
+
+
+func surge_beat_colour() -> Color:
 	return Color(0, 0, 0, 0)
 
 

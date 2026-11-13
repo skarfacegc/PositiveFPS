@@ -427,7 +427,7 @@ func _stop_holding() -> void:
 
 # Redraws the posts (and the ghost while aiming) when something changed.
 func _redraw() -> void:
-	var sig := ""
+	var sig := "styled;" if Looks.is_styled() else ""  # Walls and gates: Style update (#94): redraw when the look flips.
 	for post: Dictionary in posts:
 		var pg: int = post["gate"]
 		var pt: int = post["type"]
@@ -443,9 +443,9 @@ func _redraw() -> void:
 		for post: Dictionary in posts:
 			var pg: int = post["gate"]
 			var pt: int = post["type"]
-			_root.add_child(_post_node(pt, post_position(pg), 1.0))
+			_root.add_child(_post_piece(pt, post_position(pg), 1.0))
 		if holding and target_gate != NO_GATE and aim_type >= 0:
-			_root.add_child(_post_node(aim_type, post_position(target_gate), DefenceConfig.DEFENCE_GHOST_ALPHA))
+			_root.add_child(_post_piece(aim_type, post_position(target_gate), DefenceConfig.DEFENCE_GHOST_ALPHA))
 	_label.visible = text != ""
 	if text == "":
 		return
@@ -453,9 +453,11 @@ func _redraw() -> void:
 		_label.text = text
 	var at := post_position(target_gate)
 	_label.position = Vector3(at.x, DefenceConfig.DEFENCE_LABEL_HEIGHT, at.z)
-	_label.modulate = (
+	# Walls and gates: Style update (#94): the styled look warms the label and gives it an ink edge.
+	var plain: Color = (
 		LandmarkConfig.LANDMARK_COLOURS[aim_type] if aim_type >= 0 else BorderConfig.GATE_COUNT_SHORT_COLOUR
 	)
+	StyleTags.apply(_label, StyleTags.Role.PLAIN if aim_type >= 0 else StyleTags.Role.GATE_SHORT, plain)
 
 
 # What the label over the pointed gate says while F is held.
@@ -467,6 +469,14 @@ func _aim_text() -> String:
 	if not post_at(target_gate).is_empty():
 		return "Already defended"
 	return "%s post: %s" % [_type_name(aim_type), DefenceConfig.DEFENCE_TEXT[aim_type]]
+
+
+# One planted piece: the placeholder's simple shape, or (Walls and gates: Style update, #94) the styled street furniture
+# of the landmark. A ghost (alpha below 1) is the one being aimed.
+func _post_piece(type: int, at: Vector3, alpha: float) -> Node3D:
+	if Looks.is_styled():
+		return StyleDefence.build(type, at, alpha < 1.0)
+	return _post_node(type, at, alpha)
 
 
 # One post: a simple shape per type in the landmark's colour.

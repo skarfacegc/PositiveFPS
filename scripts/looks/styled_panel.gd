@@ -6,7 +6,9 @@ extends Control
 # (graphics checkpoint 4) the alert banner (a claim, a loss or a relapse notice). The Hud feeds it the same data its
 # Labels show and flips it with `rebuild_look()` when the look changes.
 
-enum Kind { LANDMARKS, DAWN, ALERT, CUE, RESCUED, BURST, TARGET, TARGETING, KEYS }
+# Walls and gates: Style update (#94): PEOPLE is the people line under the spirit meter (a text line like the others)
+# and PREVIEW the take preview's small panel (several lines in `line_text`, a coral rim when `line_state` is WARN).
+enum Kind { LANDMARKS, DAWN, ALERT, CUE, RESCUED, BURST, TARGET, TARGETING, KEYS, PEOPLE, PREVIEW }
 
 var kind: int = Kind.LANDMARKS
 # LANDMARKS: which landmarks are held, in LandmarkConfig.LANDMARK_NAMES order.
@@ -94,6 +96,8 @@ func _draw() -> void:
 		StyleDawn.draw_alert(self, alert_text, alert_colour)
 	elif kind == Kind.CUE:
 		StyleDawn.draw_cue(self, cue_text, cue_ready, cue_beat)
+	elif kind == Kind.PREVIEW:
+		StyleHud.draw_preview(self, line_text, line_state == StyleHudText.WARN)
 	elif kind >= Kind.RESCUED:
 		StyleHudText.draw(self, kind, line_text, line_state, line_colour)
 	else:

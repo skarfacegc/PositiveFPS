@@ -3,7 +3,7 @@ extends Control
 
 # Round 25: the gloom tide's edge pointer. A grey ring and arrow at the screen edge, pointing toward the side a tide is
 # coming from. GloomTide.refresh_pointer places it inside HudSafeArea (as the wobble pointers) and shows it
-# only during the warning. Placeholder look only.
+# only during the warning. Both looks draw it (Style update, #94: the styled look draws a pixel storm tag).
 
 var shown: bool = false
 var tip := Vector2.ZERO
@@ -66,6 +66,9 @@ func _draw() -> void:
 	var ring := NightConfig.TIDE_POINTER_RING * swell
 	var arrow := NightConfig.TIDE_POINTER_ARROW * swell
 	var centre := tip - dir * (arrow + ring)
+	if Looks.is_styled():  # Walls and gates: Style update (#94): a pixel storm tag and arrow.
+		StyleHud.draw_tide_pointer(self, centre, ring, tip, dir, arrow, pulse_amount())
+		return
 	draw_circle(centre, ring, Color(col.r, col.g, col.b, 0.2 + 0.3 * pulse_amount()))
 	draw_arc(centre, ring, 0.0, TAU, 24, col, 2.0, true)
 	var side := Vector2(-dir.y, dir.x)

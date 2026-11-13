@@ -1,8 +1,8 @@
 class_name LostPulse
 extends Node3D
 
-# Walls and gates: Pressure (#13). A cell the gloom took pulses grey on the ground for LOST_PULSE_SECONDS. Flat quads
-# (placeholder look; the styled look draws the same, nothing styled is added). LevelEvents wires it to
+# Walls and gates: Pressure (#13). A cell the gloom took pulses grey on the ground for LOST_PULSE_SECONDS. Flat quads in
+# the placeholder look; Style update (#94): a soft cold wash in the styled look. LevelEvents wires it to
 # Border.cells_lost.
 
 # One entry per pulse: {"node": MeshInstance3D, "mat": StandardMaterial3D, "left": seconds}.
@@ -23,6 +23,18 @@ func _process(delta: float) -> void:
 # Starts a pulse on `cell`.
 func pulse(cell: Vector2i) -> void:
 	var rect := TownGrid.cell_rect(cell)
+	if Looks.is_styled():
+		# Walls and gates: Style update (#94). A cold grey wash with a darker edge band, soft like the take marks.
+		var wash := StyleKit.wash(
+			self,
+			rect,
+			Color(StyleConfig.SU_LOST_COLOUR),
+			StyleConfig.SU_LOST_FILL,
+			StyleConfig.SU_LOST_RIM,
+			StyleConfig.SU_MARK_Y
+		)
+		_items.append({"node": wash, "mat": null, "left": BorderConfig.LOST_PULSE_SECONDS, "styled": true})
+		return
 	var plane := PlaneMesh.new()
 	plane.size = rect.size
 	var mat := StandardMaterial3D.new()
@@ -55,6 +67,10 @@ func update(delta: float) -> void:
 			_items.remove_at(k)
 			continue
 		item["left"] = left
+		if item.get("styled", false):
+			var share := clampf(left / BorderConfig.LOST_PULSE_SECONDS, 0.0, 1.0)
+			StyleKit.set_wash(node, StyleConfig.SU_LOST_FILL * share, StyleConfig.SU_LOST_RIM * share)
+			continue
 		var mat: StandardMaterial3D = item["mat"]
 		var col := BorderConfig.LOST_PULSE_COLOUR
 		col.a *= clampf(left / BorderConfig.LOST_PULSE_SECONDS, 0.0, 1.0)

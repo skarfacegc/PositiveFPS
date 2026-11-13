@@ -17,6 +17,9 @@ var _texts: Array[Dictionary] = []
 var _text_nodes: Array[Label3D] = []
 var _halos: Array[Dictionary] = []
 var _halo_nodes: Array[MeshInstance3D] = []
+# Walls and gates: Style update (#94). The styled mend marks {"pos", "left"} and their pooled nodes (a ring and a seam).
+var _mends: Array[Dictionary] = []
+var _mend_nodes: Array[Node3D] = []
 # Which look the pools were built for.
 var _built_styled: bool = false
 var _streak_mat: ShaderMaterial
@@ -28,6 +31,7 @@ func sync(delta: float) -> void:
 		_rebuild_pools()
 	_sync_bursts(delta)
 	_sync_results(delta)
+	_sync_mends(delta)
 
 
 # True when the pools hold the styled pieces.
@@ -77,6 +81,20 @@ func add_lift_result(cleared: Array) -> void:
 	)
 
 
+# Walls and gates: Style update (#94). A break mended (Border.line_mended; a burst mends every break in reach,
+# Loop tuning #93): the styled look shows a gold ring closing on the spot and a seam of light running up it, like a
+# stitch. The placeholder look draws nothing new. A new mark at the same spot replaces the old one.
+func add_mend(pos: Vector3, _seconds: float = 0.0) -> void:
+	if not Looks.is_styled():
+		return
+	_replace_near(_mends, [pos], "pos")
+	_mends.append({"pos": pos, "left": StyleConfig.SU_MEND_SECONDS})
+
+
+func mend_count() -> int:
+	return _mends.size()
+
+
 func result_text_count() -> int:
 	return _texts.size()
 
@@ -110,7 +128,7 @@ func _visible_count(list: Array[MeshInstance3D]) -> int:
 # The look changed: free every pooled piece (the data lists stay) and build the next ones in the new look.
 func _rebuild_pools() -> void:
 	_built_styled = Looks.is_styled()
-	for list: Array in [_streaks, _text_nodes, _halo_nodes]:
+	for list: Array in [_streaks, _text_nodes, _halo_nodes, _mend_nodes]:
 		for n: Node in list:
 			n.queue_free()
 		list.clear()
@@ -167,6 +185,49 @@ func _sync_results(delta: float) -> void:
 		lbl.position = Vector3(at.x, 1.6 + SpiritConfig.FX_TEXT_RISE * (1.0 - frac), at.z)
 		lbl.modulate = Color(col.r, col.g, col.b, minf(1.0, frac * 2.0))
 	_sync_halos()
+
+
+# The mend marks (styled look only): a gold ring that closes on the spot and a seam of light that rises and thins.
+func _sync_mends(delta: float) -> void:
+	_age(_mends, delta)
+	if not _built_styled:
+		for n: Node3D in _mend_nodes:
+			n.visible = false
+		return
+	while _mend_nodes.size() < _mends.size():
+		_mend_nodes.append(_make_mend())
+	for i: int in range(_mend_nodes.size()):
+		var node := _mend_nodes[i]
+		node.visible = i < _mends.size()
+		if not node.visible:
+			continue
+		var left: float = _mends[i]["left"]
+		var frac := clampf(left / StyleConfig.SU_MEND_SECONDS, 0.0, 1.0)
+		var at: Vector3 = _mends[i]["pos"]
+		node.position = Vector3(at.x, 0.0, at.z)
+		var ring := node.get_child(0) as MeshInstance3D
+		var r := lerpf(1.2, StyleConfig.SU_MEND_RADIUS, frac)
+		ring.position.y = GOLD_PLANE_Y
+		ring.scale = Vector3(r, 1.0, r)
+		StyleFight.set_ring(ring, StyleFight.GOLD, 0.9, 0.14, minf(1.0, frac * 2.0))
+		var seam := node.get_child(1) as MeshInstance3D
+		seam.scale = Vector3(maxf(0.15, frac), StyleConfig.SU_MEND_SEAM * (1.2 - frac), maxf(0.15, frac))
+		seam.position.y = seam.scale.y * 0.5
+
+
+func _make_mend() -> Node3D:
+	var root := Node3D.new()
+	root.visible = false
+	add_child(root)
+	StyleFight.ring_node(root, 0.7, StyleFight.GOLD, StyleFight.GOLD_RIM, 0.9).visible = true
+	var seam := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(0.4, 1.0, 0.4)
+	seam.mesh = box
+	seam.material_override = StyleKit.mat(StyleFight.GOLD_RIM, 0, 0.0, 1.8)
+	seam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(seam)
+	return root
 
 
 # The halo on each person a burst lifted: a flat ring that opens and fades (round 25: no column of light any more).

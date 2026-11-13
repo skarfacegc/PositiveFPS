@@ -5,8 +5,8 @@ extends Control
 # and a round tag with the landmark's initial (Clean HUD, #92: no boost words; those are on the landmark's own world
 # label). A pointer is hidden while its landmark is on
 # screen, and it slides along the screen edge (the inset rectangle) to keep clear of the HUD panels. The rules are the
-# static functions (edge_point, place); update_from() reads the level each frame. Placeholder look only: hidden in the
-# styled look (see update_from).
+# static functions (edge_point, place); update_from() reads the level each frame. Both looks draw it (Style update, #94:
+# the styled look draws a parchment tag with the landmark's pixel icon and a pixel arrow, see StyleHud).
 
 var _hud: Hud
 var _minimap: Control
@@ -35,7 +35,7 @@ func update_from(main: TopDownMain, delta: float = -1.0) -> void:
 			return
 	_since = 0.0
 	_shown.clear()
-	visible = not Looks.is_styled()
+	visible = true  # Walls and gates: Style update (#94): the styled look draws the slim pointer too (see _draw).
 	var screen := get_viewport_rect().size
 	# A window too small for the inset rectangle (the headless 64 x 64 window) shows no pointers.
 	if not visible or main.landmarks == null or _hud == null or screen.x < 400.0 or screen.y < 300.0:
@@ -54,6 +54,7 @@ func update_from(main: TopDownMain, delta: float = -1.0) -> void:
 		var placed := place(at, screen, tag, avoid)
 		placed["text"] = initial_of(full_name)
 		placed["name"] = full_name
+		placed["index"] = k
 		_shown.append(placed)
 	queue_redraw()
 
@@ -86,6 +87,10 @@ func _draw() -> void:
 		var tip: Vector2 = s["tip"]
 		var dir: Vector2 = s["dir"]
 		var text: String = s["text"]
+		if Looks.is_styled():
+			var index: int = s["index"]
+			StyleHud.draw_landmark_pointer(self, label, tip, dir, index)
+			continue
 		draw_circle(label.get_center(), HudConfig.CLEAN_POINTER_ICON_RADIUS, HudConfig.LANDMARK_POINTER_BG_COLOUR)
 		draw_arc(
 			label.get_center(),

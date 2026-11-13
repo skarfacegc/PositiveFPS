@@ -5,6 +5,16 @@ people you rescue form a living border that holds the gloom back and paints the 
 dusk to dawn: the light fades, the grey gets stronger at midnight, and the level ends at dawn. (Round 11. The first person
 mode was retired.)
 
+![The start square at dusk, styled look](design/renders/v0.4-style/hud_calm_styled.png)
+
+| | |
+|---|---|
+| ![A block taken and blooming, gates with lantern arches](design/renders/v0.4-style/taken_block_styled.png) | ![Cells next to the border you can take](design/renders/v0.4-style/takeable_cells_styled.png) |
+| ![The take preview](design/renders/v0.4-style/take_preview_styled.png) | ![Defences planted at gates](design/renders/v0.4-style/defences_styled.png) |
+
+(Screenshots of the styled look, taken by `python tools/checkpoint_shots.py --set style04`; the same views in the
+placeholder look sit beside them in `design/renders/v0.4-style/`.)
+
 ## How to play
 
 - **Goal:** Bring joy to the gloomy townsfolk. Everyone you help joins a living border around your town. Survive
@@ -51,9 +61,10 @@ mode was retired.)
   nearby cluster; it pulses faster as the wobble runs out), and each wobbler is a pulsing blip on the minimap.
 - **Icons:** shield = guarded · running feet = skittish · cloud = glum · umbrella = sheltered (its pips count the four hits left) · ! = faltering. The night
   introduces them one at a time, with a short one-time prompt each.
-- **Keys:** WASD move · Shift run · G or Q
-  joy burst · **E** = take a block (hold, point, release; right-click cancels) · **F** = plant a defence at a gate (hold, point at the gate, release; the wheel changes the type) · Mouse point at people (F2 changes targeting) · Mouse wheel zoom · F3 debug · F4 switch look ·
-  R restart · M menu
+- **Keys:** WASD move · Shift run · G or Q joy burst (it also mends a break in reach) · **E** = take a block (hold,
+  point, release; right-click cancels) · **F** = plant a defence at a gate (hold, point at the gate, release; the wheel
+  changes the type) · Mouse point at people (F2 changes targeting) · Mouse wheel zoom · **H** shows the controls while
+  held (they also show for the first 20 s of a night) · F3 debug · F4 switch look · R restart · M menu
 
 ## How to run
 
@@ -158,6 +169,7 @@ element, and F3 labels it above the person.
   `floor fx 12/40: ring 2, splat 3`, against the cap of 40). Off by default. If F3 does
   nothing on your keyboard, the F-row may be set to media keys: try Fn+F3.
 - **Mouse wheel** zooms the view in and out (a closer or wider look at the plaza; the labels keep their size on screen).
+- **H** shows the controls strip while held (it also shows for the first 20 seconds of a night).
 - **R** restart, **M** back to the menu.
 
 **Recording a game for review (round 18):** tick **Record this game (for review)** in the top right of the menu (it is
