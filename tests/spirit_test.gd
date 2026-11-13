@@ -19,6 +19,7 @@ func _start() -> Dictionary:
 	await runner.simulate_frames(30)
 	var td: TopDownMain = runner.scene()
 	TopDownTestUtil.send_everyone_away(td)
+	TopDownTestUtil.trim_crowd(td, 24)  # Lighter tests (#69): the parked crowd beyond the people used is dropped.
 	return {"runner": runner, "td": td}
 
 
