@@ -110,7 +110,7 @@ placeholder, `tide_pointer` still is.
 **Recorder:** breaks are logged as `break_open` / `break_close`; `analyse_recording.py` reads the old `gap_open` / `gap_close` names too and renames them.
 
 **Next:** 0.3.3 Town layout is done (2026-11-09, internal, no release; history in `IDEAS_RESOLVED.md`). Current target:
-**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 and #81 (surge warning) played and Done 2026-11-12, radar follow-up #91 in Backlog, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
+**0.4 Walls and gates**, passes 1 Reorg, 2 Grid and Line and 2c Grid fixes built (2c played and accepted 2026-11-11), then pass 3 Pressure and Defences (built and played 2026-11-11; #14 and #81 (surge warning) played and Done 2026-11-12, radar follow-up #91 built 2026-11-12, In review, #12 to Backlog 2026-11-11, Defences moved to 0.5) (plan below, and on the board; reshaped 2026-11-09 as walls and gates on a town grid and renamed from "Tug of war"). 0.3.2 Prop styling was released as `v0.3.2` (2026-11-09).
 
 **Resolved items** are listed in `IDEAS_RESOLVED.md` ("Resolved since they were last listed").
 
@@ -340,6 +340,15 @@ refusal. First defences planted: 2 at the Gallery (t=143 s and 159 s), one hande
 2. **No street names on screen.** The warning, soon and start banners say what is happening without naming the street
    or its end, and point the player to the radar (gloom terms only). The street names stay internal: the recorder,
    signals and analyser keep them.
+
+**Built (2026-11-12, merged `5affe72`; In review, to play).** The minimap's surge mark swells to 1.8x and brightens
+(`SURGE_PULSE_MINIMAP`, `SURGE_PULSE_MINIMAP_BRIGHT`) on the same beats as the edge pointer and banner, at the warning
+and at the soon mark. Banners: "The gloom is gathering: watch the radar", "The gloom is close: hold the marked gate",
+"The gloom is surging in". The recorder, signals and analyser keep the street names. Gate `--full` 899 tests in 221 s;
+determinism the same 11572 lines (the first run again tripped on unit packing, #90; a fresh run of both passes was
+clean); baseline passed. Nothing loosened.
+
+**To play:** do you notice the radar pulse, and do the banners plus the radar tell you where the surge is coming from?
 
 ### Walls and gates: Rule stepping, advance the game rules without the scene (#18; moved to 0.5 Why expand 2026-11-11)
 
