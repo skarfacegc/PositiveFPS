@@ -61,6 +61,12 @@ var gait_every: int = 1
 var _grace_mat: StandardMaterial3D
 # +1 leans the body back as the rules say; the styled bodies face the other way and flip it.
 var _lean_sign: float = 1.0
+# Walls and gates: Clean HUD (#92). The floating joy number on show: its running total, the best multiplier so far
+# and the clock time of the last hit (see show_number).
+var _number_label: Label3D
+var _number_total: int = 0
+var _number_mult: float = 0.0
+var _number_last: float = -1.0e9
 var _grab_mat: StandardMaterial3D
 # Seeded random numbers for purely cosmetic jitter (floating number positions), so runs repeat.
 var _fx_rng := RandomNumberGenerator.new()
@@ -278,11 +284,23 @@ func play_puff(color: Color, count: int) -> void:
 
 
 # Spawns a floating joy number above the person. Bigger, brighter and bouncier for better matches.
-func show_number(value: float, mult: float) -> void:
+func show_number(value: float, joy_mult: float) -> void:
 	var parent := subject.get_parent()
 	if parent == null:
 		return
+	# Walls and gates: Clean HUD (#92). One running total per person per CLEAN_JOY_NUMBER_SECONDS, not a pile of "+32 +64":
+	# a hit inside the window replaces the label with a new one showing the total so far.
+	var mult := joy_mult
+	var shown := roundi(value)
+	if clock - _number_last <= HudConfig.CLEAN_JOY_NUMBER_SECONDS and is_instance_valid(_number_label):
+		_number_label.queue_free()
+		shown += _number_total
+		mult = maxf(mult, _number_mult)
+	_number_total = shown
+	_number_mult = mult
+	_number_last = clock
 	var lbl := Label3D.new()
+	_number_label = lbl
 	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	lbl.no_depth_test = true
 	lbl.pixel_size = 0.004 * subject.ui_scale
@@ -292,7 +310,6 @@ func show_number(value: float, mult: float) -> void:
 	parent.add_child(lbl)
 	lbl.global_position = start
 	var base_y := lbl.position.y
-	var shown := roundi(value)
 
 	if mult >= Config.MATCH_MULT:
 		# Matched element: big, bright, gold outline, scale punch, bigger rise.

@@ -5,11 +5,10 @@ extends RefCounted
 # the gap arrows, the feedback layer, the spirit meter and the prompt bar, plus the F3 debug overlay. The nodes stay
 # public on TopDownMain (`hud`, `minimap`, `arrows`, `feedback`, ...); TopDownMain builds this as `level_hud`.
 
-const HINT_PLAY := (
-	"WASD move | Shift run | Click to lock on | G/Q burst | hold E to take a block, F to plant a defence, "
-	+ "release to do it | Right-click cancels"
-)
-const HINT := HINT_PLAY + " | R restart | M menu | [F4] look"
+# Walls and gates: Clean HUD (#92). Short enough for a 960 px window; shown for the first seconds of a night, then while
+# H is held.
+const HINT_PLAY := "WASD move | Shift run | G burst | hold E take | hold F defend"
+const HINT := HINT_PLAY + " | R restart | M menu | [F4] look | H help"
 
 # The F3 debug overlay: cover and protection labels above each person, and the border labels. Off by default.
 var debug_on: bool = false
@@ -64,10 +63,8 @@ func start() -> void:
 	var main := _main
 	main.hud.set_hint(HINT)
 	main.hud.set_targeting(main.player.targeting_mode)
-	main.player.target_changed.connect(main.hud.set_target)
 	main.player.debug_toggled.connect(toggle_debug)
-	main.player.targeting_changed.connect(main.hud.set_targeting)
-	main.hud.set_target(-1)
+	main.player.targeting_changed.connect(_on_targeting_changed)
 	main.hud.set_rescued(main.rescued_count, Config.TD_PEOPLE_COUNT)
 	main.hud.set_night_progress(0.0)
 	update_spirit_hud()
@@ -126,18 +123,24 @@ func update_spirit_hud() -> void:
 	main.hud.set_people(Defences.people_text(people), short > 0)
 
 
-# Round 12b: the target's mood next to its element on the HUD ("Target: Music (guarded)").
-func update_target_mood() -> void:
-	var t: Person = _main.player.target
-	var mood_text := ""
-	if is_instance_valid(t):
-		mood_text = Person.mood_name(t.active_mood())
-	_main.hud.set_target_mood(mood_text)
+# Walls and gates: Clean HUD (#92). F2 still switches the targeting mode and says so in the banner (the line itself
+# lives in the F3 overlay now).
+func _on_targeting_changed(mode: int) -> void:
+	_main.hud.set_targeting(mode)
+	_main.intro.event_notice(_main.hud.targeting_text, HudConfig.CLEAN_EVENT_TINT, HudConfig.CLEAN_EVENT_SECONDS, false)
+	if debug_on:
+		update_debug_hint()
+
+
+# The controls strip shows for the first CLEAN_CONTROLS_SECONDS of a night and while H is held.
+func controls_wanted() -> bool:
+	return _main.night.elapsed < HudConfig.CLEAN_CONTROLS_SECONDS or Input.is_action_pressed("show_controls")
 
 
 # Every frame, also after the round ends: the overlays advance and redraw.
 func update_feedback(delta: float) -> void:
 	var main := _main
+	main.hud.show_controls(controls_wanted())
 	main.feedback.tick(delta)
 	main.spirit_meter.tick(delta)
 	if main.intro.enabled:
@@ -163,4 +166,6 @@ func set_debug(on: bool) -> void:
 
 func update_debug_hint() -> void:
 	_main.hud.set_floor_text(FloorEffects.summary(_main.get_tree()) + "\n" + Looks.debug_line())
-	_main.hud.set_debug_text("[F3] debug: c = cover, p = protection.  " + _main.border.debug_summary())
+	_main.hud.set_debug_text(
+		"[F3] debug: c = cover, p = protection.  " + _main.border.debug_summary() + "\n" + _main.hud.targeting_text
+	)

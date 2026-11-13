@@ -20,7 +20,7 @@ func _click_at(runner: GdUnitSceneRunner, td: TopDownMain, spot: Vector3) -> voi
 	await runner.simulate_frames(2)
 
 
-func test_click_locks_person_shows_highlight_and_element_label() -> void:
+func test_click_locks_person_and_shows_highlight() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -29,7 +29,6 @@ func test_click_locks_person_shows_highlight_and_element_label() -> void:
 	TopDownTestUtil.place(target, Vector3(0, 0, -8), 0, 0.0)
 	await runner.simulate_frames(2)
 	assert_bool(td.highlight.visible).is_false()
-	assert_str(td.hud.element_label.text).is_equal("No target")
 
 	await _click_at(runner, td, target.global_position)
 
@@ -43,7 +42,6 @@ func test_click_locks_person_shows_highlight_and_element_label() -> void:
 		)
 		. is_less(0.05)
 	)
-	assert_str(td.hud.element_label.text).is_equal("Target: Music")
 
 	# The highlight follows the target when it moves.
 	target.global_position = Vector3(2, 0, -8)
@@ -82,7 +80,6 @@ func test_clicking_empty_ground_clears_the_lock() -> void:
 
 	assert_object(td.player.target).is_null()
 	assert_bool(td.highlight.visible).is_false()
-	assert_str(td.hud.element_label.text).is_equal("No target")
 
 
 func test_lock_clears_when_the_target_is_rescued() -> void:
@@ -141,25 +138,30 @@ func test_f2_cycles_targeting_modes_and_updates_the_hud() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
-	assert_bool(td.hud.targeting_label.visible).is_true()
-	# Round 8: hover is the default.
+	# Clean HUD (#92): the line lives in the F3 overlay; F2 says the new mode in the one banner.
 	assert_int(td.player.targeting_mode).is_equal(Config.TargetingMode.HOVER_STICKY)
-	assert_str(td.hud.targeting_label.text).contains("Targeting: Hover")
+	assert_str(td.hud.targeting_text).contains("Targeting: Hover")
 
 	runner.simulate_key_pressed(KEY_F2)
 	await runner.simulate_frames(2)
 	assert_int(td.player.targeting_mode).is_equal(Config.TargetingMode.AUTO)
-	assert_str(td.hud.targeting_label.text).contains("Targeting: Auto")
+	assert_str(td.hud.targeting_text).contains("Targeting: Auto")
+	assert_str(td.intro.current_text()).contains("Targeting: Auto")
 
 	runner.simulate_key_pressed(KEY_F2)
 	await runner.simulate_frames(2)
 	assert_int(td.player.targeting_mode).is_equal(Config.TargetingMode.LOCK_ON)
-	assert_str(td.hud.targeting_label.text).contains("Targeting: Lock-on")
+	assert_str(td.hud.targeting_text).contains("Targeting: Lock-on")
+	assert_str(td.intro.current_text()).contains("Targeting: Lock-on")
 
 	runner.simulate_key_pressed(KEY_F2)
 	await runner.simulate_frames(2)
 	assert_int(td.player.targeting_mode).is_equal(Config.TargetingMode.HOVER_STICKY)
-	assert_str(td.hud.targeting_label.text).contains("Targeting: Hover")
+	assert_str(td.hud.targeting_text).contains("Targeting: Hover")
+	# The F3 overlay carries it too.
+	td.level_hud.set_debug(true)
+	assert_str(td.hud.debug_hint_label.text).contains("Targeting: Hover")
+	td.level_hud.set_debug(false)
 
 
 # Round 8: the default is hover, and the menu's top-down entry shows it. Driven from the menu with real keys and the
@@ -175,7 +177,7 @@ func test_entering_top_down_from_the_menu_defaults_to_hover_and_hover_targets() 
 	var td: TopDownMain = get_tree().current_scene as TopDownMain
 	assert_object(td).is_not_null()
 	assert_int(td.player.targeting_mode).is_equal(Config.TargetingMode.HOVER_STICKY)
-	assert_str(td.hud.targeting_label.text).contains("Hover")
+	assert_str(td.hud.targeting_text).contains("Hover")
 
 	TopDownTestUtil.send_everyone_away(td)
 	var person: Person = td.people[0]
@@ -274,7 +276,6 @@ func test_shots_use_the_target_element_and_the_ring_matches() -> void:
 		)
 		. is_true()
 	)
-	assert_str(td.hud.element_label.text).is_equal("Target: Art")
 	var shots := TopDownTestUtil.projectiles(td)
 	assert_int(shots.size()).is_greater(0)
 	for shot: JoyProjectile in shots:

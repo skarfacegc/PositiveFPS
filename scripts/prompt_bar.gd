@@ -61,19 +61,20 @@ func _place(screen: Rect2) -> Rect2:
 	return _place_banner(screen, ThemeDB.fallback_font)
 
 
-# Checkpoint 6: a notice is a slim banner at the top centre, just under the Dusk to Dawn bar (or under the HUD alert
-# while one shows), no wider than CP6_BANNER_MAX_WIDTH: the text shrinks (to 11 px) to fit rather than run out.
+# Checkpoint 6: a notice is a slim banner at the top centre, just under the Dusk to Dawn bar, no wider than
+# CP6_BANNER_MAX_WIDTH: the text shrinks (to 11 px) to fit rather than run out. Walls and gates: Clean HUD (#92): the
+# one banner (the HUD alert line is gone), and in a narrow window it also keeps clear of the minimap on the left.
 func _place_banner(screen: Rect2, font: Font) -> Rect2:
 	font_px = HudConfig.NOTICE_FONT_SIZE
 	var extra := 62.0 if icon != MoodIcons.Kind.NONE else 44.0
 	var avail := minf(HudConfig.CP6_BANNER_MAX_WIDTH, screen.size.x - 20.0)
+	if main != null and main.minimap != null and screen.size.x >= HudConfig.CLEAN_BANNER_MIN_WINDOW:
+		var side := main.minimap.get_global_rect().end.x + HudConfig.CLEAN_BANNER_MINIMAP_GAP
+		avail = minf(avail, screen.size.x - 2.0 * side)
 	while font_px > 11 and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px).x + extra > avail:
 		font_px -= 1
 	var w := minf(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px).x + extra, avail)
-	var top := HudConfig.CP6_BANNER_TOP
-	if main != null and main.hud != null and main.hud.alert_showing():
-		top += HudConfig.CP6_BANNER_HEIGHT + HudConfig.CP6_BANNER_GAP
-	return Rect2(Vector2(screen.size.x * 0.5 - w * 0.5, top), Vector2(w, HudConfig.NOTICE_HEIGHT))
+	return Rect2(Vector2(screen.size.x * 0.5 - w * 0.5, HudConfig.CP6_BANNER_TOP), Vector2(w, HudConfig.NOTICE_HEIGHT))
 
 
 # The look was swapped (F4): draw again in the new style.
@@ -111,6 +112,7 @@ func _draw() -> void:
 		MoodIcons.draw(self, icon, Vector2(_rect.position.x + 28.0, mid_y), icon_size, col)
 		text_x = _rect.position.x + 56.0 if not big else _rect.position.x + 50.0
 	var font := ThemeDB.fallback_font
-	draw_string(
-		font, Vector2(text_x, mid_y + fs * 0.35), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1.0, 0.97, 0.88, alpha)
-	)
+	var ink := Color(1.0, 0.97, 0.88, alpha)
+	if intro != null:
+		ink = Color(intro.tint.r, intro.tint.g, intro.tint.b, alpha)
+	draw_string(font, Vector2(text_x, mid_y + fs * 0.35), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ink)

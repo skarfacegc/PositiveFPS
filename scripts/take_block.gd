@@ -20,6 +20,7 @@ const NO_CELL := Vector2i(-99, -99)
 const LINE_Y := 0.3
 const PIP_HALF := 0.65  # Walls and gates: Capture polish (#75): larger pips (were 0.35 and 1.0).
 const PIP_STEP := 1.9
+const PREVIEW_SIDE_GAP := 1.0  # Metres between the cell's edge and its preview panel (Clean HUD, #92).
 
 var level: TopDownMain
 var holding := false
@@ -115,6 +116,22 @@ func _process(delta: float) -> void:
 		_drawn_marks = marks
 		_draw_all()
 	_update_label()
+	_cull_cell_labels()
+
+
+# Walls and gates: Clean HUD (#92). Every frame (the camera moves): the pointed-at cell's tag and pips are in the
+# preview panel, and a tag never sits over a HUD panel or the minimap.
+func _cull_cell_labels() -> void:
+	if _cell_labels.is_empty():
+		return
+	var avoid := HudSafeArea.label_avoid(level)
+	var in_preview := holding and preview_text() != ""
+	for key: Variant in _cell_labels.keys():
+		var c: Vector2i = key
+		var label: Label3D = _cell_labels[c]
+		label.visible = (
+			not (in_preview and c == target_cell) and not HudSafeArea.hides_label(level, avoid, label.position)
+		)
 
 
 # How a cell reads right now: FREE (next to the zone with all its pips), PAID (next to the zone and you have the spirit
@@ -169,7 +186,9 @@ func preview_text() -> String:
 	var gates_word := "gate" if absi(added) == 1 else "gates"
 	var more := _more_people_needed()
 	var people := "%d more people" % more if more > 0 else "covered by spare people"
-	return "%s\n%+d %s: %s" % [price, added, gates_word, people]
+	# Walls and gates: Clean HUD (#92). The pips join the price and the gates in this one small panel.
+	var pips := "%d/%d pips" % [level.border.pips.filled(target_cell), BorderConfig.TAKE_RESCUES]
+	return "%s\n%s\n%+d %s: %s" % [price, pips, added, gates_word, people]
 
 
 # The people the previewed cell's gates need beyond the people you have free (those not on a defence).
@@ -200,8 +219,13 @@ func _update_label() -> void:
 		return
 	if _label.text != text:
 		_label.text = text
+	# Beside the cell (to its right, left-aligned), so it never covers the cell's own tag or the line's gate counts.
 	var centre := TownGrid.cell_centre(target_cell)
-	_label.position = Vector3(centre.x, BorderConfig.GATE_COUNT_HEIGHT + 1.2, centre.z)
+	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_label.position = Vector3(
+		centre.x + TownConfig.TOWN_CELL_SIZE * 0.5 + PREVIEW_SIDE_GAP, BorderConfig.GATE_COUNT_HEIGHT + 1.2, centre.z
+	)
+	_label.visible = not HudSafeArea.hides_label(level, HudSafeArea.label_avoid(level), _label.position)
 	_label.modulate = (
 		BorderConfig.GATE_COUNT_SHORT_COLOUR if _more_people_needed() > 0 else BorderConfig.GATE_COUNT_OK_COLOUR
 	)

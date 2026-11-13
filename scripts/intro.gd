@@ -15,7 +15,8 @@ extends RefCounted
 # (first_light.gd), TIDE the notice that the night's surge is coming (gloom_tide.gd; the words name the street), PUSH
 # the first time the line bends under a push and LOST the notice that the gloom took a block. (0.4 removed the beacon
 # prompts.)
-enum Prompt { BREAK, GUARDED, SKITTISH, GLUM, SHELTERED, SPIRIT_LOW, DIM, DIM_HELP, FIRST_LIGHT, TIDE, PUSH, LOST }
+# EVENT (Clean HUD, #92) carries its own words and colour: a landmark claimed or lost, a lost joy, a grab, a switch.
+enum Prompt {BREAK, GUARDED, SKITTISH, GLUM, SHELTERED, SPIRIT_LOW, DIM, DIM_HELP, FIRST_LIGHT, TIDE, PUSH, LOST, EVENT}
 
 var enabled: bool = true
 var night: NightCycle
@@ -30,6 +31,12 @@ var duration: float = HudConfig.PROMPT_SECONDS
 var big: bool = true
 var coral: bool = false
 var custom_text: String = ""
+# Walls and gates: Clean HUD (#92). The banner is one at a time. A notice or event on show (`event`) beats a tip: a tip
+# that was on show goes back to the front of the queue and tips wait until the event has gone. A weak event (a lost joy,
+# a grab, a mode switch) never replaces a strong one still on show. `tint` is the text colour of the banner.
+var event: bool = false
+var strong: bool = true
+var tint: Color = HudConfig.CLEAN_EVENT_TINT
 var queue: Array[int] = []
 # Where the current prompt points in the world (Vector3.INF for none: it sits at the bottom centre).
 var anchor := Vector3.INF
@@ -77,6 +84,8 @@ func request(id: int, at: Vector3 = Vector3.INF) -> bool:
 # Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the intro
 # off too, so tests can read `current`.
 func notice(id: int, words: String = "") -> void:
+	if current >= 0 and not event and current != id and not queue.has(current):
+		queue.push_front(current)  # The tip on show waits behind the event instead of being lost.
 	queue.erase(id)
 	current = id
 	anchor = Vector3.INF
@@ -85,6 +94,9 @@ func notice(id: int, words: String = "") -> void:
 	custom_text = words
 	duration = HudConfig.NOTICE_SECONDS
 	time_left = duration
+	event = true
+	strong = true
+	tint = HudConfig.CLEAN_EVENT_TINT
 
 
 # Surge warning: makes the banner on show swell for NightConfig.SURGE_PULSE_SECONDS (PromptBar reads pulse_amount).
@@ -101,6 +113,24 @@ func pulse_amount() -> float:
 func calm_notice(id: int, words: String) -> void:
 	notice(id, words)
 	coral = false
+
+
+# Walls and gates: Clean HUD (#92). An event for the one banner (it replaced the HUD's centre alert line): `words` in
+# `colour` for `seconds`. A weak event is dropped while a strong one is still on show.
+func event_notice(
+	words: String,
+	colour: Color = HudConfig.CLEAN_EVENT_TINT,
+	seconds: float = HudConfig.CLEAN_EVENT_SECONDS,
+	is_strong: bool = true
+) -> void:
+	if not is_strong and current >= 0 and event and strong:
+		return
+	notice(Prompt.EVENT, words)
+	coral = false
+	tint = colour
+	duration = seconds
+	time_left = seconds
+	strong = is_strong
 
 
 # The words of the prompt on show (a notice may carry its own).
@@ -168,6 +198,9 @@ func _reset_look() -> void:
 	coral = false
 	custom_text = ""
 	duration = HudConfig.PROMPT_SECONDS
+	event = false
+	strong = true
+	tint = HudConfig.CLEAN_EVENT_TINT
 
 
 # The prompt for a mood (Person.Mood).

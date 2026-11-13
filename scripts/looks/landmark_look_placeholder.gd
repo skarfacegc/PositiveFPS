@@ -43,9 +43,10 @@ func sync() -> void:
 	if held:
 		_label.text = "%s HELD: %s" % [name_text, subject.boost_text()]
 	elif subject.beautified or subject.hold > 0.0:
-		_label.text = "%s %d%%" % [name_text, roundi(frac * 100.0)]
+		_label.text = "%s %d%%\n%s" % [name_text, roundi(frac * 100.0), subject.boost_text()]
 	else:
-		_label.text = name_text
+		# Walls and gates: Clean HUD (#92). The boost words live here, on the landmark's own label (not on its pointer).
+		_label.text = "%s\n%s" % [name_text, subject.boost_text()]
 
 
 func _build() -> void:

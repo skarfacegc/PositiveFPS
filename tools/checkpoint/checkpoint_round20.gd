@@ -101,10 +101,7 @@ func _r20_snap(view_name: String, label: String, view: Dictionary, aim: Vector3)
 
 
 func _r20_hide_alert() -> void:
-	if main.hud._alert_tween != null:
-		main.hud._alert_tween.kill()
-	main.hud.alert_label.modulate.a = 0.0
-	main.hud.alert_panel.modulate.a = 0.0
+	main.intro.current = -1  # Clean HUD (#92): events use the one banner, so clearing it hides the alert.
 
 
 func _r20_note(view_name: String) -> void:
@@ -153,10 +150,7 @@ func _r20_stage_hud() -> void:
 
 func _r20_walk_shots(label: String) -> void:
 	var people := main.people
-	if main.hud._alert_tween != null:
-		main.hud._alert_tween.kill()
-	main.hud.alert_label.modulate.a = 0.0
-	main.hud.alert_panel.modulate.a = 0.0
+	main.intro.current = -1
 	var base := Vector3(-8.0, 0.0, -4.0)
 	main.player.global_position = base + Vector3(4.0, 0.0, 6.0)
 	await _set_zoom(14.0)

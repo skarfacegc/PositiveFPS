@@ -269,7 +269,8 @@ extends Node3D | 0 const | Walls and gates: Grid fixes (#56). What each gate tel
 - L52 `static count_text(members: int, need: int) -> String` - The text on gate `g`'s label: members over need.
 - L57 `is_short(g: int) -> bool` - True when gate `g` has fewer people than it needs.
 - L65 `label_text(g: int) -> String`
-- L162 `static pointers(border: Border) -> Dictionary` - The edge-pointer entries for gates bent PUSH_POINTER_FROM or more: points to look at and their urgency (the...
+- L110 `counts_wanted() -> bool` - Walls and gates: Clean HUD (#92). Gate counts show only for a gate that is short and being pushed, or while...
+- L177 `static pointers(border: Border) -> Dictionary` - The edge-pointer entries for gates bent PUSH_POINTER_FROM or more: points to look at and their urgency (the...
 
 ### scripts/gloom_sim.gd (GloomSim)
 extends RefCounted | 0 const | Shared gloom rules for the top-down territory game. Unrescued people dim over time (faster far from colour
@@ -310,53 +311,54 @@ extends RefCounted | 18 const | The painted ground: paint speeds, cover, contagi
 
 ### scripts/hud.gd (Hud)
 extends CanvasLayer | 0 const | Round 12a: spirit (a label and a bar above the burst indicator).
-- L309 `rebuild_look() -> void` - Graphics checkpoint 3: in the styled look the landmark panel and the end screen are drawn by StyledPanel (p...
-- L334 `set_night_progress(p: float) -> void` - Shows how far the night has gone: 0 at dusk, 1 at dawn.
-- L357 `set_target(affinity: int) -> void` - Top-down: shows the target's element in its colour, or "No target" in cream. Pass -1 for no target.
-- L363 `set_target_mood(mood: String) -> void` - Round 12b: the target's mood ("guarded", "skittish", "glum" or "" for none) after the element name.
-- L384 `set_targeting(mode: int) -> void` - Top-down: shows the targeting mode (see Config.TargetingMode) in the top right.
-- L391 `set_rescued(n: int, total: int) -> void`
-- L397 `place_rescued_below(y: float) -> void` - Puts the Rescued counter at the left edge, `y` pixels from the top (the level passes the bottom of the mini...
-- L404 `alert_showing() -> bool` - Checkpoint 6: true while the HUD alert (such as "Someone lost their joy!") is up or fading, so a notice ban...
-- L409 `set_debug_on(on: bool) -> void` - Shows the "[F3] debug" hint while the debug overlay is on.
-- L415 `set_floor_text(text: String) -> void` - Replaces the floor-effect counts line (round 10): the total against the cap, and each kind.
-- L420 `set_debug_text(text: String) -> void` - Replaces the text of the F3 hint (cover and protection key, plus the border counts).
-- L425 `set_hint(text: String) -> void` - Replaces the controls hint text at the bottom of the screen.
-- L431 `set_landmarks(lines: Array[String], total: int, held: Array[bool] = []) -> void` - Round 19: the landmark panel: "Landmarks 1 of 3" and a line (with the boost) for each one held.
-- L441 `set_recording(on: bool) -> void` - Round 18: shows or hides the red "REC" mark (top right, under the targeting label).
-- L475 `flash_marked() -> void` - Walls and gates: Recorder catch-up (#60). Shows "Marked" next to REC for MARK_FLASH_SECONDS. Only while rec...
-- L487 `set_people(text: String, short: bool) -> void` - Walls and gates: Capture polish (#75). The people line ("People: 31 on the line, 23 short"), red while it i...
-- L495 `set_spirit(spirit: float, is_dim: bool) -> void` - Shows the player's spirit and whether they are dim (the bar and the label go grey).
-- L512 `set_burst(cooldown_left: float, has_spirit: bool = true, targets: int = 0) -> void` - Shows the joy burst cooldown: READY in green when it can be used, otherwise the seconds left in grey. `has_...
-- L536 `show_alert(text: String, colour: Color = Color(1, 0.6, 0.1), hold: float = 0.8) -> void` - Shows a short alert that waits `hold` seconds (0.8s by default), then fades out over 2s. Calling again rest...
-- L551 `layout_controls() -> Array[Control]` - Round 22: the HUD panels that an edge pointer keeps clear of (the landmark pointers, see landmark_pointers....
-- L582 `show_end(title: String, detail: String, rating: Dictionary = {}) -> void` - Shows the end screen: a title, then the detail lines (dawn lights, the reasons, buildings).
+- L282 `rebuild_look() -> void` - Graphics checkpoint 3: in the styled look the landmark panel and the end screen are drawn by StyledPanel (p...
+- L302 `set_night_progress(p: float) -> void` - Shows how far the night has gone: 0 at dusk, 1 at dawn.
+- L325 `set_targeting(mode: int) -> void` - Top-down: keeps the targeting mode's line (see Config.TargetingMode); the F3 overlay shows it (the level re...
+- L329 `set_rescued(n: int, total: int) -> void`
+- L335 `place_rescued_below(y: float) -> void` - Puts the Rescued counter at the left edge, `y` pixels from the top (the level passes the bottom of the mini...
+- L341 `set_debug_on(on: bool) -> void` - Shows the "[F3] debug" hint while the debug overlay is on.
+- L347 `set_floor_text(text: String) -> void` - Replaces the floor-effect counts line (round 10): the total against the cap, and each kind.
+- L352 `set_debug_text(text: String) -> void` - Replaces the text of the F3 hint (cover and protection key, plus the border counts).
+- L357 `set_hint(text: String) -> void` - Replaces the controls hint text at the bottom of the screen.
+- L364 `show_controls(on: bool) -> void` - Walls and gates: Clean HUD (#92). Shows or hides the controls strip (the level shows it for the first secon...
+- L372 `controls_shown() -> bool` - True while the controls strip is up.
+- L377 `set_landmarks(lines: Array[String], total: int, held: Array[bool] = []) -> void` - Round 19: the landmark panel: "Landmarks 1 of 3" and a line (with the boost) for each one held.
+- L387 `set_recording(on: bool) -> void` - Round 18: shows or hides the red "REC" mark (top right, under the targeting label).
+- L421 `flash_marked() -> void` - Walls and gates: Recorder catch-up (#60). Shows "Marked" next to REC for MARK_FLASH_SECONDS. Only while rec...
+- L433 `set_people(text: String, short: bool) -> void` - Walls and gates: Capture polish (#75). The people line ("People: 31 on the line, 23 short"), red while it i...
+- L441 `set_spirit(spirit: float, is_dim: bool) -> void` - Shows the player's spirit and whether they are dim (the bar and the label go grey).
+- L458 `set_burst(cooldown_left: float, has_spirit: bool = true, targets: int = 0) -> void` - Shows the joy burst cooldown: READY in green when it can be used, otherwise the seconds left in grey. `has_...
+- L481 `layout_controls() -> Array[Control]` - Round 22: the HUD panels that an edge pointer keeps clear of (the landmark pointers, see landmark_pointers....
+- L507 `show_end(title: String, detail: String, rating: Dictionary = {}) -> void` - Shows the end screen: a title, then the detail lines (dawn lights, the reasons, buildings).
 
 ### scripts/hud_config.gd (HudConfig)
-extends RefCounted | 120 const | HUD, minimap, prompts and notices, intro, cue panel, edge pointers, debug overlay (screen-space numbers).
+extends RefCounted | 144 const | HUD, minimap, prompts and notices, intro, cue panel, edge pointers, debug overlay (screen-space numbers).
 
 ### scripts/hud_safe_area.gd (HudSafeArea)
 extends RefCounted | 0 const | Checkpoint 6: the rectangle the edge pointers stay in, shared by the wobble pointers (WobbleAlert), the gap...
 - L12 `static usable(screen: Vector2) -> bool` - True for a window big enough to lay the HUD out in (not the headless 64 x 64 window).
 - L19 `static avoid_rects(hud: Hud, minimap: Control, main: TopDownMain = null) -> Array[Rect2]` - The HUD rectangles a pointer must keep clear of: the HUD panels that are shown (Hud.layout_controls), the m...
-- L38 `static safe_rect(screen: Vector2, avoid: Array[Rect2]) -> Rect2` - The window of size `screen` inset by WOBBLE_ALERT_SAFE_INSET, cut at the top by every rectangle in `avoid`...
-- L53 `static current(main: TopDownMain, screen: Vector2) -> Rect2` - The safe rectangle of `main`'s level now, or an empty Rect2 when the window is too small for the HUD or no...
+- L38 `static hides_label(main: TopDownMain, avoid: Array[Rect2], world: Vector3) -> bool` - Walls and gates: Clean HUD (#92). True when a world label at `world` (about CLEAN_WORLD_LABEL_SIZE on screen,
+- L51 `static label_avoid(main: TopDownMain) -> Array[Rect2]` - The rectangles the world labels keep off (empty while the level has no HUD yet).
+- L60 `static safe_rect(screen: Vector2, avoid: Array[Rect2]) -> Rect2` - The window of size `screen` inset by WOBBLE_ALERT_SAFE_INSET, cut at the top by every rectangle in `avoid`...
+- L75 `static current(main: TopDownMain, screen: Vector2) -> Rect2` - The safe rectangle of `main`'s level now, or an empty Rect2 when the window is too small for the HUD or no...
 
 ### scripts/intro.gd (Intro)
 extends RefCounted | 0 const | Round 13b, the layered introduction through the night. It is driven by the night's progress (NightCycle), s...
-- L48 `dimmed_allowed() -> bool` - True once dimmed people may emerge (the calm opening is over). Always true when the intro is off.
-- L55 `mood_active(mood: int) -> bool` - True when `mood` (a Person.Mood) is switched on. Always true when the intro is off.
-- L66 `request(id: int, at: Vector3 = Vector3.INF) -> bool` - Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and alway...
-- L79 `notice(id: int, words: String = "") -> void` - Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the i...
-- L91 `pulse() -> void` - Surge warning: makes the banner on show swell for NightConfig.SURGE_PULSE_SECONDS (PromptBar reads pulse_am...
-- L96 `pulse_amount() -> float` - How big the banner's pulse is now, 0 (none) to 1.
-- L101 `calm_notice(id: int, words: String) -> void` - Grid fixes: a notice for something good (a block taken): the same slim banner, but warm instead of coral.
-- L107 `current_text() -> String` - The words of the prompt on show (a notice may carry its own).
-- L113 `check_level(main: TopDownMain, delta: float) -> void` - Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
-- L145 `update(delta: float) -> void` - Counts the current prompt down and moves on to the next one in the queue.
-- L174 `static prompt_for_mood(mood: int) -> int` - The prompt for a mood (Person.Mood).
-- L184 `static text_for(id: int) -> String` - The short line of a prompt (the icon sits beside it).
-- L212 `static icon_for(id: int) -> int` - The icon (MoodIcons.Kind) that goes with a prompt.
+- L55 `dimmed_allowed() -> bool` - True once dimmed people may emerge (the calm opening is over). Always true when the intro is off.
+- L62 `mood_active(mood: int) -> bool` - True when `mood` (a Person.Mood) is switched on. Always true when the intro is off.
+- L73 `request(id: int, at: Vector3 = Vector3.INF) -> bool` - Asks to show prompt `id`. It is queued unless it was already shown or queued (returns false then, and alway...
+- L86 `notice(id: int, words: String = "") -> void` - Round 19: shows prompt `id` now, every time it is asked (a notice, not a one-time lesson). Works with the i...
+- L103 `pulse() -> void` - Surge warning: makes the banner on show swell for NightConfig.SURGE_PULSE_SECONDS (PromptBar reads pulse_am...
+- L108 `pulse_amount() -> float` - How big the banner's pulse is now, 0 (none) to 1.
+- L113 `calm_notice(id: int, words: String) -> void` - Grid fixes: a notice for something good (a block taken): the same slim banner, but warm instead of coral.
+- L120 `event_notice(words: String, colour: Color = HudConfig.CLEAN_EVENT_TINT, seconds: float = HudConfig.CLEAN_EVENT_SECONDS, is_strong: bool = true) -> void` - Walls and gates: Clean HUD (#92). An event for the one banner (it replaced the HUD's centre alert line): `w...
+- L137 `current_text() -> String` - The words of the prompt on show (a notice may carry its own).
+- L143 `check_level(main: TopDownMain, delta: float) -> void` - Round 13b: asks for the one-time prompts when something first happens in `main`'s level. Checked every
+- L175 `update(delta: float) -> void` - Counts the current prompt down and moves on to the next one in the queue.
+- L207 `static prompt_for_mood(mood: int) -> int` - The prompt for a mood (Person.Mood).
+- L217 `static text_for(id: int) -> String` - The short line of a prompt (the icon sits beside it).
+- L245 `static icon_for(id: int) -> int` - The icon (MoodIcons.Kind) that goes with a prompt.
 
 ### scripts/joy_projectile.gd (JoyProjectile)
 extends Node3D | 6 const | A joy projectile for top-down mode. It has no physics body: each physics frame it steers, moves, and checks
@@ -382,10 +384,11 @@ extends Control | 0 const | Round 22: an edge-of-screen pointer toward each land
 - L23 `setup(hud: Hud, minimap: Control) -> void` - Takes the HUD panels to keep clear of (the counters, the bars and the alert line) and the minimap.
 - L31 `update_from(main: TopDownMain, delta: float = -1.0) -> void` - One pointer per landmark that is neither held nor on screen, placed clear of the HUD. Round 23: the level c...
 - L62 `shown_count() -> int` - How many pointers are shown now (tests read this).
-- L68 `pointer_for(text_start: String) -> Dictionary` - The pointer for the landmark at index `k` (empty dictionary if none is shown). Keys: "tip", "dir", "label",...
-- L102 `static on_screen(p: Vector2, screen: Vector2) -> bool` - True when the window position `p` is inside the screen `screen` (the window size).
-- L108 `static edge_point(target: Vector2, screen: Vector2, inset: float) -> Vector2` - Where the ray from the screen centre through `target` leaves the inset rectangle (the screen minus `inset`...
-- L127 `static place(target: Vector2, screen: Vector2, label_size: Vector2, avoid: Array[Rect2]) -> Dictionary` - The pointer for a target: its tip on the inset rectangle, and the arrow and label rectangles. The tip start...
+- L68 `pointer_for(name_start: String) -> Dictionary` - The pointer for the landmark at index `k` (empty dictionary if none is shown). Keys: "tip", "dir", "label",...
+- L77 `static initial_of(landmark_name: String) -> String` - The initial that stands for a landmark on its pointer ("Bell tower" gives "B").
+- L118 `static on_screen(p: Vector2, screen: Vector2) -> bool` - True when the window position `p` is inside the screen `screen` (the window size).
+- L124 `static edge_point(target: Vector2, screen: Vector2, inset: float) -> Vector2` - Where the ray from the screen centre through `target` leaves the inset rectangle (the screen minus `inset`...
+- L143 `static place(target: Vector2, screen: Vector2, label_size: Vector2, avoid: Array[Rect2]) -> Dictionary` - The pointer for a target: its tip on the inset rectangle, and the arrow and label rectangles. The tip start...
 
 ### scripts/landmarks.gd (Landmarks)
 extends Node3D | 4 const | Round 19: the level's landmarks and what they give. Owns the Landmark nodes (`items`, in LandmarkConfig.LAN...
@@ -421,26 +424,26 @@ extends RefCounted | 0 const | What the level does when something happens: a per
 - L37 `on_stage_changed(_from_level: int, to_level: int, p: Person) -> void` - Round 12b: someone sank or lifted a stage. The minimap shows a brief blip where a person became dimmed.
 - L43 `on_person_rescued(p: Person) -> void` - A rescued person (`p`) was made: the border takes them in. The count goes up.
 - L54 `on_person_relapsed(p: Person) -> void` - A rescued person (`p`) relapsed: they step out of the border, and the count goes down.
-- L63 `on_landmark_claimed(lm: Landmark) -> void` - Round 20: a landmark was claimed (its boost is on) or lost (its boost is off): a notice across the top.
-- L67 `on_landmark_lost(lm: Landmark) -> void`
-- L71 `on_joy_blocked(reason: int, p: Person) -> void`
-- L80 `on_joy_landed(p: Person) -> void` - Round 14: joy landed on a dimmed person: their progress ring shows, and the one-time dimmed prompt.
-- L87 `on_burst_fired(_at: Vector3) -> void`
-- L92 `on_player_dim_changed(dim: bool) -> void`
-- L99 `on_grab_landed(_p: Person) -> void`
+- L66 `on_landmark_claimed(lm: Landmark) -> void` - Round 20: a landmark was claimed (its boost is on) or lost (its boost is off). Clean HUD (#92): both go thr...
+- L70 `on_landmark_lost(lm: Landmark) -> void`
+- L74 `on_joy_blocked(reason: int, p: Person) -> void`
+- L83 `on_joy_landed(p: Person) -> void` - Round 14: joy landed on a dimmed person: their progress ring shows, and the one-time dimmed prompt.
+- L90 `on_burst_fired(_at: Vector3) -> void`
+- L95 `on_player_dim_changed(dim: bool) -> void`
+- L102 `on_grab_landed(_p: Person) -> void`
 
 ### scripts/level_hud.gd (LevelHud)
 extends RefCounted | 2 const | Builds the level's screen-space layer and keeps it up to date: the HUD with the minimap, the landmark point...
-- L25 `build() -> void` - The HUD, the minimap (top-left circle, a fifth of the screen width) and the off-screen gap arrows (round 10...
-- L63 `start() -> void` - After the systems that draw on the HUD exist: the hint line, the targeting mode and the starting numbers.
-- L77 `update_readability(delta: float) -> void` - Each frame: the off-screen gap arrows. The minimap picture is refreshed about 10 times a second (see Minima...
-- L114 `update_landmarks() -> void` - The landmark panel: which are held and what they give.
-- L119 `update_spirit_hud() -> void`
-- L130 `update_target_mood() -> void` - Round 12b: the target's mood next to its element on the HUD ("Target: Music (guarded)").
-- L139 `update_feedback(delta: float) -> void` - Every frame, also after the round ends: the overlays advance and redraw.
-- L149 `toggle_debug() -> void` - F3: flips the debug overlay. The player reads the key and emits debug_toggled.
-- L155 `set_debug(on: bool) -> void` - Turns the F3 debug overlay on or off: cover and protection labels above each person, border labels on the l...
-- L164 `update_debug_hint() -> void`
+- L24 `build() -> void` - The HUD, the minimap (top-left circle, a fifth of the screen width) and the off-screen gap arrows (round 10...
+- L62 `start() -> void` - After the systems that draw on the HUD exist: the hint line, the targeting mode and the starting numbers.
+- L74 `update_readability(delta: float) -> void` - Each frame: the off-screen gap arrows. The minimap picture is refreshed about 10 times a second (see Minima...
+- L111 `update_landmarks() -> void` - The landmark panel: which are held and what they give.
+- L116 `update_spirit_hud() -> void`
+- L136 `controls_wanted() -> bool` - The controls strip shows for the first CLEAN_CONTROLS_SECONDS of a night and while H is held.
+- L141 `update_feedback(delta: float) -> void` - Every frame, also after the round ends: the overlays advance and redraw.
+- L152 `toggle_debug() -> void` - F3: flips the debug overlay. The player reads the key and emits debug_toggled.
+- L158 `set_debug(on: bool) -> void` - Turns the F3 debug overlay on or off: cover and protection labels above each person, border labels on the l...
+- L167 `update_debug_hint() -> void`
 
 ### scripts/look_switch.gd (LookSwitch)
 extends RefCounted | 0 const | F4: switches the level to `new_mode` (Looks.Mode) in place. Every object keeps its rules state and rebuilds...
@@ -606,20 +609,20 @@ extends MinimapLook | 5 const | The styled minimap (per REVIEW_NOTES): a round p
 
 ### scripts/looks/person_look.gd (PersonLook)
 extends Node3D | 3 const | The look of one Person. The rules (person.gd) own joy, gloom, rescue and the grace period; this node reads...
-- L75 `rescale() -> void` - Round 14: the label follows the person's ui_scale (the zoom). Called only when the scale changes
-- L81 `setup(person: Person) -> void` - Builds the look for `person`.
-- L122 `is_styled() -> bool` - True for the styled look.
-- L127 `advance(delta: float) -> void` - Graphics checkpoint 4: follows the person's movement over `delta` seconds (called by Person.tick) and poses...
-- L194 `sync() -> void` - Reads the person's state and updates what is drawn. Called by the person every tick and on every change.
-- L245 `play_bounce() -> void` - A little bounce: up and down twice (a rescue).
-- L250 `play_slump(_scale_y: float, _duration: float) -> void` - Squashes the body vertically and springs it back. `duration` is the total time.
-- L255 `play_puff(color: Color, count: int) -> void` - A one-off burst of small coloured particles from the body centre.
-- L281 `show_number(value: float, mult: float) -> void` - Spawns a floating joy number above the person. Bigger, brighter and bouncier for better matches.
-- L350 `has_styled_aura() -> bool` - True when the look draws the dimmed-person aura itself (the styled look), so the placeholder haze stays hid...
-- L355 `has_aura() -> bool` - True when a dimmed person is showing a smoke or haze aura, in either look.
-- L474 `static wedge_points(radius: float, half_deg: float, segments: int) -> PackedVector3Array` - Round 17: the wedge's outline in the person's own frame (forward is -Z): the centre is the origin, then poi...
-- L483 `static wedge_mesh(radius: float, half_deg: float, segments: int) -> ArrayMesh` - Round 17: the flat fan mesh of the wedge (a triangle per arc step, from the centre).
-- L527 `play_ripple(color: Color) -> void` - Round 12b: a flat ring that spreads out from the feet and fades (the stage-change ripple). Placeholder in b...
+- L81 `rescale() -> void` - Round 14: the label follows the person's ui_scale (the zoom). Called only when the scale changes
+- L87 `setup(person: Person) -> void` - Builds the look for `person`.
+- L128 `is_styled() -> bool` - True for the styled look.
+- L133 `advance(delta: float) -> void` - Graphics checkpoint 4: follows the person's movement over `delta` seconds (called by Person.tick) and poses...
+- L200 `sync() -> void` - Reads the person's state and updates what is drawn. Called by the person every tick and on every change.
+- L251 `play_bounce() -> void` - A little bounce: up and down twice (a rescue).
+- L256 `play_slump(_scale_y: float, _duration: float) -> void` - Squashes the body vertically and springs it back. `duration` is the total time.
+- L261 `play_puff(color: Color, count: int) -> void` - A one-off burst of small coloured particles from the body centre.
+- L287 `show_number(value: float, joy_mult: float) -> void` - Spawns a floating joy number above the person. Bigger, brighter and bouncier for better matches.
+- L367 `has_styled_aura() -> bool` - True when the look draws the dimmed-person aura itself (the styled look), so the placeholder haze stays hid...
+- L372 `has_aura() -> bool` - True when a dimmed person is showing a smoke or haze aura, in either look.
+- L491 `static wedge_points(radius: float, half_deg: float, segments: int) -> PackedVector3Array` - Round 17: the wedge's outline in the person's own frame (forward is -Z): the centre is the origin, then poi...
+- L500 `static wedge_mesh(radius: float, half_deg: float, segments: int) -> ArrayMesh` - Round 17: the flat fan mesh of the wedge (a triangle per arc step, from the centre).
+- L544 `play_ripple(color: Color) -> void` - Round 12b: a flat ring that spreads out from the feet and fades (the stage-change ripple). Placeholder in b...
 
 ### scripts/looks/person_look_placeholder.gd (PersonLookPlaceholder)
 extends PersonLook | 0 const | The placeholder person: a capsule whose colour shows how grey they are, a coloured marker above the head fo...
@@ -1007,7 +1010,7 @@ extends RefCounted | 57 const | Joy projectiles (notes, paint, flowers), blooms,
 ### scripts/prompt_bar.gd (PromptBar)
 extends Control | 2 const | Round 13b: the one-time prompt of the layered introduction (see intro.gd). Round 26: a slim banner with an...
 - L33 `tick(screen: Rect2) -> void` - Reads the intro's current prompt and redraws. `screen` is the window rectangle.
-- L80 `rebuild_look() -> void` - The look was swapped (F4): draw again in the new style.
+- L81 `rebuild_look() -> void` - The look was swapped (F4): draw again in the new style.
 
 ### scripts/push_config.gd (PushConfig)
 extends RefCounted | 37 const | The physical push on the line (scripts/border_push.gd).
@@ -1074,15 +1077,15 @@ signals: warmed(person: Person, joy: float, spirit: float)
 extends RefCounted | 95 const | Styled look numbers (scenery, atmosphere, props, ambient life, jog). The rules never read them.
 
 ### scripts/take_block.gd (TakeBlock)
-extends Node3D | 4 const | Walls and gates: Recorder catch-up (#59). The recorder listens: `taken` carries the take's numbers and `ref...
+extends Node3D | 5 const | Walls and gates: Recorder catch-up (#59). The recorder listens: `taken` carries the take's numbers and `ref...
 signals: taken(info: Dictionary), refused(reason: String, info: Dictionary)
-- L47 `static attach(main: TopDownMain) -> TakeBlock`
-- L122 `mark_of(cell: Vector2i) -> int` - How a cell reads right now: FREE (next to the zone with all its pips), PAID (next to the zone and you have...
-- L134 `mark_rects() -> Array[Dictionary]` - The takeable cells as {"rect": Rect2, "free": bool}, for the minimap.
-- L151 `is_pulsing(cell: Vector2i) -> bool` - True while the cell is pulsing after a take (tests read it).
-- L160 `preview_text() -> String` - What the preview label says: the price of the cell, then the gates it adds and the people they need beyond...
-- L184 `cell_label_text(c: Vector2i) -> String` - The label on a cell next to the zone: the tag ("Free", or the price for a paid cell; none when it is not ta...
-- L257 `take_now(cell: Vector2i) -> bool` - Takes `cell` (free when its pips are full, else for the spirit cost), or refuses with the slim banner when...
+- L48 `static attach(main: TopDownMain) -> TakeBlock`
+- L139 `mark_of(cell: Vector2i) -> int` - How a cell reads right now: FREE (next to the zone with all its pips), PAID (next to the zone and you have...
+- L151 `mark_rects() -> Array[Dictionary]` - The takeable cells as {"rect": Rect2, "free": bool}, for the minimap.
+- L168 `is_pulsing(cell: Vector2i) -> bool` - True while the cell is pulsing after a take (tests read it).
+- L177 `preview_text() -> String` - What the preview label says: the price of the cell, then the gates it adds and the people they need beyond...
+- L203 `cell_label_text(c: Vector2i) -> String` - The label on a cell next to the zone: the tag ("Free", or the price for a paid cell; none when it is not ta...
+- L281 `take_now(cell: Vector2i) -> bool` - Takes `cell` (free when its pips are full, else for the spirit cost), or refuses with the slim banner when...
 
 ### scripts/target_highlight.gd (TargetHighlight)
 extends MeshInstance3D | 0 const | The ring under the target's feet: a flat warm disc (placeholder) or the styled ring (StyleTarget). Hidden w...
@@ -1100,13 +1103,13 @@ extends Control | 0 const | Round 25: the gloom tide's edge pointer. A grey ring
 
 ### scripts/topdown_main.gd (TopDownMain)
 extends Node3D | 0 const | The territory level (round 9): a bigger plaza seen from above. Rescued people form a living border around a...
-- L185 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
-- L190 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
-- L195 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
-- L199 `sun_light() -> DirectionalLight3D`
-- L203 `environment() -> Environment`
-- L207 `view_half_extents() -> Vector2`
-- L212 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
+- L184 `toggle_look() -> void` - F4: flips between the placeholder and the styled look without touching the game state.
+- L189 `set_look(new_mode: int) -> void` - Switches to `new_mode` (Looks.Mode) in place: every object keeps its rules state and rebuilds its visuals.
+- L194 `world_to_screen(world: Vector3) -> Vector2` - The screen (window) position of a world point, whatever size the look draws the 3D view at.
+- L198 `sun_light() -> DirectionalLight3D`
+- L202 `environment() -> Environment`
+- L206 `view_half_extents() -> Vector2`
+- L211 `pursuit_assignments(list: Array[Person]) -> Dictionary` - Round 24: the crowd's movement lives in CrowdMovement; these two stay here because tests and the recorder c...
 
 ### scripts/topdown_player.gd (TopDownPlayer)
 extends CharacterBody3D | 0 const | The player in top-down mode. WASD moves in world space and the mouse picks an aim point on the floor. The p...
@@ -1202,6 +1205,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 - burst_cue_test (tests/burst_cue_test.gd): 4 tests
 - checkpoint7_look_test (tests/checkpoint7_look_test.gd): 5 tests
 - checkpoint7_test (tests/checkpoint7_test.gd): 9 tests
+- clean_hud_test (tests/clean_hud_test.gd): 19 tests
 - config_test (tests/config_test.gd): 5 tests
 - cover_test (tests/cover_test.gd): 14 tests
 - crowd_separation_test (tests/crowd_separation_test.gd): 5 tests
@@ -1228,7 +1232,7 @@ extends RefCounted | 0 const | Walls and gates: Grid and Line (0.4, #55, #56). T
 - hover_stick_test (tests/hover_stick_test.gd): 3 tests
 - how_to_play_keys_test (tests/how_to_play_keys_test.gd): 3 tests
 - hud_checkpoint6_test (tests/hud_checkpoint6_test.gd): 9 tests
-- hud_test (tests/hud_test.gd): 12 tests
+- hud_test (tests/hud_test.gd): 10 tests
 - intro_test (tests/intro_test.gd): 13 tests
 - landmark_clarity_test (tests/landmark_clarity_test.gd): 10 tests
 - landmark_pointers_test (tests/landmark_pointers_test.gd): 9 tests

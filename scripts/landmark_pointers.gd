@@ -2,8 +2,8 @@ class_name LandmarkPointers
 extends Control
 
 # Round 22: an edge-of-screen pointer toward each landmark that is not held and is off screen. Each shows a small arrow
-# and the landmark's name and boost in a few words ("Bandstand: music x1.5"). A pointer is hidden while its landmark
-# is on
+# and a round tag with the landmark's initial (Clean HUD, #92: no boost words; those are on the landmark's own world
+# label). A pointer is hidden while its landmark is on
 # screen, and it slides along the screen edge (the inset rectangle) to keep clear of the HUD panels. The rules are the
 # static functions (edge_point, place); update_from() reads the level each frame. Placeholder look only: hidden in the
 # styled look (see update_from).
@@ -41,19 +41,19 @@ func update_from(main: TopDownMain, delta: float = -1.0) -> void:
 	if not visible or main.landmarks == null or _hud == null or screen.x < 400.0 or screen.y < 300.0:
 		queue_redraw()
 		return
-	var font := get_theme_default_font()
-	var font_px := HudConfig.LANDMARK_POINTER_FONT_SIZE
 	var avoid := _avoid_rects(main)
+	# Walls and gates: Clean HUD (#92). A round tag with the landmark's initial; the boost words are on its world label.
+	var tag := Vector2.ONE * HudConfig.CLEAN_POINTER_ICON_RADIUS * 2.0
 	for k: int in range(LandmarkConfig.LANDMARK_POSITIONS.size()):
 		if main.landmarks.is_held(k):
 			continue
 		var at := main.world_to_screen(LandmarkConfig.LANDMARK_POSITIONS[k])
 		if on_screen(at, screen):
 			continue
-		var text := "%s: %s" % [LandmarkConfig.LANDMARK_NAMES[k], LandmarkConfig.LANDMARK_BOOST_TEXT[k]]
-		var label_size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px) + Vector2(12, 8)
-		var placed := place(at, screen, label_size, avoid)
-		placed["text"] = text
+		var full_name: String = LandmarkConfig.LANDMARK_NAMES[k]
+		var placed := place(at, screen, tag, avoid)
+		placed["text"] = initial_of(full_name)
+		placed["name"] = full_name
 		_shown.append(placed)
 	queue_redraw()
 
@@ -65,26 +65,42 @@ func shown_count() -> int:
 
 # The pointer for the landmark at index `k` (empty dictionary if none is shown). Keys: "tip", "dir", "label", "box",
 # "text".
-func pointer_for(text_start: String) -> Dictionary:
+func pointer_for(name_start: String) -> Dictionary:
 	for s: Dictionary in _shown:
-		var text: String = s["text"]
-		if text.begins_with(text_start):
+		var full_name: String = s["name"]
+		if full_name.begins_with(name_start):
 			return s
 	return {}
 
 
+# The initial that stands for a landmark on its pointer ("Bell tower" gives "B").
+static func initial_of(landmark_name: String) -> String:
+	return landmark_name.substr(0, 1).to_upper()
+
+
 func _draw() -> void:
 	var font := get_theme_default_font()
-	var font_px := HudConfig.LANDMARK_POINTER_FONT_SIZE
+	var font_px := HudConfig.CLEAN_POINTER_ICON_FONT
 	for s: Dictionary in _shown:
 		var label: Rect2 = s["label"]
 		var tip: Vector2 = s["tip"]
 		var dir: Vector2 = s["dir"]
 		var text: String = s["text"]
-		draw_rect(label, HudConfig.LANDMARK_POINTER_BG_COLOUR)
+		draw_circle(label.get_center(), HudConfig.CLEAN_POINTER_ICON_RADIUS, HudConfig.LANDMARK_POINTER_BG_COLOUR)
+		draw_arc(
+			label.get_center(),
+			HudConfig.CLEAN_POINTER_ICON_RADIUS,
+			0.0,
+			TAU,
+			24,
+			HudConfig.LANDMARK_POINTER_COLOUR,
+			1.5,
+			true
+		)
+		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px).x
 		draw_string(
 			font,
-			label.position + Vector2(6, 4 + font.get_ascent(font_px)),
+			label.get_center() + Vector2(-width * 0.5, font.get_ascent(font_px) * 0.5 - 1.0),
 			text,
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,

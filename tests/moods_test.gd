@@ -109,7 +109,6 @@ func test_a_guarded_person_turns_their_back_and_shots_from_behind_glance_off() -
 	assert_float(guarded.joy).is_equal(0.0)
 	assert_int(guarded.glance_count).is_greater(glances)
 	assert_int(guarded.glance_count).is_greater(3)
-	assert_str(td.hud.element_label.text).contains("guarded")
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -330,7 +329,7 @@ func test_shots_that_land_in_the_look_up_are_triple_when_the_player_fires() -> v
 # --- Skittish jitter and the HUD ---------------------------------------------------------------------------------
 
 
-func test_a_skittish_person_jitters_and_the_hud_names_the_target_mood() -> void:
+func test_a_skittish_person_jitters_and_the_mood_icon_stays_over_them() -> void:
 	var s: Dictionary = await _start()
 	var runner: GdUnitSceneRunner = s["runner"]
 	var td: TopDownMain = s["td"]
@@ -341,10 +340,8 @@ func test_a_skittish_person_jitters_and_the_hud_names_the_target_mood() -> void:
 		await runner.simulate_frames(1)
 		xs[snappedf(shy.look.visual.position.x, 0.001)] = true
 	assert_int(xs.size()).is_greater(3)
-	assert_str(td.hud.element_label.text).contains("skittish")
-	TopDownTestUtil.send_everyone_away(td)
-	await runner.simulate_frames(5)
-	assert_str(td.hud.element_label.text).not_contains("skittish")
+	# Clean HUD (#92): the target line is gone; the mood stays as the icon over the person.
+	assert_bool(_has_icon(td, shy, MoodIcons.Kind.FEET)).is_true()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

@@ -62,7 +62,7 @@ func test_the_windup_is_visible_then_the_grab_drains_spirit_if_the_player_stays(
 	await runner.simulate_frames(40)
 	assert_float(td.player.spirit).is_equal_approx(80.0 - SpiritConfig.GRAB_SPIRIT_DRAIN, 0.01)
 	assert_int(_landed).is_equal(1)
-	assert_str(td.hud.alert_label.text).contains("Grabbed")
+	assert_str(td.intro.current_text()).contains("Grabbed")
 	assert_bool(td.grabs.is_winding_up(grabber)).is_false()
 	assert_float(grabber.grab_frac).is_equal(0.0)
 
@@ -109,7 +109,7 @@ func test_stepping_out_of_reach_as_the_lunge_comes_avoids_it_once() -> void:
 	assert_float(td.player.spirit).is_equal(80.0)
 	assert_int(_landed).is_equal(0)
 	assert_int(_avoided).is_equal(1)
-	assert_bool(td.hud.alert_label.text.contains("Grabbed")).is_false()
+	assert_bool(td.intro.current_text().contains("Grabbed")).is_false()
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

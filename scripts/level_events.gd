@@ -56,16 +56,19 @@ func on_person_relapsed(p: Person) -> void:
 	main.rescued_count -= 1
 	main.border.on_relapse(p)
 	main.hud.set_rescued(main.rescued_count, Config.TD_PEOPLE_COUNT)
-	main.hud.show_alert("Someone lost their joy!")
+	main.intro.event_notice(
+		"Someone lost their joy!", HudConfig.CLEAN_RELAPSE_TINT, HudConfig.CLEAN_EVENT_SECONDS, false
+	)
 
 
-# Round 20: a landmark was claimed (its boost is on) or lost (its boost is off): a notice across the top.
+# Round 20: a landmark was claimed (its boost is on) or lost (its boost is off). Clean HUD (#92): both go through
+# the one slim banner under the night bar.
 func on_landmark_claimed(lm: Landmark) -> void:
-	_main.hud.show_alert(lm.claim_text(), LandmarkConfig.LANDMARK_CLAIM_COLOUR)
+	_main.intro.event_notice(lm.claim_text(), LandmarkConfig.LANDMARK_CLAIM_COLOUR)
 
 
 func on_landmark_lost(lm: Landmark) -> void:
-	_main.hud.show_alert(lm.loss_text(), LandmarkConfig.LANDMARK_LOSS_COLOUR, LandmarkConfig.LANDMARK_LOSS_SECONDS)
+	_main.intro.event_notice(lm.loss_text(), LandmarkConfig.LANDMARK_LOSS_COLOUR, HudConfig.CLEAN_EVENT_LOSS_SECONDS)
 
 
 func on_joy_blocked(reason: int, p: Person) -> void:
@@ -91,12 +94,17 @@ func on_burst_fired(_at: Vector3) -> void:
 
 func on_player_dim_changed(dim: bool) -> void:
 	if dim:
-		_main.hud.show_alert("You went dim! Get inside the border to recover")
+		_main.intro.event_notice("You went dim! Get inside the border to recover", HudConfig.CLEAN_RELAPSE_TINT)
 	else:
-		_main.hud.show_alert("Your spirit is back")
+		_main.intro.event_notice("Your spirit is back", HudConfig.CLEAN_RELAPSE_TINT)
 
 
 func on_grab_landed(_p: Person) -> void:
-	_main.hud.show_alert("Grabbed! -%d spirit" % roundi(SpiritConfig.GRAB_SPIRIT_DRAIN))
+	_main.intro.event_notice(
+		"Grabbed! -%d spirit" % roundi(SpiritConfig.GRAB_SPIRIT_DRAIN),
+		HudConfig.CLEAN_RELAPSE_TINT,
+		HudConfig.CLEAN_EVENT_SECONDS,
+		false
+	)
 	_main.spirit_meter.moment(-SpiritConfig.GRAB_SPIRIT_DRAIN, SpiritMeter.Moment.LOSS)
 	_main.feedback.pulse_player(SpiritMeter.Moment.LOSS)

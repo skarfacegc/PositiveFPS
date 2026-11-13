@@ -155,8 +155,8 @@ func test_a_pointer_is_shown_for_each_unheld_landmark_that_is_off_screen() -> vo
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-# Every shown pointer reads "Name: boost" and clears the HUD panels of the level.
-func test_each_shown_pointer_names_its_landmark_and_boost_and_clears_the_hud() -> void:
+# Clean HUD (#92): every shown pointer carries the landmark's initial, no boost words, and clears the HUD panels.
+func test_each_shown_pointer_carries_its_landmarks_initial_and_clears_the_hud() -> void:
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
@@ -168,9 +168,8 @@ func test_each_shown_pointer_names_its_landmark_and_boost_and_clears_the_hud() -
 		var s: Dictionary = td.landmark_pointers.pointer_for(LandmarkConfig.LANDMARK_NAMES[k])
 		if s.is_empty():
 			continue
-		assert_str(s["text"]).is_equal(
-			"%s: %s" % [LandmarkConfig.LANDMARK_NAMES[k], LandmarkConfig.LANDMARK_BOOST_TEXT[k]]
-		)
+		assert_str(s["text"]).is_equal(LandmarkConfig.LANDMARK_NAMES[k].substr(0, 1))
+		assert_str(s["text"]).not_contains(LandmarkConfig.LANDMARK_BOOST_TEXT[k])
 		var box: Rect2 = s["box"]
 		(
 			assert_bool(_clear_of(box, rects))
