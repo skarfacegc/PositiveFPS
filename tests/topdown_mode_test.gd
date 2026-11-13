@@ -137,12 +137,10 @@ func test_element_keys_and_the_wheel_never_change_the_element_or_target() -> voi
 	var td: TopDownMain = s["td"]
 	var player: TopDownPlayer = td.player
 
-	# With no target the HUD says so, and the ring stays cream.
-	assert_str(td.hud.element_label.text).is_equal("No target")
+	# With no target the ring stays cream.
 	runner.simulate_key_pressed(KEY_2)  # Number keys no longer switch element: nothing happens.
 	runner.simulate_mouse_button_pressed(MOUSE_BUTTON_WHEEL_DOWN)
 	await runner.simulate_frames(2)
-	assert_str(td.hud.element_label.text).is_equal("No target")
 	assert_object(player.target).is_null()
 	(
 		assert_bool(
@@ -226,4 +224,4 @@ func test_a_relapse_lowers_the_count_and_shows_the_alert() -> void:
 	await runner.simulate_frames(int((PeopleConfig.WOBBLE_SECONDS * (1.0 + PeopleConfig.WOBBLE_JITTER) + 1.0) * 60.0))
 	assert_bool(target.is_rescued).is_false()
 	assert_int(td.rescued_count).is_equal(0)
-	assert_str(td.hud.alert_label.text).is_equal("Someone lost their joy!")
+	assert_str(td.intro.current_text()).is_equal("Someone lost their joy!")

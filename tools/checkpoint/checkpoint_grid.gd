@@ -78,10 +78,7 @@ func _g_clean() -> void:
 	for child: Node in main.get_children():
 		if child is Label3D:
 			child.queue_free()
-	if main.hud._alert_tween != null:
-		main.hud._alert_tween.kill()
-	main.hud.alert_label.modulate.a = 0.0
-	main.hud.alert_panel.modulate.a = 0.0
+	main.intro.current = -1  # Clean HUD (#92): events use the one banner.
 
 
 func _g_move_player(at: Vector3, frames: int = 40) -> void:

@@ -73,6 +73,8 @@ func _update_labels() -> void:
 	var border := level.border
 	var gates: Array[Dictionary] = border.zone.gates
 	var live := border.active and border.polygon.size() >= 3
+	var avoid := HudSafeArea.label_avoid(level)  # Walls and gates: Clean HUD (#92)
+	var held := counts_wanted()
 	for g: int in range(gates.size()):
 		var label := _label_for(g)
 		label.visible = live
@@ -92,6 +94,7 @@ func _update_labels() -> void:
 			BorderConfig.GATE_COUNT_HEIGHT,
 			mid.y + out.y * BorderConfig.GATE_COUNT_OUT
 		)
+		label.visible = (held or _short_and_pushed(g)) and not HudSafeArea.hides_label(level, avoid, label.position)
 		label.modulate = (BorderConfig.GATE_COUNT_SHORT_COLOUR if members < need else BorderConfig.GATE_COUNT_OK_COLOUR)
 	for key: Variant in _labels.keys():
 		var gi: int = key
@@ -100,6 +103,18 @@ func _update_labels() -> void:
 			old.queue_free()
 			_labels.erase(gi)
 			_shown_texts.erase(gi)
+
+
+# Walls and gates: Clean HUD (#92). Gate counts show only for a gate that is short and being pushed, or while E (take a
+# block) or F (plant a defence) is held. A full gate shows nothing.
+func counts_wanted() -> bool:
+	var taking := level.take_block != null and level.take_block.holding
+	var planting := level.defences != null and level.defences.holding
+	return taking or planting
+
+
+func _short_and_pushed(g: int) -> bool:
+	return is_short(g) and level.border.gate_deepest(g)["bend"] >= HudConfig.CLEAN_GATE_COUNT_PUSH_FROM
 
 
 func _label_for(g: int) -> Label3D:

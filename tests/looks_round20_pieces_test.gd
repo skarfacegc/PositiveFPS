@@ -51,22 +51,17 @@ func test_a_styled_landmark_pulses_on_a_claim_and_on_a_loss() -> void:
 		node.free()
 
 
-func test_the_styled_alert_is_a_banner_and_the_label_hides() -> void:
+func test_the_styled_alert_panel_still_draws_its_banner() -> void:
+	# Clean HUD (#92): the HUD no longer owns an alert line (events use the one banner), but the styled panel kind stays.
 	Looks.set_mode(Looks.Mode.STYLED)
-	var hud: Hud = auto_free(Hud.new())
-	add_child(hud)
-	hud.rebuild_look()
-	assert_bool(hud.alert_label.visible).is_false()
-	assert_bool(hud.alert_panel.visible).is_true()
-	hud.show_alert("Claimed the Bandstand", LandmarkConfig.LANDMARK_CLAIM_COLOUR)
-	assert_str(hud.alert_panel.alert_text).is_equal("Claimed the Bandstand")
-	assert_bool(hud.alert_panel.alert_colour.is_equal_approx(LandmarkConfig.LANDMARK_CLAIM_COLOUR)).is_true()
-	assert_float(hud.alert_panel.modulate.a).is_equal(1.0)
-	hud.alert_panel._draw()
+	var panel: StyledPanel = auto_free(StyledPanel.new())
+	panel.kind = StyledPanel.Kind.ALERT
+	add_child(panel)
+	panel.set_alert("Claimed the Bandstand", LandmarkConfig.LANDMARK_CLAIM_COLOUR)
+	assert_str(panel.alert_text).is_equal("Claimed the Bandstand")
+	assert_bool(panel.alert_colour.is_equal_approx(LandmarkConfig.LANDMARK_CLAIM_COLOUR)).is_true()
+	panel._draw()
 	Looks.set_mode(Looks.Mode.PLACEHOLDER)
-	hud.rebuild_look()
-	assert_bool(hud.alert_label.visible).is_true()
-	assert_bool(hud.alert_panel.visible).is_false()
 
 
 # --- The round 19 flags

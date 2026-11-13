@@ -159,7 +159,6 @@ func _process(delta: float) -> void:
 	landmarks.apply_boosts(people, border)
 	level_hud.update_landmarks()
 	level_hud.update_spirit_hud()
-	level_hud.update_target_mood()
 	intro.check_level(self, delta)
 	level_hud.update_feedback(delta)
 	if level_hud.debug_on:

@@ -4,15 +4,15 @@ extends CanvasLayer
 
 var night_label: Label
 var night_bar: ProgressBar
-var element_label: Label
 var burst_label: Label
 # Round 12a: spirit (a label and a bar above the burst indicator).
 var spirit_label: Label
 var spirit_bar: ProgressBar
 var hint_label: Label
 var rescued_label: Label
-var targeting_label: Label
-var alert_label: Label
+# Walls and gates: Clean HUD (#92). The targeting mode line ("Targeting: Hover  [F2]") moved to the F3 overlay (the
+# level reads it from here); the target line and the centre alert line are gone (events use the banner, PromptBar).
+var targeting_text: String = ""
 # Walls and gates: Capture polish (#75). The people line under the spirit meter.
 var people_label: Label
 var debug_hint_label: Label
@@ -29,30 +29,23 @@ var landmark_label: Label
 # Graphics checkpoint 3: the styled drawings of the landmark panel and the end screen (nothing in the placeholder look).
 var landmark_panel: StyledPanel
 var dawn_panel: StyledPanel
-# Graphics checkpoint 4: the styled banner that shows the alert's text (the placeholder look shows alert_label).
-var alert_panel: StyledPanel
 # Checkpoint 6: the styled look's versions of the HUD text lines (parchment panels; the Labels above show in the
 # placeholder look). Each is fed the same text as its Label.
 var rescued_panel: StyledPanel
 var burst_panel: StyledPanel
-var target_panel: StyledPanel
-var targeting_panel: StyledPanel
 var key_panel: StyledPanel
 # Checkpoint 7: the styled Dusk to Dawn panel and spirit tag (drawn by StyleHud; the Labels and bars show in the
 # placeholder look).
 var night_view: Control
 var spirit_view: Control
-var _alert_tween: Tween
 # Walls and gates: Recorder catch-up (#60). The tween that hides the "Marked" flash.
 var _mark_tween: Tween
 var _night_progress: float = 0.0
 var _spirit_shown: bool = false
 var _spirit_dim: bool = false
 var _burst_on: bool = false
-var _targeting_on: bool = false
-# Round 12b: the target's element and mood, kept so either can change the label alone.
-var _target_affinity: int = -1
-var _target_mood: String = ""
+# Walls and gates: Clean HUD (#92). The controls strip shows for the first seconds of a night and while H is held.
+var _controls_on: bool = true
 
 
 func _ready() -> void:
@@ -87,16 +80,16 @@ func _ready() -> void:
 	night_view.draw.connect(_draw_night_view)
 	add_child(night_view)
 
-	# Target's element (or "No target"), bottom left.
-	element_label = Label.new()
-	element_label.add_theme_font_size_override("font_size", 28)
-	element_label.position = Vector2(20, 640)
-	add_child(element_label)
-
-	# Joy burst cooldown, just above the element label. Only shown in top-down mode (see set_burst).
+	# Joy burst line, bottom left and above the spirit meter's row, so it never runs under the meter (it fits a 960 px
+	# window). Only shown in top-down mode (see set_burst).
 	burst_label = Label.new()
 	burst_label.add_theme_font_size_override("font_size", 22)
-	burst_label.position = Vector2(20, 606)
+	burst_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	burst_label.offset_left = 20.0
+	burst_label.offset_right = 20.0
+	burst_label.offset_bottom = -HudConfig.CLEAN_BURST_BOTTOM
+	burst_label.offset_top = -HudConfig.CLEAN_BURST_BOTTOM - HudConfig.CLEAN_BURST_HEIGHT
+	burst_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	burst_label.visible = false
 	add_child(burst_label)
 
@@ -139,37 +132,43 @@ func _ready() -> void:
 	# Walls and gates: Capture polish (#75). One plain line under the spirit meter: the people on the line against the
 	# people it needs (see Defences.people_text). Plain text in both looks.
 	people_label = Label.new()
-	people_label.add_theme_font_size_override("font_size", 18)
+	people_label.add_theme_font_size_override("font_size", 16)
 	people_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	people_label.add_theme_constant_override("outline_size", 5)
+	# Walls and gates: Clean HUD (#92). A dark backing, as wide as its text and centred under the meter, below the meter's
+	# moon marker (the marker hangs about 20 px under the bar).
 	people_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	people_label.offset_left = -half
-	people_label.offset_right = half
-	people_label.offset_top = -84.0
-	people_label.offset_bottom = -58.0
+	people_label.offset_left = 0.0
+	people_label.offset_right = 0.0
+	people_label.offset_top = -HudConfig.CLEAN_PEOPLE_TOP
+	people_label.offset_bottom = -HudConfig.CLEAN_PEOPLE_BOTTOM
+	people_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	people_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	people_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	people_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var backing := StyleBoxFlat.new()
+	backing.bg_color = HudConfig.CLEAN_PEOPLE_BACKING
+	backing.set_corner_radius_all(6)
+	backing.content_margin_left = HudConfig.CLEAN_PEOPLE_MARGIN_X
+	backing.content_margin_right = HudConfig.CLEAN_PEOPLE_MARGIN_X
+	backing.content_margin_top = HudConfig.CLEAN_PEOPLE_MARGIN_Y
+	backing.content_margin_bottom = HudConfig.CLEAN_PEOPLE_MARGIN_Y
+	people_label.add_theme_stylebox_override("normal", backing)
 	add_child(people_label)
 
-	# Controls hint under the element label (set by the level, see set_hint).
+	# The controls strip on the bottom edge (set by the level, see set_hint; shown for the first seconds of a night and
+	# while H is held, see show_controls).
 	hint_label = Label.new()
 	hint_label.add_theme_font_size_override("font_size", 16)
-	hint_label.position = Vector2(20, 690)
+	hint_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	hint_label.offset_left = 20.0
+	hint_label.offset_right = 20.0
+	hint_label.offset_bottom = -HudConfig.CLEAN_HINT_BOTTOM
+	hint_label.offset_top = -HudConfig.CLEAN_HINT_BOTTOM - HudConfig.CLEAN_HINT_HEIGHT
+	hint_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	add_child(hint_label)
 
-	# Targeting mode, top right. Only shown in top-down mode (see set_targeting).
-	targeting_label = Label.new()
-	targeting_label.add_theme_font_size_override("font_size", 20)
-	targeting_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	targeting_label.offset_left = -360
-	targeting_label.offset_right = -20
-	targeting_label.offset_top = 20
-	targeting_label.offset_bottom = 50
-	targeting_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	targeting_label.visible = false
-	add_child(targeting_label)
-
-	# Round 19: the held landmarks, top right under the targeting label and the REC mark.
+	# Round 19: the held landmarks, top right under the REC mark.
 	landmark_label = Label.new()
 	landmark_label.add_theme_font_size_override("font_size", 18)
 	landmark_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.5))
@@ -178,8 +177,9 @@ func _ready() -> void:
 	landmark_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	landmark_label.offset_left = -360
 	landmark_label.offset_right = -20
-	landmark_label.offset_top = 90
-	landmark_label.offset_bottom = 216  # Room for the header and four held lines (about 110 px; 0.3.3: the Gallery).
+	landmark_label.offset_top = HudConfig.CLEAN_RIGHT_TOP
+	# Room for the header and four held lines (about 110 px; 0.3.3: the Gallery).
+	landmark_label.offset_bottom = HudConfig.CLEAN_RIGHT_TOP + 126.0
 	landmark_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(landmark_label)
 	landmark_panel = StyledPanel.new()
@@ -187,8 +187,9 @@ func _ready() -> void:
 	landmark_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	landmark_panel.offset_left = -270
 	landmark_panel.offset_right = -20
-	landmark_panel.offset_top = 90
-	landmark_panel.offset_bottom = 90 + 44 + 40 * LandmarkConfig.LANDMARK_NAMES.size()  # The header and 40 px a landmark.
+	landmark_panel.offset_top = HudConfig.CLEAN_RIGHT_TOP
+	# The header and 40 px a landmark.
+	landmark_panel.offset_bottom = HudConfig.CLEAN_RIGHT_TOP + 44 + 40 * LandmarkConfig.LANDMARK_NAMES.size()
 	add_child(landmark_panel)
 
 	# Rescued counter. The level places it under the minimap (see place_rescued_below).
@@ -215,25 +216,6 @@ func _ready() -> void:
 	floor_label.visible = false
 	add_child(floor_label)
 
-	# Relapse alert: a short orange message near the top that fades out (see show_alert).
-	alert_label = Label.new()
-	# Checkpoint 6: a slim line just under the night bar (it was a 34 px line near the middle of the play area).
-	alert_label.position = Vector2(0, HudConfig.CP6_BANNER_TOP)
-	alert_label.size = Vector2(1280, HudConfig.CP6_BANNER_HEIGHT)
-	alert_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	alert_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	alert_label.add_theme_font_size_override("font_size", HudConfig.CP6_ALERT_FONT)
-	alert_label.add_theme_color_override("font_color", Color(1, 0.6, 0.1))
-	alert_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	alert_label.add_theme_constant_override("outline_size", 6)
-	alert_label.modulate = Color(1, 1, 1, 0)
-	add_child(alert_label)
-	alert_panel = StyledPanel.new()
-	alert_panel.kind = StyledPanel.Kind.ALERT
-	alert_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	alert_panel.modulate = Color(1, 1, 1, 0)
-	add_child(alert_panel)
-
 	# End screen: a dark panel covering the whole screen, hidden until the round ends.
 	end_panel = ColorRect.new()
 	end_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -253,11 +235,8 @@ func _ready() -> void:
 	end_panel.add_child(dawn_panel)
 	rescued_panel = _make_line(StyledPanel.Kind.RESCUED)
 	burst_panel = _make_line(StyledPanel.Kind.BURST)
-	target_panel = _make_line(StyledPanel.Kind.TARGET)
-	targeting_panel = _make_line(StyledPanel.Kind.TARGETING)
 	key_panel = _make_line(StyledPanel.Kind.KEYS)
 	_push_line(rescued_panel, rescued_label.text, StyleHudText.IDLE, StyleUi.GOLD)
-	_refresh_target()
 	rebuild_look()
 
 
@@ -281,18 +260,12 @@ func _push_line(p: StyledPanel, text: String, state: int, colour: Color) -> void
 	var m := HudConfig.CP6_LINE_MARGIN
 	if p.kind == StyledPanel.Kind.RESCUED:
 		p.size = Vector2(w, h)
-	elif p.kind == StyledPanel.Kind.TARGETING:
-		p.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		p.offset_right = -20.0
-		p.offset_left = -20.0 - w
-		p.offset_top = 18.0
-		p.offset_bottom = 18.0 + h
 	else:
-		var slot := 0 if p.kind == StyledPanel.Kind.KEYS else (1 if p.kind == StyledPanel.Kind.BURST else 2)
+		# The key strip sits on the bottom edge; the burst line sits above the spirit meter's row (Clean HUD, #92).
 		p.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 		p.offset_left = m
 		p.offset_right = m + w
-		p.offset_bottom = -6.0 - float(slot) * (h + HudConfig.CP6_LINE_GAP)
+		p.offset_bottom = -6.0 if p.kind == StyledPanel.Kind.KEYS else -HudConfig.CLEAN_BURST_BOTTOM
 		p.offset_top = p.offset_bottom - h
 
 
@@ -309,11 +282,9 @@ func _show_line(label: Label, panel: StyledPanel, wanted: bool) -> void:
 func rebuild_look() -> void:
 	var styled := Looks.is_styled()
 	_show_line(rescued_label, rescued_panel, true)
-	_show_line(element_label, target_panel, true)
-	_show_line(hint_label, key_panel, true)
+	_show_line(hint_label, key_panel, _controls_on)
 	_show_line(burst_label, burst_panel, _burst_on)
-	_show_line(targeting_label, targeting_panel, _targeting_on)
-	for p: StyledPanel in [rescued_panel, burst_panel, target_panel, targeting_panel, key_panel]:
+	for p: StyledPanel in [rescued_panel, burst_panel, key_panel]:
 		p.rebuild_look()
 	night_label.visible = not styled
 	night_bar.visible = not styled
@@ -321,9 +292,6 @@ func rebuild_look() -> void:
 	_apply_spirit_look()
 	landmark_label.visible = not styled
 	end_label.visible = not styled
-	alert_label.visible = not styled
-	alert_panel.visible = styled
-	alert_panel.rebuild_look()
 	landmark_panel.visible = styled
 	dawn_panel.visible = styled
 	landmark_panel.rebuild_look()
@@ -353,39 +321,9 @@ func _apply_spirit_look() -> void:
 	spirit_view.visible = _spirit_shown and styled
 
 
-# Top-down: shows the target's element in its colour, or "No target" in cream. Pass -1 for no target.
-func set_target(affinity: int) -> void:
-	_target_affinity = affinity
-	_refresh_target()
-
-
-# Round 12b: the target's mood ("guarded", "skittish", "glum" or "" for none) after the element name.
-func set_target_mood(mood: String) -> void:
-	if mood == _target_mood:
-		return
-	_target_mood = mood
-	_refresh_target()
-
-
-func _refresh_target() -> void:
-	if _target_affinity < 0:
-		element_label.text = "No target"
-		element_label.add_theme_color_override("font_color", PlayerConfig.TD_NO_TARGET_COLOR)
-		_push_line(target_panel, element_label.text, StyleHudText.DIM, PlayerConfig.TD_NO_TARGET_COLOR)
-	else:
-		element_label.text = "Target: " + Config.ELEMENT_NAMES[_target_affinity]
-		if _target_mood != "":
-			element_label.text += " (" + _target_mood + ")"
-		element_label.add_theme_color_override("font_color", Config.ELEMENT_COLORS[_target_affinity])
-		_push_line(target_panel, element_label.text, StyleHudText.IDLE, Config.ELEMENT_COLORS[_target_affinity])
-
-
-# Top-down: shows the targeting mode (see Config.TargetingMode) in the top right.
+# Top-down: keeps the targeting mode's line (see Config.TargetingMode); the F3 overlay shows it (the level reads it).
 func set_targeting(mode: int) -> void:
-	_targeting_on = true
-	targeting_label.text = "Targeting: " + PlayerConfig.TD_TARGETING_NAMES[mode] + "  [F2]"
-	_push_line(targeting_panel, targeting_label.text, StyleHudText.IDLE, StyleUi.AMBER)
-	_show_line(targeting_label, targeting_panel, true)
+	targeting_text = "Targeting: " + PlayerConfig.TD_TARGETING_NAMES[mode] + "  [F2]"
 
 
 func set_rescued(n: int, total: int) -> void:
@@ -397,12 +335,6 @@ func set_rescued(n: int, total: int) -> void:
 func place_rescued_below(y: float) -> void:
 	rescued_label.position = Vector2(20, y)
 	rescued_panel.position = Vector2(20, y)
-
-
-# Checkpoint 6: true while the HUD alert (such as "Someone lost their joy!") is up or fading, so a notice banner moves
-# down below it instead of covering it.
-func alert_showing() -> bool:
-	return alert_label.modulate.a > 0.02
 
 
 # Shows the "[F3] debug" hint while the debug overlay is on.
@@ -427,6 +359,20 @@ func set_hint(text: String) -> void:
 	_push_line(key_panel, text, StyleHudText.IDLE, StyleUi.AMBER)
 
 
+# Walls and gates: Clean HUD (#92). Shows or hides the controls strip (the level shows it for the first seconds of a
+# night and while H is held).
+func show_controls(on: bool) -> void:
+	if on == _controls_on:
+		return
+	_controls_on = on
+	_show_line(hint_label, key_panel, on)
+
+
+# True while the controls strip is up.
+func controls_shown() -> bool:
+	return _controls_on
+
+
 # Round 19: the landmark panel: "Landmarks 1 of 3" and a line (with the boost) for each one held.
 func set_landmarks(lines: Array[String], total: int, held: Array[bool] = []) -> void:
 	landmark_panel.set_landmarks(held)
@@ -449,8 +395,8 @@ func set_recording(on: bool) -> void:
 		rec_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 		rec_label.offset_left = -160
 		rec_label.offset_right = -20
-		rec_label.offset_top = 52
-		rec_label.offset_bottom = 82
+		rec_label.offset_top = HudConfig.CLEAN_REC_TOP
+		rec_label.offset_bottom = HudConfig.CLEAN_REC_TOP + HudConfig.CLEAN_REC_HEIGHT
 		rec_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		add_child(rec_label)
 		# Walls and gates: Recorder catch-up (#60). "Marked" sits just left of REC for a moment after a mark.
@@ -461,8 +407,8 @@ func set_recording(on: bool) -> void:
 		mark_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 		mark_label.offset_left = -300
 		mark_label.offset_right = -170
-		mark_label.offset_top = 52
-		mark_label.offset_bottom = 82
+		mark_label.offset_top = HudConfig.CLEAN_REC_TOP
+		mark_label.offset_bottom = HudConfig.CLEAN_REC_TOP + HudConfig.CLEAN_REC_HEIGHT
 		mark_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		mark_label.visible = false
 		add_child(mark_label)
@@ -531,43 +477,22 @@ func set_burst(cooldown_left: float, has_spirit: bool = true, targets: int = 0) 
 	_show_line(burst_label, burst_panel, true)
 
 
-# Shows a short alert that waits `hold` seconds (0.8s by default), then fades out over 2s. Calling again restarts it.
-# Round 20: `colour` is the text colour (the default orange; a landmark claim or loss passes its own).
-func show_alert(text: String, colour: Color = Color(1, 0.6, 0.1), hold: float = 0.8) -> void:
-	alert_label.text = text
-	alert_label.add_theme_color_override("font_color", colour)
-	alert_label.modulate = Color(1, 1, 1, 1)
-	alert_panel.set_alert(text, colour)
-	alert_panel.modulate = Color(1, 1, 1, 1)
-	if _alert_tween != null and _alert_tween.is_valid():
-		_alert_tween.kill()
-	_alert_tween = create_tween()
-	_alert_tween.tween_interval(hold)
-	_alert_tween.tween_property(alert_label, "modulate:a", 0.0, 2.0)
-	_alert_tween.parallel().tween_property(alert_panel, "modulate:a", 0.0, 2.0)
-
-
 # Round 22: the HUD panels that an edge pointer keeps clear of (the landmark pointers, see landmark_pointers.gd).
 func layout_controls() -> Array[Control]:
 	var out: Array[Control] = [
 		night_label,
 		night_bar,
-		element_label,
 		burst_label,
 		spirit_label,
 		spirit_bar,
 		people_label,
 		hint_label,
 		rescued_label,
-		targeting_label,
 		landmark_label,
 		landmark_panel,
-		alert_label,
 		# Checkpoint 6: the styled look's lines (hidden, so not counted, in the placeholder look).
 		rescued_panel,
 		burst_panel,
-		target_panel,
-		targeting_panel,
 		key_panel,
 		# Checkpoint 7: the styled Dusk to Dawn panel and spirit tag (hidden in the placeholder look).
 		night_view,

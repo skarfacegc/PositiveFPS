@@ -257,19 +257,26 @@ func test_spirit_low_and_dim_prompts_show_once() -> void:
 	td.player.lose_spirit(100.0)
 	await runner.simulate_frames(30)
 	assert_bool(td.player.is_dim).is_true()
-	assert_array(td.intro.queue).is_equal([Intro.Prompt.DIM])
+	# Clean HUD (#92): "You went dim!" is an event on the one banner. It beats the tip on show, which waits behind it
+	# (before, the alert line was a second message beside the tip and the queue held only the dim tip).
+	assert_int(td.intro.current).is_equal(Intro.Prompt.EVENT)
+	assert_array(td.intro.queue).is_equal([Intro.Prompt.SPIRIT_LOW, Intro.Prompt.DIM])
+	await runner.simulate_frames(int(HudConfig.CLEAN_EVENT_SECONDS * 60.0))
+	assert_int(td.intro.current).is_equal(Intro.Prompt.SPIRIT_LOW)
 	await runner.simulate_frames(int(HudConfig.PROMPT_SECONDS * 60.0))
 	assert_int(td.intro.current).is_equal(Intro.Prompt.DIM)
 	assert_str(td.prompts.text).contains("rest inside your border")
 	await runner.simulate_frames(int(HudConfig.PROMPT_SECONDS * 60.0))
 	assert_int(td.intro.current).is_equal(-1)
-	# Back up and down again: nothing new.
+	# Back up and down again: no tip comes back (only the dim and spirit events show, one at a time).
 	td.player.add_spirit(100.0)
 	await runner.simulate_frames(30)
 	td.player.lose_spirit(100.0)
 	await runner.simulate_frames(60)
-	assert_int(td.intro.current).is_equal(-1)
+	assert_int(td.intro.current).is_equal(Intro.Prompt.EVENT)
 	assert_int(td.intro.queue.size()).is_equal(0)
+	await runner.simulate_frames(int(HudConfig.CLEAN_EVENT_SECONDS * 60.0))
+	assert_int(td.intro.current).is_equal(-1)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 

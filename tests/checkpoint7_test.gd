@@ -71,10 +71,6 @@ func test_the_styled_night_panel_and_spirit_tag_replace_the_placeholder_pieces()
 	assert_bool(hud.spirit_label.visible).is_false()
 	# The dimmed tag keeps the placeholder's text; the styled look draws it through its own view.
 	assert_str(hud.spirit_label.text).contains("DIM")
-	# The target line's mood (the styled line panel is fed the same text).
-	hud.set_target(0)
-	hud.set_target_mood("guarded")
-	hud.set_target_mood("guarded")
 	# A frame draws the styled pieces (the draw callbacks run).
 	await runner.simulate_frames(3)
 	# Back to the placeholder: the Labels and bars return and the styled pieces hide.

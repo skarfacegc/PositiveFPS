@@ -32,6 +32,28 @@ static func avoid_rects(hud: Hud, minimap: Control, main: TopDownMain = null) ->
 	return out
 
 
+# Walls and gates: Clean HUD (#92). True when a world label at `world` (about CLEAN_WORLD_LABEL_SIZE on screen,
+# centred on the point) would sit over one of the `avoid` rectangles (from avoid_rects) or the minimap. A window too
+# small for the HUD hides nothing. The labels call this so cell tags, pips and gate counts keep off the HUD panels.
+static func hides_label(main: TopDownMain, avoid: Array[Rect2], world: Vector3) -> bool:
+	var screen := main.get_viewport().get_visible_rect().size
+	if not usable(screen) or avoid.is_empty():
+		return false
+	var at := main.world_to_screen(world)
+	var box := Rect2(at - HudConfig.CLEAN_WORLD_LABEL_SIZE * 0.5, HudConfig.CLEAN_WORLD_LABEL_SIZE)
+	for r: Rect2 in avoid:
+		if box.intersects(r):
+			return true
+	return false
+
+
+# The rectangles the world labels keep off (empty while the level has no HUD yet).
+static func label_avoid(main: TopDownMain) -> Array[Rect2]:
+	if main.hud == null or main.minimap == null:
+		return []
+	return avoid_rects(main.hud, main.minimap, main)
+
+
 # The window of size `screen` inset by WOBBLE_ALERT_SAFE_INSET, cut at the top by every rectangle in `avoid` whose
 # centre is in the top half of the screen and at the bottom by every one in the bottom half (each with
 # WOBBLE_ALERT_PANEL_GAP to spare).

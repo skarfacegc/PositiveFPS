@@ -103,7 +103,7 @@ func _check_banner(td: TopDownMain, bar_bottom: float) -> void:
 func _check_banner_clear_of_hud(td: TopDownMain) -> void:
 	var r: Rect2 = td.prompts._rect
 	for c: Control in td.hud.layout_controls():
-		if c == td.hud.alert_label or not c.is_visible_in_tree() or c.modulate.a <= 0.0:
+		if not c.is_visible_in_tree() or c.modulate.a <= 0.0:
 			continue
 		assert_bool(r.intersects(c.get_global_rect())).is_false()
 	assert_bool(r.intersects(td.minimap.get_global_rect())).is_false()
@@ -141,23 +141,21 @@ func test_a_long_notice_shrinks_its_text_to_fit_the_banner() -> void:
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_a_notice_moves_down_below_the_alert_so_the_two_never_overlap_in_both_looks() -> void:
+func test_an_event_and_a_notice_share_the_one_banner_in_both_looks() -> void:
+	# Clean HUD (#92): the HUD's own alert line is gone, so an event (a lost joy) and a notice can never stack.
 	Config.intro_override = 1
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
 	var runner: GdUnitSceneRunner = s["runner"]
+	assert_object(td.hud.get("alert_label")).is_null()
 	for mode: int in [Looks.Mode.PLACEHOLDER, Looks.Mode.STYLED]:
 		await _look(s, mode)
-		td.hud.show_alert("Someone lost their joy!")
-		td.intro.notice(Intro.Prompt.SPIRIT_LOW)
+		td.intro.event_notice("Someone lost their joy!")
+		td.intro.notice(Intro.Prompt.SPIRIT_LOW, "Not enough spirit to take a block.")
 		await runner.simulate_frames(10)
-		var alert := Rect2(0.0, HudConfig.CP6_BANNER_TOP, SCREEN.x, HudConfig.CP6_BANNER_HEIGHT)
-		assert_bool(td.hud.alert_showing()).is_true()
-		assert_bool(td.prompts._rect.intersects(alert)).is_false()
-		assert_float(td.prompts._rect.position.y).is_greater_equal(alert.end.y)
-		# The alert sits under the night bar too, and in the placeholder look the label is that slim line.
-		assert_float(alert.position.y).is_greater_equal(td.hud.night_bar.get_global_rect().end.y)
-		assert_bool(td.hud.alert_label.get_global_rect().intersects(td.hud.night_bar.get_global_rect())).is_false()
+		assert_str(td.intro.current_text()).is_equal("Not enough spirit to take a block.")
+		assert_float(td.prompts._rect.position.y).is_equal(HudConfig.CP6_BANNER_TOP)
+		assert_float(td.prompts._rect.position.y).is_greater_equal(td.hud.night_bar.get_global_rect().end.y)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
@@ -165,11 +163,11 @@ func test_a_notice_moves_down_below_the_alert_so_the_two_never_overlap_in_both_l
 
 
 func _lines(td: TopDownMain) -> Array[StyledPanel]:
-	return [td.hud.rescued_panel, td.hud.burst_panel, td.hud.target_panel, td.hud.targeting_panel, td.hud.key_panel]
+	return [td.hud.rescued_panel, td.hud.burst_panel, td.hud.key_panel]
 
 
 func _labels(td: TopDownMain) -> Array[Label]:
-	return [td.hud.rescued_label, td.hud.burst_label, td.hud.element_label, td.hud.targeting_label, td.hud.hint_label]
+	return [td.hud.rescued_label, td.hud.burst_label, td.hud.hint_label]
 
 
 func test_the_styled_look_has_its_own_hud_lines_and_the_placeholder_look_keeps_its_labels() -> void:
@@ -190,16 +188,12 @@ func test_the_styled_look_has_its_own_hud_lines_and_the_placeholder_look_keeps_i
 	assert_str(td.hud.burst_panel.line_text).is_equal("Joy burst [G]: READY - clears 3 dimmed")
 	assert_int(td.hud.burst_panel.line_state).is_equal(StyleHudText.READY)
 	assert_str(td.hud.key_panel.line_text).contains("[F4] look")
-	assert_str(td.hud.targeting_panel.line_text).contains("Targeting:")
 	assert_str(td.hud.rescued_panel.line_text).contains("Rescued:")
 	# The burst line's state follows the rules text: a wait is dim, a need is a warning.
 	td.hud.set_burst(2.5, true, 0)
 	assert_int(td.hud.burst_panel.line_state).is_equal(StyleHudText.DIM)
 	td.hud.set_burst(0.0, false, 0)
 	assert_int(td.hud.burst_panel.line_state).is_equal(StyleHudText.WARN)
-	# The target line takes the target's element colour.
-	td.hud.set_target(Config.Element.ART)
-	assert_bool(td.hud.target_panel.line_colour == Config.ELEMENT_COLORS[Config.Element.ART]).is_true()
 	await _look(s, Looks.Mode.PLACEHOLDER)
 	for k: int in range(panels.size()):
 		assert_bool(labels[k].visible).is_true()
@@ -211,13 +205,10 @@ func test_the_styled_lines_draw_without_errors_and_are_sized_to_their_words() ->
 	var s: Dictionary = await _level()
 	var td: TopDownMain = s["td"]
 	await _look(s, Looks.Mode.STYLED)
-	td.hud.set_target(Config.Element.MUSIC)
-	td.hud.set_target_mood("guarded")
 	for p: StyledPanel in _lines(td):
 		p._draw()
-	assert_str(td.hud.target_panel.line_text).is_equal("Target: Music (guarded)")
-	var short := StyleHudText.line_width(StyledPanel.Kind.TARGET, "No target")
-	var long := StyleHudText.line_width(StyledPanel.Kind.TARGET, "Target: Music (guarded)")
+	var short := StyleHudText.line_width(StyledPanel.Kind.BURST, "Joy burst [G]: READY")
+	var long := StyleHudText.line_width(StyledPanel.Kind.BURST, "Joy burst [G]: READY - clears 3 dimmed")
 	assert_float(long).is_greater(short)
 	assert_bool(StyleHudText.is_key("WASD")).is_true()
 	assert_bool(StyleHudText.is_key("[F4]")).is_true()

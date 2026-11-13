@@ -42,30 +42,32 @@ func test_the_held_panel_line_reads_name_colon_boost() -> void:
 
 
 func test_a_claim_and_a_loss_each_raise_a_notice_on_the_hud() -> void:
+	# Clean HUD (#92): both go through the one slim banner (the intro's event), not a centre alert line.
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
 	var garden := td.landmarks.items[Landmarks.GARDEN]
 	garden.update(LandmarkConfig.BORDER_LANDMARK_HOLD, true)
-	assert_str(td.hud.alert_label.text).is_equal("Claimed the Garden: nature x2")
-	assert_that(td.hud.alert_label.get_theme_color("font_color")).is_equal(LandmarkConfig.LANDMARK_CLAIM_COLOUR)
+	assert_str(td.intro.current_text()).is_equal("Claimed the Garden: nature x2")
+	assert_that(td.intro.tint).is_equal(LandmarkConfig.LANDMARK_CLAIM_COLOUR)
 	garden.update(0.1, false)
-	assert_str(td.hud.alert_label.text).is_equal("Lost the Garden boost: nature x2")
-	assert_that(td.hud.alert_label.get_theme_color("font_color")).is_equal(LandmarkConfig.LANDMARK_LOSS_COLOUR)
-	assert_float(td.hud.alert_label.modulate.a).is_equal_approx(1.0, 0.001)
+	assert_str(td.intro.current_text()).is_equal("Lost the Garden boost: nature x2")
+	assert_that(td.intro.tint).is_equal(LandmarkConfig.LANDMARK_LOSS_COLOUR)
+	assert_int(td.intro.current).is_equal(Intro.Prompt.EVENT)
 	await TopDownTestUtil.leave_loaded_scene(td)
 
 
-func test_the_notices_and_the_panel_lines_fit_the_1280_by_720_window() -> void:
+func test_the_notices_and_the_panel_lines_fit_the_banner_and_the_panel() -> void:
 	var runner: GdUnitSceneRunner = await TopDownTestUtil.level_runner(self)
 	await runner.simulate_frames(5)
 	var td: TopDownMain = runner.scene()
-	# The notice: one line across the screen (the alert label is 1280 wide, with a margin each side).
-	var font := td.hud.alert_label.get_theme_font("font")
-	var size := td.hud.alert_label.get_theme_font_size("font_size")
+	# The notice: one line in the banner at its full size (the banner's text shrinks to fit, but not below 11 px).
+	var font := ThemeDB.fallback_font
 	for lm: Landmark in td.landmarks.items:
 		for text: String in [lm.claim_text(), lm.loss_text()]:
-			assert_float(font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, size).x).is_less(1280.0 - 32.0)
+			assert_float(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x).is_less(
+				HudConfig.CP6_BANNER_MAX_WIDTH - 62.0
+			)
 	# The panel: the widest held line fits its 340 px box, and the header plus three lines fit its 104 px height.
 	var panel_font := td.hud.landmark_label.get_theme_font("font")
 	var panel_size := td.hud.landmark_label.get_theme_font_size("font_size")

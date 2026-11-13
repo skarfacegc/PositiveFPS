@@ -49,8 +49,20 @@ func test_each_gate_shows_its_people_against_its_need_and_is_red_when_short() ->
 		assert_str(marks.label_text(g)).is_equal(GateMarks.count_text(3, 5))  # 12 people share four gates of 5.
 		assert_bool(marks.is_short(g)).is_true()
 		var label: Label3D = marks._labels[g]
-		assert_bool(label.visible).is_true()
+		# Clean HUD (#92): a short gate nobody pushes shows no count until E or F is held.
+		assert_bool(label.visible).is_false()
 		assert_object(label.modulate).is_equal(BorderConfig.GATE_COUNT_SHORT_COLOUR)
+	td.take_block.holding = true
+	await runner.simulate_frames(2)
+	var avoid := HudSafeArea.label_avoid(td)
+	var shown := 0
+	for g: int in range(4):
+		var held_label: Label3D = marks._labels[g]
+		# Shown unless it would sit over a HUD panel (Clean HUD item 5).
+		assert_bool(held_label.visible).is_equal(not HudSafeArea.hides_label(td, avoid, held_label.position))
+		shown += 1 if held_label.visible else 0
+	assert_int(shown).is_greater(0)
+	td.take_block.holding = false
 	# Enough people: every gate reads full and the red goes.
 	for i: int in range(12, 20):
 		var p: Person = td.people[i]

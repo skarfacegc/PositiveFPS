@@ -19,13 +19,9 @@ func test_night_bar_shows_dusk_to_dawn_progress() -> void:
 	assert_float(hud.night_bar.value).is_equal_approx(100.0, 0.001)
 
 
-func test_target_and_rescued_text() -> void:
+func test_rescued_text() -> void:
+	# Clean HUD (#92): the "Target: Art / No target" line is gone; the player's ring colour shows the element.
 	var hud: Hud = _make_hud()
-	hud.set_target(-1)
-	assert_str(hud.element_label.text).is_equal("No target")
-	for e: int in range(3):
-		hud.set_target(e)
-		assert_str(hud.element_label.text).is_equal("Target: " + Config.ELEMENT_NAMES[e])
 	hud.set_rescued(3, 20)
 	assert_str(hud.rescued_label.text).is_equal("Rescued: 3 / 20")
 
@@ -44,29 +40,12 @@ func test_burst_text() -> void:
 	assert_str(hud.burst_label.text).is_equal("Joy burst [G]: 3.2s")
 
 
-func test_alert_starts_opaque() -> void:
-	var hud: Hud = _make_hud()
-	hud.show_alert("Someone lost their joy!")
-	assert_str(hud.alert_label.text).is_equal("Someone lost their joy!")
-	assert_float(hud.alert_label.modulate.a).is_equal_approx(1.0, 0.001)
-
-
 func test_end_screen_shows_the_title_and_the_detail_lines() -> void:
 	var hud: Hud = _make_hud()
 	hud.show_end("Dawn", "Landmark held: no\nPlaza beautified: 40%")
 	assert_bool(hud.end_panel.visible).is_true()
 	assert_str(hud.end_label.text).contains("Dawn")
 	assert_str(hud.end_label.text).contains("Plaza beautified: 40%")
-
-
-func test_a_second_alert_restarts_the_fade() -> void:
-	var hud: Hud = _make_hud()
-	hud.show_alert("First")
-	# Let the first alert start fading (its tween is still running), then send a second one.
-	await get_tree().create_timer(0.2).timeout
-	hud.show_alert("Second")
-	assert_str(hud.alert_label.text).is_equal("Second")
-	assert_float(hud.alert_label.modulate.a).is_equal_approx(1.0, 0.001)
 
 
 func test_spirit_bar_and_label_show_spirit_and_dim() -> void:
@@ -137,7 +116,7 @@ func _check_no_overlap(td: TopDownMain) -> void:
 func _check_styled_lines(td: TopDownMain, screen: Rect2, spirit_rect: Rect2, bar_rect: Rect2) -> void:
 	var hud: Hud = td.hud
 	hud.set_burst(0.0, true, 99)
-	var lines: Array[Control] = [hud.burst_panel, hud.target_panel, hud.key_panel]
+	var lines: Array[Control] = [hud.burst_panel, hud.key_panel]
 	for i: int in range(lines.size()):
 		var r := lines[i].get_global_rect()
 		assert_bool(lines[i].visible).is_true()
@@ -148,8 +127,6 @@ func _check_styled_lines(td: TopDownMain, screen: Rect2, spirit_rect: Rect2, bar
 			assert_bool(r.intersects(lines[j].get_global_rect())).is_false()
 		assert_bool(r.intersects(td.minimap.get_global_rect())).is_false()
 		assert_bool(r.intersects(hud.rescued_panel.get_global_rect())).is_false()
-	assert_bool(hud.targeting_panel.get_global_rect().intersects(hud.landmark_panel.get_global_rect())).is_false()
-	assert_bool(screen.encloses(hud.targeting_panel.get_global_rect())).is_true()
 
 
 func test_the_burst_line_and_the_spirit_label_never_overlap_at_1280_by_720() -> void:

@@ -458,8 +458,8 @@ func test_the_hud_debug_and_floor_text_setters_show_their_text() -> void:
 	td.hud.set_debug_text("F3 hint")
 	assert_str(td.hud.floor_label.text).is_equal("Floor 3")
 	assert_str(td.hud.debug_hint_label.text).is_equal("F3 hint")
-	# Nothing is being announced at the start of a level (no alert up or fading).
-	assert_bool(td.hud.alert_showing()).is_false()
+	# Nothing is being announced at the start of a level (no banner up).
+	assert_int(td.intro.current).is_equal(-1)
 
 
 func test_a_headless_event_shot_asks_for_no_picture_and_takes_none() -> void:
