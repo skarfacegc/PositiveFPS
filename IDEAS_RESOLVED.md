@@ -13,7 +13,7 @@ grouped into named, versioned targets (CLAUDE.md, "Targets and versions"). Histo
 | 0.3.1 to 0.3.3 | Living town fixes, Prop styling (released `v0.3.2`), Town layout | 0.3.3 done 2026-11-09, internal, no release |
 | 0.4 Walls and gates | The round 27 and round 28 plans (called Tug of war until 2026-11-09) | in progress |
 
-Index: First proof of concept; POC round 2; POC round 3; POC round 4; POC round 5; POC round 6; POC round 7; POC round 8; Direction change: the living border; Round 9 build: the living border; Round 10 plan; Round 10 build; Round 10 playtest and draft round 11 plan; Style pass approach: switchable looks; Round 11 build; Round 11 playtest and round 12 plan; Graphics checkpoint 1; Gloom terminology; Round 12a build; Round 12b build; Round 12 playtest and round 13 plan; Round 13a build; Round 13b build; Round 13 playtest and round 14 plan; Round 14 build; Round 14 playtest and round 15 plan; Round 15 build; Round 15 playtest and round 16 plan; Round 16 build; Round 16 playtest and round 17 plan; Round 17 build; Round 17 playtest and round 18 plan; Graphics checkpoint 2; Round 18 build; Round 18 playtest and round 19 design; Round 19 plan; Graphics checkpoint 3; Round 19 build; Round 19 playtest and round 20 plan; Round 20 build; Graphics checkpoint 4; Round 20 playtest and round 21 plan; Round 21 build; Round 21 playtest and round 22 plan; Round 22 build; Round 22 playtest and round 23 plan; Round 23 build; Round 23 playtest and round 24 plan; Round 24 build; Round 24 playtest and graphics checkpoint 5 plan; Graphics checkpoint 5 build; Graphics checkpoint 5 playtest and follow-up plan; Graphics checkpoint 5 follow-up build; Checkpoint 5 follow-up playtest and snag round plan; Snag round build; Snag round playtest and graphics checkpoint 6 plan; Graphics checkpoint 6 build; Round 25 plan: border control; Round 25 build; Round 25 playtest and round 26 plan; Round 25 replay and revised round 26 plan; Round 26 build: physical push.; Round 26 build (2026-11-07); 0.3 Living town plan (graphics checkpoint 7, 2026-11-07) (#2); 0.3 Living town built (graphics checkpoint 7, 2026-11-07) (#2); 0.3.1 Living town fixes (2026-11-07) (#37, #39, #40, #41, #42, #43); 0.3.1 Living town fixes built (2026-11-08) (#37, #39, #40, #41, #42, #43); 0.3.1 Living town fixes, playtest 2 (2026-11-08) (#44, #45); 0.3.1 Living town fixes, playtest 2 built (2026-11-08) (#44, #45); 0.3.1 Living town fixes, playtest 3 (2026-11-08) (#46, #47; #48 targeted); 0.3.1 Living town fixes, playtest 3 built (2026-11-08) (#48); 0.3.1 Living town fixes, playtest 4 (2026-11-08) (#37, #39, #42, #48; #49, #50 new); 0.3.2 Prop styling plan (2026-11-08) (#42, #49, #50); 0.3.2 Prop styling built (2026-11-08) (#42, #49, #50); 0.3.2 Prop styling, playtest 5 (2026-11-08) (#42, #49, #50); 0.3.3 Town layout plan (2026-11-09) (#52, #51, #17, #5, #6, #7, #8, #9, #19, #20, #21, #23); 0.3.3 Town layout, playtest 1 and fix plan (2026-11-09) (#53; #52, #51, #17, #5 to #8, #19 to #21 In review); 0.3.3 Town layout, playtest 2 (2026-11-09) (#53, #54; #52, #51, #17 In review); 0.3.3 Town layout, playtest 3, styled (2026-11-09) (#52, #17 accepted; #55 new); 0.3.3 Town layout: Quick wins, build speed and upkeep (#5 to #9); 0.4 Walls and gates: Recorder catch-up (2026-11-11) (#59, #60, #61); 0.4 Walls and gates: Reorg, code reorganisation (#3, #4); 0.4 Walls and gates: Grid, Line and Defences (Grid #55, Line #56 and #10 to #14, Defences #15 and #16); 0.4 Walls and gates: Pass 3 plan, Pressure, Defences and capture polish (#12, #13, #14, #15, #16, #75; planned 2026-11-11); 0.4 Walls and gates: Surge warning (#14, #81; played and Done 2026-11-12)
+Index: First proof of concept; POC round 2; POC round 3; POC round 4; POC round 5; POC round 6; POC round 7; POC round 8; Direction change: the living border; Round 9 build: the living border; Round 10 plan; Round 10 build; Round 10 playtest and draft round 11 plan; Style pass approach: switchable looks; Round 11 build; Round 11 playtest and round 12 plan; Graphics checkpoint 1; Gloom terminology; Round 12a build; Round 12b build; Round 12 playtest and round 13 plan; Round 13a build; Round 13b build; Round 13 playtest and round 14 plan; Round 14 build; Round 14 playtest and round 15 plan; Round 15 build; Round 15 playtest and round 16 plan; Round 16 build; Round 16 playtest and round 17 plan; Round 17 build; Round 17 playtest and round 18 plan; Graphics checkpoint 2; Round 18 build; Round 18 playtest and round 19 design; Round 19 plan; Graphics checkpoint 3; Round 19 build; Round 19 playtest and round 20 plan; Round 20 build; Graphics checkpoint 4; Round 20 playtest and round 21 plan; Round 21 build; Round 21 playtest and round 22 plan; Round 22 build; Round 22 playtest and round 23 plan; Round 23 build; Round 23 playtest and round 24 plan; Round 24 build; Round 24 playtest and graphics checkpoint 5 plan; Graphics checkpoint 5 build; Graphics checkpoint 5 playtest and follow-up plan; Graphics checkpoint 5 follow-up build; Checkpoint 5 follow-up playtest and snag round plan; Snag round build; Snag round playtest and graphics checkpoint 6 plan; Graphics checkpoint 6 build; Round 25 plan: border control; Round 25 build; Round 25 playtest and round 26 plan; Round 25 replay and revised round 26 plan; Round 26 build: physical push.; Round 26 build (2026-11-07); 0.3 Living town plan (graphics checkpoint 7, 2026-11-07) (#2); 0.3 Living town built (graphics checkpoint 7, 2026-11-07) (#2); 0.3.1 Living town fixes (2026-11-07) (#37, #39, #40, #41, #42, #43); 0.3.1 Living town fixes built (2026-11-08) (#37, #39, #40, #41, #42, #43); 0.3.1 Living town fixes, playtest 2 (2026-11-08) (#44, #45); 0.3.1 Living town fixes, playtest 2 built (2026-11-08) (#44, #45); 0.3.1 Living town fixes, playtest 3 (2026-11-08) (#46, #47; #48 targeted); 0.3.1 Living town fixes, playtest 3 built (2026-11-08) (#48); 0.3.1 Living town fixes, playtest 4 (2026-11-08) (#37, #39, #42, #48; #49, #50 new); 0.3.2 Prop styling plan (2026-11-08) (#42, #49, #50); 0.3.2 Prop styling built (2026-11-08) (#42, #49, #50); 0.3.2 Prop styling, playtest 5 (2026-11-08) (#42, #49, #50); 0.3.3 Town layout plan (2026-11-09) (#52, #51, #17, #5, #6, #7, #8, #9, #19, #20, #21, #23); 0.3.3 Town layout, playtest 1 and fix plan (2026-11-09) (#53; #52, #51, #17, #5 to #8, #19 to #21 In review); 0.3.3 Town layout, playtest 2 (2026-11-09) (#53, #54; #52, #51, #17 In review); 0.3.3 Town layout, playtest 3, styled (2026-11-09) (#52, #17 accepted; #55 new); 0.3.3 Town layout: Quick wins, build speed and upkeep (#5 to #9); 0.4 Walls and gates: Recorder catch-up (2026-11-11) (#59, #60, #61); 0.4 Walls and gates: Reorg, code reorganisation (#3, #4); 0.4 Walls and gates: Grid, Line and Defences (Grid #55, Line #56 and #10 to #14, Defences #15 and #16); 0.4 Walls and gates: Pass 3 plan, Pressure, Defences and capture polish (#12, #13, #14, #15, #16, #75; planned 2026-11-11); 0.4 Walls and gates: Surge warning (#14, #81; played and Done 2026-11-12); 0.4 Walls and gates plan, passes and the Clean HUD, Loop tuning and Style update builds (done 2026-11-13, released as `v0.4.0`); Cleanup: Slowest tests (#88)
 
 ## First proof of concept (POC)
 Goal: find out whether reading cues, picking the right element and helping as many people as possible before the clock runs out is fun.
@@ -3191,3 +3191,224 @@ refusal. First defences planted: 2 at the Gallery (t=143 s and 159 s), one hande
   to mark it on the radar and drop the name from the banner (#91, Backlog).
 - F (defences, #15) "did something, still not entirely clear": what is unclear is **whether it helped**. Noted on #15
   (0.5 Why expand): a defence needs visible feedback that it made a difference.
+
+## 0.4 Walls and gates plan (2026-11-07; called "Tug of war" until 2026-11-09)
+
+Planned as rounds 27 and 28 before the switch to targets. **Order** (confirmed by the user, 2026-11-09: code health
+first, then the gameplay changes):
+- **Pass 1, Reorg** (#3, #4; Done 2026-11-11): the code-health items. No gameplay change, so no playtest: the gate, the determinism
+  check and the timings are the proof. (Quick wins were done in 0.3.3.)
+- **Pass 2, Grid and Line** and **pass 3, Pressure and Defences:** Walls and gates on the reorganised layout (reshaped
+  2026-11-09: the town becomes a grid and the line follows it).
+- **Cleanup** (added 2026-11-11): cleanup passes A and B are done; next Slowest tests (#88) and Lighter tests
+  (#69); the finished items are in `IDEAS_RESOLVED.md`. Order and detail in "Codebase cleanup" above.
+- **Rule stepping** (#18) moved to 0.5 Why expand on 2026-11-11.
+
+### Walls and gates: Open for the user (Grid and Line, #47)
+
+**Open for the user** (defaults above are used unless overruled).
+- Built blocks solid for the player too, or only for the gloom? Solid is simpler and makes the streets matter;
+  walk-through keeps more room to move.
+- 25 cells with 20 built blocks, or a smaller 3 by 3 town with wider cells?
+- This also answers #47 (more room to play around the push): the gates are that room. Close #47 once pass 2 is played?
+
+### Walls and gates: Pass 3 playtest and open items (#14 In review; #12 to Backlog)
+
+**Open for the user** (defaults used unless overruled): `GATE_LOST_SECONDS` 12; surge 40 s warning and 50 s push; four
+defences in all; defences cost a member each, no spirit (all used as built). Close #47 (room to play around the push) now that gates and
+streets give that room?
+
+**Played (2026-11-11, `6af7799`, recording `20261111-165927`).** "A really good round. The direction is solid, needs
+refinement." Win 3/3 dawn lights, 45 rescued (2c: 55), 2 relapses (2c: 0), strict quiet 15.1% (2c: 7.8%). 7 takes
+(3 free, 4 paid, 100 spirit), 2 refusals (not next). The surge came down the south street at 65 s, broke gate 8 and took
+2 cells at 96 s (the Bell tower lost the same second); 3 breaks and 8 holds in all. No defence planted (one F refused,
+no gate in range). Answers:
+- Lost cells: fair, but the surge warning was missed. Wants a sound cue and a much bigger fog visual (#81).
+- Defences: no reason to plant one; capturing ground was already going well. The wider theme is **why expand, what is
+  there**: the boosts are thin. To explore in a design conversation first, covering cells that give things, landmarks
+  that matter more, and pressure that punishes staying small (talked through 2026-11-11, see "0.5 Why expand").
+- Capture cues: mostly clear, needs polish (no detail given). Accepted (Done).
+- #12 to #16 stay In review: they work, refine in the next pass and play again.
+- Moved 2026-11-11: Defences (#15, #16) go to 0.5 Why expand, still In review; #12 to #14 stay in 0.4.
+- Moved 2026-11-11: #12 (stretched line is thin) goes to Backlog with no target, as built; the user dropped it for now. #14 is next.
+
+### Walls and gates: Surge on the radar (#91; planned 2026-11-12)
+
+**Why.** Played 2026-11-12: the surge reads now, but the radar should show the pulse, and the street names in the banner
+("the south street") are not obvious. The user's call: mark it on the radar and drop the name from the banner.
+
+**Build** (one Haiku agent, size XS; visual and text only, no timing or push change):
+1. **Radar pulse.** The minimap's surge mark pulses with the same beats as the edge pointer and banner
+   (`SURGE_PULSE_SECONDS` / `SURGE_PULSE_BEATS`): at the warning and again at the soon mark, it swells and brightens.
+2. **No street names on screen.** The warning, soon and start banners say what is happening without naming the street
+   or its end, and point the player to the radar (gloom terms only). The street names stay internal: the recorder,
+   signals and analyser keep them.
+
+**Built (2026-11-12, merged `5affe72`; In review, to play).** The minimap's surge mark swells to 1.8x and brightens
+(`SURGE_PULSE_MINIMAP`, `SURGE_PULSE_MINIMAP_BRIGHT`) on the same beats as the edge pointer and banner, at the warning
+and at the soon mark. Banners: "The gloom is gathering: watch the radar", "The gloom is close: hold the marked gate",
+"The gloom is surging in". The recorder, signals and analyser keep the street names. Gate `--full` 899 tests in 221 s;
+determinism the same 11572 lines (the first run again tripped on unit packing, #90; a fresh run of both passes was
+clean); baseline passed. Nothing loosened.
+
+**To play:** do you notice the radar pulse, and do the banners plus the radar tell you where the surge is coming from?
+
+### Walls and gates: Clean HUD and loop tuning (#92, #93; planned 2026-11-13)
+
+**Why.** The user's read (2026-11-12): "almost a game, some pieces are there, but it's not fun yet." A review of
+recording `20261112-185114` and its screenshots found:
+- The HUD is crowded: three message systems at once, labelled landmark pointers that overlap, world labels drawn through
+  HUD counters, and a controls strip that runs off the screen.
+- The reward dries up: 19 rescues in the first 45 s, 10 in the next 90 s; no target for 104 of 179 s.
+- Spirit is not scarce: full for 103 of 179 s, 106 overflowed.
+- Expanding is a trap: a paid take at 72 s left the line 18 short, gate 9 broke ten times and both new cells were lost
+  at 115 s; the night ended with 8% ground. The start square alone had 12 spare people.
+- The burst is weak: 3 bursts, 90 spirit, 1 dimmed person lifted.
+
+The supply of easy rescues is 0.5's job (Residents, #83). This pass cleans the screen and makes the three cheap tuning
+changes, so the next playtest judges the loop without the noise. Two independent parts, built in parallel.
+
+**Part "Clean HUD" (#92, M; one Sonnet agent).** Screen-space layout and text only; no rule changes. The layout applies
+in both looks, but no styled drawing is restyled and no checkpoint screenshot is refreshed. Files: `hud.gd`,
+`level_hud.gd`, `hud_config.gd`, `prompt_bar.gd`, `intro.gd`, `landmark_pointers.gd`, `gate_marks.gd`, `take_block.gd`
+(preview labels), `feedback_layer.gd`, `looks/landmark_look_placeholder.gd`.
+1. **Controls strip:** shown for the first 20 s of a night, then hidden; H shows it again while held (through
+   `controls.gd`). Shortened so it fits a 960 px wide window.
+2. **Landmark pointers:** an arrow and the landmark's icon or initial, no boost text. The boost text shows on the
+   landmark's own world label only.
+3. **One banner:** landmark claimed and lost, defence planted and "someone lost their joy" go through the slim banner
+   under the night bar. The big centre alert line is removed. Events beat tips: a mood tip never replaces or sits beside
+   an event banner, and waits until it has gone.
+4. **Take preview:** cost, pips and "+5 gates: 18 more people" in one small panel beside the cell, never stacked on each
+   other or on the banner.
+5. **World labels keep off the HUD:** cell tags, pips and gate counts are hidden where they would overlap a HUD panel
+   or the minimap (the same rectangles the edge pointers avoid, `HudSafeArea`).
+6. **Gate counts:** shown only when the gate is short and being pushed, or while E or F is held. A full gate shows
+   nothing.
+7. **Targeting mode:** "Targeting: Hover [F2]" moves to the F3 overlay; F2 still switches and says so in the banner.
+8. **Target line:** "Target: Art / No target" is removed; the player's ring colour already shows the element. The mood
+   stays as the icon over the person.
+9. **People line:** given a dark backing and moved clear of the spirit meter's marker.
+10. **Joy numbers:** one running total per person per second, not a pile of "+32 +64".
+
+Proof: layout tests that the HUD rectangles do not overlap at 960x540 and 1920x1080, and that only one banner shows at
+a time; the existing HUD tests updated to the new layout (an updated expectation is not a loosened one; say which).
+
+**Part "Loop tuning" (#93, S; one Haiku agent).** Rules and numbers; touches the simulation, so the determinism check
+runs after the merge and its lines will change. Files: `spirit_config.gd`, `zone.gd` / `border_config.gd` (people per
+gate), `burst_clear.gd`, `border_push.gd`.
+1. **Cheaper takes in people:** a gate asks for about one member per 6 m (now about 3.7 m), so a new cell wants about
+   12 people, not 20. The break rule still uses members / need.
+2. **Scarcer spirit:** `SPIRIT_PER_RESCUE` 20 to 10. Takes stay 25 and the burst stays 30.
+3. **A burst that mends:** a burst mends every break within `BURST_LIFT_RADIUS` at once (pushers are already shoved
+   back) and that gate is calm for `BURST_CALM_SECONDS`. The cue panel says "G: mend" when a break is in range.
+4. **Check, not change:** find out whether gate 9's ten `gate_break` events in 24 s were one break logged ten times or
+   a gate that re-breaks every few seconds, and report. Fix only if it is a logging fault.
+
+Proof: bot nights before and after (spirit mean, seconds at full spirit, takes, cells lost, gate breaks); tests that
+assert the old numbers are moved to the new ones and listed in the report. No `test_perf_*` budget or threshold is
+loosened.
+
+**Open for the user** (defaults above are used unless overruled): one member per 6 m; rescue pays 10; the burst mends
+at no extra cost; H as the help key; gate counts hidden unless short and pushed. Not in this pass: the third dawn light
+tied to ground held (wait for 0.5, when ground is worth something).
+
+**Built (2026-11-13, merged `138cc6a` Clean HUD and `295723f` Loop tuning; In review, to play).**
+- Clean HUD (#92): all ten items. The controls strip shows for 20 s, and H shows it again while held. Landmark
+  pointers are an arrow and an initial. One event banner (`Intro.event_notice`) replaces the centre alert line, and
+  events beat tips. The take preview is one 3-line panel. World labels hide under HUD rectangles. Gate counts show
+  only when a gate is short and bent, or while E or F is held. The targeting line moved to F3, and the target and mood
+  lines are gone. The people line has a backing. Joy numbers are one total per person per second. New
+  `clean_hud_test` (20 tests); 13 HUD suites read the new layout (updated expectations, nothing loosened).
+- Loop tuning (#93): `BORDER_TARGET_SPACING` 6 m, so the start square needs 12, not 20. `SPIRIT_PER_RESCUE` is 10.
+  A burst mends every break within `BURST_LIFT_RADIUS` and calms that gate for `BURST_CALM_SECONDS` (16 s); the cue
+  says "G: mend". Gate 9's ten breaks were real re-breaks: after a mend the dent is still half deep, and it breaks
+  again about 2 s later under steady push. That is not a logging fault, so it is unchanged. New `loop_tuning_test`
+  (7). Pinned old numbers were moved in 11 suites. The over-reached surge test now has 6 people, not 12, so it stays
+  3x short; that was the user's call (2026-11-13), and it still loses one cell. `feedback_test`'s ring test now aims
+  at a Music member: a matched Art shot filled the person in one hit. Nothing loosened.
+- **Not done:** bot nights before and after. The repo has no bot harness (the plan was wrong to ask for one).
+- Menu text: the burst mends breaks, and H lists the controls.
+- **Gate after all four merges (2026-11-13, `f8faa0f`):** `gate --full` 944 tests in 181 s, line coverage 99.9%.
+  Determinism 12095 lines, with only the recorder race differing (2 lines). The first determinism run failed on unit
+  packing (#90) after the test weights changed; a fresh run of both passes was clean. The baseline was updated after
+  a Sonnet agent added tests for `looks.gd`, `style_dawn.gd` and `take_block.gd`, and an unreachable hide loop was
+  removed from `burst_fx.gd`. Nothing loosened.
+
+**To play:** is the screen calmer, and is anything you relied on now missing? Does a take in the calm feel like a fair
+bet? Is spirit something you now think about? Is the burst the thing you reach for when a gate breaks?
+
+### Walls and gates: Style update (#94, #74; planned 2026-11-13)
+
+**Why.** The user asked (2026-11-13) for a style update with the rest of 0.4, and chose all four parts: styled HUD
+catch-up, surge and radar polish, a town look pass, and fresh screenshots and README. Passes 2c and 3 and the Clean HUD
+pass changed the placeholder only, so the styled look is behind the game. A look-focused pass: the styled look,
+checkpoint shots and README may change; the placeholder look and the rules do not.
+
+**Build** (one Sonnet agent, size L; starts after Clean HUD (#92) and Loop tuning (#93) are merged). Files:
+`scripts/looks/style_*`, the styled branches of the HUD scripts, `tools/checkpoint*`, `design/renders/`, `README.md`.
+1. **Styled HUD catch-up.** The Clean HUD layout drawn in the styled look: the single banner, the take preview panel,
+   the slim landmark pointers (arrow and icon), the people line's backing, the per-second joy total. Fallback font
+   stays (pixel font is #26).
+2. **Passes 2c and 3 in the styled look.** Anything still drawn as a placeholder in styled mode: takeable-cell glow
+   (gold free, blue paid) and its tags, gate counts, the lost-cell grey pulse, planted defences, and the take preview's
+   faint glow plane (left over from #58).
+3. **Surge and radar polish.** The styled surge cloud at its new size (26 m by 6 m) shaped as a storm front, not a box;
+   a styled surge edge pointer (`tide_pointer`, the last placeholder piece of the push); the radar's surge mark and
+   pulse in the minimap's styled palette; a styled burst that shows a break mending (#93).
+4. **Town look pass** (defaults, no detail given by the user): held ground reads as different from unheld at play zoom.
+   Unheld blocks get the cold industrial dressing from the style pillars (pipes, vents, soot; kept sparse and
+   readable); a taken block blooms to its warm counterpart with a short, soft transition; a lost block cools again.
+   Gates read as gates (a lantern arch or posts at each street mouth) and hedged walls stay. Original art only.
+5. **Screenshots and README.** Fix the checkpoint screenshot scripts for the pass 2c town coordinates (#74), take a
+   new set in `design/renders/v0.4-style/`, and update README.md's images and controls text (H for help, no Embrace).
+
+Proof: styled tests for each new piece; `test_perf_*` budgets unchanged; the determinism check gives the same lines as
+after Loop tuning (visual only). Not included: the Gallery's own styled model (#16, 0.5), the styled jog (#27).
+
+**Open for the user** (defaults above are used unless overruled): what the town look pass should change, beyond held
+against unheld blocks and gate arches.
+
+**Built (2026-11-13, merged `27bdbda`; In review, to play styled).**
+- HUD: parchment panels for the people line and the take preview, a styled event banner, landmark pointer tags with
+  pixel icons, and ink-edged joy numbers.
+- Placeholder pieces from passes 2c and 3: a takeable-cell wash (gold free, blue paid, with lanterns,
+  `shaders/style_wash.gdshader`), styled tags (`style_tags.gd`), a cold wash for the lost-cell pulse, and defences as
+  street furniture (`style_defence.gd`).
+- Surge: a storm-front puff layout, a styled `tide_pointer` (no longer a placeholder piece), the radar mark in a storm
+  palette, and a gold mend ring on `Border.line_mended`.
+- Town: unheld blocks get cold dressing (`style_dress.gd`), which blooms warm through the dissolve when taken and
+  cools when lost. Gates get lantern posts and a festoon above head height (`style_gates.gd`).
+- Screenshots: #74 fixed the grid coordinates, and the new `checkpoint_shots.py --set style04` writes to
+  `design/renders/v0.4-style/`. README.md updated.
+- New `style_update_04_test` (16). Nothing loosened.
+- **Seen in the screenshots (coordinator):** unheld blocks read as near-black boxes at play zoom, and the cold
+  dressing does not show. About five close-ups frame the landmarks panel or are half black. The storm front shows
+  only as a pale haze, unconfirmed by eye. The takeable-cell wash is faint; the lanterns carry the cue.
+
+**To play:** in the styled look, can you tell held ground from unheld at a glance, and is the HUD as calm as in the
+placeholder?
+
+## Cleanup: Slowest tests (#88, S)
+The parallel gate can finish no sooner than its slowest single test. From `tools/test_weights.json` (2026-11-11):
+892 tests, about 1,137 s serial; the 64 tests of 5 s or more are 64% of it, and eight take over 20 s each:
+`border_gates_test` settle-on-gates (48 s) and never-inside-a-block (22.5 s), `stagger_test` nine-seconds-apart
+(39 s), both `pressure_balance_test` surge tests (30 s, 25 s), `edge_pressure_test` cannot-get-inside (25.5 s),
+`push_defence_test` weakened-pushers (21 s), `edge_ribbon_test` both-looks (20.4 s). Make each one cheaper without
+weakening what it checks: test the rule as a unit test where it lives in pure code, shorten the setup (fewer people, a
+closer start, one look where the look does not matter), or step the clock for timing rules. Target: none over 10 s.
+No threshold or perf budget is loosened; stop and report a test that cannot be made cheaper honestly. Run
+`run_tests.py --update-weights` after. The rest of #69 follows.
+
+**Built (2026-11-13, merged `d4231ac`; In review).** Seven of the eight tests are now under 10 s, standalone:
+- settle-on-gates 24 -> 8.5 s; nine-seconds-apart 19.6 -> 1.3 s (it steps the DimGate clock)
+- wide surge 13.9 -> 9.3 s; cannot-get-inside 13.9 -> 8.1 s; never-in-block 11.3 -> 5.3 s
+- weakened pushers 10.9 -> 4.4 s; edge ribbon both-looks 10.7 -> under 3 s
+- Left over 10 s: the compact surge test, 16.8 -> 11.2 s. It must play the whole 51 s surge.
+
+New helpers in `tests/topdown_test_util.gd`: `trim_crowd`, and `settle_on_line` (stops once the members are on the
+line). The settle-on-gates test uses 12 people (the new need), with the walker started further south so a block still
+stands between it and the gate. Nothing is deleted or loosened.
+
+#69, first slice: the same setup trims went into 18 more suites, and the summed test weights fell from 1128 to 629 s.
+Moving rule checks to unit tests is not started; #69 stays open for that.
