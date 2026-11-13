@@ -24,7 +24,7 @@ const HOW_TO_PLAY_TEXT := (
 	+ "spirit meter says how many are on the line, short or spare.\n"
 	+ "[b]Defences:[/b] Claim a landmark, then hold F at a gate to plant its defence (the wheel picks the type). "
 	+ "Each takes one member off the line: one per gate, four in all.\n"
-	+ "[b]Spirit:[/b] Helping fills it. G (joy burst) lifts dimmed people off the border and lets it spring back. "
+	+ "[b]Spirit:[/b] Helping fills it. G (joy burst) lifts dimmed people, lets the border spring back, mends breaks. "
 	+ "At zero you go dim.\n"
 	+ "[b]Icons:[/b] shield guarded · running feet skittish · cloud glum · umbrella sheltered ·"
 	+ "! faltering.\n"
@@ -32,7 +32,7 @@ const HOW_TO_PLAY_TEXT := (
 	+ "hold F to plant a defence at a gate · "
 	+ "G or Q burst · "
 	+ "Mouse point "
-	+ "(F2 targeting) · Wheel zoom · F3 debug · F4 look · R restart · M menu"
+	+ "(F2 targeting) · Wheel zoom · F3 debug · F4 look · H controls · R restart · M menu"
 )
 
 # The look toggle (Placeholder / Styled). The choice lasts for the session (see Looks.mode).
