@@ -72,15 +72,21 @@ static func layout_puffs(length: float, depth: float, top: float = StyleConfig.L
 			var h1 := _hash(float(i) * 7.13 + float(r) * 3.7)
 			var h2 := _hash(float(i) * 2.91 + float(r) * 9.3 + 1.7)
 			var taper := lerpf(0.55, 1.0, sin(PI * u))
-			var heart := (1.0 - absf(zn) * 0.8) * taper
+			# Walls and gates: Style update (#94). A storm front, not a box: the dark heart sits behind the leading edge,
+			# the leading rows stand tall and bow forward in the middle, the ends trail back and the rear rows are low.
+			var lead := (zn + 1.0) * 0.5  # 0 at the back, 1 at the leading edge (local +z runs down the street).
+			var heart := clampf(1.0 - absf(zn - StyleConfig.SU_FOG_HEART_SHIFT) * 0.8, 0.0, 1.0) * taper
 			# The size carries the depth in the cloud (0.6 to 1.1 of a puff): the shader reads it back as the colour.
 			var size := StyleConfig.L31_FOG_PUFF * lerpf(0.6, 1.1, heart) * (0.94 + 0.12 * h1)
 			var x := (u - 0.5) * length + (h2 - 0.5) * StyleConfig.L31_FOG_SPACING * 0.6
-			var z := zn * depth * 0.4 + (h1 - 0.5) * depth * 0.1
+			var bow := lerpf(-StyleConfig.SU_FOG_TRAIL, StyleConfig.SU_FOG_BULGE, sin(PI * u)) * lead
+			var z := zn * depth * 0.4 + (h1 - 0.5) * depth * 0.1 + bow
 			var colour := edge.lerp(core, clampf(heart * 1.1, 0.0, 1.0))
 			colour.a = lerpf(0.55, 1.0, heart)
-			# The blob's height is `top` for the biggest puff; its bottom rests on the ground.
-			var height := top * size / (1.1 * StyleConfig.L31_FOG_PUFF)
+			# The blob's height is `top` for the biggest puff; its bottom rests on the ground. Towers ride the front.
+			var rise := lerpf(StyleConfig.SU_FOG_BACK_DROP, StyleConfig.SU_FOG_FRONT_RAISE, lead)
+			rise *= 1.0 + StyleConfig.SU_FOG_TOWER * (h2 - 0.5) * lead
+			var height := top * size / (1.1 * StyleConfig.L31_FOG_PUFF) * rise
 			var y := height * 0.5 - NightConfig.TIDE_FOG_Y
 			out.append({"pos": Vector3(x, y, z), "size": size, "height": height, "colour": colour})
 	return out

@@ -19,6 +19,7 @@ var _mesh: ArrayMesh
 var _gold_motes: MultiMeshInstance3D
 var _last_frame: int = -100000
 var _hedges: Node3D
+var _arches: Node3D
 var _hedge_version: int = -1
 
 
@@ -33,6 +34,7 @@ func refresh() -> void:
 	_ribbon.visible = live and lit
 	_gold_motes.visible = live and lit
 	_hedges.visible = live
+	_arches.visible = live
 	if not live:
 		strips = []
 		gate_strips = []
@@ -80,6 +82,9 @@ func _build() -> void:
 	_hedges = Node3D.new()
 	_hedges.name = "Hedges"
 	add_child(_hedges)
+	_arches = Node3D.new()  # Walls and gates: Style update (#94): the posts and lantern strings at the gates.
+	_arches.name = "GateArches"
+	add_child(_arches)
 
 
 # 0.4 (#58): the walls as hedges. Rebuilt whenever the zone changes (a take or a loss), not every frame.
@@ -89,6 +94,10 @@ func _rebuild_hedges() -> void:
 		_hedges.remove_child(child)
 		child.queue_free()
 	StyleHedge.build(_hedges, StyleHedge.plan(subject.zone.runs))
+	for child: Node in _arches.get_children():
+		_arches.remove_child(child)
+		child.queue_free()
+	StyleGates.build(_arches, StyleGates.plan(subject.zone.gates))
 
 
 # Golden motes over the healthy part of the ribbon (a hash of the point picks each one's offset, so they stay put

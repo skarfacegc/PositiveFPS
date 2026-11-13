@@ -361,6 +361,9 @@ func show_number(value: float, joy_mult: float) -> void:
 		t.tween_property(lbl, "position:x", lbl.position.x + _fx_rng.randf_range(-0.3, 0.3), 0.7)
 		t.tween_property(lbl, "modulate:a", 0.0, 0.3).set_delay(0.4)
 		t.tween_callback(lbl.queue_free).set_delay(0.7)
+	# Walls and gates: Style update (#94). The styled look warms the number and gives it a chunky ink edge.
+	if Looks.is_styled():
+		StyleTags.joy_number(lbl, mult)
 
 
 # True when the look draws the dimmed-person aura itself (the styled look), so the placeholder haze stays hidden.

@@ -37,15 +37,20 @@ static func layout(width: float, depth: float, seed_idx: int) -> Array[Dictionar
 		for i: int in range(n):
 			var x := -width * 0.5 + w * 0.5 + float(i) * (w + GAP)
 			var k := row * 3 + i
-			out.append(
-				{
-					"pos": Vector3(x, 0.0, z),
-					"w": w,
-					"d": row_d,
-					"h": MIN_HEIGHT + unit_hash(seed_idx * 31 + k) * HEIGHT_SPREAD,
-					"yaw": 0.0 if row == 0 else PI,
-					"idx": (seed_idx + k) % 4
-				}
+			(
+				out
+				. append(
+					{
+						"pos": Vector3(x, 0.0, z),
+						"w": w,
+						"d": row_d,
+						"h": MIN_HEIGHT + unit_hash(seed_idx * 31 + k) * HEIGHT_SPREAD,
+						"yaw": 0.0 if row == 0 else PI,
+						"idx": (seed_idx + k) % 4,
+						# Walls and gates: Style update (#94): which piece of dressing the house wears (StyleDress).
+						"role": StyleDress.role_of(out.size(), seed_idx)
+					}
+				)
 			)
 	return out
 
@@ -57,7 +62,10 @@ static func unit_hash(k: int) -> float:
 
 # How many meshes a version of a block holds (tests and the budget read this).
 static func mesh_count(industrial: bool, houses: int = 5) -> int:
-	return houses * (INDUSTRIAL_MESHES if industrial else WHIMSICAL_MESHES)
+	var dress := 0
+	if houses >= 5:  # Style update (#94): a whole block wears its dressing (StyleDress).
+		dress = StyleDress.INDUSTRIAL_MESHES if industrial else StyleDress.WHIMSICAL_MESHES
+	return houses * (INDUSTRIAL_MESHES if industrial else WHIMSICAL_MESHES) + dress
 
 
 # Builds the grey industrial group under `p` (origin at the middle of the base).
@@ -75,6 +83,8 @@ static func build_industrial(p: Node3D, houses: Array[Dictionary]) -> void:
 		StyleKit.box(g, Vector3(w + 0.2, 0.25, d + 0.2), Vector3(0.0, ht + 0.12, 0.0), roof)
 		StyleKit.box(g, Vector3(0.9, 0.5, 0.7), Vector3(w * 0.2, ht + 0.5, -d * 0.15), vent)
 		StyleKit.box(g, Vector3(0.9, 1.9, 0.12), Vector3(-w * 0.25, 0.95, d * 0.5 + 0.05), steel)
+		var role: int = h["role"]
+		StyleDress.industrial(g, role, w, d, ht)
 
 
 # Builds the whimsical group under `p`: plaster, a gable roof, a coloured door and a lit window on every house.
@@ -101,6 +111,8 @@ static func build_whimsical(p: Node3D, houses: Array[Dictionary]) -> void:
 			g, Vector3(0.9, 1.9, 0.12), Vector3(-w * 0.25, 0.95, d * 0.5 + 0.05), StyleBuildings.whim(DOORS[idx])
 		)
 		StyleKit.box(g, Vector3(0.9, 0.7, 0.1), Vector3(w * 0.22, ht * 0.55, d * 0.5 + 0.04), glow)
+		var role: int = h["role"]
+		StyleDress.whimsical(g, role, w, d, ht)
 
 
 # A node for one house, at its place in the block and turned to face the alley.

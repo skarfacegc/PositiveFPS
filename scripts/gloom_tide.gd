@@ -49,7 +49,8 @@ static func attach(level: TopDownMain) -> GloomTide:
 	t._build_fog()
 	t.pointer = TidePointer.new()
 	level.hud.add_child(t.pointer)
-	Looks.note_placeholder(t.pointer, "tide_pointer")
+	# Walls and gates: Style update (#94): the pointer has a styled drawing now (StyleHud.draw_tide_pointer), so it is no
+	# longer noted as a placeholder piece.
 	level.events.wire_lost(level.border)
 	return t
 

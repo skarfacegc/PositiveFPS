@@ -39,6 +39,7 @@ var _drawn_holding := false
 var _drawn_marks := -1
 var _styled_root: Node3D
 var _label: Label3D
+var _panel: StyledPanel  # Walls and gates: Style update (#94): the styled look's preview panel (see _sync_panel).
 # Walls and gates: Capture polish (#75). The tag and pips label on every cell next to the zone: cell -> Label3D.
 var _cell_labels: Dictionary = {}
 # The cells that pulse after a take: {"cell": Vector2i, "left": float}.
@@ -216,6 +217,7 @@ func _update_label() -> void:
 	var text := preview_text() if holding else ""
 	_label.visible = text != ""
 	if text == "":
+		_sync_panel("", false, Vector3.ZERO)
 		return
 	if _label.text != text:
 		_label.text = text
@@ -229,6 +231,50 @@ func _update_label() -> void:
 	_label.modulate = (
 		BorderConfig.GATE_COUNT_SHORT_COLOUR if _more_people_needed() > 0 else BorderConfig.GATE_COUNT_OK_COLOUR
 	)
+	_sync_panel(text, _more_people_needed() > 0, _label.position)
+
+
+# Walls and gates: Style update (#94). The styled look shows the preview as a small parchment panel on the HUD beside
+# the cell (the Label3D above is the placeholder's). The panel sits to the right of `anchor` (the world spot of the
+# label), moves to its left when that would cover a HUD panel, and hides when neither side is clear.
+func _sync_panel(text: String, short: bool, anchor: Vector3) -> void:
+	var styled := Looks.is_styled()
+	if styled:
+		_label.visible = false
+	if not styled or text == "" or level.hud == null:
+		if _panel != null:
+			_panel.visible = false
+		return
+	if _panel == null:
+		_panel = StyledPanel.new()
+		_panel.kind = StyledPanel.Kind.PREVIEW
+		level.hud.add_child(_panel)
+	_panel.set_line(text, StyleHudText.WARN if short else StyleHudText.IDLE, StyleUi.GOLD)
+	var size := StyleHud.preview_size(text)
+	_panel.size = size
+	var screen := level.get_viewport().get_visible_rect().size
+	var at := level.world_to_screen(anchor)
+	var avoid := HudSafeArea.label_avoid(level)
+	var spots: Array[Vector2] = [Vector2(at.x, at.y - size.y * 0.5)]
+	var cell_w := TownGrid.cell_rect(target_cell).size.x
+	var left := level.world_to_screen(anchor - Vector3(cell_w + 2.0 * PREVIEW_SIDE_GAP, 0.0, 0.0))
+	spots.append(Vector2(left.x - size.x, left.y - size.y * 0.5))
+	_panel.visible = false
+	for spot: Vector2 in spots:
+		var clamped := Vector2(
+			clampf(spot.x, 4.0, maxf(screen.x - size.x - 4.0, 4.0)),
+			clampf(spot.y, 4.0, maxf(screen.y - size.y - 4.0, 4.0))
+		)
+		var box := Rect2(clamped, size)
+		var clear := true
+		for r: Rect2 in avoid:
+			if box.intersects(r) and HudSafeArea.usable(screen):
+				clear = false
+				break
+		if clear:
+			_panel.position = clamped
+			_panel.visible = true
+			return
 
 
 # One label per cell next to the zone, made and removed as the cells change (both looks draw them).
@@ -244,13 +290,14 @@ func _sync_cell_labels() -> void:
 			label.text = text
 		var centre := TownGrid.cell_centre(c)
 		label.position = Vector3(centre.x, DefenceConfig.CAPTURE_LABEL_HEIGHT, centre.z)
+		# Walls and gates: Style update (#94). The styled look gives each tag a warm palette colour and an ink edge.
 		match mark_of(c):
 			Mark.FREE:
-				label.modulate = Color(BorderConfig.TAKE_MARK_FREE_COLOUR, 1.0)
+				StyleTags.apply(label, StyleTags.Role.FREE, Color(BorderConfig.TAKE_MARK_FREE_COLOUR, 1.0))
 			Mark.PAID:
-				label.modulate = Color(BorderConfig.TAKE_MARK_PAID_COLOUR, 1.0)
+				StyleTags.apply(label, StyleTags.Role.PAID, Color(BorderConfig.TAKE_MARK_PAID_COLOUR, 1.0))
 			_:
-				label.modulate = DefenceConfig.CAPTURE_LABEL_NONE_COLOUR
+				StyleTags.apply(label, StyleTags.Role.IDLE, DefenceConfig.CAPTURE_LABEL_NONE_COLOUR)
 	for key: Variant in _cell_labels.keys():
 		var gone: Vector2i = key
 		if not wanted.has(gone):
@@ -398,6 +445,9 @@ func _draw_all() -> void:
 # The glow on every takeable cell and the pulse on cells just taken. Flat quads on the ground; both looks draw them.
 # Free and paid differ in shape as well as colour (#75): a free cell is filled, a paid one is an outline.
 func _draw_marks() -> void:
+	if _drawn_styled:
+		_draw_marks_styled()
+		return
 	var free_pts := Array()
 	var paid_pts := Array()
 	for c: Vector2i in TownGrid.all_cells():
@@ -417,6 +467,26 @@ func _draw_marks() -> void:
 		var pts := Array()
 		_add_quad(pts, TownGrid.cell_rect(cell).grow(-BorderConfig.TAKE_MARK_INSET * (1.0 - share)))
 		_triangles(pts, _alpha_mat(col))
+
+
+# Walls and gates: Style update (#94). The styled look's takeable cells (a gold wash and lanterns for a free one, a blue
+# wash and lanterns for a paid one) and the pulse of a cell just taken, as soft washes of light (StyleTake.marks).
+func _draw_marks_styled() -> void:
+	var free: Array[Rect2] = []
+	var paid: Array[Rect2] = []
+	for c: Vector2i in TownGrid.all_cells():
+		var kind := mark_of(c)
+		if kind == Mark.FREE:
+			free.append(TownGrid.cell_rect(c))
+		elif kind == Mark.PAID:
+			paid.append(TownGrid.cell_rect(c))
+	var pulses: Array[Dictionary] = []
+	for pulse: Dictionary in _pulses:
+		var cell: Vector2i = pulse["cell"]
+		var left: float = pulse["left"]
+		var share := clampf(left / BorderConfig.TAKE_PULSE_SECONDS, 0.0, 1.0)
+		pulses.append({"rect": TownGrid.cell_rect(cell), "share": share})
+	StyleTake.marks(_styled_root, free, paid, pulses)
 
 
 # The styled look (#58): lanterns, gate lamps and bead pips (StyleTake) instead of the flat lines.

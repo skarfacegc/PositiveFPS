@@ -183,13 +183,114 @@ static func draw_prompt(bar: PromptBar, rect: Rect2, text: String, icon: int, bi
 		)
 		return
 	StyleUi.panel(bar, rect, c, StyleUi.PARCHMENT)
-	var mid_y := rect.position.y + PromptBar.HEIGHT * 0.5
+	# Walls and gates: Style update (#94). The slim banner of Clean HUD (#92): the rectangle's own height, the text size
+	# the banner shrank to (`font_px`), and a smaller icon, so the line sits inside the panel.
+	var mid_y := rect.position.y + rect.size.y * 0.5
 	var text_x := rect.position.x + 24.0
 	if icon != MoodIcons.Kind.NONE:
-		MoodIcons.draw(bar, icon, Vector2(rect.position.x + 28.0, mid_y), 24.0, MoodIcons.colour_for(icon))
-		text_x = rect.position.x + 56.0
-	var at := Vector2(text_x, mid_y + PromptBar.FONT_SIZE * 0.35)
-	bar.draw_string(ThemeDB.fallback_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, PromptBar.FONT_SIZE, StyleUi.INK)
+		MoodIcons.draw(bar, icon, Vector2(rect.position.x + 28.0, mid_y), 18.0, MoodIcons.colour_for(icon))
+		text_x = rect.position.x + 50.0
+	var at := Vector2(text_x, mid_y + bar.font_px * 0.35)
+	bar.draw_string(ThemeDB.fallback_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, bar.font_px, StyleUi.INK)
+
+
+# Walls and gates: Style update (#94). The take preview's panel (Clean HUD, #92): the price, the pips and the gates in
+# one small parchment panel beside the cell. A short line gets a coral rim and coral words on its last line.
+static func preview_size(text: String) -> Vector2:
+	var font := ThemeDB.fallback_font
+	var lines := text.split("\n")
+	var w := 0.0
+	for l: String in lines:
+		w = maxf(w, font.get_string_size(l, HORIZONTAL_ALIGNMENT_LEFT, -1, StyleConfig.SU_PREVIEW_FONT).x)
+	var h := StyleConfig.SU_PREVIEW_LINE * float(lines.size()) + StyleConfig.SU_PREVIEW_PAD * 1.4
+	return Vector2(w + StyleConfig.SU_PREVIEW_PAD * 2.0 + 18.0, h)
+
+
+static func draw_preview(ci: Control, text: String, short: bool) -> void:
+	var c := StyleUi.cell(ci)
+	align(ci, c)
+	var rim := StyleHudText.CORAL if short else StyleUi.PARCHMENT_SHADE
+	StyleUi.panel(ci, Rect2(Vector2.ZERO, ci.size), c, StyleUi.PARCHMENT, rim)
+	var font := ThemeDB.fallback_font
+	var fs := StyleConfig.SU_PREVIEW_FONT
+	var lines := text.split("\n")
+	var x := StyleConfig.SU_PREVIEW_PAD + 18.0
+	var y := StyleConfig.SU_PREVIEW_PAD * 0.7 + float(fs) * 0.95
+	var badge := Vector2(StyleConfig.SU_PREVIEW_PAD + 6.0, y - float(fs) * 0.35)
+	StyleUi.sparkle(ci, badge, 2, c, StyleUi.INK)
+	StyleUi.sparkle(ci, badge, 1, c, StyleUi.GOLD)
+	for i: int in range(lines.size()):
+		var col := StyleUi.INK
+		if i == 0:
+			col = StyleHudText.KEY_TEXT
+		elif i == lines.size() - 1:
+			col = StyleHudText.WARN_TEXT if short else StyleDawn.MET.darkened(0.35)
+		ci.draw_string(
+			font,
+			Vector2(x, y + StyleConfig.SU_PREVIEW_LINE * float(i)),
+			lines[i],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			fs,
+			col
+		)
+	ci.draw_set_transform(Vector2.ZERO)
+
+
+# Walls and gates: Style update (#94). The slim landmark pointer (Clean HUD, #92) in the styled look: a pixel arrow with
+# an ink edge and a round parchment tag holding the landmark's own pixel icon. `label` is the tag's rectangle, `tip` and
+# `dir` the arrow's tip and outward direction (see LandmarkPointers.place), `index` the landmark.
+static func draw_landmark_pointer(ci: Control, label: Rect2, tip: Vector2, dir: Vector2, index: int) -> void:
+	var c := StyleUi.cell(ci)
+	var centre := label.get_center()
+	var r := HudConfig.CLEAN_POINTER_ICON_RADIUS
+	StyleUi.ring(ci, centre, r, c, StyleUi.INK, 2)
+	_disc_cells(ci, centre, r - c, c, StyleUi.PARCHMENT)
+	var rows := StyleGlyphs.landmark_rows(index)
+	var cells := StyleGlyphs.size_of("landmark%d" % index, rows)
+	var at := centre - Vector2(cells) * c * 0.5
+	StyleGlyphs.draw(ci, "landmark%d" % index, rows, at, c, StyleGlyphs.landmark_palette(index, false))
+	var arrow := HudConfig.LANDMARK_POINTER_ARROW
+	var side := Vector2(-dir.y, dir.x)
+	for k: int in range(2):
+		var grow := 2.0 * c if k == 0 else 0.0
+		var base := tip - dir * (arrow + grow)
+		var wing := arrow * 0.6 + grow
+		var pts := PackedVector2Array([tip + dir * grow * 0.5, base + side * wing, base - side * wing])
+		StyleUi.poly(ci, pts, c, StyleUi.INK if k == 0 else StyleUi.AMBER)
+
+
+# A filled disc of window radius `radius` about `centre`, in cells.
+static func _disc_cells(ci: CanvasItem, centre: Vector2, radius: float, c: float, col: Color) -> void:
+	StyleUi.ring(ci, centre, radius * 0.5, c, col, int(ceilf(radius / c)))
+
+
+# Walls and gates: Style update (#94). The surge's edge pointer in the styled look (the last placeholder piece of the
+# push): a storm-violet pixel arrow with an ink edge, and a parchment ring holding a small storm cloud that swells and
+# rims in gold on each beat of the warning pulse. `centre` is the ring's centre, `ring` its radius (already swollen),
+# `pulse` 0 to 1.
+static func draw_tide_pointer(
+	ci: Control, centre: Vector2, ring: float, tip: Vector2, dir: Vector2, arrow: float, pulse: float
+) -> void:
+	var c := StyleUi.cell(ci)
+	var rim := StyleHud.DIM_DARK.lerp(StyleUi.GOLD, pulse)
+	# A pixel tag needs more room than the placeholder's ring to hold its cloud: grown, and kept clear of the arrow.
+	var big := ring * StyleConfig.SU_TIDE_POINTER_GROW
+	var mid := centre - dir * (big - ring)
+	StyleUi.ring(ci, mid, big, c, StyleUi.INK, 4)
+	_disc_cells(ci, mid, big - c, c, StyleUi.NIGHT.lerp(Color("#59557a"), 0.4 + 0.4 * pulse))
+	StyleUi.ring(ci, mid, big - c, c, rim, 1)
+	var cloud := Color("#cfcbdd")
+	for off: Vector2 in [Vector2(-0.38, 0.14), Vector2(0.0, -0.18), Vector2(0.38, 0.14)]:
+		var puff := mid + off * big
+		_disc_cells(ci, puff, big * 0.34, c, cloud)
+	var side := Vector2(-dir.y, dir.x)
+	for k: int in range(2):
+		var grow := 2.0 * c if k == 0 else 0.0
+		var base := tip - dir * (arrow + grow)
+		var wing := arrow * 0.6 + grow
+		var pts := PackedVector2Array([tip + dir * grow * 0.5, base + side * wing, base - side * wing])
+		StyleUi.poly(ci, pts, c, StyleUi.INK if k == 0 else Color("#8a84c0").lerp(StyleUi.GOLD_LIGHT, pulse))
 
 
 # One off-screen gap arrow: a solid pointer with an ink edge, in the arrow's pulsing colour.

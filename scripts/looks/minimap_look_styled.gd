@@ -1,3 +1,4 @@
+# gdlint: ignore=max-public-methods
 class_name MinimapLookStyled
 extends MinimapLook
 
@@ -90,6 +91,25 @@ func first_light(part: String, col: Color, px: int, py: int) -> Color:
 	if part == "line":
 		return Color("#fff6d0")
 	return INK
+
+
+# Walls and gates: Style update (#94). The surge on the radar in the minimap's own palette: storm-violet bands (the
+# people clouds' violet, but lighter and opaque so they read on both grounds), a pale lilac ring, an ink edge round both
+# and a gold flush on each beat of the pulse.
+func surge_colour() -> Color:
+	return Color("#8a7be0")
+
+
+func surge_ring_colour() -> Color:
+	return Color("#e4defc")
+
+
+func surge_ink() -> Color:
+	return INK
+
+
+func surge_beat_colour() -> Color:
+	return Color("#ffd866")
 
 
 func player_colour() -> Color:

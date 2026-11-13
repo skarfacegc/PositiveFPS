@@ -8,10 +8,12 @@ extends RefCounted
 
 const TOON_SHADER := "res://shaders/style_toon.gdshader"
 const GLOW_SHADER := "res://shaders/style_glow.gdshader"
+const WASH_SHADER := "res://shaders/style_wash.gdshader"
 
 static var _cache: Dictionary = {}
 static var _toon: Shader
 static var _glow: Shader
+static var _wash: Shader
 
 
 # A colour from a "#rrggbb" string.
@@ -64,6 +66,31 @@ static func glow_plane(parent: Node, m: Material, size: float, pos: Vector3) -> 
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(size, size)
 	return _mi(parent, plane, m, pos, Vector3.ZERO, false)
+
+
+# Walls and gates: Style update (#94). A soft-edged rectangle of light `y` metres up, over the ground rectangle `rect`
+# (x, z): a faint fill and a brighter band inside its edge (shaders/style_wash.gdshader). Each caller owns its material.
+static func wash(parent: Node, rect: Rect2, col: Color, fill: float, rim: float, y: float) -> MeshInstance3D:
+	if _wash == null:
+		_wash = load(WASH_SHADER)
+	var m := ShaderMaterial.new()
+	m.shader = _wash
+	m.set_shader_parameter("wash_color", col)
+	m.set_shader_parameter("fill", fill)
+	m.set_shader_parameter("rim", rim)
+	m.set_shader_parameter("size", rect.size)
+	m.set_shader_parameter("soft", StyleConfig.SU_WASH_SOFT)
+	var plane := PlaneMesh.new()
+	plane.size = rect.size
+	var mid := rect.get_center()
+	return _mi(parent, plane, m, Vector3(mid.x, y, mid.y), Vector3.ZERO, false)
+
+
+# Sets the fill and rim of a wash made by `wash` (a fade, or a pulse).
+static func set_wash(m: MeshInstance3D, fill: float, rim: float) -> void:
+	var mat := m.material_override as ShaderMaterial
+	mat.set_shader_parameter("fill", fill)
+	mat.set_shader_parameter("rim", rim)
 
 
 static func _mi(

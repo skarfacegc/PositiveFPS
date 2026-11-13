@@ -137,3 +137,66 @@ const L32_POOL_ALPHA := 0.3  # The pool's alpha in its middle at full strength.
 const L32_HEAD_ALPHA := 0.3  # The small glow at the head.
 const L32_POOL_RADIUS := 3.0  # Metres: the pool on the ground (and the cone's width at the ground).
 const L32_MAX_LIGHT_ALPHA := 0.35  # No light shape is ever more opaque than this (the test checks the constants).
+
+# ---- Walls and gates: Style update (#94, #74) ----------------------------------------------------------------------
+# Visual numbers of the styled look's catch-up with passes 2c and 3 and the Clean HUD (the rules never read them).
+
+# The surge's storm front (StylePush.layout_puffs): the dark heart sits behind the leading edge, the leading rows stand
+# tall and bow forward in the middle, the ends trail back and the rear rows are low.
+const SU_FOG_HEART_SHIFT := 0.3  # Where the darkest row sits across the depth (-1 rear .. 1 leading edge).
+const SU_FOG_BULGE := 1.4  # Metres the middle of the leading edge leads ahead of its ends.
+const SU_FOG_TRAIL := 1.6  # Metres the ends of the leading rows trail behind the middle.
+const SU_FOG_BACK_DROP := 0.45  # The height of the rear rows as a share of the front rows'.
+const SU_FOG_FRONT_RAISE := 1.15  # The leading row's height as a share of the usual puff height.
+const SU_FOG_TOWER := 0.5  # How far the leading puffs' heights vary (towers and gaps along the front).
+const SU_TIDE_POINTER_GROW := 1.7  # The styled surge pointer's tag is this many times the placeholder ring's size.
+
+# Soft washes of light over a town cell (shaders/style_wash.gdshader) and the marks built from them.
+const SU_WASH_SOFT := 1.6  # Metres the edge of a wash fades over.
+const SU_MARK_INSET := 0.5  # Metres a takeable cell's wash is drawn inside the cell's edge.
+const SU_MARK_Y := 4.5  # Metres: the washes lie just above the rooftops (a block's roofs reach about 4.3 m).
+const SU_MARK_FREE_FILL := 0.3  # A free cell (gold): its fill and the band along its edge.
+const SU_MARK_FREE_RIM := 0.75
+const SU_MARK_PAID_FILL := 0.07  # A paid cell (blue): hardly any fill, the band does the work.
+const SU_MARK_PAID_RIM := 0.6
+const SU_MARK_LAMP_STEP := 2.4  # Metres between the lanterns round a takeable cell's roofline.
+const SU_MARK_LAMP_Y := 4.3
+const SU_MARK_LAMP_RADIUS := 0.22
+const SU_PULSE_FILL := 0.6  # A cell just taken: the wash at the start of its pulse (it fades with the pulse).
+const SU_PULSE_RIM := 0.9
+const SU_LOST_COLOUR := "#8c93ad"  # A cell the gloom took: a cold grey-violet wash.
+const SU_LOST_FILL := 0.5
+const SU_LOST_RIM := 0.8
+const SU_PREVIEW_FILL := 0.2  # The take preview's faint wash over the cell.
+const SU_PREVIEW_RIM := 0.75
+const SU_PREVIEW_Y := 4.7
+
+# World tags and the take preview panel.
+const SU_TAG_OUTLINE := 16  # The ink edge of the gate counts, cell tags and defence label (pixels of the label).
+const SU_TAG_SCALE := 1.1  # Their glyph size against the placeholder's.
+const SU_PREVIEW_FONT := 14
+const SU_PREVIEW_PAD := 10.0
+const SU_PREVIEW_LINE := 20.0
+
+# Defences planted at a gate: the height of their posts and the wash under the one being aimed.
+const SU_DEFENCE_HEIGHT := 2.4
+const SU_DEFENCE_GHOST_SIZE := 4.0
+const SU_DEFENCE_GHOST_FILL := 0.3
+const SU_DEFENCE_GHOST_RIM := 0.7
+
+# The posts and festoon of a gate (StyleGates). The festoon's lowest point (post height less sag) clears the styled
+# player (L32_PLAYER_HEIGHT plus L32_LINE_CLEARANCE).
+const SU_GATE_MIN_LENGTH := 3.0  # A gate shorter than this gets none.
+const SU_GATE_INSET := 0.6  # Metres a post stands inside each end of the opening.
+const SU_GATE_POST_HEIGHT := 4.2
+const SU_GATE_POST_SIZE := 0.6
+const SU_GATE_SAG := 0.5
+const SU_GATE_PIECES := 4  # Straight pieces of the festoon's string.
+const SU_GATE_BULB_STEP := 2.4
+const SU_GATE_BULB_DROP := 0.22
+const SU_GATE_BULB_RADIUS := 0.16
+
+# A break mended (BurstFx.add_mend): the ring that closes and the seam of light.
+const SU_MEND_SECONDS := 1.4
+const SU_MEND_RADIUS := 4.0
+const SU_MEND_SEAM := 3.0

@@ -512,14 +512,33 @@ func _surge_mark() -> void:
 	var swell := 1.0 + NightConfig.SURGE_PULSE_MINIMAP * pulse
 	var bright := 1.0 + NightConfig.SURGE_PULSE_MINIMAP_BRIGHT * pulse
 	var side := Vector2(-surge_dir.y, surge_dir.x)
-	for k: int in range(NightConfig.SURGE_MINIMAP_BANDS):
-		var off := (float(k) - float(NightConfig.SURGE_MINIMAP_BANDS - 1) * 0.5) * NightConfig.SURGE_MINIMAP_STEP
-		var col := NightConfig.TIDE_MINIMAP_COLOUR
+	# Walls and gates: Style update (#94). The styled look gives the mark its own storm palette: an ink edge round the
+	# bands and the ring, violet bands, a pale lilac ring and a gold flush on each beat (the placeholder keeps the grey).
+	var ink := look.surge_ink()
+	var beat := look.surge_beat_colour()
+	var px_metres := float(Config.TD_PLAZA_SIZE) / float(RESOLUTION)
+	var steps := NightConfig.SURGE_MINIMAP_BANDS
+	if ink.a > 0.0:
+		for k: int in range(steps):
+			var off_i := (float(k) - float(steps - 1) * 0.5) * NightConfig.SURGE_MINIMAP_STEP
+			var a_i := surge_from + side * off_i * swell
+			for edge: float in [-1.0, 1.0]:
+				var shift := side * px_metres * edge
+				_line(a_i + shift, a_i + shift + surge_dir * NightConfig.SURGE_MINIMAP_LENGTH, ink)
+	for k: int in range(steps):
+		var off := (float(k) - float(steps - 1) * 0.5) * NightConfig.SURGE_MINIMAP_STEP
+		var col := look.surge_colour()
 		col.a = minf(1.0, col.a * (1.0 - 0.3 * absf(off) / maxf(NightConfig.SURGE_MINIMAP_STEP, 0.01)) * bright)
+		if beat.a > 0.0:
+			col = col.lerp(beat, 0.6 * pulse)
 		var a := surge_from + side * off * swell
 		_line(a, a + surge_dir * NightConfig.SURGE_MINIMAP_LENGTH, col)
-	var ring := NightConfig.TIDE_MINIMAP_COLOUR
+	var ring := look.surge_ring_colour()
 	ring.a = minf(1.0, ring.a * bright)
+	if beat.a > 0.0:
+		ring = ring.lerp(beat, 0.6 * pulse)
+	if ink.a > 0.0:
+		_ring(surge_from + surge_dir * surge_front, 3.0 * swell + 1.0, ink)
 	_ring(surge_from + surge_dir * surge_front, 3.0 * swell, ring)
 
 

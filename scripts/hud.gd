@@ -32,6 +32,8 @@ var dawn_panel: StyledPanel
 # Checkpoint 6: the styled look's versions of the HUD text lines (parchment panels; the Labels above show in the
 # placeholder look). Each is fed the same text as its Label.
 var rescued_panel: StyledPanel
+# Walls and gates: Style update (#94). The styled people line (the Label above shows in the placeholder look).
+var people_panel: StyledPanel
 var burst_panel: StyledPanel
 var key_panel: StyledPanel
 # Checkpoint 7: the styled Dusk to Dawn panel and spirit tag (drawn by StyleHud; the Labels and bars show in the
@@ -234,6 +236,7 @@ func _ready() -> void:
 	dawn_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	end_panel.add_child(dawn_panel)
 	rescued_panel = _make_line(StyledPanel.Kind.RESCUED)
+	people_panel = _make_line(StyledPanel.Kind.PEOPLE)
 	burst_panel = _make_line(StyledPanel.Kind.BURST)
 	key_panel = _make_line(StyledPanel.Kind.KEYS)
 	_push_line(rescued_panel, rescued_label.text, StyleHudText.IDLE, StyleUi.GOLD)
@@ -260,6 +263,13 @@ func _push_line(p: StyledPanel, text: String, state: int, colour: Color) -> void
 	var m := HudConfig.CP6_LINE_MARGIN
 	if p.kind == StyledPanel.Kind.RESCUED:
 		p.size = Vector2(w, h)
+	elif p.kind == StyledPanel.Kind.PEOPLE:
+		# Centred under the spirit meter in the same 25 px band as the Label (Clean HUD, #92).
+		p.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+		p.offset_left = -w * 0.5
+		p.offset_right = w * 0.5
+		p.offset_bottom = -HudConfig.CLEAN_PEOPLE_BOTTOM
+		p.offset_top = -HudConfig.CLEAN_PEOPLE_TOP
 	else:
 		# The key strip sits on the bottom edge; the burst line sits above the spirit meter's row (Clean HUD, #92).
 		p.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -284,7 +294,9 @@ func rebuild_look() -> void:
 	_show_line(rescued_label, rescued_panel, true)
 	_show_line(hint_label, key_panel, _controls_on)
 	_show_line(burst_label, burst_panel, _burst_on)
-	for p: StyledPanel in [rescued_panel, burst_panel, key_panel]:
+	people_label.visible = not styled
+	people_panel.visible = styled and people_panel.line_text != ""
+	for p: StyledPanel in [rescued_panel, people_panel, burst_panel, key_panel]:
 		p.rebuild_look()
 	night_label.visible = not styled
 	night_bar.visible = not styled
@@ -435,6 +447,9 @@ func set_people(text: String, short: bool) -> void:
 		people_label.text = text
 	var col := BorderConfig.GATE_COUNT_SHORT_COLOUR if short else BorderConfig.GATE_COUNT_OK_COLOUR
 	people_label.add_theme_color_override("font_color", col)
+	# Walls and gates: Style update (#94). The styled look draws the same line as a slim parchment panel.
+	_push_line(people_panel, text, StyleHudText.WARN if short else StyleHudText.IDLE, StyleUi.GOLD)
+	people_panel.visible = Looks.is_styled() and text != ""
 
 
 # Shows the player's spirit and whether they are dim (the bar and the label go grey).
@@ -492,6 +507,7 @@ func layout_controls() -> Array[Control]:
 		landmark_panel,
 		# Checkpoint 6: the styled look's lines (hidden, so not counted, in the placeholder look).
 		rescued_panel,
+		people_panel,
 		burst_panel,
 		key_panel,
 		# Checkpoint 7: the styled Dusk to Dawn panel and spirit tag (hidden in the placeholder look).

@@ -28,6 +28,7 @@ static func attach(level: TopDownMain) -> BurstCue:
 	g.fx = BurstFx.new()
 	level.add_child(g.fx)
 	level.player.burst_cleared.connect(g._on_burst_cleared)
+	level.border.line_mended.connect(g.fx.add_mend)  # Walls and gates: Style update (#94): the styled mend mark.
 	g._build_label()
 	return g
 

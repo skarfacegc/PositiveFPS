@@ -95,7 +95,9 @@ func _update_labels() -> void:
 			mid.y + out.y * BorderConfig.GATE_COUNT_OUT
 		)
 		label.visible = (held or _short_and_pushed(g)) and not HudSafeArea.hides_label(level, avoid, label.position)
-		label.modulate = (BorderConfig.GATE_COUNT_SHORT_COLOUR if members < need else BorderConfig.GATE_COUNT_OK_COLOUR)
+		var plain := BorderConfig.GATE_COUNT_SHORT_COLOUR if members < need else BorderConfig.GATE_COUNT_OK_COLOUR
+		# Walls and gates: Style update (#94). The styled look gives the count a cream or coral tag with an ink edge.
+		StyleTags.apply(label, StyleTags.Role.GATE_SHORT if members < need else StyleTags.Role.GATE_OK, plain)
 	for key: Variant in _labels.keys():
 		var gi: int = key
 		if gi >= gates.size():

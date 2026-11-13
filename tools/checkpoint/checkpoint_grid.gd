@@ -98,7 +98,8 @@ func _g_shot(view_name: String, label: String, view: Dictionary = {}, frames: in
 func _g_start_square(label: String) -> void:
 	await _g_move_player(Vector3(0.0, 0.0, 0.0))
 	await _g_shot("start_square", label, {}, 20)
-	var gate := {"world": Vector3(0.0, 0.2, 6.0), "size": Vector2i(426, 240), "scale": 3}
+	# Pass 2c (#74): the start square is 18 m, so its south gate lies on z = 9 (TownGrid), not z = 6.
+	var gate := {"world": Vector3(0.0, 0.2, TownGrid.tile_hi(TownGrid.start_cell().y * 2)), "size": Vector2i(426, 240), "scale": 3}
 	await _g_shot("gate_closeup", label, gate, 4)
 
 
@@ -114,7 +115,7 @@ func _g_taken(label: String) -> void:
 			bd.tint = 1.0
 			bd.look.sync()
 	await _g_run(300)
-	await _g_move_player(Vector3(12.0, 0.0, 10.0))
+	await _g_move_player(Vector3(14.0, 0.0, 12.0))
 	await _g_shot("taken_block", label, {}, 20)
 	var close := {"world": east + Vector3(0.0, 1.5, 0.0), "size": Vector2i(426, 240), "scale": 3}
 	await _g_shot("taken_block_closeup", label, close, 4)
@@ -126,7 +127,7 @@ func _g_pips_and_preview(label: String) -> void:
 	main.border.pips.counts[G_PIP_CELL] = maxi(BorderConfig.TAKE_RESCUES - 1, 1)
 	main.border.pips.version += 1
 	var at := TownGrid.cell_centre(G_PIP_CELL)
-	await _g_move_player(at + Vector3(0.0, 0.0, 7.5))
+	await _g_move_player(at + Vector3(0.0, 0.0, 12.0))  # Pass 2c: the street south of the north block.
 	await _g_shot("rescue_pips", label, {}, 20)
 	main.take_block.holding = true
 	main.player._aim_point = Vector3(at.x, 0.0, at.z)
@@ -139,7 +140,8 @@ func _g_pips_and_preview(label: String) -> void:
 # Three dimmed people lean on the start square's west gate; the dent in the line shows.
 func _g_push(label: String) -> void:
 	await _g_move_player(Vector3(0.0, 0.0, 0.0), 20)
-	var spots: Array[Vector3] = [Vector3(-8.2, 0.0, 0.0), Vector3(-8.6, 0.0, 2.6), Vector3(-8.6, 0.0, -2.6)]
+	# Pass 2c: the west gate of the 18 m start square lies on x = -9; the pushers lean just outside it.
+	var spots: Array[Vector3] = [Vector3(-10.2, 0.0, 0.0), Vector3(-10.6, 0.0, 3.5), Vector3(-10.6, 0.0, -3.5)]
 	for k: int in range(spots.size()):
 		_make_dimmed(main.people[G_RESCUED + k], spots[k])
 	await _g_run(150)
